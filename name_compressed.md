@@ -63,17 +63,27 @@ Names are produced by resolving either a ref string or an Entry id and then eval
 <a name="resolution-algorithm"></a>
 ### Resolution algorithm
 
-Use the side-by-side view: algorithm (left) and top→bottom mermaid diagram (right).
+Use the two-panel layout: algorithm (left) and top→bottom mermaid diagram (right).
 
-| Algorithm (left) | Visual (right) |
-|---|---|
-| - Start from a `ref` or `Entry id`.
-  - Lookup the `Entry` via `calculateNameFromRefString(ref)` → `repository.getNameTokenById(ref)` → `Optional<Entry>`.
-  - For each `NameToken` in the Entry (in order):
-    - Append the token's required `prefix`.
-    - If `ref` present: recursively resolve the referenced Entry and append the resolved result (fail-soft: unresolved refs emit empty segment + warning).
-    - If `one_of` present: select one alternative via deterministic RNG (`WorldStepInstance.randomFrom(list)`), recursively evaluate chosen token(s), append result.
-  - After all tokens: return `Optional.of(concatenatedResult)` (may be empty). | ```mermaid
+<div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+  <div style="flex:1;min-width:320px">
+
+#### Algorithm
+
+- Start from a `ref` or `Entry id`.
+- Lookup the `Entry` via `calculateNameFromRefString(ref)` → `repository.getNameTokenById(ref)` → `Optional<Entry>`.
+- For each `NameToken` in the Entry (in order):
+  - Append the token's required `prefix`.
+  - If a `ref` is present: recursively resolve the referenced Entry and append the resolved result (fail-soft: unresolved refs emit an empty segment + warning log).
+  - If a `one_of` is present: select one alternative via deterministic RNG (`WorldStepInstance.randomFrom(list)`), recursively evaluate the chosen token(s), and append the result.
+- After all tokens: return `Optional.of(concatenatedResult)` (the concatenated string may be empty).
+
+  </div>
+  <div style="flex:1;min-width:320px">
+
+#### Visual
+
+```mermaid
 flowchart TB
   A["WorldStepInstance.index()"] --> B["NameInstance.index()"]
   B --> C["Repository.index()"]
@@ -86,7 +96,10 @@ flowchart TB
     I["NameToken: ref → Entry"] --> G
     J["NameToken: one_of → list"] --> K["randomFrom(list)"] --> G
   end
-``` |
+```
+
+  </div>
+</div>
 
 <a name="determinism"></a>
 ### Determinism & randomness
