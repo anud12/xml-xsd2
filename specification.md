@@ -8,6 +8,9 @@ This document describes the implemented functionality in the codebase under impl
 Concepts
 -------------------
 
+## Server
+Server loads modules which are packaged in a zip archive.
+
 ## [Entities](./entities.md)
 Atomic unit of the engine.
 ## Zones

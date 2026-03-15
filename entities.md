@@ -39,14 +39,8 @@ Example:
 ```
 
 
-## Location & Containment
-- zone / region / locationGraph node references
-- parent container (inventory, container entity)
-- Teleportation updates location attributes
-
 ## Classification & Rules
 - Classification tags for grouping & indexing
-- Name rules used to resolve human-readable names
 
 ## Lifecycle & Actions
 - Creation (EntityCreate middleware)
@@ -54,30 +48,6 @@ Example:
 - Container operations (ContainerCreate, append)
 - Destruction / removal
 
-
-## Scripts & Hooks
-- Entities can be targeted by JS rule modules (HostJSApi)
-- onServerTick and event handlers may modify attributes or trigger actions
-
-## Serialization (XML example)
-```xml
-<entity entity_rule_ref="entity_rule" id="0.0">
-  <text_map>
-    <text name="displayName" value="Alice"/>
-  </text_map>
-  <number_map>
-    <number name="hp" value="100"/>
-    <number name="level" value="5"/>
-  </number_map>
-  <containers>
-    <container container_rule_ref="container_rule" id="0.2">
-      <entities>
-        <entity entity_id_ref="0.1"/>
-      </entities>
-    </container>
-  </containers>
-</entity>
-```
 
 Container-only / reference use-case
 
