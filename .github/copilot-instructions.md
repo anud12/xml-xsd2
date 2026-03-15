@@ -1,106 +1,75 @@
-# Copilot instructions — xml-xsd2
+# Copilot instructions — xml-xsd2 workspace
 
 Purpose
+-------
+Practical guidance for future Copilot CLI sessions working in this workspace and the related implementation repository. Focuses on concrete commands, where to find behavior (tests/specs), and repo-specific conventions that Copilot should respect when making edits.
 
-Short guide for Copilot CLI sessions running against this repository. Focuses on the repo's OpenSpec workspace, available prompts/skills, and concrete commands used by the prompts.
+## Project purpose
+- This workspace contains specification documents (this repo: xml-xsd2) that describe the data model (in an data format agnostic way) and expected behavior of the `sibling` repository at "../xml-xsd/implementation".
+- The test suite (`specification`) for `sibling` is stored at "../xml-xsd/specification"
 
----
 
-Build / test / lint
+Key runtime concepts are implemented there:
+  - WorldStep model: XML-derived model types (WorldStep, RuleGroup, NameRule, Entry, etc.)
+  - Model classes are generated / structured to mirror XML schema (packages reflect element paths).
+  - Runtime instance: WorldStepInstance boots and indexes all rule repositories (property, name, zone, region, entity, container, ...).
+  - Repositories: index() builds id->Entry maps used for fast lookups (e.g., name rules repository).
+  - Resolution logic: Calculate* classes (CalculateName) implement evaluation semantics (concatenation, refs, one_of/choice selection).
+  - Deterministic randomness: WorldStepInstance.random()/randomFrom() uses WorldMetadata.RandomizationTable + internal counter for reproducible selection.
+  - WebSocket & test harness: specification tests use a websocket-based analyzer (HttpTestBase / analyzeExecuteNameRule) to validate behavior against the implementation.
 
-- No package manifests or conventional build/test/lint entries were detected in the repo root.
-- Primary CLI surfaced in prompts/skills: the repository's prompts assume the `openspec` CLI is available. Key commands referenced by prompts/skills:
-  - openspec new change "<name>" — scaffold a change at `openspec/changes/<name>/`
-  - openspec status --change "<name>" --json — return artifacts list and `applyRequires`
-  - openspec instructions <artifact-id> --change "<name>" --json — return `template`, `instruction`, `context`, `rules`, `outputPath`, and `dependencies`
-  - openspec status --change "<name>" — show human-friendly status
+###
 
-(If project code or tests are added later, add the corresponding manifest and update this file with exact build/test/lint commands and how to run a single test.)
+## High-level architecture (big picture)
 
----
+- This workspace contains specification documents (this repo: xml-xsd2) that describe the data model (in an data format agnostic way) and expected behavior.
+- The Java implementation lives in a sibling repository at ../xml-xsd/implementation. Key runtime concepts are implemented there:
+  - WorldStep model: XML-derived model types (WorldStep, RuleGroup, NameRule, Entry, etc.)
+  - Model classes are generated / structured to mirror XML schema (packages reflect element paths).
+  - Runtime instance: WorldStepInstance boots and indexes all rule repositories (property, name, zone, region, entity, container, ...).
+  - Repositories: index() builds id->Entry maps used for fast lookups (e.g., name rules repository).
+  - Resolution logic: Calculate* classes (CalculateName) implement evaluation semantics (concatenation, refs, one_of/choice selection).
+  - Deterministic randomness: WorldStepInstance.random()/randomFrom() uses WorldMetadata.RandomizationTable + internal counter for reproducible selection.
+  - WebSocket & test harness: specification tests use a websocket-based analyzer (HttpTestBase / analyzeExecuteNameRule) to validate behavior against the implementation.
 
-High-level architecture
+## Key conventions and patterns (repo-specific)
 
-- This repository is organized as an OpenSpec workspace:
-  - openspec/config.yaml — project-level spec-driven configuration (project context and per-artifact rules)
-  - openspec/specs/ — canonical spec artifacts (domain/spec files)
-  - openspec/changes/ — per-change workspaces containing artifacts and a `.openspec.yaml` scaffold
-- Copilot automation artifacts live under `.github/`:
-  - .github/prompts/ — opsx-*.prompt.md files (starter prompts used by Copilot CLI flows)
-  - .github/skills/ — openspec-* skill folders; each contains a SKILL.md describing capability and constraints
-- The typical interaction flow (as encoded in prompts/skills):
-  1. Create or open a change: `openspec new change "<name>"`
-  2. Query `openspec status --change "<name>" --json` to discover `artifacts` and `applyRequires`
-  3. For each ready artifact, fetch `openspec instructions <artifact-id> --change "<name>" --json` and generate the artifact file using the provided `template` and `instruction`
-  4. Repeat until all `applyRequires` artifacts are complete, then run status to confirm readiness for implementation
+- XML-to-Java mapping:
+  - Generated/hand-crafted model classes mirror XML paths: e.g., ro.anud.xml_xsd.implementation.model.Type_nameToken.NameToken.NameToken
+  - Each model class exposes:
+    - static nodeName (XML element name)
+    - fromRawNode / deserialize / serializeIntoRawNode methods for RawNode-based parsing and serialization
+    - builder pattern and Lombok annotations
+    - parent/child linking via LinkedNode and change/remove subscriptions (onChange/onRemove)
 
----
+- RawNode/LinkedNode pattern:
+  - XML is parsed into RawNode objects; model classes convert RawNode -> typed model via deserialize.
+  - LinkedNode provides parent/child links and change notifications. Keep these invariants when editing model/serialization code.
 
-Key conventions (repo-specific)
+- Indexing pattern:
+  - Many runtime services expose index() which populates in-memory repositories used at runtime. After changing model shapes, ensure index() logic still finds stream* methods (e.g., streamRuleGroup, streamEntry).
 
-- Prompts and skills pairing
-  - Prompt files are named `opsx-<action>.prompt.md` under `.github/prompts/`.
-  - Skills are in `.github/skills/` and typically use the `openspec-<action>` naming convention. Each skill includes a SKILL.md with metadata (compatibility, license, author).
-  - The prompts and skills map 1:1 by action name (e.g., `opsx-propose` ↔ `openspec-propose`).
+- Logging scope:
+  - Code uses LogScope (try-with-resources) for structured, contextual logging. Preserve logScope usage for consistency.
 
-- Artifact generation rules (important for Copilot output)
-  - Use `openspec instructions` to obtain: `template`, `instruction`, `context`, `rules`, `outputPath`, and `dependencies`.
-  - Follow the `template` and `instruction` for structure and content.
-  - `context` and `rules` are constraints and MUST NOT be copied into generated artifact files. They guide content but are not part of the artifact.
-  - Always read dependency artifacts (listed in `dependencies`) before writing a new artifact.
-  - Use `applyRequires` from `openspec status --json` to know which artifacts must be completed before implementation.
+- Randomness & determinism:
+  - random()/randomFrom() are intentionally deterministic for replayable tests. Avoid introducing non-deterministic RNGs without providing seeding or a reproducible alternative.
 
-- Tools referenced by prompts
-  - AskUserQuestion tool — used to request missing clarifications from the user (open-ended questions).
-  - TodoWrite tool — used by some workflows to track progress while generating multiple artifacts.
+- Naming conventions to respect:
+  - Element-based names (type__*, nodeName) and nested packages are used widely; renaming elements requires updating nodeName constants and (de)serialization logic.
 
-- Guardrails encoded in prompts/skills (follow strictly)
-  - Create all artifacts required for implementation as defined by the schema's `apply.requires`.
-  - Verify artifact files exist after writing before proceeding.
-  - If critical context is missing, ask the user; otherwise make reasonable, minimal assumptions to keep progress.
+- Tests & dynamic test pattern:
+  - Integration/spec tests use JUnit DynamicTest factories and helper HttpTestBase.runTestRelativeToClass to execute analyzers. When adding tests, prefer this pattern for websocket-based scenarios.
 
----
+## Where to look (important files / dirs)
 
-Where to look first (authoritative files)
+- Spec/docs (this repo):
+  - specification.md, entities.md, name.md, container.md, effects.md, actions.md — these describe behavior that implementation must preserve.
+- Java implementation (`sibling` repo):
+  - ../xml-xsd/implementation/src/main/java — model, service, repository, middleware packages
+  - ../xml-xsd/implementation/src/test/java — unit tests for implementation
+  - ../xml-xsd/specification-test/src/test/java — specification-driven tests used to validate behavior via websockets
 
-- .github/prompts/ (starter prompts for common workflows)
-- .github/skills/*/SKILL.md (skill metadata & compatibility; many skills require the `openspec` CLI)
-- openspec/config.yaml (project context, per-artifact rules)
-- openspec/changes/ (existing change drafts)
+## Quick guidance for Copilot sessions (practical rules)
 
----
-
-Common prompt ↔ skill mappings
-
-- opsx-propose.prompt.md ↔ openspec-propose
-- opsx-new.prompt.md ↔ openspec-new-change
-- opsx-apply.prompt.md ↔ openspec-apply-change
-- opsx-verify.prompt.md ↔ openspec-verify-change
-- opsx-sync.prompt.md ↔ openspec-sync-specs
-- opsx-archive.prompt.md ↔ openspec-archive-change
-- opsx-bulk-archive.prompt.md ↔ openspec-bulk-archive-change
-- opsx-continue.prompt.md ↔ openspec-continue-change
-- opsx-ff.prompt.md ↔ openspec-ff-change
-- opsx-onboard.prompt.md ↔ openspec-onboard
-- opsx-explore.prompt.md ↔ openspec-explore
-
----
-
-Quick Copilot session checklist
-
-- Load `openspec/config.yaml` into context when starting work on a change (it contains the project context and rules).
-- Start with the matching opsx-*.prompt.md for the desired workflow.
-- Ensure `openspec` CLI is available in the environment when running skills that require it.
-- Honor `instruction` and `template` from `openspec instructions` responses and do NOT output `context`/`rules` blocks inside artifacts.
-- Use AskUserQuestion for missing user input and TodoWrite to track multi-artifact work.
-
----
-
-Notes for maintainers
-
-- Add concrete build/test/lint instructions here if/when code is added (package.json, pyproject.toml, etc.).
-- Keep .github/prompts and .github/skills in sync: changes to a prompt's expected inputs should be reflected in the corresponding SKILL.md metadata.
-
----
-
-If anything in this file should cover additional areas (e.g., a language-specific test runner or CI job), tell me where to look and it will be added.
+- When suggesting API or XML element renames, do not keep backward compatibility in mind: the documentation is of a greenfield project using the `sibling` repository.
