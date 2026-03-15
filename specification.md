@@ -8,8 +8,13 @@ This document describes the implemented functionality in the codebase under impl
 Concepts
 -------------------
 
-## Primitives\n- [NumberExpression](./numberExpression.md): An immutable, lazily-evaluated expression tree representing a long value. Construction via of() (eager: converts & caches a long from a JS Number), and combinators sum, subtract, multiply, divide, group, andom. Expose an explicit evaluation API such as valuate(context): long. From JS a NumberExpression is truthy; implicit numeric coercion MUST throw (use explicit conversion helpers).\n- [StringExpression](./stringExpression.md): An immutable, lazily-evaluated expression tree representing host String values. Construction via of() (eager: converts & caches a JS string), and compositors concat, join, group, ef, and oneOf. Evaluation is lazy; oneOf uses the deterministic instance random table and ef resolution follows the repository (sRule/getRule). Includes set-aware matching primitives (containsExpression, indexOfExpression) which reason about possible expansions caused by oneOf and refs.\n- [ConditionExpression](./booleanExpression.md): An immutable, lazily-evaluated expression tree representing boolean values. Built via of(), logical combinators nd, or, 
-ot, xor, implies, group, ef, oneOf and andom(probability). Operators use short-circuit semantics where applicable. ef resolution uses the repository pattern and defaults to fail-soft (false) unless strict validation is enabled.\n\n## Server
+## Primitives
+- [`NumberExpression`](./numberExpression.md): An `immutable`, `lazily-evaluated` expression tree representing a `long` value. Construct with `of(number)` (eager — truncates/validates a JS Number) and combinators `sum`, `subtract`, `multiply`, `divide`, `group`, `random`. Provide an evaluation API such as `evaluate(context): long`. From JS a `NumberExpression` is truthy; implicit numeric coercion MUST throw.
+
+- [`StringExpression`](./stringExpression.md): An `immutable`, `lazily-evaluated` expression tree representing host `String` values. Construct with `of(string)` (eager) and compositors `concat`, `join`, `group`, `ref`, and `oneOf`. Evaluation is lazy; `oneOf` uses the deterministic instance random table and `ref` resolution follows the repository (`asRule`/`getRule`). Includes set-aware matching primitives (`containsExpression`, `indexOfExpression`) that reason about possible expansions caused by `oneOf` and refs.
+
+- [`ConditionExpression`](./conditionExpression.md): An `immutable`, `lazily-evaluated` expression tree representing boolean values. Built with `of()`, logical combinators `and`, `or`, `not`, `xor`, `implies`, `group`, `ref`, `oneOf`, and `random(probability)`. Operators use short-circuit semantics where applicable. `ref` resolution uses the repository pattern and defaults to fail‑soft (`false`) unless strict validation is enabled.
+## Server
 Server loads modules which are packaged in a zip archive.
 
 ## [Modules](./modules.md)
@@ -29,4 +34,3 @@ Used for better querry and grouping.
 
 ## Module
 Module is a collection of rules packaged into a .zip file.
-
