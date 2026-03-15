@@ -61,6 +61,8 @@ export type StringExpression = {
   of: (s: string) => StringExpression,
   /** Concatenate two expressions */
   concat: (other: StringExpression) => StringExpression,
+  /** Join multiple expressions using an optional separator */
+  join: (parts: StringExpression[], separator?: StringExpression) => StringExpression,
   /** Convenience: prefix a literal string to this expression */
   prefix: (s: string) => StringExpression,
   /** Convenience: sufix a literal string to this expression */
@@ -71,6 +73,12 @@ export type StringExpression = {
   oneOf: (choices: StringExpression[]) => StringExpression,
   /** Reference another rule by id (resolved at evaluation time) */
   ref: (ruleId: string) => StringExpression,
+  /** Return index of first possible match of `other` inside this expression's language, or -1 if none */
+  indexOfExpression: (other: StringExpression, fromInclusive?: any) => any,
+  /** Check whether this expression MAY produce a string that contains any possible evaluation of `other`.
+   *  Returns 1 (true) or 0 (false) as a NumberExpression for compatibility with the expression algebra.
+   */
+  containsExpression: (other: StringExpression) => any,
   /** Optional simple transforms (implementation may provide) */
   upper?: () => StringExpression,
   lower?: () => StringExpression,
@@ -87,10 +95,20 @@ Notes:
 - Start from a `StringExpression` or a `ref` string.
 - If the node is a literal → return the literal.
 - If `concat` → evaluate left, evaluate right, return left + right.
+- If `join(parts, separator)` → evaluate each element of `parts` in declaration order, evaluate `separator` if present (defaults to empty string), then join the evaluated parts using the separator and return the result.
 - If `group` → evaluate contained expression and return result.
 - If `ref(ruleId)` → repository lookup: `stringRepository.getEntryById(ruleId)` → evaluate the registered expression for that entry. If not found, substitute empty string (fail-soft) and log.
 - If `oneOf(list)` → pick index = deterministicRandomIndex(list.size()) using `worldStepInstance.randomFrom(list)` semantics (same inclusive behavior as name); evaluate the chosen entry and return.
-- Return an Optional-like result (may be empty string but present). Implementations that use Java should return `Optional<String>` consistent with `NameInstance.calculateNameFromRefString`.
+- `indexOfExpression(other)` / `containsExpression(other)` — set-semantic evaluation:
+  - Semantics: exists s in L(this) and t in L(other) such that t is a substring of s.
+  - Implementation approaches:
+    1. Small-finite enumeration: if both languages are provably small (product of oneOf branch counts under threshold), enumerate expansions of `this` and `other` and perform substring/index search.
+    2. Automata-based: convert expressions to NFAs (treating concat/oneOf/group/of/ref-expanded-as-NFA) and check emptiness of intersection between NFA(this) and Σ* · NFA(other) · Σ* (i.e., does there exist an accepted string with a substring matching other?). This is the robust solution for large or combinatorial expressions.
+    3. Conservative fallback: if expressions contain non-regular transforms (complex regex replace, dynamic repeat counts, or transforms that break regular-language assumptions), either conservatively return MAYBE (implementation choice) or require the operation to be unsupported for those nodes.
+  - Refs: expand `ref` nodes via repository lookups; detect recursion and cap expansion depth (configurable, e.g., 16) to avoid infinite automata.
+  - Deterministic randomness: `containsExpression` is existential — it checks whether some valid choice sequence could produce the match. This differs from runtime evaluation (which uses deterministic `randomFrom` to pick a single branch). If a runtime deterministic check is needed, evaluate both expressions under the same instance RNG and perform a concrete substring check instead.
+
+- Return an Optional-like result e.g., a NumberExpression with -1/0/1 semantics (see API above). Implementations on Java should provide `Optional<Long>` / `OptionalInt` or `Optional<Boolean>` as appropriate.
 
 ## Examples
 
@@ -114,7 +132,29 @@ const colours = hostApi.string.oneOf([hostApi.string.of("red"), hostApi.string.o
 // worldStepInstance.randomFrom([...]) chooses one index deterministically
 ```
 
-- Nested example mixing refs and oneOf: a token may be implemented as `hostApi.string.of(prefix).concat(hostApi.string.ref("someEntry"))` and used inside a `oneOf` list.
+- Join example:
+```ts
+const words = [hostApi.string.of("red"), hostApi.string.of("blue"), hostApi.string.of("green")];
+const joined = hostApi.string.of("").join(words, hostApi.string.of(", "));
+// Evaluating joined -> "red, blue, green"
+```
+
+- containsExpression example (oneOf-aware):
+```ts
+// s may evaluate to "AC" or "BC"
+const s = hostApi.string.oneOf([hostApi.string.of("A"), hostApi.string.of("B")]).concat(hostApi.string.of("C"));
+const a = hostApi.string.of("A");
+// containsExpression is existential: returns 1 (true) because "AC" contains "A"
+const containsA = s.containsExpression(a);
+```
+
+- Nested example `(A|B)|(B|C)`:
+```ts
+const left = hostApi.string.oneOf([hostApi.string.of("A"), hostApi.string.of("B")]);
+const right = hostApi.string.oneOf([hostApi.string.of("B"), hostApi.string.of("C")]);
+const s2 = hostApi.string.oneOf([left, right]);
+// s2.containsExpression(hostApi.string.of("A")) -> 1
+```
 
 ## Repository & Validation
 
@@ -128,10 +168,8 @@ Follow the same repository/indexing pattern used by `name` rules:
 
 - Unresolved refs: current expected default is fail-soft (empty string) with logging; provide an optional strict mode for CI.
 - Random selection correctness: ensure index computation is inclusive and matches `name`'s implementation (`int idx = (int)Math.floor(random() * size);`).
-- Tests:
-  - Deterministic coverage for `oneOf` with several table values.
-  - Nested `oneOf` + `ref` evaluation tests.
-  - Validator test for `StringRuleRefValidator`.
+- Complexity: automata conversion and product construction can explode. Provide heuristics: enumerate for small choices, automata for larger ones, and sensible timeouts/limits.
+- Non-regular transforms: either disallow in contains/indexOfExpression or implement conservative approximations.
 
 ---
 
