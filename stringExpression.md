@@ -65,8 +65,8 @@ export type StringExpression = {
   join: (parts: StringExpression[], separator?: StringExpression) => StringExpression,
   /** Convenience: prefix a literal string to this expression */
   prefix: (s: string) => StringExpression,
-  /** Convenience: sufix a literal string to this expression */
-  sufix: (s: string) => StringExpression,
+  /** Convenience: suffix a literal string to this expression */
+  suffix: (s: string) => StringExpression,
   /** Grouping node to control evaluation order */
   group: (expr: StringExpression) => StringExpression,
   /** Deterministic choice among alternatives */
@@ -174,4 +174,5 @@ Follow the same repository/indexing pattern used by `name` rules:
 ---
 
 This spec aligns `StringExpression` behavior with the `number` expression semantics (immutability, lazy evaluation, host wrappers) while adopting the `name` composability primitives (literal/prefix, `ref`, `one_of`) so host scripts can build deterministic, composable string expressions.
+
 
