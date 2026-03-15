@@ -8,6 +8,8 @@ This document describes the implemented functionality in the codebase under impl
 Concepts
 -------------------
 
+## Primitives
+- [`NumberExpression`](./numberExpression.md): An `immutable`, `lazily-evaluated` expression tree representing a `long` value. Construction via `of()` (eager: converts & caches a `long` from a JS `Number`), and combinators `sum`, `subtract`, `multiply`, `divide`, `group`, `random`. Expose an explicit evaluation API such as `evaluate(context): long`. From JS a `NumberExpression` is truthy; implicit numeric coercion MUST throw (use explicit conversion helpers).
 ## Server
 Server loads modules which are packaged in a zip archive.
 

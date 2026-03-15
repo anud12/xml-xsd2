@@ -68,7 +68,6 @@ export type NumberExpression = {
     subtract: (numberExpression:NumberExpression) => NumberExpression,
     multiply: (numberExpression:NumberExpression) => NumberExpression,
     divide: (numberExpression:NumberExpression) => NumberExpression,
-    group: (numberExpression:NumberExpression) => NumberExpression,
     random: (fromInclusive:NumberExpression, toInclusive: NumberExpression) => NumberExpression,
 }
 ```

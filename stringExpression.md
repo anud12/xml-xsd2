@@ -27,12 +27,10 @@ Use cases:
 When a `StringExpression` is extracted, nodes are evaluated recursively in declaration order:
 
 - Literal (`of`) nodes return their value.
-- `concat` joins left and right evaluation results.
 - `ref(ruleId)` resolves `ruleId` through the string repository (see Validation). If the ref is unresolved, the implementation SHOULD fail-soft and substitute an empty segment (logging the missing ref). A strict mode can be provided for CI.
 - `oneOf(list)` selects exactly one entry via the deterministic selection API (`worldStepInstance.randomFrom(list)`), then evaluates the chosen expression.
 - `group(expr)` influences grouping/evaluation order (useful for nested choice boundaries).
 
-`oneOf` selection MUST use the same deterministic table as `name` resolution so deterministic tests remain reproducible.
 
 ## Host API
 
@@ -65,6 +63,8 @@ export type StringExpression = {
   concat: (other: StringExpression) => StringExpression,
   /** Convenience: prefix a literal string to this expression */
   prefix: (s: string) => StringExpression,
+  /** Convenience: sufix a literal string to this expression */
+  sufix: (s: string) => StringExpression,
   /** Grouping node to control evaluation order */
   group: (expr: StringExpression) => StringExpression,
   /** Deterministic choice among alternatives */
