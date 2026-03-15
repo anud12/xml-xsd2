@@ -76,9 +76,9 @@ export type StringExpression = {
   /** Return index of first possible match of `other` inside this expression's language, or -1 if none */
   indexOfExpression: (other: StringExpression, fromInclusive?: any) => any,
   /** Check whether this expression MAY produce a string that contains any possible evaluation of `other`.
-   *  Returns 1 (true) or 0 (false) as a NumberExpression for compatibility with the expression algebra.
+   *  Returns a ConditionExpression.
    */
-  containsExpression: (other: StringExpression) => any,
+  containsExpression: (other: StringExpression) => ConditionExpression,
   /** Optional simple transforms (implementation may provide) */
   upper?: () => StringExpression,
   lower?: () => StringExpression,
@@ -144,7 +144,7 @@ const joined = hostApi.string.of("").join(words, hostApi.string.of(", "));
 // s may evaluate to "AC" or "BC"
 const s = hostApi.string.oneOf([hostApi.string.of("A"), hostApi.string.of("B")]).concat(hostApi.string.of("C"));
 const a = hostApi.string.of("A");
-// containsExpression is existential: returns 1 (true) because "AC" contains "A"
+// containsExpression is existential: returns true because "AC" contains "A"
 const containsA = s.containsExpression(a);
 ```
 
@@ -174,3 +174,4 @@ Follow the same repository/indexing pattern used by `name` rules:
 ---
 
 This spec aligns `StringExpression` behavior with the `number` expression semantics (immutability, lazy evaluation, host wrappers) while adopting the `name` composability primitives (literal/prefix, `ref`, `one_of`) so host scripts can build deterministic, composable string expressions.
+
