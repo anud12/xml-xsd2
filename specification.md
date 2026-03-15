@@ -29,3 +29,4 @@ Used for better querry and grouping.
 
 ## Module
 Module is a collection of rules packaged into a .zip file.
+
