@@ -11,6 +11,10 @@ Concepts
 ## Server
 Server loads modules which are packaged in a zip archive.
 
+## [Modules](./modules.md)
+Modules are ZIP archives containing sandboxed JavaScript (ESM) and related 
+assets. 
+
 ## [Entities](./entities.md)
 Atomic unit of the engine.
 ## Zones
