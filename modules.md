@@ -1,4 +1,8 @@
 # Module System Model
+This document describes the core `Module` concept.
+
+## Very important //TODO
+every rule/ constant declaration are done in this module's context. When importing another, those informations can be read/modified through a "getContext" api
 
 ## Summary
 Modules are ZIP archives containing sandboxed JavaScript (ESM) and related assets. Modules can be uploaded or overwritten at runtime to change rulesets and behavior without rebuilding the server. Modules are stored in-memory (ephemeral) by the server at present; persistence and promotion to disk are considered separately.
@@ -71,10 +75,13 @@ export default (arg) => {
 
 ### Host Api 
 
-  The server exposes the following TypeScript declaration file (HostApi.d.ts) as the host API for  modules. Modules should import or reference this file to type their entry function and host interactions.
+  The server exposes the following TypeScript declaration file (.d.ts) which enhances the HostApi.
+  Modules should import or reference this file to type their entry function and host interactions.
+
   ```typescript
    export type HostApi = {
     /*... rest of declarations */
     loadModule: <SubmoduleType>(name:string) => SubmoduleType
    }
   ```
+

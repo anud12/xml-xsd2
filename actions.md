@@ -1,3 +1,3 @@
 # Actions — Concepts
 
-This document describes the core "Actions" concept.
+This document describes the core `Actions` concept.

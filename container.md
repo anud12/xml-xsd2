@@ -1,6 +1,6 @@
 # Container — Concepts
 
-This document describes the core "Container" concept.
+This document describes the core `Container` concept.
 
 ## Summary
 
@@ -23,29 +23,68 @@ This means an Entity may both exist in a Zone/Region location graph and also par
 
 ## Structure
 
-Containers appear under an Entity in a `<containers>` collection.
+### Purpose
 
-Example:
+- Express an owned collection of Entities with identity and rule-driven semantics.
+- Represent inventories, bags, equipment slots, chests, cargo holds, or similar owned groupings.
+
+### Placement
+
+- Containers appear under an owning `Entity` inside a `<containers>` collection.
+- They are nested model elements (not top-level entities) and belong to their owner in the same `world_step`.
+
+### XML representation
+
+- Element names and attributes (skeleton):
 
 ```xml
-<entity entity_rule_ref="entity_rule" id="0.0">
+<containers>            <!-- 0..* under <entity> -->
+  <container            <!-- 1 per container instance -->
+    id="string"       <!-- unique within world_step -->
+    container_rule_ref="string"  <!-- ref to container rule -->
+  >
+    <entities>          <!-- optional wrapper for members -->
+      <entity           <!-- 0..* member entries -->
+        entity_id_ref="string"   <!-- reference to an entity defined elsewhere -->
+      />
+    </entities>
+  </container>
+</containers>
+```
+
+### Content model
+
+- `<containers>`: 0..* under an `Entity`.
+- `<container>`: contains attributes `id` (required) and `container_rule_ref` (recommended/used to resolve rules).
+- Optional `<entities>` child which holds 0..* `<entity>` entries.
+- Each member `<entity>` is typically a reference (`entity_id_ref`) to an `Entity` elsewhere in the same `world_step`; inline full entity definitions are allowed but less common.
+
+### Example XML snippet
+
+```xml
+<entity entity_rule_ref="character" id="player-1">
   <containers>
-    <container container_rule_ref="container_rule" id="0.2">
+    <container container_rule_ref="inventory" id="player-1.inventory">
       <entities>
-        <entity entity_id_ref="0.1"/>
+        <entity entity_id_ref="sword-1"/>
+        <entity entity_id_ref="potion-3"/>
       </entities>
     </container>
   </containers>
 </entity>
 ```
 
-From this structure:
+### Notes & constraints
 
-- the outer Entity is the owner of the container;
-- the `<container>` element is the storage node itself;
-- `container_rule_ref` identifies which container rule defines the container;
-- `id` uniquely identifies the container within the `world_step`;
-- nested `<entities>` lists the members of the container.
+- `id` is unique within a `world_step` and makes the container addressable for indexing and runtime lookups.
+- `container_rule_ref` links to the reusable container rule that defines allowed contents and behavior.
+- Containers model membership, not physical placement: an Entity may be both located in a `Zone/Region` and also be contained by another Entity.
+- Member entries usually use `entity_id_ref` to avoid duplicating full Entity payloads; when present the parser treats the element as a reference.
+- Cardinality summary:
+  - `Entity` → `containers`: 0..*
+  - `container` → `entities`: 0..1 (wrapper)
+  - `entities` → `entity`: 0..*
+- See `entities.md` for matching reference semantics and overall serialization conventions.
 
 ## Identity
 
