@@ -7,15 +7,15 @@ This document specifies a small ConditionExpression API. The surface provides co
 ## Summary
 
 Factory functions:
-- \`true()\` => ConditionExpression
-- \`false()\` => ConditionExpression
+- `true()` => ConditionExpression
+- `false()` => ConditionExpression
 
 Combinators / helpers on ConditionExpression:
-- \`and(other: ConditionExpression) => ConditionExpression\`
-- \`or(other: ConditionExpression) => ConditionExpression\`
-- \`negate() => ConditionExpression\` (logical NOT)
-- \`ifTrue(cb: () => ConditionExpression) => ConditionExpression\` (invoke cb only if the receiver evaluates to true)
-- \`ifFalse(cb: () => ConditionExpression) => ConditionExpression\` (invoke cb only if the receiver evaluates to false)
+- `and(other: ConditionExpression) => ConditionExpression`
+- `or(other: ConditionExpression) => ConditionExpression`
+- `negate() => ConditionExpression` (logical NOT)
+- `ifTrue(cb: () => ConditionExpression) => ConditionExpression` (invoke cb only if the receiver evaluates to true)
+- `ifFalse(cb: () => ConditionExpression) => ConditionExpression` (invoke cb only if the receiver evaluates to false)
 
 Expressions are immutable and evaluation is performed by the runtime when the expression is applied.
 
@@ -23,13 +23,13 @@ Expressions are immutable and evaluation is performed by the runtime when the ex
 
 ## Rationale
 
-Callback-based \`ifTrue\` and \`ifFalse\` provide explicit, lazy branching: the callback is not invoked unless the receiver's truth value dictates it. This improves control over side effects and allows building dependency-free expression trees where expensive sub-expressions are only constructed/evaluated when necessary.
+Callback-based `ifTrue` and `ifFalse` provide explicit, lazy branching: the callback is not invoked unless the receiver's truth value dictates it. This improves control over side effects and allows building dependency-free expression trees where expensive sub-expressions are only constructed/evaluated when necessary.
 
 ---
 
 ## Host API (TypeScript)
 
-\`\`\`ts
+```ts
 export type ConditionExpression = {
   /** Short-circuiting combinators. Immutable. */
   and: (other: ConditionExpression) => ConditionExpression;
@@ -51,22 +51,22 @@ export type ConditionExpressionApi = {
   /** Marker for HostApi surfaces */
   type: ConditionExpressionType;
 };
-\`\`\`
+```
 
 Notes:
 - All nodes are lazy; factories construct tree nodes and the runtime is responsible for evaluation.
-- Callbacks supplied to \`ifTrue\`/\`ifFalse\` must return a ConditionExpression. Callbacks are not invoked until evaluation time and only when the receiver's evaluation result triggers them.
+- Callbacks supplied to `ifTrue`/`ifFalse` must return a ConditionExpression. Callbacks are not invoked until evaluation time and only when the receiver's evaluation result triggers them.
 
 ---
 
 ## Evaluation semantics
 
 - Lazy evaluation of nodes; combinators use short-circuit semantics:
-  - \`and\`: evaluate left; if false, result is false without evaluating right.
-  - \`or\`:  evaluate left; if true, result is true without evaluating right.
-  - \`negate\`: evaluate operand and invert the boolean result.
-  - \`ifTrue(cb)\`: evaluate the receiver (left); if true, invoke \`cb()\` to obtain a ConditionExpression, evaluate that expression and return its result; otherwise, return false without invoking \`cb\` or evaluating the callback result.
-  - \`ifFalse(cb)\`: evaluate the receiver; if false, invoke \`cb()\` to obtain a ConditionExpression, evaluate that expression and return its result; otherwise, return false without invoking \`cb\`.
+  - `and`: evaluate left; if false, result is false without evaluating right.
+  - `or`:  evaluate left; if true, result is true without evaluating right.
+  - `negate`: evaluate operand and invert the boolean result.
+  - `ifTrue(cb)`: evaluate the receiver (left); if true, invoke `cb()` to obtain a ConditionExpression, evaluate that expression and return its result; otherwise, return false without invoking `cb` or evaluating the callback result.
+  - `ifFalse(cb)`: evaluate the receiver; if false, invoke `cb()` to obtain a ConditionExpression, evaluate that expression and return its result; otherwise, return false without invoking `cb`.
 
 Short-circuiting ensures side-effectful evaluations (if any exist elsewhere in the runtime) are not invoked unless necessary.
 
@@ -74,7 +74,7 @@ Short-circuiting ensures side-effectful evaluations (if any exist elsewhere in t
 
 ## Examples
 
-\`\`\`ts
+```ts
 const T = hostApi.boolean.true();
 const F = hostApi.boolean.false();
 
@@ -83,27 +83,27 @@ const branch = T.ifTrue(() => F.or(T)); // cb invoked because T is true; equival
 
 // Lazy fallback
 const fallback = T.ifFalse(() => F); // cb not invoked because T is true; equivalent to T.negate().and(F)
-\`\`\`
+```
 
 ---
 
 ## Migration notes
 
-- If previous code used \`ifTrue\`/\`ifFalse\` with direct ConditionExpression arguments, migrate to passing a zero-argument callback returning the expression. Example:
+- If previous code used `ifTrue`/`ifFalse` with direct ConditionExpression arguments, migrate to passing a zero-argument callback returning the expression. Example:
 
-\`\`\`ts
+```ts
 // old
 left.ifTrue(right)
 
 // new
 left.ifTrue(() => right)
-\`\`\`
+```
 
 ---
 
 ## Failure modes & Edge Cases
 
-- Expressiveness: while richer operators (refs, deterministic choice) remain outside this core surface, \`negate\` and callback-based branching restore common boolean needs.
+- Expressiveness: while richer operators (refs, deterministic choice) remain outside this core surface, `negate` and callback-based branching restore common boolean needs.
 - Deeply-nested trees: prefer iterative or bounded evaluators to avoid stack overflow.
 - Callback side effects: callbacks must be pure or their side-effects must be acceptable because they will run at evaluation time.
 
@@ -123,8 +123,8 @@ Mitigations:
 
 ## Open Questions
 
-- Singleton vs. fresh-node factories for \`true()\`/\`false()\`? (memory vs identity semantics)
-- Should evaluation be exposed (e.g., \`ConditionExpression.evaluate(world): boolean\`) for testing/debugging?
+- Singleton vs. fresh-node factories for `true()`/`false()`? (memory vs identity semantics)
+- Should evaluation be exposed (e.g., `ConditionExpression.evaluate(world): boolean`) for testing/debugging?
 - Should expressions be serializable for tooling?
 
 ---
