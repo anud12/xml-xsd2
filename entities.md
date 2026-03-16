@@ -1,56 +1,31 @@
 # Entities — Concepts
 
-This document describes the core `Entity` concept.
+This document describes the core `Entity` concept and provides an `EntityExpression` builder used by hosts to declaratively construct entities using expression primitives.
 
 ## Summary
-An Entity is a discrete object in the world with identity, attributes, optional container relationships and lifecycle events.
-
-
-## Identity
-- id (unique within a world_step)
-
-## Structure
-
-- Fields:
-  - `id`: type `string` unique id within global `entity` records.
-  - `entity_rule_ref`: `string` reference to the entity rule
-  - `text_map`: colection of `string` values accesible by `name`.
-    - `name`: attribute key
-    - `value`: attribute `string` value
-  - `number_map` — colection of `long` values accesible by `name`
-    - `name`: attribute key
-    - `value`: attribute `long` value
-  - `containers` — contains `container[]` elements representing container membership
-
-- Reference entity (container-only)
-  - Use-case: Minimal wrapper to express container membership by reference without re-defining attributes.
-  - Pattern: The inner `<entity>` uses `entity_id_ref` to reference an entity defined elsewhere in the same `world_step`.
-
-- Notes
-  - When `entity_id_ref` is present the parser treats the element as a reference and does not re-define attributes.
-  - `container` elements include `container_rule_ref` and `id`. Container ids are unique within the `world_step` and can be referenced by other entities.
+An Entity is a discrete object in the world with identity, attributes, optional container relationships and lifecycle events. The `EntityExpression` is a builder-style immutable expression used to describe how an Entity should be constructed at runtime. Where primitive values are required, use the corresponding wrapper expressions (`StringExpression`, `NumberExpression`, `ConditionExpression`) so they participate in lazy evaluation and deterministic semantics.
 
 ## EntityExpression
 
-This workspace provides an EntityExpression builder for host code to construct entity instances using the expression primitives (StringExpression, NumberExpression, ConditionExpression) where appropriate.
+`EntityExpression` is a declarative, immutable builder describing an Entity's structure. It intentionally accepts expression wrappers for primitive fields so a single declarative description can be reused, composed, and evaluated deterministically by the runtime.
 
-EntityExpression is an immutable builder-style expression that describes how to construct an Entity at evaluation time. Primitive/leaf values should use the corresponding wrapper expressions rather than raw JS values so they participate in lazy evaluation and deterministic semantics.
-
-Host API (TypeScript)
+### Host API (TypeScript)
 
 ```ts
 export type EntityExpression = {
   /** Builder-style setters that accept expression wrappers for primitives. Each returns a new EntityExpression. */
   withId: (idExpr: StringExpression) => EntityExpression;
+  withEntityRuleRef: (ruleRefExpr: StringExpression) => EntityExpression;
   withText: (name: string, value: StringExpression) => EntityExpression;
   withNumber: (name: string, value: NumberExpression) => EntityExpression;
-  withContainer: (containerExpr: ConditionExpression /* or a ContainerExpression when defined */) => EntityExpression;
+  withCondition: (name: string, value: ConditionExpression) => EntityExpression;
+  withContainer: (containerExpr: ConditionExpression /* or ContainerExpression when defined */) => EntityExpression;
 
   /** Convenience: set multiple text/number fields in one call */
   withTexts: (map: Record<string, StringExpression>) => EntityExpression;
   withNumbers: (map: Record<string, NumberExpression>) => EntityExpression;
 
-  /** Finalize/build: returns an evaluated Entity instance in the runtime context (evaluation is runtime responsibility). */
+  /** Finalize/build: evaluated by the runtime to produce a concrete Entity instance */
   build: () => any; // runtime-defined entity instance type
 };
 
@@ -64,8 +39,29 @@ export type EntityExpressionApi = {
 };
 ```
 
-Notes:
-- Use `hostApi.string.of("Alice")` or `hostApi.string.of("Alice")` for id/text primitives and `hostApi.number.of(42)` for numeric fields so all parts participate in lazy evaluation and deterministic randomness.
-- The `build()` operation is evaluated by the runtime when an Entity must be materialized (for example when creating entities during rule processing). The EntityExpression itself is a declarative description and should remain side-effect free.
+### Notes
+- Always use wrapper expressions for primitive fields. Example: `withText('displayName', hostApi.string.of('Alice'))` or `withNumber('level', hostApi.number.of(5))`.
+- `EntityExpression` is side-effect free. `build()` is invoked by the runtime to materialize a concrete Entity instance (for example during rule-driven creation). Keep callbacks or other side-effectful constructs out of the description unless explicitly intended.
+- `asRule` / `getRule` mirror other expression APIs: register reusable entity blueprints with `asRule`, retrieve a rule-backed `EntityExpression` with `getRule`.
 
-## HostApi
+## Examples
+
+```ts
+// Build an entity expression and register as a rule
+const entityExpr = hostApi.entity.create()
+  .withId(hostApi.string.of('player-1'))
+  .withEntityRuleRef(hostApi.string.of('character'))
+  .withText('displayName', hostApi.string.of('Alice'))
+  .withNumber('level', hostApi.number.of(1));
+
+hostApi.entity.asRule('playerTemplate', entityExpr);
+
+// Retrieve and use
+const playerTemplate = hostApi.entity.getRule('playerTemplate');
+// runtime evaluates playerTemplate.build() when materializing the entity
+```
+
+## Integration
+- Ensure `EntityExpression.build()` follows the same evaluation and repository resolution patterns as other expressions (lazy evaluation, deterministic `randomFrom`, and `ref` resolution via rule repositories).
+- When container or nested entity expressions are needed, prefer composing via expressions rather than raw objects.
+
