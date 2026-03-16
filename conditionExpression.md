@@ -53,6 +53,7 @@ export type ConditionExpressionApi = {
 
 Notes:
 - All nodes are lazy; factories construct tree nodes and the runtime is responsible for evaluation.
+- `of(value: boolean)` returns a fresh literal node on each call. Callers must not rely on object identity across separate `of(...)` invocations.
 - Callbacks supplied to `ifTrue`/`ifFalse` must return a ConditionExpression. Callbacks are not invoked until evaluation time and only when the receiver's evaluation result triggers them.
 
 ---
@@ -107,7 +108,6 @@ Mitigations:
 
 ## Open Questions
 
-- Should `of(value: boolean)` canonicalize literals, or return fresh nodes each time? (memory vs identity semantics)
 - Should evaluation be exposed (e.g., `ConditionExpression.evaluate(world): boolean`) for testing/debugging?
 - Should expressions be serializable for tooling?
 
@@ -115,10 +115,9 @@ Mitigations:
 
 ## Next Iteration
 
-- Decide on factory identity (singleton vs new instance).
 - Consider companion helper module for refs/choices if required.
 - Add guidelines for implementing evaluator (iterative evaluation, max depth, logging).
 
 ---
 
-Architecture Review Result: Not Implementation Ready — readiness awaits decisions on factory identity and serialization/evaluation helper exposure.
+Architecture Review Result: Not Implementation Ready — readiness awaits decisions on serialization and evaluation helper exposure.
