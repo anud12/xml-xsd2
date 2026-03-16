@@ -1,13 +1,15 @@
 # Condition expression — Minimal API
 
-This document specifies a small ConditionExpression API. The surface provides core factories and a concise set of combinators and helpers to compose boolean expression trees used by the host runtime.
+This document specifies a small ConditionExpression API. The surface provides core factories, rule registration and lookup helpers, and a concise set of combinators and helpers to compose boolean expression trees used by the host runtime.
 
 ---
 
 ## Summary
 
-Factory function:
+Factory / rule functions:
 - `of(value: boolean) => ConditionExpression`
+- `asRule(ruleName: string, expr: ConditionExpression) => ConditionExpressionApi`
+- `getRule(ruleName: string) => ConditionExpression`
 
 Combinators / helpers on ConditionExpression:
 - `and(other: ConditionExpression) => ConditionExpression`
@@ -46,6 +48,10 @@ export type ConditionExpressionApi = {
   /** Factory function */
   of: (value: boolean) => ConditionExpression;
 
+  /** Register and retrieve named condition rules. */
+  asRule: (ruleName: string, expr: ConditionExpression) => ConditionExpressionApi;
+  getRule: (ruleName: string) => ConditionExpression;
+
   /** Marker for HostApi surfaces */
   type: ConditionExpressionType;
 };
@@ -54,6 +60,8 @@ export type ConditionExpressionApi = {
 Notes:
 - All nodes are lazy; factories construct tree nodes and the runtime is responsible for evaluation.
 - `of(value: boolean)` returns a fresh literal node on each call. Callers must not rely on object identity across separate `of(...)` invocations.
+- `asRule(ruleName, expr)` registers or replaces the named rule in the condition rule repository and returns the API surface for fluent host usage.
+- `getRule(ruleName)` returns a `ConditionExpression` that resolves the named rule at evaluation time.
 - Callbacks supplied to `ifTrue`/`ifFalse` must return a ConditionExpression. Callbacks are not invoked until evaluation time and only when the receiver's evaluation result triggers them.
 
 ---
@@ -61,6 +69,7 @@ Notes:
 ## Evaluation semantics
 
 - Lazy evaluation of nodes; combinators use short-circuit semantics:
+  - `getRule(ruleName)`: produce a rule-reference expression. At evaluation time, resolve `ruleName` from the condition rule repository and evaluate the resolved expression.
   - `and`: evaluate left; if false, result is false without evaluating right.
   - `or`:  evaluate left; if true, result is true without evaluating right.
   - `negate`: evaluate operand and invert the boolean result.
@@ -77,8 +86,11 @@ Short-circuiting ensures side-effectful evaluations (if any exist elsewhere in t
 const T = hostApi.boolean.of(true);
 const F = hostApi.boolean.of(false);
 
+hostApi.boolean.asRule("isEnabled", T);
+const isEnabled = hostApi.boolean.getRule("isEnabled");
+
 // Callback-based branching — cb not called unless needed
-const branch = T.ifTrue(() => F.or(T)); // cb invoked because T is true; equivalent to T.and(F.or(T))
+const branch = isEnabled.ifTrue(() => F.or(T)); // cb invoked because isEnabled resolves to true
 
 // Lazy fallback
 const fallback = T.ifFalse(() => F); // cb not invoked because T is true; equivalent to T.negate().and(F)
@@ -91,10 +103,12 @@ const fallback = T.ifFalse(() => F); // cb not invoked because T is true; equiva
 - Expressiveness: while richer operators (refs, deterministic choice) remain outside this core surface, `negate` and callback-based branching restore common boolean needs.
 - Deeply-nested trees: prefer iterative or bounded evaluators to avoid stack overflow.
 - Callback side effects: callbacks must be pure or their side-effects must be acceptable because they will run at evaluation time.
+- Missing rules: `getRule(ruleName)` requires a defined repository entry; unresolved names must fail predictably or be specified explicitly by the runtime.
 
 Mitigations:
 - Keep evaluation in the runtime and avoid introducing side-effects into expression nodes except by design.
 - Provide companion utilities if advanced behavior is needed.
+- Define missing-rule behavior explicitly in the runtime contract, including logging and whether resolution is fail-fast or fail-soft.
 
 ---
 
@@ -102,14 +116,8 @@ Mitigations:
 
 - + Improves readability and expressiveness while preserving lazy evaluation.
 - + Callbacks prevent unnecessary construction/evaluation of heavy sub-expressions.
+- + Named rules let callers share reusable condition fragments across host code.
 - - Slightly more complex API surface and a migration step for existing call sites.
-
----
-
-## Open Questions
-
-- Should evaluation be exposed (e.g., `ConditionExpression.evaluate(world): boolean`) for testing/debugging?
-- Should expressions be serializable for tooling?
 
 ---
 
