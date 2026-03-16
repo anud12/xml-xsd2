@@ -6,9 +6,8 @@ This document specifies a small ConditionExpression API. The surface provides co
 
 ## Summary
 
-Factory functions:
-- `true()` => ConditionExpression
-- `false()` => ConditionExpression
+Factory function:
+- `of(value: boolean) => ConditionExpression`
 
 Combinators / helpers on ConditionExpression:
 - `and(other: ConditionExpression) => ConditionExpression`
@@ -44,9 +43,8 @@ export type ConditionExpression = {
 };
 
 export type ConditionExpressionApi = {
-  /** Factory functions (exact names required by spec) */
-  'true':  () => ConditionExpression;
-  'false': () => ConditionExpression;
+  /** Factory function */
+  of: (value: boolean) => ConditionExpression;
 
   /** Marker for HostApi surfaces */
   type: ConditionExpressionType;
@@ -75,28 +73,14 @@ Short-circuiting ensures side-effectful evaluations (if any exist elsewhere in t
 ## Examples
 
 ```ts
-const T = hostApi.boolean.true();
-const F = hostApi.boolean.false();
+const T = hostApi.boolean.of(true);
+const F = hostApi.boolean.of(false);
 
 // Callback-based branching — cb not called unless needed
 const branch = T.ifTrue(() => F.or(T)); // cb invoked because T is true; equivalent to T.and(F.or(T))
 
 // Lazy fallback
 const fallback = T.ifFalse(() => F); // cb not invoked because T is true; equivalent to T.negate().and(F)
-```
-
----
-
-## Migration notes
-
-- If previous code used `ifTrue`/`ifFalse` with direct ConditionExpression arguments, migrate to passing a zero-argument callback returning the expression. Example:
-
-```ts
-// old
-left.ifTrue(right)
-
-// new
-left.ifTrue(() => right)
 ```
 
 ---
@@ -123,7 +107,7 @@ Mitigations:
 
 ## Open Questions
 
-- Singleton vs. fresh-node factories for `true()`/`false()`? (memory vs identity semantics)
+- Should `of(value: boolean)` canonicalize literals, or return fresh nodes each time? (memory vs identity semantics)
 - Should evaluation be exposed (e.g., `ConditionExpression.evaluate(world): boolean`) for testing/debugging?
 - Should expressions be serializable for tooling?
 
