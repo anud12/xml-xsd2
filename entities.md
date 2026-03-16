@@ -13,17 +13,12 @@ An Entity is a discrete object in the world with identity, attributes, optional 
 
 ```ts
 export type EntityExpression = {
-  /** Builder-style setters that accept expression wrappers for primitives. Each returns a new EntityExpression. */
-  withId: (idExpr: StringExpression) => EntityExpression;
-  withEntityRuleRef: (ruleRefExpr: StringExpression) => EntityExpression;
-  withText: (name: string, value: StringExpression) => EntityExpression;
-  withNumber: (name: string, value: NumberExpression) => EntityExpression;
-  withCondition: (name: string, value: ConditionExpression) => EntityExpression;
-  withContainer: (containerExpr: ConditionExpression /* or ContainerExpression when defined */) => EntityExpression;
+  /** Builder-style methods. The builder accepts generic keyed-setters where primitive values must be expression wrappers. */
+  setField: (name: string, value: StringExpression | NumberExpression | ConditionExpression) => EntityExpression;
+  setContainer: (name: string, containerExpr: ConditionExpression /* or ContainerExpression when defined */) => EntityExpression;
 
-  /** Convenience: set multiple text/number fields in one call */
-  withTexts: (map: Record<string, StringExpression>) => EntityExpression;
-  withNumbers: (map: Record<string, NumberExpression>) => EntityExpression;
+  /** Convenience: set multiple fields in one call */
+  setFields: (map: Record<string, StringExpression | NumberExpression | ConditionExpression>) => EntityExpression;
 
   /** Finalize/build: evaluated by the runtime to produce a concrete Entity instance */
   build: () => any; // runtime-defined entity instance type
@@ -49,10 +44,10 @@ export type EntityExpressionApi = {
 ```ts
 // Build an entity expression and register as a rule
 const entityExpr = hostApi.entity.create()
-  .withId(hostApi.string.of('player-1'))
-  .withEntityRuleRef(hostApi.string.of('character'))
-  .withText('displayName', hostApi.string.of('Alice'))
-  .withNumber('level', hostApi.number.of(1));
+  .setField('id', hostApi.string.of('player-1'))
+  .setField('entityRuleRef', hostApi.string.of('character'))
+  .setField('displayName', hostApi.string.of('Alice'))
+  .setField('level', hostApi.number.of(1));
 
 hostApi.entity.asRule('playerTemplate', entityExpr);
 
