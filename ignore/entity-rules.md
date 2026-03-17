@@ -2,7 +2,7 @@
 This document describes the core `Entity Rule` concept.
 
 ## Overview
-An `Entity Rule` is a `factory` concept used to create [`Entities`](./entities.md) within described requirements.
+An `Entity Rule` is a `factory` concept used to create [`Entities`](../entities.md) within described requirements.
 
 ## Structure
 
@@ -14,7 +14,7 @@ An `Entity Rule` is a `factory` concept used to create [`Entities`](./entities.m
   - `number_map` — colection of required `long` values accesible by `name` 
     - `name`: attribute key
     - `value`: attribute `long` value
-  - `containers` — is a list of [`Container Rules`](./container_rule.md) represents needed required `container[]` elements.
+  - `containers` — is a list of [`Container Rules`](../container_rule.md) represents needed required `container[]` elements.
 
 ```xml
 <entity_rule>
