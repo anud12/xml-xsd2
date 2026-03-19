@@ -9,16 +9,17 @@ Module entrypoint is [root]/index.js. A manifest.json at the root describes meta
 ## Proposed Architecture
 
 - Modules are uploaded as ZIP archives and validated before loading. Validation includes manifest presence, entrypoint availability and size limits,
-- The server unpacks ZIP into an isolated in-memory filesystem and evaluates index.js inside a restricted JS sandbox (no direct access to node globals unless explicitly provided through the host API).
-- Each loaded module has a lifecycle and a small sandboxed runtime that exposes a restricted host API (logger, persistent storage abstraction, event registration, rule registration, and a safe crypto/random API).
-- Module instances are ephemeral by default; the server keeps an in-memory registry of active modules keyed by id and version. An administrative persistence layer may snapshot modules to disk for restarts (future work).
+- The server unpacks ZIP into an isolated in-memory filesystem and evaluates index.js inside a restricted JS sandbox (no direct access to node globals).
+- Each loaded module has a lifecycle and a small sandboxed runtime that exposes a restricted host API.
+- Each module uses host API to declare an AST for the server to cache in memory.
+- After finishing loading the modules the sandbox is closed, and all runs are done according to the extracted AST.
 
 ### Module ZIP layout (required)
 
 Root (required):
 - manifest.json       - Metadata, permissions, exported APIs, version.
 
-Files outside these paths are allowed but should be referenced explicitly from manifest or imports.
+Files outside these paths are allowed but should be referenced explicitly from imports.
 
 ### manifest.json (schema, example)
 

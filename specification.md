@@ -15,15 +15,22 @@ Concepts
 
 - [`ConditionExpression`](./conditionExpression.md): An `immutable`, `lazily-evaluated` expression tree representing boolean values. Construct with `of(boolean)` and compose with `and`, `or`, `negate`, `ifTrue(cb)`, `ifFalse(cb)`. Provides `asRule`/`getRule` for repository-backed named conditions. Evaluation is lazy and uses short-circuiting; callbacks passed to `ifTrue`/`ifFalse` are invoked only when the receiver's truth value dictates.
 
-## Server
-Server loads modules which are packaged in a zip archive.
 
 ## [Modules](./modules.md)
 Modules are ZIP archives containing sandboxed JavaScript (ESM) and related 
 assets. 
+Modules are loaded by executing its start point script in a javascript enviroment.
+The enviroment has the following constraints:
+    - is **sandboxed** so that no host changes are allowed.
+    - no build in api, that means no `nodejs`/`browser`/etc api is available for the script to use.
+    - the api is ran at load time to load all logic, then discarted, keeping in memory the execution plan defined in the module.
 
 ## [Entities](./entities.md)
 Atomic unit of the engine.
+## [Containers](./containers.md)
+Holder of entities
+
+## [Randomness](./randomness.md)
 ## Zones
 
 ## Regions
