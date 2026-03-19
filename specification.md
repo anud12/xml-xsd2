@@ -31,6 +31,8 @@ Atomic unit of the engine.
 Holder of entities
 
 ## [Randomness](./randomness.md)
+All randomness is deterministic and stateless — each draw is derived from the `ExecutionContext` (World Seed, Tick, Source, Action, Call Index) using a 64-bit SplitMix64-based PRNG. This guarantees server-client parity, parallel safety, and no global RNG state.
+
 ## Zones
 
 ## Regions

@@ -29,6 +29,8 @@ When the underlying expression is extracted, the operations are executed in the 
 
 When operations are added, they are lazily evaluated, exception on this rule is the `of` operation, which is eagerly computed and cached.
 
+For `random` use notions defined in [randomness.md](./randomness.md)
+
 
 ## Overflow
 
