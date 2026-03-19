@@ -1,121 +1,42 @@
 # Randomness — Concepts
 
-This document describes the deterministic randomness system used throughout the engine.
+This document describes the [deterministic](https://en.wikipedia.org/wiki/Deterministic_algorithm), positional, and table-less randomness system used for server-client synchronicity.
 
 ## Summary
 
-All randomness in the engine is **deterministic** and **reproducible**. Given the same world seed and the same sequence of events, every random draw will produce identical results across runs. This is a hard requirement: replayability and testability depend on it.
+All randomness in the engine is **deterministic**, **lock-free**, and **stateless**. Instead of drawing from a shared global state or a pre-generated table, every random draw is calculated directly from its "Execution Context." 
 
-Random draws are powered by a **randomization table** stored in `WorldMetadata` and an **internal counter** that increments monotonically per world-step instance. A draw consumes one counter position; the result is always derived from `table[counter % table.length]`, never from a live RNG.
-
----
-
-## Randomization Table
-
-The `WorldMetadata.RandomizationTable` is a pre-generated, fixed-length array of values in the range `[0.0, 1.0)` (exclusive upper bound). The table is part of the world definition and is serialized alongside it.
-
-- **Source**: generated once per world from a seeded PRNG and stored. It is NOT regenerated at runtime.
-- **Length**: configurable; must be a positive integer. A minimum length of 256 is recommended; power-of-two sizes are preferred.
-- **Distribution**: values should be uniformly distributed in `[0.0, 1.0)`.
-- **Immutability**: the table MUST NOT be mutated after the world is loaded.
+This approach provides **infinite resolution** (64-bit), **mathematical fairness** (no [quantization](https://en.wikipedia.org/wiki/Quantization_(signal_processing)) bias), and **maximum performance** ([CPU](https://en.wikipedia.org/wiki/Central_processing_unit)-bound math vs. memory-bound lookups).
 
 ---
 
-## Internal Counter
+## Positional Pseudo-Random Number Generator (Calculation-Based)
 
-Each `WorldStepInstance` holds a single `long` counter, initialized to `0` when the instance is created. Every call to `random()` or `randomFrom()` increments the counter by exactly `1`.
+The engine uses a high-quality, 64-bit hash-based [Pseudo-Random Number Generator](https://en.wikipedia.org/wiki/Pseudorandom_number_generator) (specifically **[SplitMix64](https://rosettacode.org/wiki/Pseudo-random_numbers/Splitmix64)**) to derive a unique random `long` for every point in the game's execution space.
 
-- The counter is **not reset** between rule evaluations within a step; it advances monotonically for the lifetime of the instance.
-- Counter overflow wraps (Java `long` semantics); the modulo against `table.length` always produces a valid index.
-- The counter state is considered **part of the deterministic execution context**: identical event sequences must produce identical counter progression.
-
----
-
-## Core API
-
-The engine exposes two primitive draw operations on `WorldStepInstance`:
-
-### `random() → double`
-
-Returns the next value from the randomization table and increments the counter.
-
-```
-index = counter % table.length
-value = table[index]
-counter += 1
-return value   // in [0.0, 1.0)
-```
-
-### `randomFrom(size: long) → long`
-
-Returns a deterministic index in `[0, size)` (exclusive upper bound). `size` must be ≥ 1.
-
-```
-index = (long) Math.floor(random() * size)
-return index   // in [0, size)
-```
-
-> `size = 0` is an error (throws).
+### Features:
+1.  **Resolution**: 64-bit precision (no "stepping" or patterns).
+2.  **Memory**: 0 Kilobytes memory footprint (saves CPU [cache](https://en.wikipedia.org/wiki/CPU_cache) for entity data).
+3.  **Performance**: Pure arithmetic is faster than memory lookups on modern hardware.
+4.  **Fairness**: Every possible `long` has an exactly equal chance of being generated.
 
 ---
 
-## Usage in `NumberExpression`
+## Execution Context
 
-`NumberExpression.random(fromInclusive, toInclusive)` draws a value in the **closed** integer range `[from, to]`.
+An `ExecutionContext` is created at every "Entrypoint" (Action, Event, or Entity Update) and passed through the entire execution chain.
 
-Evaluation algorithm:
-1. Evaluate `fromInclusive` → `long f`
-2. Evaluate `toInclusive` → `long t`
-3. If `f > t` → error.
-4. `span = t - f + 1`
-5. `result = f + worldStepInstance.randomFrom(span)`
-
-The result is a `NumberExpression` node; the draw happens **at evaluation time** (lazy), not at construction time.
+### Context Components:
+1.  **World Seed**: The global [entropy](https://en.wikipedia.org/wiki/Entropy_(computing)) for the session.
+2.  **Tick Identifier**: The current 30 frames per second frame number.
+3.  **Source Identifier**: The Identifier of the Entity (Player/Non-Player Character) performing the action.
+4.  **Action Identifier**: The Identifier of the Action or Effect being executed.
+5.  **Call Index**: A local counter (starts at 0) that increments with every `random()` call within this specific context.
 
 ---
 
-## Usage in `StringExpression`
+## Synchronicity Contract
 
-`StringExpression.oneOf(choices)` selects exactly one entry from the `choices` list using the deterministic draw.
-
-Evaluation algorithm:
-1. `index = worldStepInstance.randomFrom(choices.length)`
-2. Evaluate `choices[index]` and return the result.
-
-The draw is consumed at evaluation time. Nested `oneOf` nodes each consume one counter position in declaration/evaluation order.
-
----
-
-## Reproducibility Contract
-
-Given:
-- the same `WorldMetadata.RandomizationTable`,
-- the same initial counter value,
-- the same sequence of evaluations,
-
-the engine MUST produce identical results on every run and on every conforming implementation.
-
-Implementations MUST NOT:
-- Use `Math.random()`, `java.util.Random`, OS entropy, or any live RNG source for game logic.
-- Cache or pre-draw results speculatively (this would shift counter positions and break reproducibility).
-- Skip incrementing the counter on a draw (e.g., for "optimized" short-circuits).
-
----
-
-## Failure modes
-
-| Condition | Expected behaviour |
-|---|---|
-| `randomFrom(0)` | Error / exception |
-| `random(from, to)` where `from > to` | Error / exception |
-| Table length `0` | Error at world load time |
-| Counter overflow | Wraps silently (modulo semantics) |
-
----
-
-## References
-
-- `WorldMetadata.RandomizationTable` — stores the pre-generated table.
-- `WorldStepInstance.random()` / `randomFrom()` — the two primitive draw operations.
-- [`NumberExpression`](./numberExpression.md) — uses `random(fromInclusive, toInclusive)`.
-- [`StringExpression`](./stringExpression.md) — uses `oneOf` which calls `randomFrom`.
+-   **Parallel Safety**: Multiple threads can process different Actions simultaneously because their `ExecutionContexts` are independent. No global locks or shared state.
+-   **Server-Client Parity**: As long as the Client knows the initial Entrypoint conditions (Tick, Entity, Action Identifier), it will arrive at the exact same random results as the Server.
+-   **No Patterns**: The sequence never "wraps" because there is no fixed-length table. Each draw is unique to its coordinates in (Tick, Entity, Action, Call) space.
