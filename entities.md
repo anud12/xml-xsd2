@@ -11,26 +11,25 @@ An Entity is a discrete object in the world with identity, attributes, optional 
 
 ## Structure
 
-- Fields:
-  - `id`: type `string` unique id within global `entity` records.
-  - `entity_rule_ref`: `string` reference to the entity rule
-  - `text_map`: colection of `string` values accesible by `name`.
-    - `name`: attribute key
-    - `value`: attribute `string` value
-  - `number_map` — colection of `long` values accesible by `name`
-    - `name`: attribute key
-    - `value`: attribute `long` value
-  - `containers` — contains `container[]` elements representing container membership
+```typescript
+type Entity = {
+  id: UniqueGlobalEntityId, // unique id within global `entity` records.
+  textMap: TextMap, 
+  numberMap: NumberMap, 
+  containers: ContainerList[]
+}
+type TextMap = {
+  [name:string]: StringExpression, //colection of `StringExpression` values accesible by `name`.
+}
+type NumberMap = {
+  [name:string]: NumberExpression, //colection of `NumberExpression` values accesible by `name`.
+}
+type ContainerList = {
+  containerIdReference: UniqueGlobalContainerId,
+}
+```
 
-- Reference entity (container-only)
-  - Use-case: Minimal wrapper to express container membership by reference without re-defining attributes.
-  - Pattern: The inner `<entity>` uses `entity_id_ref` to reference an entity defined elsewhere in the same `world_step`.
-
-- Notes
-  - When `entity_id_ref` is present the parser treats the element as a reference and does not re-define attributes.
-  - `container` elements include `container_rule_ref` and `id`. Container ids are unique within the `world_step` and can be referenced by other entities.
-
-## HostApi
+---
 
 ## EntityExpression — Concepts
 
@@ -41,6 +40,7 @@ This document specifies the `EntityExpression` builder: an immutable, lazily-eva
 - `EntityExpression` is a small, fluent builder whose nodes are immutable and evaluated by the runtime.
 - The builder surface intentionally exposes only `create`, `withTextMap`, `withNumberMap` and `withContainer` to keep host usage focused and composable.
 - Use `StringExpression` for text_map values and `NumberExpression` for number_map values; these wrappers are provided by the string/number expression surfaces.
+- See [TextMap and NumberMap](./textMap&numberMap.md) for their specific definitions.
 
 ## Purpose
 
@@ -50,9 +50,7 @@ Provide a host-friendly API to declare entity instances and templates with preci
 
 - `withTextMap(textMap)` and `withNumberMap(numberMap)` replace the entity's corresponding maps with the evaluated result of the supplied map expression.
 - `withContainer(container)` appends a container membership; multiple calls append in declaration order.
-- `TextMapExpression.put(key, value)` replaces any existing value at `key` with the provided `StringExpression`.
-- `NumberMapExpression.put(key, value)` behaves analogously for numbers.
-- Existence/equality checks (`has`, `equals`) return `ConditionExpression` values and are evaluated lazily.
+
 
 ## Host API (TypeScript)
 
@@ -89,66 +87,16 @@ export type EntityExpression = {
 }
 ```
 
-### TextMap / NumberMap expressions
-
-```ts
-export type TextMapExpressionApi = {
-  create: () => TextMapExpression,
-}
-
-export type TextMapExpression = {
-  /** Insert or replace a key's value with a StringExpression */
-  put: (key: string, value: StringExpression) => TextMapExpression,
-  /** Remove a key (optional) */
-  remove?: (key: string) => TextMapExpression,
-  /** Retrieve the value expression for a key (missing keys may produce an empty StringExpression) */
-  get: (key: string) => StringExpression,
-  /** Existence check: returns a ConditionExpression */
-  has: (key: string) => ConditionExpression,
-  /** Equality check: compare stored value to provided StringExpression */
-  equals: (key: string, value: StringExpression) => ConditionExpression,
-}
-
-export type NumberMapExpressionApi = {
-  create: () => NumberMapExpression,
-}
-
-export type NumberMapExpression = {
-  put: (key: string, value: NumberExpression) => NumberMapExpression,
-  remove?: (key: string) => NumberMapExpression,
-  get: (key: string) => NumberExpression,
-  has: (key: string) => ConditionExpression,
-  equals: (key: string, value: NumberExpression) => ConditionExpression,
-}
-```
-
-### Container helpers
-
-```ts
-export type ContainerReference = {
-  containerIdRef: string,
-}
-
-export type ContainerExpressionApi = {
-  create: (containerRuleRef: string) => ContainerExpression,
-}
-
-export type ContainerExpression = {
-  withId: (id: string) => ContainerExpression,
-  withEntityRef: (entityIdRef: string) => ContainerExpression,
-}
-```
-
-## Examples
+### Examples
 
 ```ts
 // Construct maps
 const nameMap = hostApi.textMap.create()
-  .put("name", hostApi.string.of("Gruk"))
-  .put("title", hostApi.string.of("Scourge"));
+  .put("name", /* intent: StringExpression literal "Gruk" */)
+  .put("title", /* intent: StringExpression literal "Scourge" */);
 
 const stats = hostApi.numberMap.create()
-  .put("hp", hostApi.number.of(12));
+  .put("hp", /* intent: NumberExpression literal 12 */);
 
 // Build entity using the maps and a container reference
 const goblin = hostApi.entity.create()
@@ -158,28 +106,5 @@ const goblin = hostApi.entity.create()
 
 // Queries
 const hasName = nameMap.has("name");
-const nameIsGruk = nameMap.equals("name", hostApi.string.of("Gruk"));
+const nameIsGruk = nameMap.equals("name", /* intent: StringExpression literal "Gruk" */);
 ```
-
-## Notes
-
-- `put` replaces an existing keyed value for that map key.
-- Always wrap primitive literals using `hostApi.string.of(...)` and `hostApi.number.of(...)`.
-- Follow the repository/indexing pattern for optional `asRule`/`getRule` support.
-
-
-## Todo
-
-for "entities.md" createa a "EntityExpression" for 
-  entity. 
-  Only functions are "of", "withTextMap", "withNumberMap" and "withContainer".
-
-  the `TextMap` anud `NumberMap` are also expressions to add `key`/`value` pairs, check of existence/equality.
-  adding keyed value replaces the value stored at that key, it exists.
-
-
-   When a primitive is needed use defined wrapper expressions. use 
-  Inspire usage from "conditionExpression","numberExpression" and, "stringExpression".
-
-
-  cortana to write to file 
