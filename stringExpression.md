@@ -77,13 +77,13 @@ export type StringExpression = {
   indexOfExpression: (other: StringExpression, fromInclusive?: any) => any,
   /** Check whether this expression MAY produce a string that contains any possible evaluation of `other`.
    *  Existential semantics: returns a ConditionExpression that is true if there exists s in L(this) and t in L(other) where t is a substring of s.
-   *  Use containsExact for a strict universal check.
+   *  Use isContainingExactly for a strict universal check.
    */
-  containsExpression: (other: StringExpression) => ConditionExpression,
+  isContaining: (other: StringExpression) => ConditionExpression,
   /** Strict universal check: returns true only if for every expansion s in L(this) and every expansion t in L(other), t is a substring of s.
    *  This is more expensive to compute; implementations MAY fall back to conservative results or timeouts.
    */
-  containsExact: (other: StringExpression) => ConditionExpression,
+  isContainingExactly: (other: StringExpression) => ConditionExpression,
   /** Optional simple transforms (implementation may provide) */
   upper?: () => StringExpression,
   lower?: () => StringExpression,
@@ -104,17 +104,17 @@ Notes:
 - If `group` → evaluate contained expression and return result.
 - If `ref(ruleId)` → repository lookup: `stringRepository.getEntryById(ruleId)` → evaluate the registered expression for that entry. If not found, substitute empty string (fail-soft) and log.
 - If `oneOf(list)` → pick index = deterministicRandomIndex(list.size()) using `worldStepInstance.randomFrom(list)` semantics (same inclusive behavior as name); evaluate the chosen entry and return.
-- `indexOfExpression(other)` / `containsExpression(other)` / `containsExact(other)` — set-semantic evaluation:
-  - containsExpression (existential): semantics: exists s in L(this) and t in L(other) such that t is a substring of s.
-  - containsExact (strict universal): semantics: for every s in L(this) and every t in L(other), t is a substring of s. Equivalently: for each t in L(other), L(this) ⊆ Σ* · t · Σ*.
+- `indexOfExpression(other)` / `isContaining(other)` / `isContainingExactly(other)` — set-semantic evaluation:
+  - isContaining (existential): semantics: exists s in L(this) and t in L(other) such that t is a substring of s.
+  - isContainingExactly (strict universal): semantics: for every s in L(this) and every t in L(other), t is a substring of s. Equivalently: for each t in L(other), L(this) ⊆ Σ* · t · Σ*.
   - Implementation approaches:
-    1. Small-finite enumeration: if both languages are provably small (product of oneOf branch counts under threshold), enumerate expansions of `this` and `other`. For containsExpression check for any pair with substring; for containsExact check all pairs or verify coverage per t.
+    1. Small-finite enumeration: if both languages are provably small (product of oneOf branch counts under threshold), enumerate expansions of `this` and `other`. For isContaining check for any pair with substring; for isContainingExactly check all pairs or verify coverage per t.
     2. Automata-based:
-       - For containsExpression: convert expressions to NFAs (treating concat/oneOf/group/of/ref-expanded-as-NFA) and check emptiness of NFA(this) ∩ Σ* · NFA(other) · Σ* (i.e., existence of an accepted string with a substring matching other).
-       - For containsExact: algorithmically equivalent to verifying for each t ∈ L(other) that L(this) ⊆ Σ* · t · Σ*, which can be implemented by checking emptiness of L(this) ∩ complement(Σ* · t · Σ*) for each t; this requires determinization/complement and may be expensive. Practical implementations should use size/time limits and heuristics.
+       - For isContaining: convert expressions to NFAs (treating concat/oneOf/group/of/ref-expanded-as-NFA) and check emptiness of NFA(this) ∩ Σ* · NFA(other) · Σ* (i.e., existence of an accepted string with a substring matching other).
+       - For isContainingExactly: algorithmically equivalent to verifying for each t ∈ L(other) that L(this) ⊆ Σ* · t · Σ*, which can be implemented by checking emptiness of L(this) ∩ complement(Σ* · t · Σ*) for each t; this requires determinization/complement and may be expensive. Practical implementations should use size/time limits and heuristics.
     3. Conservative fallback: if expressions contain non-regular transforms (complex regex replace, dynamic repeat counts, or transforms that break regular-language assumptions), either conservatively return MAYBE (implementation choice) or require the operation to be unsupported for those nodes.
   - Refs: expand `ref` nodes via repository lookups; detect recursion and cap expansion depth (configurable, e.g., 16) to avoid infinite automata.
-  - Deterministic randomness: `containsExpression` is existential — it checks whether some valid choice sequence could produce the match. `containsExact` is a universal property across all choices. Both differ from runtime evaluation (which uses deterministic `randomFrom` to pick a single branch). If a runtime deterministic check is needed, evaluate both expressions under the same instance RNG and perform a concrete substring check instead.
+  - Deterministic randomness: `isContaining` is existential — it checks whether some valid choice sequence could produce the match. `isContainingExactly` is a universal property across all choices. Both differ from runtime evaluation (which uses deterministic `randomFrom` to pick a single branch). If a runtime deterministic check is needed, evaluate both expressions under the same instance RNG and perform a concrete substring check instead.
 
 - Return an Optional-like result e.g., a NumberExpression with -1/0/1 semantics (see API above). Implementations on Java should provide `Optional<Long>` / `OptionalInt` or `Optional<Boolean>` as appropriate.
 
@@ -147,13 +147,13 @@ const joined = hostApi.string.of("").join(words, hostApi.string.of(", "));
 // Evaluating joined -> "red, blue, green"
 ```
 
-- containsExpression example (oneOf-aware):
+- isContaining example (oneOf-aware):
 ```ts
 // s may evaluate to "AC" or "BC"
 const s = hostApi.string.oneOf([hostApi.string.of("A"), hostApi.string.of("B")]).concat(hostApi.string.of("C"));
 const a = hostApi.string.of("A");
-// containsExpression is existential: returns true because "AC" contains "A"
-const containsA = s.containsExpression(a);
+// isContaining is existential: returns true because "AC" contains "A"
+const containsA = s.isContaining(a);
 ```
 
 - Nested example `(A|B)|(B|C)`:
@@ -161,7 +161,7 @@ const containsA = s.containsExpression(a);
 const left = hostApi.string.oneOf([hostApi.string.of("A"), hostApi.string.of("B")]);
 const right = hostApi.string.oneOf([hostApi.string.of("B"), hostApi.string.of("C")]);
 const s2 = hostApi.string.oneOf([left, right]);
-// s2.containsExpression(hostApi.string.of("A")) -> 1
+// s2.isContaining(hostApi.string.of("A")) -> 1
 ```
 
 ## Repository & Validation

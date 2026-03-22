@@ -34,7 +34,7 @@ Use cases: inventories, deterministic choice lists, argument lists for other exp
 - `forEach(cb: (element: any, index?: number) => void)`: evaluate the list; for each element, evaluate the element expression to a host value and invoke `cb(elementValue, index)`. Callbacks are invoked at evaluation time for side-effects; the forEach expression returns void (or host `null`). Implementations MAY provide a strict mode for error handling.
 - `map(cb: (elementExpr: any, index?: number) => any)`: lazily transform each element by invoking `cb` with the element expression (not the evaluated value). `cb` should return an expression or literal; `map` produces a new ListExpression where each element is the callback's result. This preserves laziness and allows map callbacks to build new expression trees rather than performing side-effects.
 
-- `containsExpression(element)`: returns a `ConditionExpression` that is true if some evaluated element equals the provided element (semantic depends on element equality rules).
+- `isContaining(element)`: returns a `ConditionExpression` that is true if some evaluated element equals the provided element (semantic depends on element equality rules).
 - `oneOf(choices: ListExpression[])`: treat the list expression as a set of alternative lists and pick one deterministically using the instance RNG. Returns a `MaybeExpression` that contains the chosen `ListExpression` when choices are present; when the choices are empty the result is an absent `MaybeExpression` (hostApi.maybe.none()).
 - `randomElement()`: selects one element using deterministic instance RNG semantics (see randomness.md). Returns a `MaybeExpression` containing the chosen element when the list is non-empty; when the list is empty the result is an absent `MaybeExpression` (hostApi.maybe.none()).
 
@@ -91,7 +91,7 @@ export type ListExpression = {
   map: (cb: (elementExpr: any, index?: number) => any) => ListExpression;
 
   /** Existential membership test returning a ConditionExpression */
-  containsExpression: (element: any) => ConditionExpression;
+  isContaining: (element: any) => ConditionExpression;
 
   /** Treat a collection of list alternatives and pick one whole list deterministically.
    *  Accepts an array of ListExpression alternatives and returns a MaybeExpression containing the chosen ListExpression.
@@ -167,7 +167,7 @@ Mitigations:
 - + Simple, expressive API for ordered sequences.
 - + Reuses existing rule repository and deterministic randomness semantics.
 - - Generic `any` element surface is flexible but sacrifices type safety; specialized typed helpers improve ergonomics.
-- - Implementing robust `containsExpression` for complex element expressions may require automata or bounded enumeration.
+- - Implementing robust `isContaining` for complex element expressions may require automata or bounded enumeration.
 
 ## Next Iteration
 
