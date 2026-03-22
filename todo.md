@@ -31,3 +31,9 @@ Repository specification for entities/containers
 
 ---
 Entity mutation declaration api,
+
+---
+Split entity into
+  - `structure`
+  - `expression`
+  - `filter`
