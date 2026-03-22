@@ -11,3 +11,8 @@ stream only updates,
 - After finishing loading the modules the sandbox is closed, and all runs are done according to the extracted AST.
 
 -Multiple threads can process different Actions simultaneously because their `ExecutionContexts` are independent. No global locks or shared state.
+
+
+- Are events sync vs queued? reorder/atomicity guarantees?
+The server employs double buffering, where when an 
+   

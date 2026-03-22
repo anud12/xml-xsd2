@@ -22,11 +22,12 @@ Inspire usage from "conditionExpression","numberExpression" and, "stringExpressi
 
 Use cortana to write to file 
 
----
-Generate `ContainerExpression`
 
 ---
 Merge `zones` into `containers`
 
 ---
-Better agent name `Mochi` -> `Twinkle`
+Repository specification for entities/containers
+
+---
+Entity mutation declaration api,
