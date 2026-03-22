@@ -4,7 +4,7 @@ This document describes the core `List expression` concept.
 
 ## Summary
 
-`ListExpression` is an `immutable`, `lazily-evaluated` expression model representing ordered sequences (lists/arrays) of element expressions. The host API builds expression trees via `of`, `concat`, `append`, `group`, `get`, `length`, `contains`, and `randomElement`. `of(...items)` accepts variable arguments of element expressions and eagerly constructs a host literal list when all items are literal. Other ops produce nodes evaluated on extraction.
+`ListExpression` is an `immutable`, `lazily-evaluated` expression model representing ordered sequences (lists/arrays) of element expressions. The host API builds expression trees via `of`, `concat`, `append`, `group`, `get`, `length`, `contains`, `forEach`, `oneOf`, and `randomElement`. `of(...items)` accepts variable arguments of element expressions and eagerly constructs a host literal list when all items are literal. Other ops produce nodes evaluated on extraction.
 
 Lists are typed by their element expressions (e.g., lists of strings, numbers, or nested expressions). From JS the `ListExpression` wrapper is truthy and not implicitly coerced — explicit evaluation or element access is required.
 
@@ -13,7 +13,7 @@ Lists are typed by their element expressions (e.g., lists of strings, numbers, o
 Provide a composable, deterministic collection API that:
 - Represents ordered sequences of element expressions usable by host code and rules
 - Allows building and registering reusable list fragments (`asRule`/`getRule`)
-- Preserves deterministic randomness (for `randomElement`) via the instance RNG table
+- Preserves deterministic randomness (for `randomElement` and `oneOf`) via the instance RNG table
 
 Use cases: inventories, deterministic choice lists, argument lists for other expressions, and reusable sequence fragments.
 
@@ -28,11 +28,15 @@ Use cases: inventories, deterministic choice lists, argument lists for other exp
 - `concat(other)`: at evaluation, evaluate left then right and return concatenated sequence.
 - `append(item)`: evaluate receiver to a sequence, evaluate `item` and append resulting single element.
 - `group(expr)`: controls grouping/evaluation boundaries for composed list nodes.
-- `get(index:NumberExpression)`: evaluate the list, evaluate `index` (NumberExpression semantics apply), and return the element at that zero-based index. Out-of-bounds → fail-soft: return `null` (or host `Optional.empty`) and log. Implementations MAY provide a strict mode to throw instead.
+- `get(index:NumberExpression)`: evaluate the list, evaluate `index` (NumberExpression semantics apply), and return a `MaybeExpression` containing the element when present. When the index is out-of-bounds the result is an absent `MaybeExpression` (hostApi.maybe.none()) and the event is logged. Implementations MAY provide a strict mode that throws instead.
 - `length()`: returns a `NumberExpression` representing the number of elements (evaluated at extraction time).
-- `indexOf(element)`: existential search over evaluated elements; returns a NumberExpression index or -1 when not found.
+
+- `forEach(cb: (element: any, index?: number) => void)`: evaluate the list; for each element, evaluate the element expression to a host value and invoke `cb(elementValue, index)`. Callbacks are invoked at evaluation time for side-effects; the forEach expression returns void (or host `null`). Implementations MAY provide a strict mode for error handling.
+- `map(cb: (elementExpr: any, index?: number) => any)`: lazily transform each element by invoking `cb` with the element expression (not the evaluated value). `cb` should return an expression or literal; `map` produces a new ListExpression where each element is the callback's result. This preserves laziness and allows map callbacks to build new expression trees rather than performing side-effects.
+
 - `containsExpression(element)`: returns a `ConditionExpression` that is true if some evaluated element equals the provided element (semantic depends on element equality rules).
-- `randomElement()`: selects one element using deterministic instance RNG semantics (see randomness.md). If the list is empty, fail-soft and return `null`.
+- `oneOf(choices: ListExpression[])`: treat the list expression as a set of alternative lists and pick one deterministically using the instance RNG. Returns a `MaybeExpression` that contains the chosen `ListExpression` when choices are present; when the choices are empty the result is an absent `MaybeExpression` (hostApi.maybe.none()).
+- `randomElement()`: selects one element using deterministic instance RNG semantics (see randomness.md). Returns a `MaybeExpression` containing the chosen element when the list is non-empty; when the list is empty the result is an absent `MaybeExpression` (hostApi.maybe.none()).
 
 
 Short-circuiting: evaluation is lazy across nodes; implementations should avoid eagerly constructing or enumerating large lists.
@@ -74,28 +78,37 @@ export type ListExpression = {
   /** Grouping node to control evaluation order */
   group: (expr: ListExpression) => ListExpression;
 
-  /** Zero-based index access; returns evaluated element or null when OOB */
-  get: (index: NumberExpression) => any;
+  /** Zero-based index access; returns a MaybeExpression containing the evaluated element when present */
+  get: (index: NumberExpression) => MaybeExpression;
 
   /** Length as a NumberExpression */
   length: () => NumberExpression;
 
-  /** Index of first matching element; -1 if none */
-  indexOf: (element: any) => NumberExpression;
+  /** Iterate elements and invoke cb(elementValue:any, index?:number) for side-effects. Callback invoked at evaluation time. Returns void. */
+  forEach: (cb: (element: any, index?: number) => void) => void;
+
+  /** Lazily transform each element. Callback receives the element expression (not evaluated value) and returns an expression or literal. Returns a new ListExpression. */
+  map: (cb: (elementExpr: any, index?: number) => any) => ListExpression;
 
   /** Existential membership test returning a ConditionExpression */
   containsExpression: (element: any) => ConditionExpression;
 
-  /** Deterministic selection of an element using the instance RNG */
-  randomElement: () => any;
+  /** Treat a collection of list alternatives and pick one whole list deterministically.
+   *  Accepts an array of ListExpression alternatives and returns a MaybeExpression containing the chosen ListExpression.
+   */
+  oneOf?: (choices: ListExpression[]) => MaybeExpression;
 
-
+  /** Deterministic selection of an element using the instance RNG (returns MaybeExpression) */
+  randomElement: () => MaybeExpression;
 }
+
 ```
 
 Notes:
 - `any` above denotes an element expression or literal; concrete HostApi implementations SHOULD provide typed helpers (e.g., List<StringExpression>) or specialized helpers such as `listOfStrings` for ergonomic host bindings.
 - `of(...items)` is eagerly computed and cached for literal items only; other constructors remain lazy.
+- `forEach(...)` invokes callbacks at evaluation time and is explicitly side-effecting; callers should avoid non-deterministic side-effects and prefer pure transforms where possible.
+- See also: [MaybeExpression](./maybeExpression.md) — the optional/absent value contract used by `get()`, `randomElement()`, and `oneOf()`; read there for `map`/`flatMap`/`orElse`/`ifPresent` semantics and fail-soft vs strict modes.Use `map(...)` when a pure transformation of elements into new expressions is desired.
 
 ## Examples
 
@@ -104,14 +117,27 @@ Notes:
 const palette = hostApi.list.of(hostApi.string.of("red"), hostApi.string.of("blue"));
 hostApi.list.asRule("palette", palette);
 
-const first = palette.get(hostApi.number.of(0)); // StringExpression
+const firstMaybe = palette.get(hostApi.number.of(0)); // MaybeExpression that may contain a StringExpression
 const size = palette.length(); // NumberExpression
 
 // deterministic random element
-const col = palette.randomElement(); // picks 'red' or 'blue' by instance RNG
+const colMaybe = palette.randomElement(); // MaybeExpression of chosen element; unwrap with orElse(...) or ifPresent(...)
 
 // concatenation
 const more = palette.concat(hostApi.list.of(hostApi.string.of("green")));
+
+// side-effecting iteration (callbacks run at evaluation time)
+const names = hostApi.list.of(hostApi.string.of("Alice"), hostApi.string.of("Bob"));
+names.forEach((name, idx) => {
+  // `name` is the evaluated host string when callback runs.
+  // Callback may perform host-side actions such as rule registration or logging.
+  hostApi.string.asRule(`greeting-${idx}`, hostApi.string.of("Hello ").concat(hostApi.string.of(name)));
+});
+
+// lazy mapping — build a transformed ListExpression without evaluating elements now
+const nums = hostApi.list.of(hostApi.number.of(1), hostApi.number.of(2));
+const doubled = nums.map(nExpr => nExpr.multiply(hostApi.number.of(2))); // ListExpression of expressions
+// later, evaluating `doubled` will evaluate each expression and return `[2,4]`
 ```
 
 ## Repository & Validation
@@ -124,11 +150,12 @@ Follow the repository/indexing pattern used by other rule types:
 
 ## Failure modes & Edge Cases
 
-- Out-of-bounds access: `get(index)` returns `null` by default (fail-soft); strict mode can throw.
-- Empty lists: `randomElement()` on empty lists returns `null` (fail-soft).
+- Out-of-bounds access: `get(index)` returns an absent `MaybeExpression` (hostApi.maybe.none()) by default (fail-soft); strict mode can throw.
+- Empty lists: `randomElement()` on empty lists returns an absent `MaybeExpression` (hostApi.maybe.none()) (fail-soft).
 - Deeply-nested or huge lists: avoid naive expansion; provide streaming or capped enumeration.
 - Cyclic rule refs: detect and cap expansion depth (configurable) to avoid infinite loops.
 - Element typing: mixing element types in a list can lead to runtime errors; prefer typed list helpers.
+- Side-effects from `forEach`: callbacks may mutate shared state, register rules, or otherwise introduce non-determinism. Mitigations: prefer pure callbacks, document evaluation order, provide strict deterministic evaluation rules, and consider disabling side-effects in strict mode.
 
 Mitigations:
 - Provide strict vs fail-soft modes via runtime config.
@@ -140,7 +167,7 @@ Mitigations:
 - + Simple, expressive API for ordered sequences.
 - + Reuses existing rule repository and deterministic randomness semantics.
 - - Generic `any` element surface is flexible but sacrifices type safety; specialized typed helpers improve ergonomics.
-- - Implementing robust `containsExpression` / indexOf for complex element expressions may require automata or bounded enumeration.
+- - Implementing robust `containsExpression` for complex element expressions may require automata or bounded enumeration.
 
 ## Next Iteration
 
