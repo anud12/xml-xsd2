@@ -70,6 +70,37 @@ type EntityFilter = {
 }
 ```
 
+```ts
+// HostApi augmentation: expose entity.filter API to modules
+export type HostApi = {
+  /* ... rest of declarations ... */
+  entity: EntityApi
+}
+
+export type EntityApi = {
+  // Other entity helpers may exist here; this snippet focuses on filter API surface.
+  filter: EntityFilterApi
+}
+
+export type EntityFilterApi = {
+  /** Create a new filter builder (start composing filter predicates) */
+  create: () => EntityFilter
+
+  /** Register a named filter in the entity filter repository for reuse in modules/tests */
+  asRule: (ruleName: string, filter: EntityFilter) => EntityFilterApi
+
+  /** Retrieve a previously registered named filter by rule id */
+  getRule: (ruleName: string) => EntityFilter
+
+  /** Marker for type usage in HostApi clients */
+  type: EntityFilterType
+}
+
+export type EntityFilterType = {
+  // Marker for HostApi typing; implementations may extend if needed.
+}
+```
+
 Notes:
 - The API above is conceptual; concrete host bindings may expose builder functions instead of methods.
 - `ConditionExpression`, `StringExpression` and `NumberExpression` callbacks receive expression handles that evaluate in the entity context (see "Entity evaluation context" below).
