@@ -55,12 +55,12 @@ number: NumberExpressionApi
 
 export type NumberExpressionApi = {
     of: (number:number) => NumberExpression,
-    asRule:(ruleName: string, numberExpression: NumberExpression) => NumberExpressionApi
-    getRule(ruleName: string) => NumberExpressionApi
+    asRule:(ruleName: string, numberExpression: NumberExpression) => NumberExpressionApi,
+    getRule: (ruleName: string) => NumberExpressionApi,
     type: NumberExpressionType,
 }
 
-export type NumberExpressionType {
+export type NumberExpressionType = {
     //** used when declaring type of arguments dynamically.
 }
 
