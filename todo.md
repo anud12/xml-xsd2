@@ -37,3 +37,5 @@ Split entity into
   - `structure`
   - `expression`
   - `filter`
+
+--- Add query to get child of `entity` and `container`
