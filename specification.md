@@ -9,11 +9,15 @@ Concepts
 -------------------
 
 ## Primitives
-- [`NumberExpression`](./numberExpression.md): An `immutable`, `lazily-evaluated` expression tree representing a `long` value. Construct with `of(number)` (eager — truncates/validates a JS Number) and combinators `sum`, `subtract`, `multiply`, `divide`, `group`, `random`. Provide an evaluation API such as `evaluate(context): long`. From JS a `NumberExpression` is truthy; implicit numeric coercion MUST throw.
+- [`NumberExpression`](./numberExpression.md): An `immutable`, `lazily-evaluated` expression tree representing a `long` value.
 
-- [`StringExpression`](./stringExpression.md): An `immutable`, `lazily-evaluated` expression tree representing host `String` values. Construct with `of(string)` (eager) and compositors `concat`, `join`, `group`, `ref`, and `oneOf`. Evaluation is lazy; `oneOf` uses the deterministic instance random table and `ref` resolution follows the repository (`asRule`/`getRule`). Includes set-aware matching primitives (`containsExpression`, `indexOfExpression`) that reason about possible expansions caused by `oneOf` and refs.
+- [`StringExpression`](./stringExpression.md): An `immutable`, `lazily-evaluated` expression tree representing host `String` values. .
 
-- [`ConditionExpression`](./conditionExpression.md): An `immutable`, `lazily-evaluated` expression tree representing boolean values. Construct with `of(boolean)` and compose with `and`, `or`, `negate`, `ifTrue(cb)`, `ifFalse(cb)`. Provides `asRule`/`getRule` for repository-backed named conditions. Evaluation is lazy and uses short-circuiting; callbacks passed to `ifTrue`/`ifFalse` are invoked only when the receiver's truth value dictates.
+- [`ListExpression`](./listExpression.md): An `immutable`, `lazily-evaluated` expression tree representing ordered sequences (lists/arrays) of element expressions.
+
+- [`MaybeExpression`](./maybeExpression.md): An `immutable`, `lazily-evaluated` expression representing optional values (present/absent).
+
+- [`ConditionExpression`](./conditionExpression.md): An `immutable`, `lazily-evaluated` expression tree representing boolean values.
 
 
 ## [Modules](./modules.md)
