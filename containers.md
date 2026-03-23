@@ -191,15 +191,31 @@ export type ContainerExpressionApi = {
   asRule?: (ruleName: string, expr: ContainerExpression) => ContainerExpressionApi,
   getRule?: (ruleName: string) => ContainerExpression,
   type: ContainerExpressionType,
+  /** Dimension expression builder factory */
+  dimension?: DimensionExpressionApi,
 }
 
 export type ContainerExpressionType = {
   // marker for dynamic HostApi typing
 }
 
+export type DimensionExpressionApi = {
+  create: () => DimensionExpression,
+  asRule?: (ruleName: string, expr: DimensionExpression) => DimensionExpressionApi,
+  getRule?: (ruleName: string) => DimensionExpression,
+}
+
+export type DimensionExpression = {
+  withName: (name: string) => DimensionExpression,
+  withMapping: (mapping: (entity: EntityExpression) => NumberExpression) => DimensionExpression,
+  withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => DimensionExpression,
+}
+
 export type ContainerExpression = {
   /** Append an inline member entity built using EntityExpression */
   withEntity: (entity: EntityExpression) => ContainerExpression,
+  /** Add a dimension expression to the container builder */
+  withDimension: (dimension: DimensionExpression) => ContainerExpression,
   /** Replace the entity's text_map with the supplied TextMapExpression */
   withTextMap: (textMap: TextMapExpression) => EntityExpression,
   /** Replace the entity's number_map with the supplied NumberMapExpression */
@@ -214,6 +230,11 @@ export type ContainerExpression = {
 const potionEntity = /* intent: build inline EntityExpression with text 'name'='Health Potion' and number 'hp_restored'=20 */;
 
 const inv = hostApi.container.create()
+  .withDimension(hostApi.container.dimension?.create()
+    .withName("slot")
+    .withMapping((entity) => entity.number_map.get("slotIndex"))
+    .withSize(hostApi.number.of(20), "clamp")
+  )
   .withEntity(potionEntity);
 
 /* intent: register container template 'basic_inventory' in runtime repository */
