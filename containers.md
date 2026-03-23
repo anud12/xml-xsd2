@@ -26,19 +26,37 @@ This means an Entity may both exist in a Zone/Region location graph and also par
 
 ```typescript
 type Container = {
-  id: UniqueGlobalContainerId
-  textMap: TextMap,
-  numberMap: NumberMap,
+  id: UniqueGlobalContainerId,
+  textMap?: TextMap,
+  numberMap?: NumberMap,
   entities: EntityReference,
+  // Optional dimensions: the number of declared dimensions determines container arity (1 -> 1D, 2 -> 2D).
+  dimensions?: Dimension[],
 }
+
+type Dimension = {
+  name?: string, // friendly name (e.g., "row", "col", "slot")
+  // mapping: a function that receives the member Entity and returns a NumberExpression
+  mapping: (entity: Entity) => NumberExpression,
+  // optional size and out-of-bounds handling
+  size?: DimensionSize,
+}
+
+type DimensionSize = {
+  value: NumberExpression, // e.g., hostApi.number.of(10)
+  outOfBounds: OutOfBoundsRule,
+}
+
+type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
+
 type TextMap = {
-  [name:string]: StringExpression, //colection of `StringExpression` values accesible by `name`.
+  [name:string]: StringExpression, //collection of `StringExpression` values accessible by `name`.
 }
 type NumberMap = {
-  [name:string]: NumberExpression, //colection of `NumberExpression` values accesible by `name`.
+  [name:string]: NumberExpression, //collection of `NumberExpression` values accessible by `name`.
 }
 type EntityReference = {
-  entityIdReference: UniqueGlobalEntityId, 
+  entity?: { entityIdReference: UniqueGlobalEntityId }[],
 }
 ```
 
@@ -120,6 +138,21 @@ The important conceptual boundary is that a Container is not merely a list field
 
 That explicitness is what makes containers useful for validation, runtime operations, indexing, and behavior-specific rules.
 
+## Dimensions
+
+Containers may optionally declare one or more dimensions to support indexed or coordinate-like addressing of contained Entities. The current specification supports only 1D and 2D containers.
+
+- Container type: determined by the number of declared dimensions. Only 1D and 2D are supported; a 1D container has a single dimension, a 2D container declares two dimensions.
+- Dimension definition: each dimension is a mapping function from an Entity to a NumberExpression. At evaluation time the runtime computes the NumberExpression for a given Entity to yield the position (index or coordinate) in that dimension.
+- Dimension size: each declared dimension may include an optional size (expressed as a NumberExpression). When present, the size describes the valid range for indices or bounds for coordinates and can be used for validation, clamping, or wrap behavior depending on container-rule semantics.
+
+Examples:
+
+- 1D (slots): a bag may declare a single dimension mapping items to integer 'slotIndex' positions. An optional size sets the number of slots.
+- 2D (grid): a chest or grid may declare 'row' and 'col' dimensions mapping items to grid coordinates; sizes define the number of rows and columns.
+
+Semantics note: NumberExpression results are numeric. Container rules must document how numeric results are interpreted (e.g., integer index vs. real coordinate), how non-integer values are handled (flooring, rounding), and what happens when values fall outside declared sizes (unbound, clamp, wrap). The runtime evaluates NumberExpressions deterministically; interpretation and enforcement are the responsibility of the container rule implementation.
+
 ---
 
 ## ContainerExpression — Concepts
@@ -189,5 +222,44 @@ hostApi.container.asRule?.("basic_inventory", inv);
 /* intent: retrieve registered container 'basic_inventory' and append an inline entity named 'Gem' */
 const instantiated = hostApi.container.getRule?.("basic_inventory")
   .withEntity(/* intent: inline EntityExpression with text 'name'='Gem' */);
+
+// Example: 1D container (slots) data model
+const bagContainer: Container = {
+  id: "bag-1",
+  dimensions: [
+    {
+      name: "slot",
+      // mapping is a function that receives the member entity and returns a NumberExpression
+      mapping: (entity) => entity.number_map.get("slotIndex"),
+      size: {
+        value: hostApi.number.of(20),
+        outOfBounds: "clamp",
+      },
+    },
+  ],
+  entities: {
+    entity: [ { entityIdReference: "item-1" }, { entityIdReference: "item-2" } ],
+  },
+};
+
+// Example: 2D container (grid) with wrap behavior
+const gridContainer: Container = {
+  id: "chest-grid-1",
+  dimensions: [
+    {
+      name: "row",
+      mapping: (entity) => entity.number_map.get("row"),
+      size: { value: hostApi.number.of(3), outOfBounds: "wrap" },
+    },
+    {
+      name: "col",
+      mapping: (entity) => entity.number_map.get("col"),
+      size: { value: hostApi.number.of(5), outOfBounds: "wrap" },
+    },
+  ],
+  entities: {
+    entity: [ { entityIdReference: "gem-1" } ],
+  },
+};
 ```
 
