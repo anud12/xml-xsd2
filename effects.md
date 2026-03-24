@@ -65,6 +65,29 @@ The reason for splitting into `prepare` and `apply` is that when an event is emi
   - When an event is loaded, it must be proven that every synchronous prepare → emitEvent chain is finite, failure to do so should result in:
     - World registration MUST be rejected with error code E_RECURSION_UNPROVEN_VALIDATION_FAIL.
 
+---
+
+### Reoccurrence (repeatable effects)
+
+To support effects that can schedule future re-occurrences, effects MAY include two optional declarative callbacks (expressed as expression-producing functions) to control repeating behavior:
+
+- `shouldRepeat(context, executionCount, input, output): ConditionExpression` — called after `prepare` and before recording commit intents. The function must return a ConditionExpression (an expression wrapper, not a boolean) that the runtime will evaluate at commit time. If the evaluated condition is true, the runtime proceeds to call `updateInterval` to compute the next occurrence time.
+
+- `updateInterval(context, executionCount, input, output): NumberExpression` — called only when `shouldRepeat` evaluated to true. Returns a NumberExpression that evaluates (at commit time) to a non-negative number of milliseconds representing a delay from the current commit time before the next invocation. The runtime computes the next scheduled time as currentCommitTime + evaluatedDelay. Values <= 0 are treated as "schedule for the next available tick" and will be executed on the next tick.
+
+Notes & semantics:
+- `executionCount` is the 0-based count of how many times the effect has executed including the current execution (first execution => executionCount=0).
+- Both `shouldRepeat` and `updateInterval` must be pure, deterministic, and side-effect free; they may reference the `ExecutionContext`, `input`, and `output` via expression builders to form wrappers evaluated at commit time.
+- Evaluation timing: both functions produce expression wrappers that are recorded and evaluated at commit time so they remain consistent with other expression evaluations and the deterministic randomness context.
+- Atomicity: scheduling decisions are recorded alongside other commit-time writes. If the commit aborts, no schedule entry is applied.
+- Persistence: scheduled occurrences are part of the world's persisted scheduling state (if persistence is enabled) and must survive restarts if persisted snapshots include scheduler state.
+- Multiple occurrences: if multiple scheduled occurrences for the same effect fall within the same tick, the runtime must execute each occurrence in chronological order deterministically.
+- Cancellation: an effect may stop repeating by returning a `shouldRepeat` that evaluates to `false`. (Explicit in-flight cancellation APIs are not required but may be introduced separately.)
+
+Implementation notes:
+- The runtime MUST provide an internal scheduler (persisted or in-memory) to track effect reoccurrences. Scheduling entries are materialized at commit time and must be included in commit writes for atomicity.
+- The runtime should enforce per-module schedule quotas (max scheduled effects, invocations per tick) to avoid resource exhaustion.
+- When persisting scheduled entries, include enough data (module id, effect id, executionCount, input/output snapshot or refs) to reconstruct the eventual `ExecutionContext` for the re-invocation.
 
 ## Example
 ```typescript
@@ -87,6 +110,19 @@ type RegisterEventArgs<Input, Output> = {
   output?: Record<string, { type: EventArgType; description?: string }>;
   prepare?: (context: EventContext, input: Input /* structure declared in `this.input` */) => Output; /* returns structure declared in `this.output` */
   apply?: (context: EventContext, output: Output /* passed from result of `this.prepare` */) => void;
+
+  // Optional repeat hooks for effects that reoccur
+  /**
+   * Called after prepare to determine whether the effect should be scheduled again.
+   * Return a ConditionExpression (expression wrapper) evaluated at commit time. If true, updateInterval is invoked.
+   */
+  shouldRepeat?: (context: EventContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => ConditionExpression;
+
+  /**
+   * Called when shouldRepeat evaluates to true. Return a NumberExpression (delay in ms) evaluated at commit time.
+   * The runtime computes nextScheduledTime = currentCommitTime + evaluatedDelay.
+   */
+  updateInterval?: (context: EventContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => NumberExpression;
 }
 
 const appendNumberEvent: RegisterEventArgs = {
@@ -121,7 +157,13 @@ const appendNumberEvent: RegisterEventArgs = {
   apply: (context, output): void => {
     output.originEntity.setProperty("evil", output.numberToBeAdded);
   },
+
+  // Example reoccurrence hooks
+  shouldRepeat: (ctx, execCount, input, output) => execCount.isLessThan(host.number.of(3)),
+  updateInterval: (ctx, execCount, input, output) => host.number.of(1000),
 };
 
 registerEvent(appendNumberEvent);
+
+
 ```
