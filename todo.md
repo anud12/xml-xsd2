@@ -41,6 +41,7 @@ Split entity into
 ---
 Container:
 - also for container add a portals from regions.
+  - add a function to check if entity is eligible to enter the container
   - for portal declare position if it is on border, or inside
 
 --- Remove zones/regions
@@ -48,3 +49,7 @@ Container:
 --- change literature to replace server with runtime, where the runtime executes etc.
 
 --- expand actions
+
+--- 
+runtime
+  - select running effects by name and input
