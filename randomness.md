@@ -1,6 +1,6 @@
 # Randomness — Concepts
 
-This document describes the [deterministic](https://en.wikipedia.org/wiki/Deterministic_algorithm), positional, and table-less randomness system used for server-client synchronicity.
+This document describes the [deterministic](https://en.wikipedia.org/wiki/Deterministic_algorithm), positional, and table-less randomness system used for runtime-client synchronicity.
 
 ## Summary
 
@@ -38,5 +38,5 @@ An `ExecutionContext` is created at every "Entrypoint" (Action, Event, or Entity
 ## Synchronicity Contract
 
 -   **Parallel Safety**: Multiple threads can process different Actions simultaneously because their `ExecutionContexts` are independent. No global locks or shared state.
--   **Server-Client Parity**: As long as the Client knows the initial Entrypoint conditions (Tick, Entity, Action Identifier), it will arrive at the exact same random results as the Server.
+-   **Runtime-Client Parity**: As long as the Client knows the initial Entrypoint conditions (Tick, Entity, Action Identifier), it will arrive at the exact same random results as the Runtime.
 -   **No Patterns**: The sequence never "wraps" because there is no fixed-length table. Each draw is unique to its coordinates in (Tick, Entity, Action, Call) space.

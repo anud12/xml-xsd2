@@ -34,7 +34,7 @@ When a `StringExpression` is extracted, nodes are evaluated recursively in decla
 
 ## Host API
 
-The server exposes the following TypeScript declaration (augmenting HostApi):
+The runtime exposes the following TypeScript declaration (augmenting HostApi):
 
 ```typescript
 export type HostApi = {

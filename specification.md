@@ -1,9 +1,9 @@
-XML-XSD RPG Game Server — Implementation Specification
+XML-XSD RPG Game Runtime — Implementation Specification
 ===============================================
 
 Purpose
 -------
-This document describes the implemented functionality in the codebase under implementation/ and the behavioral test-suite in specification-test/. It is a high-level specification intended to let a developer rewrite or re-implement the server while preserving behavior.
+This document describes the implemented functionality in the codebase under implementation/ and the behavioral test-suite in specification-test/. It is a high-level specification intended to let a developer rewrite or re-implement the runtime while preserving behavior.
 
 Concepts
 -------------------
@@ -35,7 +35,7 @@ Atomic unit of the engine.
 Holder of entities
 
 ## [Randomness](./randomness.md)
-All randomness is deterministic and stateless — each draw is derived from the `ExecutionContext` (World Seed, Tick, Source, Action, Call Index) using a 64-bit SplitMix64-based PRNG. This guarantees server-client parity, parallel safety, and no global RNG state.
+All randomness is deterministic and stateless — each draw is derived from the `ExecutionContext` (World Seed, Tick, Source, Action, Call Index) using a 64-bit SplitMix64-based PRNG. This guarantees runtime-client parity, parallel safety, and no global RNG state.
 
 ## Zones
 

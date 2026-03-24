@@ -38,4 +38,13 @@ Split entity into
   - `expression`
   - `filter`
 
---- Add query to get child of `entity` and `container`
+---
+Container:
+- also for container add a portals from regions.
+  - for portal declare position if it is on border, or inside
+
+--- Remove zones/regions
+
+--- change literature to replace server with runtime, where the runtime executes etc.
+
+--- expand actions

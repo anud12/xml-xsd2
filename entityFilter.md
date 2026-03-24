@@ -152,7 +152,7 @@ const inRegion = entityFilter
 ## Failure modes and edge cases
 
 - malformed expressions: evaluation should surface deterministic errors rather than partial results.
-- very large repositories: callers may provide a source `ListExpression` to limit scope; add server-side limits to protect memory/time.
+- very large repositories: callers may provide a source `ListExpression` to limit scope; add runtime-side limits to protect memory/time.
 - concurrent reads: filters read the reading-buffer snapshot and must not rely on live mutations.
 - cycles: container-based checks that traverse container graphs must guard against cycles and control recursion depth.
 

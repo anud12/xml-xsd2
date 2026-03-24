@@ -11,7 +11,7 @@ An `Effect` is used to declare changes.
 The `Effect` system provides a formal, declarative mechanism for defining **pure** state transitions that the runtime can optimize and execute deterministically. Its primary goals are:
 - **Enforce Declarative Logic**: To maintain a pure AST-based execution model, Effects discourage imperative control flow (like standard JavaScript `if` or `switch` statements). Instead, they require the use of lazy `ConditionExpression` trees to declare all logical branches upfront, allowing the runtime to "crunch" transitions as flat data.
 - **Phase Separation for Performance**: By splitting logic into a `prepare` phase (resolving targets and evaluating expressions) and an `apply` phase (committing mutations), the runtime can maximize parallel execution and SIMD optimization without global state locks.
-- **Guarantee Determinism**: Every state change must be derived from the `ExecutionContext`. This ensures that effects remain perfectly reproducible across different threads and between the server and client.
+- **Guarantee Determinism**: Every state change must be derived from the `ExecutionContext`. This ensures that effects remain perfectly reproducible across different threads and between the runtime and client.
 - **Transactional Integrity**: Provides a safe boundary where game state is only modified if the preparation phase successfully resolves all required logic, preventing partial or corrupted state updates.
 
 ## Notes
