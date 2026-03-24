@@ -174,7 +174,7 @@ const activeRegions = containerApi.filter.create()
 ## Failure modes and edge cases
 
 - malformed expressions: surface deterministic errors rather than partial results
-- very large container hierarchies: provide server-side limits and prefer source-limiting lists for callers
+- very large container hierarchies: provide runtime-side limits and prefer source-limiting lists for callers
 - concurrent reads: filters read from the reading-buffer snapshot and must not rely on live mutations
 - cycles: parent/child traversals must detect cycles and handle them gracefully
 - missing member references: tolerate dangling entity refs (log and treat as non-matching)

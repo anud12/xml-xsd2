@@ -45,7 +45,7 @@ References:
 
 ## Host Api 
 
-The server exposes the following TypeScript declaration file (.d.ts) which enhances the HostApi.
+The runtime exposes the following TypeScript declaration file (.d.ts) which enhances the HostApi.
 ```typescript
 export type HostApi = {
 /*... rest of declarations */
