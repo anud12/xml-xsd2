@@ -1,32 +1,39 @@
-## Todo
-fill this file
+# User Interface — Layout-first discussion
 
-## Layouting
-Ui, use web `flex`, and `grid` on panel, and panel can have subpanels.
+## Purpose
 
-## Features
-- Drag and drop
+The objective of this specification is to define a minimal, high-impact subset of UI primitives and composition rules. By prioritizing "most bang for the buck," this API provides the essential building blocks required to assemble a fully functional and modern interface while maintaining a strictly limited architectural footprint.
 
-## Inputs
+The system focuses on a small, typed set of layout hints and primitive components that cover common UI needs without complex widget hierarchies.
 
+---
 
-## UI Atoms
-- ContainerView
-- Bars:
-    - max value
-    - min value 
-    - texture
-    - color
-- Text field
-- 
+## Design principles
 
+- Layout-first: layout and positioning semantics are defined before visual styling.
+- Declarative: the UI is expressed as a component tree; the runtime performs layout, rendering and event delivery.
+- Logical coordinates: authors work in logical units; the runtime maps to device pixels with a scaleFactor.
+- Minimal primitives: provide a small set of composable building blocks that cover common patterns.
+- Explicit runtime contract: define the runtime obligations for layout, measurement, event mapping and accessibility.
 
-## 
-Use OpenEXR file format for sprite pictures
+---
 
-Sprite mapping,
-- have a frame sprite where colors are stored in 16 bits
-  - red channel is the value of `x` coordinate in destination
-  - green channel is the value of `y` coordinate in destination
-  - blue channel with alpha channel is the pointer to the destination file.
-- resulting image is the final image
+## Panel
+
+[see documentation](./user-interface/panel.md)
+
+---
+
+## Layout
+
+[see documentation](./user-interface/layout.md)
+
+## Division
+
+[see documentation](./user-interface/division.md)
+
+---
+
+## Text
+
+[see documentation](./user-interface/text.md)
