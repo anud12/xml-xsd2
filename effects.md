@@ -69,25 +69,34 @@ The reason for splitting into `prepare` and `apply` is that when an event is emi
 
 ### Reoccurrence (repeatable effects)
 
-To support effects that can schedule future re-occurrences, effects MAY include two optional declarative callbacks (expressed as expression-producing functions) to control repeating behavior:
+To support effects that can schedule future re-occurrences, effects MAY include two optional declarative callbacks (expressed as expression-producing functions) to control repeating behavior. The execution flow is:
 
-- `shouldRepeat(context, executionCount, input, output): ConditionExpression` — called after `prepare` and before recording commit intents. The function must return a ConditionExpression (an expression wrapper, not a boolean) that the runtime will evaluate at commit time. If the evaluated condition is true, the runtime proceeds to call `updateInterval` to compute the next occurrence time.
+1. The effect is emitted with `input` and runs `prepare` to compute `output`.
+2. `apply` runs and records mutation intents. During `apply` the effect MAY call `reoccurAfterMs` to declare a delay until the next invocation.
+3. The runtime records the scheduled entry atomically with the commit (including preserved `input`/`output` refs and current `executionCount`).
+4. When the scheduled delay elapses, the runtime evaluates `isReoccuranceApplicable` for that scheduled entry to decide whether to re-run the effect. If `isReoccuranceApplicable` evaluates to true the runtime enqueues a fresh invocation of the effect using the preserved `input` (and increments `executionCount`).
 
-- `updateInterval(context, executionCount, input, output): NumberExpression` — called only when `shouldRepeat` evaluated to true. Returns a NumberExpression that evaluates (at commit time) to a non-negative number of milliseconds representing a delay from the current commit time before the next invocation. The runtime computes the next scheduled time as currentCommitTime + evaluatedDelay. Values <= 0 are treated as "schedule for the next available tick" and will be executed on the next tick.
+Callbacks
+
+- `reoccurAfterMs(context, executionCount, input, output): MaybeExpression<NumberExpression>` — invoked during `apply` (and evaluated at commit time) to produce an optional non-negative delay (milliseconds) until the next invocation. If the result is empty (the Maybe is empty) or the function is not present, the runtime will not schedule a repeat. When present, the runtime computes nextScheduledTime = currentCommitTime + evaluatedDelay. Values <= 0 are treated as "schedule for the next available tick".
+
+- `isReoccuranceApplicable(context, executionCount, input, output): ConditionExpression` — invoked when the scheduled delay elapses (at scheduled time). This function receives the preserved previous `input` and `output` and must return a ConditionExpression. The runtime evaluates this expression in a fresh `ExecutionContext` for the scheduled check; if it evaluates to true, the runtime re-enqueues the effect (which will run `prepare` → `apply` again and may call `reoccurAfterMs` for further repeats).
 
 Notes & semantics:
-- `executionCount` is the 0-based count of how many times the effect has executed including the current execution (first execution => executionCount=0).
-- Both `shouldRepeat` and `updateInterval` must be pure, deterministic, and side-effect free; they may reference the `ExecutionContext`, `input`, and `output` via expression builders to form wrappers evaluated at commit time.
-- Evaluation timing: both functions produce expression wrappers that are recorded and evaluated at commit time so they remain consistent with other expression evaluations and the deterministic randomness context.
-- Atomicity: scheduling decisions are recorded alongside other commit-time writes. If the commit aborts, no schedule entry is applied.
-- Persistence: scheduled occurrences are part of the world's persisted scheduling state (if persistence is enabled) and must survive restarts if persisted snapshots include scheduler state.
-- Multiple occurrences: if multiple scheduled occurrences for the same effect fall within the same tick, the runtime must execute each occurrence in chronological order deterministically.
-- Cancellation: an effect may stop repeating by returning a `shouldRepeat` that evaluates to `false`. (Explicit in-flight cancellation APIs are not required but may be introduced separately.)
+- `executionCount` is the 0-based count of how many times the effect has executed, including the current execution (first execution => executionCount=0). On each re-run, `executionCount` increments.
+- `reoccurAfterMs` is evaluated at commit time and recorded as part of the commit writes so scheduling is atomic with other state changes.
+- `isReoccuranceApplicable` is evaluated at scheduled time in a new `ExecutionContext`. It may reference the previous `input` and `output` and the current runtime state (via expression wrappers) as needed.
+- Both callbacks must be pure, deterministic, and side-effect free; they should produce expression wrappers evaluated by the runtime.
+- Atomicity: if the commit that records the schedule aborts, no scheduled entry is recorded.
+- Persistence: scheduled entries are part of persisted scheduling state (if persistence is enabled) and must survive restarts if persisted snapshots include scheduler state.
+- Multiple occurrences: if multiple scheduled occurrences for the same effect fall within the same tick, the runtime must process them in chronological order deterministically. Tie-breaking for identical timestamps should be deterministic (e.g., module id, effect id, executionCount).
+- Cancellation: the effect stops repeating when `isReoccuranceApplicable` evaluates to false. Explicit in-flight cancellation APIs are optional and may be added separately.
+
 
 Implementation notes:
-- The runtime MUST provide an internal scheduler (persisted or in-memory) to track effect reoccurrences. Scheduling entries are materialized at commit time and must be included in commit writes for atomicity.
+- The runtime MUST provide an internal scheduler (persisted or in-memory) to track scheduled entries. Scheduling entries are materialized at commit time and included in commit writes for atomicity.
 - The runtime should enforce per-module schedule quotas (max scheduled effects, invocations per tick) to avoid resource exhaustion.
-- When persisting scheduled entries, include enough data (module id, effect id, executionCount, input/output snapshot or refs) to reconstruct the eventual `ExecutionContext` for the re-invocation.
+- When persisting scheduled entries, include enough data (module id, effect id, executionCount, input/output snapshot or stable refs) to reconstruct the eventual `ExecutionContext` for the re-invocation.
 
 ## Example
 ```typescript
@@ -113,16 +122,17 @@ type RegisterEventArgs<Input, Output> = {
 
   // Optional repeat hooks for effects that reoccur
   /**
-   * Called after prepare to determine whether the effect should be scheduled again.
-   * Return a ConditionExpression (expression wrapper) evaluated at commit time. If true, updateInterval is invoked.
+   * Called during `apply` to declare a delay until the next invocation.
+   * Return a MaybeExpression<NumberExpression> evaluated at commit time. If the Maybe is empty (or the function is not provided), no scheduling will occur.
+   * When present, the runtime computes nextScheduledTime = currentCommitTime + evaluatedDelay (values <= 0 schedule for next tick).
    */
-  shouldRepeat?: (context: EventContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => ConditionExpression;
+  reoccurAfterMs?: (context: EventContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => MaybeExpression<NumberExpression>;
 
   /**
-   * Called when shouldRepeat evaluates to true. Return a NumberExpression (delay in ms) evaluated at commit time.
-   * The runtime computes nextScheduledTime = currentCommitTime + evaluatedDelay.
+   * Called when a scheduled delay elapses to determine whether the effect should re-run.
+   * Returns a ConditionExpression evaluated in a fresh ExecutionContext. If true, the runtime re-enqueues the effect using the preserved input and increments executionCount.
    */
-  updateInterval?: (context: EventContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => NumberExpression;
+  isReoccuranceApplicable?: (context: EventContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => ConditionExpression;
 }
 
 const appendNumberEvent: RegisterEventArgs = {
@@ -159,8 +169,8 @@ const appendNumberEvent: RegisterEventArgs = {
   },
 
   // Example reoccurrence hooks
-  shouldRepeat: (ctx, execCount, input, output) => execCount.isLessThan(host.number.of(3)),
-  updateInterval: (ctx, execCount, input, output) => host.number.of(1000),
+  reoccurAfterMs: (ctx, execCount, input, output) => host.maybe.some(host.number.of(1000)),
+  isReoccuranceApplicable: (ctx, execCount, input, output) => host.condition.isLessThan(host.number.of(execCount), host.number.of(3)),
 };
 
 registerEvent(appendNumberEvent);
