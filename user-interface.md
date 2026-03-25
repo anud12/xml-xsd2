@@ -7,6 +7,19 @@ Ui, use web `flex`, and `grid` on panel, and panel can have subpanels.
 ## Features
 - Drag and drop
 
+## Inputs
+
+
+## UI Atoms
+- ContainerView
+- Bars:
+    - max value
+    - min value 
+    - texture
+    - color
+- Text field
+- 
+
 
 ## 
 Use OpenEXR file format for sprite pictures
