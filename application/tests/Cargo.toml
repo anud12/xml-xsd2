@@ -8,5 +8,6 @@ cucumber = "0.20"
 async-std = { version = "1.10", features = ["attributes"] }
 futures = "0.3.32"
 regex = "1.12.3"
+zip = "0.6"
 
 [dev-dependencies]
