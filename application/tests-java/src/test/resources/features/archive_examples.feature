@@ -4,6 +4,8 @@ Feature: Archive all files in directory
     When I create an archive of all files in the directory
     When I run the application on the archive
     Then the archive should contain all files with correct contents
+    Then the output must contain "<file1>"
+    Then the output must contain "<file2>"
 
     Examples:
       | file1      | content1      | file2      | content2        |

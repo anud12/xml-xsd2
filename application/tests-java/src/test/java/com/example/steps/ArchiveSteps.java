@@ -13,6 +13,7 @@ import java.util.zip.*;
 public class ArchiveSteps {
     private Map<String, byte[]> files;
     private byte[] archive;
+    private String lastOutput;
 
     @Given("^the test directory contains files named (.+) and (.+) with contents (.+) and (.+)$")
     public void the_test_directory_contains_files_named_and_with_contents(String file1, String file2, String content1, String content2) throws IOException {
@@ -91,11 +92,11 @@ public class ArchiveSteps {
         run.directory(new File(runtimeDir));
         run.redirectErrorStream(true);
         Process runProcess = run.start();
-        String output = new String(runProcess.getInputStream().readAllBytes());
+        lastOutput = new String(runProcess.getInputStream().readAllBytes());
         int exit = runProcess.waitFor();
-        if (exit != 0) throw new IOException("Runtime app failed: " + output);
+        if (exit != 0) throw new IOException("Runtime app failed: " + lastOutput);
         // Optionally, store output for later assertions
-        System.out.println("Runtime output: " + output);
+        System.out.println("Runtime output: " + lastOutput);
     }
 
 
@@ -118,6 +119,16 @@ public class ArchiveSteps {
         Assertions.assertEquals(files.size(), archiveContents.size());
         for (Map.Entry<String, byte[]> file : files.entrySet()) {
             Assertions.assertArrayEquals(file.getValue(), archiveContents.get(file.getKey()));
+        }
+    }
+
+    @Then("the output must contain {string}")
+    public void output_must_contain(String expectedLine) {
+        if (lastOutput == null) {
+            throw new AssertionError("No output captured from runtime");
+        }
+        if (!lastOutput.contains(expectedLine)) {
+            throw new AssertionError("Expected output to contain: '" + expectedLine + "' but was:\n" + lastOutput);
         }
     }
 }
