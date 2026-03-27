@@ -5,7 +5,7 @@ fn main() {
     let status = Command::new("E:\\Program Files\\IntelliJ IDEA 2025.2.2\\plugins\\maven\\lib\\maven3\\bin\\mvn.cmd")
         .arg("test")
         .arg("-ntp")
-        .current_dir("../tests-java") // Point to your Java root
+        .current_dir("../suite") // Point to your Java root
         .status()
         .expect("Failed to execute Java test runner");
 
