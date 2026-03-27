@@ -23,9 +23,22 @@ public class ArchiveSteps {
 
     @Before()
     public void before(Scenario scenario) throws IOException {
-        var rootPath = scenario.getUri().getPath().replace(Path.of(scenario.getUri()).getFileName().toString(), "")
-                .replaceFirst("/", "");
-        Path dir = Path.of(rootPath);
+        URI uri = scenario.getUri();
+        Path dir;
+        if ("classpath".equals(uri.getScheme())) {
+            // Resolve classpath resource to a real file path
+            String resourcePath = uri.getSchemeSpecificPart();
+            if (resourcePath.startsWith("/")) resourcePath = resourcePath.substring(1);
+            var url = getClass().getClassLoader().getResource(resourcePath);
+            if (url == null) throw new IOException("Resource not found: " + resourcePath);
+            try {
+                dir = Paths.get(url.toURI()).getParent();
+            } catch (java.net.URISyntaxException e) {
+                throw new IOException("Invalid URI for resource: " + url, e);
+            }
+        } else {
+            dir = Path.of(uri).getParent();
+        }
         try (var stream = Files.walk(dir)) {
             featureFiles = stream
                     .filter(Files::isRegularFile)
@@ -59,11 +72,14 @@ public class ArchiveSteps {
         File exeFile = new File(runtimeDir, exe);
         if (!exeFile.exists()) throw new IOException("Expected binary not found: " + exeFile.getAbsolutePath());
 
-        System.out.println("Running: " + exeFile.getAbsolutePath());
+//        System.out.println("Running: " + exeFile.getAbsolutePath());
         ProcessBuilder run = new ProcessBuilder(exeFile.getAbsolutePath(), archive.file().toPath().toAbsolutePath().toString());
         run.directory(new File(runtimeDir));
-        run.redirectErrorStream(true);
+        // Do not merge stderr with stdout, suppress stderr instead
+        run.redirectErrorStream(false);
         Process runProcess = run.start();
+        // Drain and discard stderr to suppress SLF4J warnings
+        new Thread(() -> { try { runProcess.getErrorStream().transferTo(OutputStream.nullOutputStream()); } catch (Exception ignored) {} }).start();
         lastOutput = runProcess.getInputStream().readAllBytes();
         int exit = runProcess.waitFor();
         if (exit != 0) throw new IOException("Runtime app failed: " + new String(lastOutput));
@@ -110,19 +126,19 @@ public class ArchiveSteps {
         try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:sqlite:" + sqliteFile.getAbsolutePath());
              java.sql.Statement stmt = conn.createStatement()) {
             // Log all tables and their structure
-            try (java.sql.ResultSet tables = stmt.executeQuery("SELECT name FROM sqlite_master WHERE type='table'")) {
-                System.out.println("--- SQLite Tables and Structure ---");
-                while (tables.next()) {
-                    String tName = tables.getString(1);
-                    System.out.println("Table: " + tName);
-                    try (java.sql.ResultSet pragma = stmt.executeQuery("PRAGMA table_info('" + tName + "')")) {
-                        while (pragma.next()) {
-                            System.out.println("  " + pragma.getString("name") + " " + pragma.getString("type"));
-                        }
-                    }
-                }
-                System.out.println("--- End SQLite Tables ---");
-            }
+//            try (java.sql.ResultSet tables = stmt.executeQuery("SELECT name FROM sqlite_master WHERE type='table'")) {
+//                System.out.println("--- SQLite Tables and Structure ---");
+//                while (tables.next()) {
+//                    String tName = tables.getString(1);
+//                    System.out.println("Table: " + tName);
+//                    try (java.sql.ResultSet pragma = stmt.executeQuery("PRAGMA table_info('" + tName + "')")) {
+//                        while (pragma.next()) {
+//                            System.out.println("  " + pragma.getString("name") + " " + pragma.getString("type"));
+//                        }
+//                    }
+//                }
+//                System.out.println("--- End SQLite Tables ---");
+//            }
             // Export requested table as CSV
             try (java.sql.ResultSet rs = stmt.executeQuery("SELECT * FROM '" + tableName + "'")) {
                 java.sql.ResultSetMetaData meta = rs.getMetaData();
