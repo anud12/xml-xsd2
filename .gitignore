@@ -2,3 +2,5 @@
 application/runtime/target/*
 application/tests/target/*
 **/.idea/**
+**/node_modules/**
+**/package-lock.json
