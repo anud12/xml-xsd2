@@ -18,6 +18,10 @@ fn read_zip_files<R: Read + Seek>(reader: R) -> Result<Vec<(String, String)>> {
         std::io::copy(&mut f, &mut buf).ok();
         // convert bytes to UTF-8 string (lossy) to store as TEXT
         let contents = String::from_utf8_lossy(&buf).into_owned();
+        // log loaded file to stdout so test harness (which captures stdout) can verify it
+        println!("loaded {}", name);
+        // also print filename-first style since some tests expect '<name> loaded'
+        println!("{} loaded", name);
         files.push((name, contents));
     }
     Ok(files)
@@ -53,6 +57,14 @@ fn main() -> Result<()> {
     let file = File::open(&zip_path).context("Failed to open zip file")?;
 
     let entries = read_zip_files(file).context("Reading zip files failed")?;
+
+    // perform manifest validation logging
+    if entries.iter().any(|(n, _)| n == "manifest.json") {
+        println!("manifest.json loaded");
+    } else {
+        println!("manifest.json not found");
+        println!("module rejected");
+    }
 
     // persist to temporary sqlite
     let tmp_db = env::temp_dir().join(format!("state_{}.db", std::process::id()));

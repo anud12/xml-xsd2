@@ -94,7 +94,7 @@ public class ArchiveSteps {
         }
     }
 
-    @Then("output table {string} must be {string} csv")
+    @Then("assert output table {string} must be {string} csv")
     public void outputTableMustBeCsv(String tableName, String csvFile) throws Exception {
         // 1. Find the delimiter in lastOutput
         String delimiter = "--SQLITE-START--";
@@ -152,7 +152,7 @@ public class ArchiveSteps {
         }
     }
 
-    @And("has log line containing {string}")
+    @And("assert log line containing {string}")
     public void hasLogLineContaining(String arg0) {
         var string = new String(lastOutput);
         string.lines()
