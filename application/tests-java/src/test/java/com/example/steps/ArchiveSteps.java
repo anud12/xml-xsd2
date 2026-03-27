@@ -69,6 +69,36 @@ public class ArchiveSteps {
         archive = baos.toByteArray();
     }
 
+    @When("I run the application on the archive")
+    public void i_run_the_application_on_the_archive() throws IOException, InterruptedException {
+        // Write archive to a temp file
+        Path tempArchive = Files.createTempFile("test-archive", ".zip");
+        Files.write(tempArchive, archive);
+        // Build the runtime app if needed (assume cargo build --release)
+        String runtimeDir = Paths.get("..", "runtime").toAbsolutePath().normalize().toString();
+        String exe = System.getProperty("os.name").toLowerCase().contains("win") ? "target\\release\\xml-xsd2.exe" : "target/release/xml-xsd2";
+        File exeFile = new File(runtimeDir, exe);
+        if (!exeFile.exists()) {
+            ProcessBuilder build = new ProcessBuilder("cargo", "build", "--release");
+            build.directory(new File(runtimeDir));
+            Process buildProcess = build.start();
+            int buildExit = buildProcess.waitFor();
+            if (buildExit != 0) throw new IOException("Failed to build runtime app");
+            if (!exeFile.exists()) throw new IOException("Expected binary not found: " + exeFile.getAbsolutePath());
+        }
+        System.out.println("Running: " + exeFile.getAbsolutePath());
+        ProcessBuilder run = new ProcessBuilder(exeFile.getAbsolutePath(), tempArchive.toAbsolutePath().toString());
+        run.directory(new File(runtimeDir));
+        run.redirectErrorStream(true);
+        Process runProcess = run.start();
+        String output = new String(runProcess.getInputStream().readAllBytes());
+        int exit = runProcess.waitFor();
+        if (exit != 0) throw new IOException("Runtime app failed: " + output);
+        // Optionally, store output for later assertions
+        System.out.println("Runtime output: " + output);
+    }
+
+
     @Then("the archive should contain all files with correct contents")
     public void the_archive_should_contain_all_files_with_correct_contents() throws IOException {
         Map<String, byte[]> archiveContents = new HashMap<>();
