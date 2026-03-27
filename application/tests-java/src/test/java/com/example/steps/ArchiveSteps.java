@@ -3,6 +3,7 @@ package com.example.steps;
 import io.cucumber.java.Before;
 import io.cucumber.java.PendingException;
 import io.cucumber.java.Scenario;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
@@ -16,7 +17,6 @@ import java.util.stream.Collectors;
 import java.util.zip.*;
 
 public class ArchiveSteps {
-    private Map<String, byte[]> files;
     private Map<String, File> featureFiles;
     private ZipArchive archive = ZipArchive.createTemp();
     private byte[] lastOutput;
@@ -71,8 +71,6 @@ public class ArchiveSteps {
 
         File exeFile = new File(runtimeDir, exe);
         if (!exeFile.exists()) throw new IOException("Expected binary not found: " + exeFile.getAbsolutePath());
-
-//        System.out.println("Running: " + exeFile.getAbsolutePath());
         ProcessBuilder run = new ProcessBuilder(exeFile.getAbsolutePath(), archive.file().toPath().toAbsolutePath().toString());
         run.directory(new File(runtimeDir));
         // Do not merge stderr with stdout, suppress stderr instead
@@ -125,20 +123,6 @@ public class ArchiveSteps {
         StringBuilder csvBuilder = new StringBuilder();
         try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:sqlite:" + sqliteFile.getAbsolutePath());
              java.sql.Statement stmt = conn.createStatement()) {
-            // Log all tables and their structure
-//            try (java.sql.ResultSet tables = stmt.executeQuery("SELECT name FROM sqlite_master WHERE type='table'")) {
-//                System.out.println("--- SQLite Tables and Structure ---");
-//                while (tables.next()) {
-//                    String tName = tables.getString(1);
-//                    System.out.println("Table: " + tName);
-//                    try (java.sql.ResultSet pragma = stmt.executeQuery("PRAGMA table_info('" + tName + "')")) {
-//                        while (pragma.next()) {
-//                            System.out.println("  " + pragma.getString("name") + " " + pragma.getString("type"));
-//                        }
-//                    }
-//                }
-//                System.out.println("--- End SQLite Tables ---");
-//            }
             // Export requested table as CSV
             try (java.sql.ResultSet rs = stmt.executeQuery("SELECT * FROM '" + tableName + "'")) {
                 java.sql.ResultSetMetaData meta = rs.getMetaData();
@@ -166,5 +150,14 @@ public class ArchiveSteps {
         if (!csvBuilder.toString().trim().equals(expectedCsv.trim())) {
             throw new AssertionError("CSV output mismatch:\nExpected:\n" + expectedCsv + "\nActual:\n" + csvBuilder);
         }
+    }
+
+    @And("has log line containing {string}")
+    public void hasLogLineContaining(String arg0) {
+        var string = new String(lastOutput);
+        string.lines()
+                .filter(s -> s.contains(arg0))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Output log line containing string \"" + arg0 + "\" not found"));
     }
 }
