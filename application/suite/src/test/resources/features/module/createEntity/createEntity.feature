@@ -5,4 +5,5 @@ Feature: Module manifest validation
     Given I have added "./manifest.json" file to archive
     And I have added "./index.js" file to archive
     When I run the application using archive
+    And wait until log line contains "--SQLITE-START--" regex
     Then assert output table "entity" must be "./entity.csv" csv

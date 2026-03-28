@@ -1,5 +1,6 @@
 package com.example.steps;
 
+import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.PendingException;
 import io.cucumber.java.Scenario;
@@ -57,8 +58,61 @@ public class ArchiveSteps {
         archive.append(file);
     }
 
+
+    private Process runProcess;
+    private Thread runThread;
+    private volatile boolean shouldStop = false;
+
     @When("I run the application using archive")
     public void i_run_the_application_on_the_archive() throws IOException, InterruptedException {
+        String runtimeDir = Paths.get("..", "runtime").toAbsolutePath().normalize().toString();
+        String exe = System.getProperty("os.name").toLowerCase().contains("win") ? "target\\release\\xml-xsd2.exe" : "target/release/xml-xsd2";
+        ProcessBuilder build = new ProcessBuilder("cargo", "build", "--release");
+        build.inheritIO();
+        build.directory(new File(runtimeDir));
+        Process buildProcess = build.start();
+        int buildExit = buildProcess.waitFor();
+        if (buildExit != 0) throw new IOException("Failed to build runtime app");
+
+        File exeFile = new File(runtimeDir, exe);
+        if (!exeFile.exists()) throw new IOException("Expected binary not found: " + exeFile.getAbsolutePath());
+        ProcessBuilder run = new ProcessBuilder(exeFile.getAbsolutePath(), archive.file().toPath().toAbsolutePath().toString());
+        run.directory(new File(runtimeDir));
+        run.redirectErrorStream(false);
+        shouldStop = false;
+        runProcess = run.start();
+        runThread = new Thread(() -> {
+            try (InputStream in = runProcess.getInputStream();
+                 OutputStream err = OutputStream.nullOutputStream()) {
+                new Thread(() -> { try { runProcess.getErrorStream().transferTo(err); } catch (Exception ignored) {} }).start();
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                byte[] data = new byte[4096];
+                int nRead;
+                while (!shouldStop && (nRead = in.read(data, 0, data.length)) != -1) {
+                    buffer.write(data, 0, nRead);
+                }
+                lastOutput = buffer.toByteArray();
+            } catch (IOException e) {
+                // Optionally log or handle
+            }
+        });
+        runThread.start();
+    }
+
+    @After()
+    public void afterScenario() {
+        shouldStop = true;
+        if (runProcess != null && runProcess.isAlive()) {
+            runProcess.destroy();
+            try { runProcess.waitFor(); } catch (InterruptedException ignored) {}
+        }
+        if (runThread != null && runThread.isAlive()) {
+            try { runThread.join(1000); } catch (InterruptedException ignored) {}
+        }
+    }
+
+    @When("I run the application using archive until completion")
+    public void i_run_the_application_on_the_archive_until_completion() throws IOException, InterruptedException {
         // Build the runtime app if needed (assume cargo build --release)
         String runtimeDir = Paths.get("..", "runtime").toAbsolutePath().normalize().toString();
         String exe = System.getProperty("os.name").toLowerCase().contains("win") ? "target\\release\\xml-xsd2.exe" : "target/release/xml-xsd2";
@@ -159,5 +213,22 @@ public class ArchiveSteps {
                 .filter(s -> s.contains(arg0))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Output log line containing string \"" + arg0 + "\" not found"));
+    }
+
+    @And("wait until log line contains {string} regex")
+    public void waitUntilLogLineContainsRegex(String regex) throws InterruptedException {
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
+        long timeoutMillis = 10000; // 10 seconds max wait
+        long pollInterval = 100;
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < timeoutMillis) {
+            if (lastOutput != null) {
+                String output = new String(lastOutput);
+                boolean found = output.lines().anyMatch(line -> pattern.matcher(line).find());
+                if (found) return;
+            }
+            Thread.sleep(pollInterval);
+        }
+        throw new AssertionError("Timeout waiting for log line matching regex: " + regex);
     }
 }
