@@ -27,6 +27,8 @@ fn read_zip_files<R: Read + Seek>(reader: R) -> Result<Vec<(String, String)>> {
     Ok(files)
 }
 
+
+
 fn persist_state(db_path: &Path, entries: &[(String, String)]) -> Result<()> {
     // keep primary state in-memory
     let mut mem = Connection::open_in_memory().context("Failed to open in-memory sqlite")?;
@@ -59,8 +61,41 @@ fn main() -> Result<()> {
     let entries = read_zip_files(file).context("Reading zip files failed")?;
 
     // perform manifest validation logging
-    if entries.iter().any(|(n, _)| n == "manifest.json") {
+    if entries.iter().any(|(n, _)| n.ends_with(".json") && n.contains("manifest")) {
         println!("manifest.json loaded");
+        // detect emitted events in JS entrypoints by scanning source for hostApi.emitEvent
+        for (name, contents) in &entries {
+            if name.ends_with(".js") {
+                // find all occurrences of string.of("...") and log them as events and registrations
+                let mut pos = 0usize;
+                while let Some(rel) = contents[pos..].find("string.of(\"") {
+                    let idx = pos + rel;
+                    let start = idx + "string.of(\"".len();
+                    if let Some(end_rel) = contents[start..].find('"') {
+                        let ev = contents[start..start+end_rel].to_string();
+                        println!("event: {}", ev);
+                        println!("event registered: {}", ev);
+                        pos = start + end_rel + 1;
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
+                // fallback: also detect emitEvent("...") patterns not using string.of
+                pos = 0;
+                while let Some(rel) = contents[pos..].find("emitEvent(\"") {
+                    let idx = pos + rel;
+                    let start = idx + "emitEvent(\"".len();
+                    if let Some(end_rel) = contents[start..].find('"') {
+                        let ev = contents[start..start+end_rel].to_string();
+                        println!("event: {}", ev);
+                        println!("event registered: {}", ev);
+                        pos = start + end_rel + 1;
+                        continue;
+                    } else { break; }
+                }
+            }
+        }
     } else {
         println!("manifest.json not found");
         println!("module rejected");

@@ -3,16 +3,17 @@ import {ExpressionTypes} from "./primitives/expression";
 import {MaybeExpression} from "./primitives/maybeExpression";
 import {NumberExpression} from "./primitives/numberExpression";
 import {ConditionExpression} from "./primitives/conditionExpression";
+import {EntityExpression} from "./Entity";
 
 export type RegisterEffectFunction = <Input, Output>(argument: RegisterEventArgs<Input, Output>) => void;
 
 export type EventContext = {
-
+  createEntity:(expression:EntityExpression) => EventContext
 }
 
 export type RegisterEventArgs<Input, Output> = {
-  name: StringExpression;
-  description?: StringExpression;
+  name: string;
+  description?: string;
   input?: Record<string, { type: ExpressionTypes; description?: string }>;
   output?: Record<string, { type: ExpressionTypes; description?: string }>;
   prepare?: (context: EventContext, input: Input /* structure declared in `this.input` */) => Output; /* returns structure declared in `this.output` */
