@@ -42,7 +42,7 @@ public class ArchiveSteps {
         try (var stream = Files.walk(dir)) {
             featureFiles = stream
                     .filter(Files::isRegularFile)
-                    .collect(Collectors.toMap(path -> path.getFileName().toString(), path -> new File(path.toUri())));
+                    .collect(Collectors.toMap(path -> path.getFileName().toString(), path -> new File(path.toUri()), (a, b) -> a));
         }
     }
 
