@@ -6,4 +6,3 @@ Feature: Module manifest validation
     And I have added "./index.js" file to archive
     When I run the application using archive
     Then assert output table "entity" must be "./entity.csv" csv
-
