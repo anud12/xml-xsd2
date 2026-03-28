@@ -4,20 +4,20 @@ Feature: Module manifest validation
   Scenario: Archive with valid manifest.json
     Given I have added "./manifest.json" file to archive
     And I have added "./index.js" file to archive
-    When I run the application using archive
+    When I run the application using archive until completion
     Then assert log line containing "manifest.json loaded"
     And assert log line containing "index.js loaded"
 
   Scenario: Archive missing manifest.json
     Given I have added "./index.js" file to archive
-    When I run the application using archive
+    When I run the application using archive until completion
     Then assert log line containing "manifest.json not found"
     And assert log line containing "module rejected"
 
   Scenario Outline: Emit event after module load
     Given I have added "<manifest>" file to archive
     And I have added "<entryPoint>" file to archive
-    When I run the application using archive
+    When I run the application using archive until completion
     Then assert log line containing "event: <eventName>"
     And assert log line containing "event registered: <eventName>"
 
