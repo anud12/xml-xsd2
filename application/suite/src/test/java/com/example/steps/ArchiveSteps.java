@@ -2,7 +2,6 @@ package com.example.steps;
 
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
-import io.cucumber.java.PendingException;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -129,9 +128,25 @@ public class ArchiveSteps {
     }
 
     @And("I load current archive")
-    public void iLoadCurrentArchive() {
-        // Write code here that turns the phrase above into concrete actions
-        throw new PendingException();
+    public void iLoadCurrentArchive() throws Exception {
+        byte[] zipBytes = java.nio.file.Files.readAllBytes(state.archive.file().toPath());
+        String encoded = java.util.Base64.getEncoder().encodeToString(zipBytes);
+        String cmd = "DEBUG: Load:" + encoded + System.lineSeparator();
+
+        Process p = state.runProcess;
+        if (p == null) throw new IllegalStateException("state.runProcess is null");
+        OutputStream os = p.getOutputStream();
+        if (os == null) throw new IllegalStateException("Process output stream is null");
+        os.write(cmd.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        os.flush();
+
+        long timeoutMillis = 10000;
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < timeoutMillis) {
+            String output = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
+            if (output.contains(DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED)) break;
+            Thread.sleep(10);
+        }
     }
 
 
