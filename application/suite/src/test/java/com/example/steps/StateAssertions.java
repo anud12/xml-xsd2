@@ -4,8 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Objects;
-// ...existing code...
 
 import static com.example.steps.ArchiveRunner.DEBUG_DELIMITED;
 
@@ -69,6 +69,32 @@ public class StateAssertions {
         String expectedCsv = Files.readString(expected.toPath()).replaceAll("\r\n", "\n");
         if (!csvBuilder.toString().trim().equals(expectedCsv.trim())) {
             throw new AssertionError("CSV output mismatch:\nExpected:\n" + expectedCsv + "\nActual:\n" + csvBuilder);
+        }
+    }
+
+
+
+    public static void assertOutputTableColumnsMatchesCsv(ArchiveState state, String tableName, String csvFile) throws Exception {
+        File sqliteFile = extractFileFromProcess(state);
+        try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:sqlite:" + sqliteFile.getAbsolutePath());
+             java.sql.Statement stmt = conn.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery("SELECT * FROM '" + tableName + "' LIMIT 0")) {
+            java.sql.ResultSetMetaData meta = rs.getMetaData();
+            int colCount = meta.getColumnCount();
+            java.util.List<String> actualColumns = new java.util.ArrayList<>();
+            for (int i = 1; i <= colCount; i++) {
+                actualColumns.add(meta.getColumnName(i));
+            }
+
+            File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
+            String headerLine = Files.readString(expected.toPath()).replaceAll("\r\n", "\n").split("\n")[0];
+            java.util.List<String> expectedColumns = Arrays.asList(headerLine.split(","));
+
+            if (!actualColumns.containsAll(expectedColumns)) {
+                java.util.List<String> missing = new java.util.ArrayList<>(expectedColumns);
+                missing.removeAll(actualColumns);
+                throw new AssertionError("Column mismatch for table '" + tableName + "': missing columns " + missing + "\nExpected (from CSV): " + expectedColumns + "\nActual:              " + actualColumns);
+            }
         }
     }
 
