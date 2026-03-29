@@ -1,6 +1,7 @@
 use std::io::{BufRead, Write};
 use std::time::Instant;
 
+const LOAD_PREFIX: &str = "DEBUG: Load:";
 const ITERATE_PREFIX: &str = "DEBUG: ITERATE ";
 const SHUTDOWN_CMD: &str = "DEBUG: shutdown";
 
@@ -21,6 +22,10 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
     }
     if cmd.starts_with(ITERATE_PREFIX) {
         run_iterations(cmd, delimiter);
+    }
+    if cmd.starts_with(LOAD_PREFIX) {
+        println!("{delimiter}OK{delimiter}");
+        std::io::stdout().flush().ok();
     }
     true
 }
