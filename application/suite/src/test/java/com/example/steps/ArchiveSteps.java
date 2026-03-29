@@ -1,15 +1,17 @@
 package com.example.steps;
 
-import io.cucumber.java.*;
+import io.cucumber.java.After;
+import io.cucumber.java.Before;
+import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 
-import java.io.*;
-import java.util.regex.Pattern;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import static com.example.steps.ArchiveRunner.DEBUG_DELIMITED;
 
@@ -38,14 +40,9 @@ public class ArchiveSteps {
         ArchiveRunner.runApplicationDebugThreadedWithArchive(state);
     }
 
-    @After()
-    public void afterScenario() {
-        ArchiveRunner.cleanup(state);
-    }
-
     @Then("assert output table {string} must be {string} csv")
     public void outputTableMustBeCsv(String tableName, String csvFile) throws Exception {
-        ArchiveAssertions.assertOutputTableCsv(state, tableName, csvFile);
+        StateAssertions.assertOutputTableCsv(state, tableName, csvFile);
     }
 
     @And("assert log line containing {string} regex")
@@ -121,43 +118,12 @@ public class ArchiveSteps {
 
     @After()
     public void closeApplication() {
-        try {
-            Process p = state.runProcess;
-            if (p == null) {
-                throw new IllegalStateException("state.runProcess is null");
-            }
-            OutputStream os = p.getOutputStream();
-            if (os == null) {
-                throw new IllegalStateException("Process output stream is null");
-            }
-            String cmd = "DEBUG: shutdown" + System.lineSeparator();
-            os.write(cmd.getBytes(StandardCharsets.UTF_8));
-            os.flush();
-            // Close stdin to signal EOF to the child process
-            try {
-                os.close();
-            } catch (IOException ignored) {
-            }
-
-            // Wait for the process to exit (timeout after 60 seconds)
-            boolean exited;
-            try {
-                exited = p.waitFor(60, TimeUnit.SECONDS);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted while waiting for process to exit", ie);
-            }
-            if (!exited) {
-                throw new AssertionError("Process did not exit within 60 seconds after shutdown signal");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        ArchiveRunner.cleanup(state);
+        CloseProcess.closeProcess(state);
     }
 
-    @Then("assert that application is closed")
-    public void assertThatApplicationIsClosed() {
-        // Write code here that turns the phrase above into concrete actions
-        throw new PendingException();
+    @And("assert exported state should be empty")
+    public void assertExportedStateShouldBeEmpty() {
+
     }
 }

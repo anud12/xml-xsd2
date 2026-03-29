@@ -65,6 +65,11 @@
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
+                    <properties>
+                        <configurationParameters>
+                            cucumber.plugin=pretty
+                        </configurationParameters>
+                    </properties>
                 </configuration>
             </plugin>
         </plugins>
