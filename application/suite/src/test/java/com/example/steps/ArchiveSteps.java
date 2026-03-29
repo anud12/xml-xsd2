@@ -124,6 +124,6 @@ public class ArchiveSteps {
 
     @And("assert exported state should be empty")
     public void assertExportedStateShouldBeEmpty() {
-
+        StateAssertions.assertEmptySqlFile(state);
     }
 }

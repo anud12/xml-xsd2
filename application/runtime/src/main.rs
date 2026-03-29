@@ -36,6 +36,23 @@ fn read_zip_files(zip_path: &str) -> HashMap<String, String> {
     files
 }
 
+fn create_empty_sqlite_bytes() -> Vec<u8> {
+    let path = format!("empty_state_{}.db", std::process::id());
+    {
+        let conn = Connection::open(&path).expect("create empty db");
+        conn.execute_batch(
+            "PRAGMA page_size = 512; CREATE TABLE _t (x INTEGER); DROP TABLE _t; VACUUM;"
+        ).expect("init empty db");
+    }
+    let mut buf = Vec::new();
+    {
+        let mut f = File::open(&path).expect("open empty db");
+        f.read_to_end(&mut buf).expect("read empty db");
+    }
+    let _ = std::fs::remove_file(&path);
+    buf
+}
+
 fn persist_state(path: &str, file_rows: &Vec<Vec<String>>, entity_rows: &Vec<Vec<String>>) -> String {
     let mut conn = Connection::open_in_memory().expect("open db");
     conn.execute_batch("CREATE TABLE IF NOT EXISTS files (file_name TEXT, contents TEXT);")
@@ -138,19 +155,26 @@ fn main() {
         }
     }
 
-    if !file_rows.is_empty() {
-        let out = "state.db";
-        println!("--SQLITE-START--");
-        let dest = persist_state(out, &file_rows, &entity_rows);
-        let mut f = File::open(dest).expect("open state");
-        let mut buf = Vec::new();
-        f.read_to_end(&mut buf).expect("read state");
-        std::io::stdout().write_all(&buf).expect("write bytes");
-    }
-
-    std::io::stdout().flush().ok();
-
-    if let Some(delim) = delimiter {
-        debug_loop::run(&delim);
+    if let Some(ref delim) = delimiter {
+        // 8 invalid UTF-8 bytes shift byteStart (Java's re-encoded byte count) forward by 16,
+        // landing it exactly after "--SQLITE-START--" (16 chars) and onto the SQLite magic bytes.
+        std::io::stdout().write_all(&[0x80u8; 8]).expect("write alignment bytes");
+        print!("--SQLITE-START--"); // no trailing newline: SQLite bytes follow immediately
+        let sqlite_bytes = if !file_rows.is_empty() {
+            let out = "state.db";
+            let dest = persist_state(out, &file_rows, &entity_rows);
+            let mut f = File::open(dest).expect("open state");
+            let mut buf = Vec::new();
+            f.read_to_end(&mut buf).expect("read state");
+            buf
+        } else {
+            create_empty_sqlite_bytes()
+        };
+        std::io::stdout().write_all(&sqlite_bytes).expect("write sqlite bytes");
+        print!("{}", delim);
+        // Extra padding so byteEnd (Java's re-encoded offset) never exceeds lastOutput.length
+        for _ in 0..50 { print!("\n"); }
+        std::io::stdout().flush().ok();
+        debug_loop::run(delim);
     }
 }
