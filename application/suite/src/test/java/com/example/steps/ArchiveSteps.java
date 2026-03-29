@@ -2,6 +2,7 @@ package com.example.steps;
 
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
+import io.cucumber.java.PendingException;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -125,5 +126,17 @@ public class ArchiveSteps {
     @And("assert exported state should be empty")
     public void assertExportedStateShouldBeEmpty() {
         StateAssertions.assertEmptySqlFile(state);
+    }
+
+    @And("I load current archive")
+    public void iLoadCurrentArchive() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new PendingException();
+    }
+
+
+    @Then("assert output table {string} columns matches {string}")
+    public void assertOutputTableColumnsMatches(String tableName, String csvFile) throws Exception {
+        StateAssertions.assertOutputTableColumnsMatchesCsv(state, tableName, csvFile);
     }
 }
