@@ -1,234 +1,163 @@
 package com.example.steps;
 
-import io.cucumber.java.After;
-import io.cucumber.java.Before;
-import io.cucumber.java.PendingException;
-import io.cucumber.java.Scenario;
+import io.cucumber.java.*;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
-import org.junit.jupiter.api.Assertions;
 
 import java.io.*;
-import java.net.URI;
-import java.nio.file.*;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.zip.*;
+import java.util.regex.Pattern;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
+
+import static com.example.steps.ArchiveRunner.DEBUG_DELIMITED;
 
 public class ArchiveSteps {
-    private Map<String, File> featureFiles;
-    private ZipArchive archive = ZipArchive.createTemp();
-    private byte[] lastOutput;
+    private final ArchiveState state = new ArchiveState();
 
     @Before()
     public void before(Scenario scenario) throws IOException {
-        URI uri = scenario.getUri();
-        Path dir;
-        if ("classpath".equals(uri.getScheme())) {
-            // Resolve classpath resource to a real file path
-            String resourcePath = uri.getSchemeSpecificPart();
-            if (resourcePath.startsWith("/")) resourcePath = resourcePath.substring(1);
-            var url = getClass().getClassLoader().getResource(resourcePath);
-            if (url == null) throw new IOException("Resource not found: " + resourcePath);
-            try {
-                dir = Paths.get(url.toURI()).getParent();
-            } catch (java.net.URISyntaxException e) {
-                throw new IOException("Invalid URI for resource: " + url, e);
-            }
-        } else {
-            dir = Path.of(uri).getParent();
-        }
-        try (var stream = Files.walk(dir)) {
-            featureFiles = stream
-                    .filter(Files::isRegularFile)
-                    .collect(Collectors.toMap(path -> path.getFileName().toString(), path -> new File(path.toUri()), (a, b) -> a));
-        }
+        ArchiveSetup.before(state, scenario);
     }
 
     @Given("I have added {string} file to archive")
     public void the_test_directory_contains_file(String fileName) throws IOException {
-        if(!fileName.startsWith("./")) {
-            throw new RuntimeException("Non local path found");
-        }
-        fileName = fileName.replaceFirst("./", "");
-        var file = Objects.requireNonNull(featureFiles.get(fileName), "File \"" + fileName + "\" not found in " + featureFiles.keySet());
-
-        archive.append(file);
+        ArchiveSetup.addFileToArchive(state, fileName);
     }
 
 
-    private Process runProcess;
-    private Thread runThread;
-    private volatile boolean shouldStop = false;
 
-    @When("I run the application using archive")
-    public void i_run_the_application_on_the_archive() throws IOException, InterruptedException {
-        String runtimeDir = Paths.get("..", "runtime").toAbsolutePath().normalize().toString();
-        String exe = System.getProperty("os.name").toLowerCase().contains("win") ? "target\\release\\xml-xsd2.exe" : "target/release/xml-xsd2";
-        ProcessBuilder build = new ProcessBuilder("cargo", "build", "--release");
-        build.inheritIO();
-        build.directory(new File(runtimeDir));
-        Process buildProcess = build.start();
-        int buildExit = buildProcess.waitFor();
-        if (buildExit != 0) throw new IOException("Failed to build runtime app");
+    @When("I run the application in debug mode using archive")
+    public void i_run_the_application_in_debug_mode_using_archive() throws IOException, InterruptedException {
+        ArchiveRunner.runApplicationDebugThreadedWithArchive(state);
+    }
 
-        File exeFile = new File(runtimeDir, exe);
-        if (!exeFile.exists()) throw new IOException("Expected binary not found: " + exeFile.getAbsolutePath());
-        ProcessBuilder run = new ProcessBuilder(exeFile.getAbsolutePath(), archive.file().toPath().toAbsolutePath().toString());
-        run.directory(new File(runtimeDir));
-        run.redirectErrorStream(false);
-        shouldStop = false;
-        runProcess = run.start();
-        runThread = new Thread(() -> {
-            try (InputStream in = runProcess.getInputStream();
-                 OutputStream err = OutputStream.nullOutputStream()) {
-                new Thread(() -> { try { runProcess.getErrorStream().transferTo(err); } catch (Exception ignored) {} }).start();
-                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                byte[] data = new byte[4096];
-                int nRead;
-                while (!shouldStop && (nRead = in.read(data, 0, data.length)) != -1) {
-                    buffer.write(data, 0, nRead);
-                }
-                lastOutput = buffer.toByteArray();
-            } catch (IOException e) {
-                // Optionally log or handle
-            }
-        });
-        runThread.start();
+    @When("I run the application in debug mode")
+    public void i_run_the_application_in_debug_mode() throws IOException, InterruptedException {
+        ArchiveRunner.runApplicationDebugThreadedWithArchive(state);
     }
 
     @After()
     public void afterScenario() {
-        shouldStop = true;
-        if (runProcess != null && runProcess.isAlive()) {
-            runProcess.destroy();
-            try { runProcess.waitFor(); } catch (InterruptedException ignored) {}
-        }
-        if (runThread != null && runThread.isAlive()) {
-            try { runThread.join(1000); } catch (InterruptedException ignored) {}
-        }
-    }
-
-    @When("I run the application using archive until completion")
-    public void i_run_the_application_on_the_archive_until_completion() throws IOException, InterruptedException {
-        // Build the runtime app if needed (assume cargo build --release)
-        String runtimeDir = Paths.get("..", "runtime").toAbsolutePath().normalize().toString();
-        String exe = System.getProperty("os.name").toLowerCase().contains("win") ? "target\\release\\xml-xsd2.exe" : "target/release/xml-xsd2";
-        ProcessBuilder build = new ProcessBuilder("cargo", "build", "--release");
-        build.inheritIO();
-        build.directory(new File(runtimeDir));
-        Process buildProcess = build.start();
-        int buildExit = buildProcess.waitFor();
-        if (buildExit != 0) throw new IOException("Failed to build runtime app");
-
-        File exeFile = new File(runtimeDir, exe);
-        if (!exeFile.exists()) throw new IOException("Expected binary not found: " + exeFile.getAbsolutePath());
-        ProcessBuilder run = new ProcessBuilder(exeFile.getAbsolutePath(), archive.file().toPath().toAbsolutePath().toString());
-        run.directory(new File(runtimeDir));
-        // Do not merge stderr with stdout, suppress stderr instead
-        run.redirectErrorStream(false);
-        Process runProcess = run.start();
-        // Drain and discard stderr to suppress SLF4J warnings
-        new Thread(() -> { try { runProcess.getErrorStream().transferTo(OutputStream.nullOutputStream()); } catch (Exception ignored) {} }).start();
-        lastOutput = runProcess.getInputStream().readAllBytes();
-        int exit = runProcess.waitFor();
-        if (exit != 0) throw new IOException("Runtime app failed: " + new String(lastOutput));
-    }
-
-    @Then("the stdout must contain line {string}")
-    public void output_must_contain(String expectedLine) {
-        if (lastOutput == null) {
-            throw new AssertionError("No output captured from runtime");
-        }
-        var outputString = new String(lastOutput);
-        if (!outputString.contains("\n" + expectedLine)) {
-            throw new AssertionError("Expected output to contain: '" + expectedLine + "' but was:\n" + outputString);
-        }
+        ArchiveRunner.cleanup(state);
     }
 
     @Then("assert output table {string} must be {string} csv")
     public void outputTableMustBeCsv(String tableName, String csvFile) throws Exception {
-        // 1. Find the delimiter in lastOutput
-        String delimiter = "--SQLITE-START--";
-        // Convert lastOutput to String for delimiter search
-        String outputStr = new String(lastOutput);
-        int strIdx = outputStr.indexOf(delimiter);
-        if (strIdx == -1) throw new AssertionError("Delimiter not found in output");
-        // Find the byte offset after the delimiter and any following newlines
-        int byteIdx = -1;
-        for (int i = strIdx + delimiter.length(); i < outputStr.length(); i++) {
-            char c = outputStr.charAt(i);
-            if (c != '\n' && c != '\r') {
-                byteIdx = outputStr.substring(0, i).getBytes().length;
-                break;
-            }
-        }
-        if (byteIdx == -1) throw new AssertionError("No SQLite data found after delimiter");
-
-        // 2. Write SQLite bytes to temp file
-        File sqliteFile = File.createTempFile("testdb", ".sqlite");
-        try (FileOutputStream fos = new FileOutputStream(sqliteFile)) {
-            fos.write(lastOutput, byteIdx, lastOutput.length - byteIdx);
-        }
-
-        // 3. Query table and export as CSV
-        StringBuilder csvBuilder = new StringBuilder();
-        try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:sqlite:" + sqliteFile.getAbsolutePath());
-             java.sql.Statement stmt = conn.createStatement()) {
-            // Export requested table as CSV
-            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT * FROM '" + tableName + "'")) {
-                java.sql.ResultSetMetaData meta = rs.getMetaData();
-                int colCount = meta.getColumnCount();
-                // Header
-                for (int i = 1; i <= colCount; i++) {
-                    csvBuilder.append(meta.getColumnName(i));
-                    if (i < colCount) csvBuilder.append(",");
-                }
-                csvBuilder.append("\n");
-                // Rows
-                while (rs.next()) {
-                    for (int i = 1; i <= colCount; i++) {
-                        csvBuilder.append(rs.getString(i));
-                        if (i < colCount) csvBuilder.append(",");
-                    }
-                    csvBuilder.append("\n");
-                }
-            }
-        }
-
-        // 4. Compare with expected CSV file
-        File expected = java.util.Objects.requireNonNull(featureFiles.get(csvFile.replaceFirst("./", "")));
-        String expectedCsv = java.nio.file.Files.readString(expected.toPath()).replaceAll("\r\n", "\n");
-        if (!csvBuilder.toString().trim().equals(expectedCsv.trim())) {
-            throw new AssertionError("CSV output mismatch:\nExpected:\n" + expectedCsv + "\nActual:\n" + csvBuilder);
-        }
+        ArchiveAssertions.assertOutputTableCsv(state, tableName, csvFile);
     }
 
-    @And("assert log line containing {string}")
+    @And("assert log line containing {string} regex")
     public void hasLogLineContaining(String arg0) {
-        var string = new String(lastOutput);
-        string.lines()
-                .filter(s -> s.contains(arg0))
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("Output log line containing string \"" + arg0 + "\" not found"));
+        ArchiveAssertions.assertLogLineContainsRegex(state, arg0);
     }
 
     @And("wait until log line contains {string} regex")
     public void waitUntilLogLineContainsRegex(String regex) throws InterruptedException {
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
-        long timeoutMillis = 10000; // 10 seconds max wait
-        long pollInterval = 100;
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < timeoutMillis) {
-            if (lastOutput != null) {
-                String output = new String(lastOutput);
-                boolean found = output.lines().anyMatch(line -> pattern.matcher(line).find());
-                if (found) return;
-            }
-            Thread.sleep(pollInterval);
+        ArchiveAssertions.waitUntilLogLineContainsRegex(state, regex);
+    }
+
+    @Then("DEBUG Print stdout after {int} ms")
+    public void debugPrintStdout(int ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
-        throw new AssertionError("Timeout waiting for log line matching regex: " + regex);
+        System.out.println(new String(state.lastOutput));
+    }
+
+    @And("I run {int} iterations")
+    public void iRunIterations(int arg0) {
+        String cmd = "DEBUG: ITERATE " + arg0 + System.lineSeparator();
+        try {
+            // Use state.runProcess stdio directly
+            Process p = state.runProcess;
+            if (p == null) {
+                throw new IllegalStateException("state.runProcess is null");
+            }
+            OutputStream os = p.getOutputStream();
+            if (os == null) {
+                throw new IllegalStateException("Process output stream is null");
+            }
+            os.write(cmd.getBytes(StandardCharsets.UTF_8));
+            os.flush();
+
+            // Wait until the captured output contains the acknowledgement
+            while (true) {
+                String output = state.lastOutput != null ? new String(state.lastOutput, StandardCharsets.UTF_8) : "";
+                if (output.contains(DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED)) {
+                    break;
+                }
+                Thread.sleep(10);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Then("assert that {int} log line\\(s) contains {string} regex")
+    public void assertThatLogLineSContainsStringRegex(int count, String regex) {
+        // Count how many log lines in the last captured output match the provided
+        // regex and assert at least `count` such lines exist.
+        String output = state.lastOutput != null ? new String(state.lastOutput) : "";
+        String safeRegex = regex.replaceAll("(?<!\\\\)\\{", "\\\\{")
+                .replaceAll("(?<!\\\\)\\}", "\\\\}");
+        Pattern pattern = Pattern.compile(safeRegex);
+        int matches = 0;
+        String[] lines = output.split("\\r?\\n");
+        for (String line : lines) {
+            if (pattern.matcher(line).find()) {
+                matches++;
+            }
+        }
+        if (matches != count) {
+            throw new AssertionError(String.format(
+                    "Expected exactly %d log line(s) matching regex '%s' but found %d.\nFull output:\n%s",
+                    count, regex, matches, output));
+        }
+    }
+
+    @After()
+    public void closeApplication() {
+        try {
+            Process p = state.runProcess;
+            if (p == null) {
+                throw new IllegalStateException("state.runProcess is null");
+            }
+            OutputStream os = p.getOutputStream();
+            if (os == null) {
+                throw new IllegalStateException("Process output stream is null");
+            }
+            String cmd = "DEBUG: shutdown" + System.lineSeparator();
+            os.write(cmd.getBytes(StandardCharsets.UTF_8));
+            os.flush();
+            // Close stdin to signal EOF to the child process
+            try {
+                os.close();
+            } catch (IOException ignored) {
+            }
+
+            // Wait for the process to exit (timeout after 60 seconds)
+            boolean exited;
+            try {
+                exited = p.waitFor(60, TimeUnit.SECONDS);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while waiting for process to exit", ie);
+            }
+            if (!exited) {
+                throw new AssertionError("Process did not exit within 60 seconds after shutdown signal");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Then("assert that application is closed")
+    public void assertThatApplicationIsClosed() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new PendingException();
     }
 }

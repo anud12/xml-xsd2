@@ -1,6 +1,7 @@
 mod js_runtime;
 mod js_host_api;
 mod js_executor;
+mod debug_loop;
 
 use std::fs::File;
 use std::io::{Read, Write};
@@ -11,11 +12,20 @@ use crate::js_executor::extract_from_source;
 use crate::js_host_api::Declarations;
 
 fn read_zip_files(zip_path: &str) -> HashMap<String, String> {
-    let file = File::open(zip_path).expect("open zip");
-    let mut archive = zip::ZipArchive::new(file).expect("zip archive");
+    let file = match File::open(zip_path) {
+        Ok(f) => f,
+        Err(_) => return HashMap::new(),
+    };
+    let mut archive = match zip::ZipArchive::new(file) {
+        Ok(a) => a,
+        Err(_) => return HashMap::new(),
+    };
     let mut files = HashMap::new();
     for i in 0..archive.len() {
-        let mut f = archive.by_index(i).expect("by_index");
+        let mut f = match archive.by_index(i) {
+            Ok(f) => f,
+            Err(_) => continue,
+        };
         let name = f.name().to_string();
         println!("loaded {}", name);
         let mut contents = String::new();
@@ -76,8 +86,25 @@ fn print_events_from_declarations(dec: &Declarations) -> HashSet<String> {
     seen
 }
 
+fn extract_debug_delimiter(args: &[String]) -> Option<String> {
+    args.iter()
+        .find(|a| a.starts_with("--stdioDebugWithDelimiterWrap="))
+        .map(|a| a["--stdioDebugWithDelimiterWrap=".len()..].to_string())
+}
+
+fn find_zip_path(args: &[String]) -> Option<String> {
+    args.iter().skip(1).find(|a| !a.starts_with("--")).cloned()
+}
+
 fn main() {
-    let zip_path = std::env::args().nth(1).expect("zip path");
+    let args: Vec<String> = std::env::args().collect();
+    let delimiter = extract_debug_delimiter(&args);
+    let zip_path = find_zip_path(&args);
+
+    println!("Runtime launched");
+    std::io::stdout().flush().ok();
+
+    let zip_path = zip_path.unwrap_or_default();
     let files = read_zip_files(&zip_path);
     let file_rows = build_file_rows(&files);
     let mut entity_rows: Vec<Vec<String>> = Vec::new();
@@ -93,13 +120,9 @@ fn main() {
                         println!("event registered: {}", evt_name);
                     }
 
-                    // Use structured extraction via QuickJS exclusively.
                     if let Ok(dec) = extract_from_source(module) {
-                        // Print declared/registered events
                         print_events_from_declarations(&dec);
-                        // Also print logs recorded during execution (emitEvent, entity created, etc.)
                         for l in dec.logs.iter() { println!("{}", l); }
-                        // collect declared entities for persistence (add trailing comma as tests expect)
                         for en in dec.entities.iter() { entity_rows.push(vec![format!("{},", en)]); }
                     } else {
                         eprintln!("js extraction failed; no fallback heuristics are used");
@@ -115,11 +138,19 @@ fn main() {
         }
     }
 
-    let out = "state.db";
-    println!("--SQLITE-START--");
-    let dest = persist_state(out, &file_rows, &entity_rows);
-    let mut f = File::open(dest).expect("open state");
-    let mut buf = Vec::new();
-    f.read_to_end(&mut buf).expect("read state");
-    std::io::stdout().write_all(&buf).expect("write bytes");
+    if !file_rows.is_empty() {
+        let out = "state.db";
+        println!("--SQLITE-START--");
+        let dest = persist_state(out, &file_rows, &entity_rows);
+        let mut f = File::open(dest).expect("open state");
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf).expect("read state");
+        std::io::stdout().write_all(&buf).expect("write bytes");
+    }
+
+    std::io::stdout().flush().ok();
+
+    if let Some(delim) = delimiter {
+        debug_loop::run(&delim);
+    }
 }
