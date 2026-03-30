@@ -72,19 +72,19 @@ The reason for splitting into `prepare` and `apply` is that when an event is emi
 To support effects that can schedule future re-occurrences, effects MAY include two optional declarative callbacks (expressed as expression-producing functions) to control repeating behavior. The execution flow is:
 
 1. The effect is emitted with `input` and runs `prepare` to compute `output`.
-2. `apply` runs and records mutation intents. During `apply` the effect MAY call `reoccurAfterMs` to declare a delay until the next invocation.
+2. `apply` runs and records mutation intents. During `apply` the effect MAY call `reoccurAfter` to declare a delay until the next invocation.
 3. The runtime records the scheduled entry atomically with the commit (including preserved `input`/`output` refs and current `executionCount`).
 4. When the scheduled delay elapses, the runtime evaluates `isReoccuranceApplicable` for that scheduled entry to decide whether to re-run the effect. If `isReoccuranceApplicable` evaluates to true the runtime enqueues a fresh invocation of the effect using the preserved `input` (and increments `executionCount`).
 
 Callbacks
 
-- `reoccurAfterMs(context, executionCount, input, output): MaybeExpression<NumberExpression>` — invoked during `apply` (and evaluated at commit time) to produce an optional non-negative delay (milliseconds) until the next invocation. If the result is empty (the Maybe is empty) or the function is not present, the runtime will not schedule a repeat. When present, the runtime computes nextScheduledTime = currentCommitTime + evaluatedDelay. Values <= 0 are treated as "schedule for the next available tick".
+- `reoccurAfter(context, executionCount, input, output): MaybeExpression<TemporalExpression>` — invoked during `apply` (and evaluated at commit time) to produce an optional in-game duration until the next invocation. If the result is empty (the Maybe is empty) or the function is not present, the runtime will not schedule a repeat. When present, the runtime computes `nextScheduledGTU = currentGTU + resolvedGTU`. A `TemporalExpression` that resolves to 0 GTU schedules for the next available tick. See [`temporalExpression.md`](./temporalExpression.md) for unit registration and GTU semantics.
 
 - `isReoccuranceApplicable(context, executionCount, input, output): ConditionExpression` — invoked when the scheduled delay elapses (at scheduled time). This function receives the preserved previous `input` and `output` and must return a ConditionExpression. The runtime evaluates this expression in a fresh `ExecutionContext` for the scheduled check; if it evaluates to true, the runtime re-enqueues the effect (which will run `prepare` → `apply` again and may call `reoccurAfterMs` for further repeats).
 
 Notes & semantics:
 - `executionCount` is the 0-based count of how many times the effect has executed, including the current execution (first execution => executionCount=0). On each re-run, `executionCount` increments.
-- `reoccurAfterMs` is evaluated at commit time and recorded as part of the commit writes so scheduling is atomic with other state changes.
+- `reoccurAfter` is evaluated at commit time and recorded as part of the commit writes so scheduling is atomic with other state changes.
 - `isReoccuranceApplicable` is evaluated at scheduled time in a new `ExecutionContext`. It may reference the previous `input` and `output` and the current runtime state (via expression wrappers) as needed.
 - Both callbacks must be pure, deterministic, and side-effect free; they should produce expression wrappers evaluated by the runtime.
 - Atomicity: if the commit that records the schedule aborts, no scheduled entry is recorded.
@@ -110,7 +110,8 @@ type EventArgType = ConditionExpressionType
     | StringExpressionType 
     | NumberExpressionType
     | EntityExpressionType
-    | ContainerExpressionType;
+    | ContainerExpressionType
+    | TemporalExpressionType;
 
 type RegisterEventArgs<Input, Output> = {
   name: string;
@@ -123,10 +124,12 @@ type RegisterEventArgs<Input, Output> = {
   // Optional repeat hooks for effects that reoccur
   /**
    * Called during `apply` to declare a delay until the next invocation.
-   * Return a MaybeExpression<NumberExpression> evaluated at commit time. If the Maybe is empty (or the function is not provided), no scheduling will occur.
-   * When present, the runtime computes nextScheduledTime = currentCommitTime + evaluatedDelay (values <= 0 schedule for next tick).
+   * Return a MaybeExpression<TemporalExpression> evaluated at commit time. If the Maybe is empty (or the function is not provided), no scheduling will occur.
+   * When present, the runtime computes nextScheduledGTU = currentGTU + resolvedGTU.
+   * A TemporalExpression resolving to 0 GTU schedules for the next available tick.
+   * See temporalExpression.md for unit registration and GTU semantics.
    */
-  reoccurAfterMs?: (context: EventContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => MaybeExpression<NumberExpression>;
+  reoccurAfter?: (context: EventContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => MaybeExpression<TemporalExpression>;
 
   /**
    * Called when a scheduled delay elapses to determine whether the effect should re-run.
@@ -169,7 +172,7 @@ const appendNumberEvent: RegisterEventArgs = {
   },
 
   // Example reoccurrence hooks
-  reoccurAfterMs: (ctx, execCount, input, output) => host.maybe.some(host.number.of(1000)),
+  reoccurAfter: (ctx, execCount, input, output) => host.maybe.some(host.temporal.of(host.number.of(1), "round")),
   isReoccuranceApplicable: (ctx, execCount, input, output) => host.condition.isLessThan(host.number.of(execCount), host.number.of(3)),
 };
 

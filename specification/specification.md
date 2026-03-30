@@ -11,13 +11,15 @@ Concepts
 ## Primitives
 - [`NumberExpression`](./numberExpression.md): An `immutable`, `lazily-evaluated` expression tree representing a `long` value.
 
-- [`StringExpression`](./stringExpression.md): An `immutable`, `lazily-evaluated` expression tree representing host `String` values. .
+- [`StringExpression`](./stringExpression.md): An `immutable`, `lazily-evaluated` expression tree representing host `String` values.
 
 - [`ListExpression`](./listExpression.md): An `immutable`, `lazily-evaluated` expression tree representing ordered sequences (lists/arrays) of element expressions.
 
 - [`MaybeExpression`](./maybeExpression.md): An `immutable`, `lazily-evaluated` expression representing optional values (present/absent).
 
 - [`ConditionExpression`](./conditionExpression.md): An `immutable`, `lazily-evaluated` expression tree representing boolean values.
+
+- [`TemporalExpression`](./temporalExpression.md): An `immutable`, `lazily-evaluated` expression representing a duration of in-game time, expressed in module-defined named units (e.g. `"round"`, `"day"`) that map to an internal Game Time Unit (GTU) counter advancing at a configurable rate per tick.
 
 
 ## [Modules](./modules.md)
@@ -37,14 +39,11 @@ Holder of entities
 ## [Randomness](./randomness.md)
 All randomness is deterministic and stateless — each draw is derived from the `ExecutionContext` (World Seed, Tick, Source, Action, Call Index) using a 64-bit SplitMix64-based PRNG. This guarantees runtime-client parity, parallel safety, and no global RNG state.
 
-## Zones
-
-## Regions
+## [Actions](./actions.md)
+The sole external entrypoint into the runtime. Clients send named Actions over WebSocket targeting an entity, container, or point-in-container. Modules register Actions with a guard, cooldown, and an Effect pipeline (DAG).
 
 ## Classifications
-Used for better querry and grouping.
-## Containers
-
+Used for better query and grouping.
 
 ## Module
 Module is a collection of rules packaged into a .zip file.
