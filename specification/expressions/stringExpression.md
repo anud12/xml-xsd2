@@ -1,4 +1,4 @@
-# String expression — Concepts
+﻿# String expression — Concepts
 
 This document describes the core `String expression` concept.
 
@@ -28,7 +28,7 @@ When a `StringExpression` is extracted, nodes are evaluated recursively in decla
 
 - Literal (`of`) nodes return their value.
 - `ref(ruleId)` resolves `ruleId` through the string repository (see Validation). If the ref is unresolved, the implementation SHOULD fail-soft and substitute an empty segment (logging the missing ref). A strict mode can be provided for CI.
-- `oneOf(list)` selects exactly one entry via the deterministic [randomness](./randomness.md), then evaluates the chosen expression.
+- `oneOf(list)` selects exactly one entry via the deterministic [randomness](../runtime/randomness.md), then evaluates the chosen expression.
 - `group(expr)` influences grouping/evaluation order (useful for nested choice boundaries).
 
 

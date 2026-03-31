@@ -1,4 +1,4 @@
-# Entities — Concepts
+﻿# Entities — Concepts
 
 This document describes the core `Entity` concept.
 
@@ -40,7 +40,7 @@ This document specifies the `EntityExpression` builder: an immutable, lazily-eva
 - `EntityExpression` is a small, fluent builder whose nodes are immutable and evaluated by the runtime.
 - The builder surface intentionally exposes only `create`, `withTextMap`, `withNumberMap` and `withContainer` to keep host usage focused and composable.
 - Use `StringExpression` for text_map values and `NumberExpression` for number_map values; these wrappers are provided by the string/number expression surfaces.
-- See [TextMap and NumberMap](./textMap&numberMap.md) for their specific definitions.
+- See [TextMap](./textMap.md) and [NumberMap](./numberMap.md) for their specific definitions.
 
 ## Purpose
 

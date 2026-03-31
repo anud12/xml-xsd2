@@ -1,94 +1,206 @@
+import type { ConditionExpression } from './conditionExpression';
+
 /**
- * StringExpression — Minimal API
+ * Marker type for StringExpression values on HostApi surfaces.
  *
- * This type models an immutable string expression tree with lazy evaluation semantics.
+ * Pass this as the `type` field in event/effect argument declarations to
+ * signal that the argument carries a StringExpression.
  *
- * See per-field documentation for evaluation semantics, edge cases, and tradeoffs.
+ * @see StringExpressionApi.type
+ */
+export type StringExpressionType = {
+  // used when declaring argument types dynamically in HostApi clients
+};
+
+/**
+ * An immutable, lazily-evaluated string expression tree.
+ *
+ * Nodes are built via {@link StringExpressionApi.of} and composed with
+ * combinators. Evaluation is deferred and performed by the runtime.
+ *
+ * `of()` on the Api is **eager** (computed and cached at construction time);
+ * all other operations produce lazy nodes.
+ *
+ * StringExpression wrappers are truthy in JS but must not be implicitly
+ * coerced to primitive strings — explicit runtime evaluation is required.
+ *
+ * @see StringExpressionApi
+ * @see stringExpression.md
  */
 export type StringExpression = {
   /**
-   * Concatenation. Returns a new StringExpression.
+   * Convenience factory: creates a literal StringExpression node.
    *
-   * Evaluation: evaluates the receiver and `other`, then concatenates their string values.
-   * Immutable: returns a new StringExpression.
+   * Delegates to {@link StringExpressionApi.of}.
+   */
+  of: (s: string) => StringExpression;
+
+  /**
+   * Concatenate two string expressions.
    *
-   * Edge cases: callers should consider very large concatenations which may impact memory.
+   * Evaluates the receiver, then `other`, and returns their concatenated value.
+   *
+   * @note Very large concatenations may impact memory; callers should consider
+   *       bounding input sizes.
    */
   concat: (other: StringExpression) => StringExpression;
 
   /**
-   * Trims whitespace from both ends. Returns a new StringExpression.
+   * Join multiple string expressions with an optional separator.
    *
-   * Evaluation: evaluates the receiver and returns its trimmed string.
-   */
-  trim: () => StringExpression;
-
-  /**
-   * Converts to upper-case. Returns a new StringExpression.
-   */
-  toUpperCase: () => StringExpression;
-
-  /**
-   * Converts to lower-case. Returns a new StringExpression.
-   */
-  toLowerCase: () => StringExpression;
-
-  /**
-   * Lazily invokes cb only if the receiver evaluates to a non-empty string.
+   * Evaluates each element of `parts` in declaration order, evaluates
+   * `separator` if provided (defaults to empty string), then joins results.
    *
-   * Evaluation: callback is only invoked if the receiver's string length > 0; otherwise returns an empty-string node without invoking cb.
-   * Callbacks must return a StringExpression. Callbacks are not invoked until evaluation time.
+   * @param parts     - Ordered array of string expressions to join.
+   * @param separator - Optional separator inserted between elements.
    */
-  ifNonEmpty: (cb: () => StringExpression) => StringExpression;
+  join: (parts: StringExpression[], separator?: StringExpression) => StringExpression;
 
   /**
-   * Lazily invokes cb only if the receiver evaluates to an empty string.
+   * Prepend a literal string to this expression.
    *
-   * Evaluation: callback is only invoked if the receiver's string is empty; otherwise returns the receiver.
+   * Convenience for `StringExpressionApi.of(s).concat(this)`.
    */
-  ifEmpty: (cb: () => StringExpression) => StringExpression;
+  prefix: (s: string) => StringExpression;
+
+  /**
+   * Append a literal string to this expression.
+   *
+   * Convenience for `this.concat(StringExpressionApi.of(s))`.
+   */
+  suffix: (s: string) => StringExpression;
+
+  /**
+   * Grouping node to control evaluation order within a composed expression.
+   *
+   * Useful for establishing explicit evaluation boundaries, especially inside
+   * nested `oneOf` choices.
+   */
+  group: (expr: StringExpression) => StringExpression;
+
+  /**
+   * Deterministic choice among `choices` alternatives.
+   *
+   * At evaluation time, selects exactly one entry using the runtime's
+   * deterministic instance RNG (ExecutionContext). The choice is reproducible
+   * for the same context.
+   *
+   * @param choices - Non-empty array of alternative StringExpression values.
+   * @see randomness.md
+   */
+  oneOf: (choices: StringExpression[]) => StringExpression;
+
+  /**
+   * Reference another registered string rule by id.
+   *
+   * Resolved at evaluation time via the string rule repository. If the rule
+   * is absent, the runtime substitutes an empty string (fail-soft) and logs
+   * the event. A strict mode may be provided for CI.
+   *
+   * @param ruleId - Identifier of the registered StringExpression rule.
+   */
+  ref: (ruleId: string) => StringExpression;
+
+  /**
+   * Return the index of the first occurrence of `other` within this
+   * expression's language, or −1 if none exists.
+   *
+   * Set-semantic: operates over all possible evaluations of both expressions.
+   * Returns a NumberExpression (−1 for no match).
+   *
+   * @note Implementations may use automata-based or bounded-enumeration
+   *       approaches; see stringExpression.md for algorithm details.
+   */
+  indexOfExpression: (other: StringExpression, fromInclusive?: NumberExpressionRef) => NumberExpressionRef;
+
+  /**
+   * Existential membership check: returns true if there exists some evaluation
+   * of this expression that contains some evaluation of `other` as a substring.
+   *
+   * Use {@link isContainingExactly} for the stricter universal check.
+   *
+   * @note May use automata or bounded enumeration internally.
+   * @see stringExpression.md for resolution algorithm details
+   */
+  isContaining: (other: StringExpression) => ConditionExpression;
+
+  /**
+   * Universal membership check: returns true only if **every** evaluation of
+   * this expression contains **every** evaluation of `other` as a substring.
+   *
+   * More expensive than {@link isContaining}. Implementations may fall back to
+   * conservative results or impose timeouts for complex expressions.
+   *
+   * @see stringExpression.md for resolution algorithm details
+   */
+  isContainingExactly: (other: StringExpression) => ConditionExpression;
+
+  /** Optional: convert to upper-case. Implementation may omit. */
+  upper?: () => StringExpression;
+
+  /** Optional: convert to lower-case. Implementation may omit. */
+  lower?: () => StringExpression;
+
+  /** Optional: trim leading/trailing whitespace. Implementation may omit. */
+  trim?: () => StringExpression;
 };
 
 /**
- * API surface for factories and rule registration/lookup.
+ * HostApi surface for constructing and registering {@link StringExpression}
+ * values.
  *
- * - of(value): Returns a fresh literal node.
- * - asRule(ruleName, expr): Registers/replaces a named rule in the repository.
- * - getRule(ruleName): Returns a rule-reference node, resolved at evaluation time.
- * - type: Marker for HostApi surfaces.
+ * Exposed as `hostApi.string` inside module scripts.
+ *
+ * @example
+ * ```ts
+ * hostApi.string.asRule("title", hostApi.string.of("Gallant"));
+ * const hero = hostApi.string.of("Sir ").concat(hostApi.string.ref("title"));
+ * // Evaluating hero → "Sir Gallant"
+ * ```
+ *
+ * @see StringExpression
+ * @see stringExpression.md
  */
 export type StringExpressionApi = {
   /**
-   * Returns a fresh literal node for the given string value.
+   * Create a literal StringExpression node for `s`.
    *
-   * Each call returns a new StringExpression instance; callers must not rely on object identity across calls.
+   * Eagerly computes and caches the host String. `null`/`undefined` → error.
    *
-   * Edge cases: Accepts any JS string. Consumers should decide how to handle very long strings or binary data in strings.
+   * @param s - A JS string literal.
    */
-  of: (value: string) => StringExpression;
+  of: (s: string) => StringExpression;
 
   /**
-   * Registers or replaces a named rule in the string rule repository.
+   * Register or replace a named StringExpression rule in the rule repository.
    *
-   * Returns the API surface for fluent host usage.
+   * Used to define named fragments resolved via `ref(ruleId)` at evaluation
+   * time. Returns the API surface for fluent chaining.
    *
-   * Edge cases: Overwrites any existing rule with the same name. Rule names must be unique within the repository.
+   * @param ruleName - Unique identifier for the rule.
+   * @param expr     - The StringExpression to register.
    */
   asRule: (ruleName: string, expr: StringExpression) => StringExpressionApi;
 
   /**
-   * Returns a StringExpression that resolves the named rule at evaluation time.
+   * Return the API surface scoped to the named rule.
    *
-   * Evaluation: At evaluation, resolves `ruleName` from the string rule repository and evaluates the resolved expression.
+   * The rule is resolved at evaluation time. If absent, the runtime applies
+   * its configured fail-soft policy (substitute empty string + log) or throws
+   * in strict mode.
    *
-   * Edge cases: If the rule is missing, must fail predictably or as specified by the runtime contract (e.g., fail-fast or fail-soft).
+   * @param ruleName - Rule identifier to look up.
    */
-  getRule: (ruleName: string) => StringExpression;
+  getRule: (ruleName: string) => StringExpressionApi;
 
   /**
-   * Marker for HostApi surfaces. Used for type branding or runtime identification.
+   * Type marker for HostApi surfaces.
    *
-   * No runtime behavior; for type-level distinction only.
+   * Pass `hostApi.string.type` as the `type` field when declaring event or
+   * effect arguments dynamically. No runtime behavior.
    */
-  type: unknown; // Placeholder for StringExpressionType
+  type: StringExpressionType;
 };
+
+/** @internal Placeholder for cross-references within StringExpression */
+type NumberExpressionRef = unknown;

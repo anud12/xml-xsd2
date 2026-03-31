@@ -1,104 +1,174 @@
-import type { ConditionExpression } from "./conditionExpression";
+import type { ConditionExpression } from './conditionExpression';
 
 /**
- * NumberExpression — Per-field documentation (derived from numberExpression.md)
+ * Marker type for NumberExpression values on HostApi surfaces.
  *
- * Top-level summary: immutable, lazily-evaluated expression tree representing host 64-bit signed integers (`long`).
- * `of()` is eager and caches; all other nodes are lazy. Conversions, overflow, and randomness follow the rules documented per-field below.
+ * Pass this as the `type` field in event/effect argument declarations to
+ * signal that the argument carries a NumberExpression.
+ *
+ * @see NumberExpressionApi.type
+ */
+export type NumberExpressionType = {
+  // used when declaring type of arguments dynamically
+};
+
+/**
+ * An immutable, lazily-evaluated 64-bit signed integer expression tree.
+ *
+ * Represents game numbers as host `long` values using Java-style two's-
+ * complement arithmetic. All arithmetic is performed with unbounded precision
+ * and then reduced modulo 2^64 (range: −2^63 .. 2^63−1). Overflow wraps —
+ * no exception by default.
+ *
+ * Comparison methods produce lazy {@link ConditionExpression} nodes for
+ * composing with boolean logic.
+ *
+ * Evaluation is deferred and performed by the runtime at commit time.
+ * Exception: {@link NumberExpressionApi.of} is **eager** (computed and cached
+ * at construction time).
+ *
+ * @see NumberExpressionApi
+ * @see numberExpression.md
  */
 export type NumberExpression = {
   /**
-   * sum(other)
-   * - Purpose: arithmetic addition.
-   * - Evaluation: lazy. When the expression tree is evaluated, the left operand (receiver) is evaluated first, then `other`.
-   *   Both are converted to host-long semantics (see `of` for conversion rules). Addition is performed with unbounded precision and then
-   *   reduced modulo 2^64. The 64-bit pattern is interpreted as a signed two's-complement integer.
-   * - Edge cases: overflow wraps around (Java-style). For checked or saturating behavior rely on specific runtime variants.
-   * - Examples: sum(of(3), of(5)) -> 8; sum(of(2**63 - 1), of(1)) -> -2**63 (wrap).
+   * Arithmetic addition.
+   *
+   * Lazy: evaluates the receiver, then `other`. Computes the sum with unbounded
+   * precision, reduces modulo 2^64, and interprets the result as a signed
+   * two's-complement long. Overflow wraps (Java-style).
+   *
+   * @example `of(MAX_LONG).sum(of(1))` → `MIN_LONG` (wrap-around)
    */
   sum: (other: NumberExpression) => NumberExpression;
 
   /**
-   * subtract(other)
-   * - Purpose: arithmetic subtraction.
-   * - Evaluation: lazy. Evaluates operands, computes difference using unbounded precision, reduces modulo 2^64, interprets as signed long.
-   * - Notes: may be implemented by evaluators as addition of the negated right-hand side for efficiency.
+   * Arithmetic subtraction.
+   *
+   * Lazy: evaluates receiver − other with unbounded precision, reduces modulo
+   * 2^64, interprets as signed long. May be implemented as addition of the
+   * negated right-hand side.
    */
   subtract: (other: NumberExpression) => NumberExpression;
 
   /**
-   * multiply(other)
-   * - Purpose: arithmetic multiplication.
-   * - Evaluation: lazy. Multiply with unbounded precision then reduce modulo 2^64.
-   * - Edge cases: large products wrap according to modulo semantics.
+   * Arithmetic multiplication.
+   *
+   * Lazy: multiplies with unbounded precision, reduces modulo 2^64. Large
+   * products wrap according to modulo semantics.
    */
   multiply: (other: NumberExpression) => NumberExpression;
 
   /**
-   * divide(other)
-   * - Purpose: integer division.
-   * - Evaluation: lazy. Evaluate operands and perform integer division. Recommended rounding behaviour: truncate toward zero.
-   * - Division by zero: runtime-defined. Recommended: fail-fast with a descriptive error, but implementations may choose another strategy.
+   * Integer division. Truncates toward zero.
+   *
+   * Lazy: evaluates both operands and performs integer division. Recommended
+   * rounding: truncate toward zero (3 / 2 = 1, −3 / 2 = −1).
+   *
+   * @note Division-by-zero behavior is runtime-defined. Recommendation:
+   *       fail-fast with a descriptive error.
    */
   divide: (other: NumberExpression) => NumberExpression;
 
   /**
-   * random(fromInclusive, toInclusive)
-   * - Purpose: deterministic random selection within inclusive bounds using the runtime's RandomizationTable.
-   * - Evaluation: evaluate bounds first to host-long values, then select uniformly from the inclusive range. Selection must be deterministic
-   *   relative to the runtime's randomness state.
-   * - Edge cases: if fromInclusive > toInclusive the runtime must decide (recommended: swap or throw). If equal, return that value.
+   * Deterministic random selection within an inclusive range.
+   *
+   * Selects uniformly from [fromInclusive, toInclusive] using the runtime's
+   * randomness context (ExecutionContext). Results are deterministic and
+   * reproducible for a given context.
+   *
+   * @param fromInclusive - Lower bound (inclusive).
+   * @param toInclusive   - Upper bound (inclusive).
+   * @note If fromInclusive > toInclusive, behavior is runtime-defined
+   *       (recommendation: swap bounds or throw). Equal bounds return that value.
+   * @see randomness.md
    */
   random: (fromInclusive: NumberExpression, toInclusive: NumberExpression) => NumberExpression;
 
-  /**
-   * Comparison helpers — produce lazily-evaluated ConditionExpression nodes.
-   * - Purpose: compare two NumberExpression values using signed host-long semantics.
-   * - Evaluation: both operands are evaluated to host-long values and compared. Returns a ConditionExpression for composition.
-   */
+  // ── Comparison operations ─────────────────────────────────────────────────
+  // All comparisons evaluate both operands to host-long values and compare
+  // using signed semantics. Each returns a lazy ConditionExpression.
+
+  /** Returns a ConditionExpression that is true when `this > other`. */
   isGreaterThan: (other: NumberExpression) => ConditionExpression;
+
+  /** Returns a ConditionExpression that is true when `this < other`. */
   isLessThan: (other: NumberExpression) => ConditionExpression;
+
+  /** Returns a ConditionExpression that is true when `this >= other`. */
   isGreaterOrEqualTo: (other: NumberExpression) => ConditionExpression;
+
+  /** Returns a ConditionExpression that is true when `this <= other`. */
   isLessOrEqualTo: (other: NumberExpression) => ConditionExpression;
+
+  /** Returns a ConditionExpression that is true when `this == other`. */
   isEqualTo: (other: NumberExpression) => ConditionExpression;
+
+  /** Returns a ConditionExpression that is true when `this != other`. */
   isNotEqualTo: (other: NumberExpression) => ConditionExpression;
 };
 
 /**
- * NumberExpressionApi — Host API surface (per-field notes)
+ * HostApi surface for constructing and registering {@link NumberExpression}
+ * values.
+ *
+ * Exposed as `hostApi.number` inside module scripts.
+ *
+ * @example
+ * ```ts
+ * const ten = hostApi.number.of(10);
+ * const doubled = ten.multiply(hostApi.number.of(2));
+ * const isPositive = ten.isGreaterThan(hostApi.number.of(0));
+ * ```
+ *
+ * @see NumberExpression
+ * @see numberExpression.md
  */
 export type NumberExpressionApi = {
   /**
-   * of(value)
-   * - Purpose: eager literal constructor that converts a JS Number to a host-long literal node and caches the converted value.
-   * - Conversion rules (JS Number -> host long):
-   *   - NaN -> error (throw at call time).
-   *   - ±Infinity -> error (throw at call time).
-   *   - Finite non-integers -> truncated toward zero before conversion (3.9 -> 3, -2.9 -> -2).
-   *   - After truncation, values are reduced into the 64-bit two's-complement representation as needed.
-   * - Notes: callers must not rely on implicit numeric coercion of NumberExpression nodes; they are opaque wrappers in JS.   
+   * Eagerly convert a JS number to a host-long literal node.
+   *
+   * Conversion rules (JS Number → host long):
+   * - `NaN` → throws at call time
+   * - `±Infinity` → throws at call time
+   * - Non-integers → truncated toward zero before conversion (3.9 → 3, −2.9 → −2)
+   * - After truncation, value is reduced into the 64-bit two's-complement range
+   *
+   * The result is cached. NumberExpression nodes are opaque wrappers in JS —
+   * callers must not rely on implicit numeric coercion.
+   *
+   * @param value - A finite JS number to convert.
    */
   of: (value: number) => NumberExpression;
 
   /**
-   * asRule(ruleName, expr)
-   * - Purpose: register or replace a named NumberExpression in the runtime repository.
-   * - Semantics: overwrites any existing rule with the same name. Rule names must be unique within the repository's namespace.
-   * - Returns: the NumberExpressionApi for fluent chainable host usage.
+   * Register or replace a named NumberExpression rule in the rule repository.
+   *
+   * Overwrites any existing rule with the same name. Returns the API surface
+   * for fluent chaining.
+   *
+   * @param ruleName - Unique identifier for the rule.
+   * @param expr     - The NumberExpression to register.
    */
   asRule: (ruleName: string, expr: NumberExpression) => NumberExpressionApi;
 
   /**
-   * getRule(ruleName)
-   * - Purpose: return a NumberExpression node that resolves the named rule at evaluation time.
-   * - Semantics: resolution of the named rule is deferred until evaluation. If the rule is missing at evaluation time the runtime should
-   *   fail-fast with a descriptive error (recommended), but implementations may choose fail-soft behavior if documented.
+   * Return the API surface scoped to the named rule, resolved at evaluation
+   * time.
+   *
+   * If the rule is missing at evaluation time, the runtime should fail-fast
+   * with a descriptive error (recommended) or apply its configured fail-soft
+   * policy.
+   *
+   * @param ruleName - Rule identifier to look up.
    */
-  getRule: (ruleName: string) => NumberExpression;
+  getRule: (ruleName: string) => NumberExpressionApi;
 
   /**
-   * type
-   * - Marker for HostApi surfaces. No runtime behavior; for branding and dynamic type checks in host code.
+   * Type marker for HostApi surfaces.
+   *
+   * Pass `hostApi.number.type` as the `type` field when declaring event or
+   * effect arguments dynamically. No runtime behavior.
    */
-  type: unknown; // Placeholder for NumberExpressionType
+  type: NumberExpressionType;
 };
