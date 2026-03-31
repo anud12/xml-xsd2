@@ -1,4 +1,4 @@
-# Actions — Concepts
+﻿# Actions — Concepts
 
 This document describes the core `Actions` concept.
 
@@ -14,7 +14,7 @@ Actions provide a typed, authenticated, rate-limited boundary between clients an
 
 - **Single entrypoint**: all client-initiated state changes flow through Actions.
 - **Declarative guard**: eligibility is evaluated as a `ConditionExpression` before any Effect runs.
-- **Cooldown control**: per-actor rate-limiting via a [`TemporalExpression`](./temporalExpression.md) *(spec pending)*.
+- **Cooldown control**: per-actor rate-limiting via a [`TemporalExpression`](../expressions/temporalExpression.md) *(spec pending)*.
 - **Effect pipeline**: fan-out to one or more Effects with an explicit, statically-validated dependency DAG.
 - **Client-server parity**: the client runs the same runtime and modules; only state synchronization is needed over the wire.
 
@@ -287,12 +287,12 @@ hostApi.registerAction({
 ## Cross-References
 
 - [`effects.md`](./effects.md) — Effect registration, prepare/apply/commit semantics
-- [`conditionExpression.md`](./conditionExpression.md) — guard expression primitives
-- [`temporalExpression.md`](./temporalExpression.md) — cooldown duration expression *(spec pending)*
-- [`entities.md`](./entities.md) — EntityExpression used in ActionContext
-- [`containers.md`](./containers.md) — ContainerExpression and dimension model
-- [`runtime.md`](./runtime.md) — ExecutionContext, double-buffer commit, module sandboxing
-- [`randomness.md`](./randomness.md) — deterministic PRNG keyed by ExecutionContext
+- [`conditionExpression.md`](../expressions/conditionExpression.md) — guard expression primitives
+- [`temporalExpression.md`](../expressions/temporalExpression.md) — cooldown duration expression *(spec pending)*
+- [`entities.md`](../data-model/entities.md) — EntityExpression used in ActionContext
+- [`containers.md`](../data-model/containers.md) — ContainerExpression and dimension model
+- [`runtime.md`](../runtime/runtime.md) — ExecutionContext, double-buffer commit, module sandboxing
+- [`randomness.md`](../runtime/randomness.md) — deterministic PRNG keyed by ExecutionContext
 
 ---
 

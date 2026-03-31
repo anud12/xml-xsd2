@@ -1,4 +1,4 @@
-# Temporal Expression — Concepts
+﻿# Temporal Expression — Concepts
 
 This document describes the `TemporalExpression` primitive.
 
@@ -249,10 +249,10 @@ When `tickAdvancesBy = 0` (the default):
 
 ## Cross-References
 
-- [`actions.md`](./actions.md) — `cooldown` field uses `TemporalExpression`
-- [`effects.md`](./effects.md) — `reoccurAfterMs` should migrate from `NumberExpression` (ms) to `TemporalExpression`
+- [`actions.md`](../interaction/actions.md) — `cooldown` field uses `TemporalExpression`
+- [`effects.md`](../interaction/effects.md) — `reoccurAfterMs` should migrate from `NumberExpression` (ms) to `TemporalExpression`
 - [`numberExpression.md`](./numberExpression.md) — integer arithmetic semantics (overflow, floor)
-- [`runtime.md`](./runtime.md) — tick loop, ExecutionContext, module hot-reload
+- [`runtime.md`](../runtime/runtime.md) — tick loop, ExecutionContext, module hot-reload
 
 ---
 

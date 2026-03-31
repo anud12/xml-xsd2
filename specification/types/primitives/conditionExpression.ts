@@ -1,95 +1,144 @@
 /**
- * ConditionExpression — Minimal API
+ * Marker type for ConditionExpression values on HostApi surfaces.
  *
- * This type models a recursive, immutable boolean expression tree with lazy evaluation and short-circuiting semantics.
+ * Pass this as the `type` field in event/effect argument declarations to
+ * signal that the argument carries a ConditionExpression.
  *
- * See per-field documentation for evaluation semantics, edge cases, and tradeoffs.
+ * @see ConditionExpressionApi.type
+ */
+export type ConditionExpressionType = {
+  // marker for dynamic HostApi typing
+};
+
+/**
+ * An immutable, lazily-evaluated boolean expression tree.
+ *
+ * Nodes are built via {@link ConditionExpressionApi.of} and composed with
+ * combinators. Evaluation is deferred and performed by the runtime when the
+ * expression is applied.
+ *
+ * All methods return a **new** ConditionExpression — the receiver is never
+ * mutated. Short-circuit semantics apply: right-hand operands or callbacks
+ * are not evaluated unless required.
+ *
+ * @see conditionExpression.md
  */
 export type ConditionExpression = {
   /**
-   * Short-circuiting logical AND. Returns a new ConditionExpression.
+   * Short-circuiting logical AND.
    *
-   * Evaluation: evaluates the receiver; if false, returns false without evaluating `other`.
-   * Immutable: returns a new ConditionExpression.
+   * Evaluates the receiver first. If false, returns false immediately without
+   * evaluating `other`. Returns a new ConditionExpression.
    *
-   * Edge cases: Deeply nested trees may risk stack overflow; prefer iterative or bounded evaluators.
+   * @note Deeply nested trees may risk stack overflow; prefer iterative or
+   *       bounded evaluators.
    */
   and: (other: ConditionExpression) => ConditionExpression;
+
   /**
-   * Short-circuiting logical OR. Returns a new ConditionExpression.
+   * Short-circuiting logical OR.
    *
-   * Evaluation: evaluates the receiver; if true, returns true without evaluating `other`.
-   * Immutable: returns a new ConditionExpression.
+   * Evaluates the receiver first. If true, returns true immediately without
+   * evaluating `other`. Returns a new ConditionExpression.
    *
-   * Edge cases: Deeply nested trees may risk stack overflow; prefer iterative or bounded evaluators.
+   * @note Deeply nested trees may risk stack overflow; prefer iterative or
+   *       bounded evaluators.
    */
   or: (other: ConditionExpression) => ConditionExpression;
 
   /**
-   * Logical NOT. Returns a new ConditionExpression.
+   * Logical NOT.
    *
-   * Evaluation: inverts the boolean result of the receiver.
-   * Immutable: returns a new ConditionExpression.
+   * Inverts the boolean result of the receiver. Returns a new
+   * ConditionExpression.
    */
   negate: () => ConditionExpression;
 
   /**
-   * Lazily invokes cb only if the receiver evaluates to true.
+   * Lazy branch: invokes `cb` only when the receiver evaluates to `true`.
    *
-   * Evaluation: callback is only invoked if the receiver's value is true; otherwise, returns false without invoking cb.
-   * Callbacks must return a ConditionExpression. Callbacks are not invoked until evaluation time.
+   * If the receiver is true, `cb()` is invoked at evaluation time to produce
+   * a ConditionExpression, and that expression's result is returned. If the
+   * receiver is false, returns false without invoking `cb`.
    *
-   * Edge cases: Callbacks must be pure or their side-effects must be acceptable, as they run at evaluation time.
+   * @param cb - Pure callback returning a ConditionExpression; invoked only
+   *             at evaluation time and only when the receiver is true.
    */
   ifTrue: (cb: () => ConditionExpression) => ConditionExpression;
+
   /**
-   * Lazily invokes cb only if the receiver evaluates to false.
+   * Lazy branch: invokes `cb` only when the receiver evaluates to `false`.
    *
-   * Evaluation: callback is only invoked if the receiver's value is false; otherwise, returns false without invoking cb.
-   * Callbacks must return a ConditionExpression. Callbacks are not invoked until evaluation time.
+   * If the receiver is false, `cb()` is invoked at evaluation time to produce
+   * a ConditionExpression, and that expression's result is returned. If the
+   * receiver is true, returns false without invoking `cb`.
    *
-   * Edge cases: Callbacks must be pure or their side-effects must be acceptable, as they run at evaluation time.
+   * @param cb - Pure callback returning a ConditionExpression; invoked only
+   *             at evaluation time and only when the receiver is false.
    */
   ifFalse: (cb: () => ConditionExpression) => ConditionExpression;
 };
 
 /**
- * API surface for factories and rule registration/lookup.
+ * HostApi surface for constructing and registering {@link ConditionExpression}
+ * values.
  *
- * - of(value): Returns a fresh literal node.
- * - asRule(ruleName, expr): Registers/replaces a named rule in the repository.
- * - getRule(ruleName): Returns a rule-reference node, resolved at evaluation time.
- * - type: Marker for HostApi surfaces.
+ * Exposed as `hostApi.condition` inside module scripts.
+ *
+ * @example
+ * ```ts
+ * const T = hostApi.condition.of(true);
+ * hostApi.condition.asRule("isEnabled", T);
+ * const isEnabled = hostApi.condition.getRule("isEnabled");
+ *
+ * // Callback-based branching — cb is not called unless isEnabled is true
+ * const branch = isEnabled.ifTrue(() => hostApi.condition.of(false).or(T));
+ * ```
+ *
+ * @see ConditionExpression
+ * @see conditionExpression.md
  */
 export type ConditionExpressionApi = {
   /**
-   * Returns a fresh literal node for the given boolean value.
+   * Create a literal ConditionExpression node for `value`.
    *
-   * Each call returns a new ConditionExpression instance; callers must not rely on object identity across calls.
+   * Each call returns a new instance. Callers must not rely on object identity
+   * across separate `of(...)` invocations.
    *
-   * Edge cases: Only accepts boolean values. Returns a node that always evaluates to the provided value.
+   * @param value - The boolean literal to wrap.
    */
   of: (value: boolean) => ConditionExpression;
+
   /**
-   * Registers or replaces a named rule in the condition rule repository.
+   * Register or replace a named condition rule in the rule repository.
    *
-   * Returns the API surface for fluent host usage.
+   * Overwrites any existing rule with the same name. Returns the API surface
+   * for fluent chaining.
    *
-   * Edge cases: Overwrites any existing rule with the same name. Rule names must be unique within the repository.
+   * @param ruleName - Unique identifier for the rule within the condition
+   *                   repository.
+   * @param expr     - The ConditionExpression to associate with the rule.
    */
   asRule: (ruleName: string, expr: ConditionExpression) => ConditionExpressionApi;
+
   /**
-   * Returns a ConditionExpression that resolves the named rule at evaluation time.
+   * Return a ConditionExpression that resolves the named rule at evaluation
+   * time.
    *
-   * Evaluation: At evaluation, resolves `ruleName` from the condition rule repository and evaluates the resolved expression.
+   * Rule resolution is deferred until the expression tree is evaluated. If
+   * the named rule is absent at evaluation time, the runtime should fail-fast
+   * with a descriptive error (recommended) or apply its configured fail-soft
+   * policy.
    *
-   * Edge cases: If the rule is missing, must fail predictably or as specified by the runtime contract (e.g., fail-fast or fail-soft).
+   * @param ruleName - Identifier of the rule to look up.
    */
   getRule: (ruleName: string) => ConditionExpression;
+
   /**
-   * Marker for HostApi surfaces. Used for type branding or runtime identification.
+   * Type marker for HostApi surfaces.
    *
-   * No runtime behavior; for type-level distinction only.
+   * Pass `hostApi.condition.type` as the `type` field when declaring event or
+   * effect arguments dynamically. No runtime behavior.
    */
-  type: unknown; // Placeholder for ConditionExpressionType
+  type: ConditionExpressionType;
 };

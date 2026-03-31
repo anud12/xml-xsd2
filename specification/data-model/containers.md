@@ -1,4 +1,4 @@
-# Container — Concepts
+﻿# Container — Concepts
 
 This document describes the core `Container` concept.
 
@@ -163,7 +163,7 @@ This document specifies the `ContainerExpression` builder: an immutable, lazily-
 
 - `ContainerExpression` is a fluent builder evaluated by the runtime.
 - Prefer building members as `EntityExpression` values (use hostApi.entity.create() and hostApi.textMap/numberMap helpers to construct them).
-- See [TextMap and NumberMap](./textMap&numberMap.md) for their specific definitions.
+- See [TextMap](./textMap.md) and [NumberMap](./numberMap.md) for their specific definitions.
 
 ## Purpose
 

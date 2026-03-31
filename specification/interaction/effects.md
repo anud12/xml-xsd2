@@ -1,4 +1,4 @@
-# Effects — Concepts
+﻿# Effects — Concepts
 
 This document describes the core `Effect` concept.
 
@@ -56,7 +56,7 @@ The reason for splitting into `prepare` and `apply` is that when an event is emi
 ---
 
 ### Randomness context
-  - When an event chain is started and no randomness context is present, the runtime creates a deterministic randomness context (according to [Randomness Specification](./randomness.md)) and attaches it to the chain. 
+  - When an event chain is started and no randomness context is present, the runtime creates a deterministic randomness context (according to [Randomness Specification](../runtime/randomness.md)) and attaches it to the chain. 
   This randomness context is propagated to all subsequent synchronous `emitEvent` calls within the chain so that `oneOf` / `random` operations evaluate deterministically and consistently acrossnested emissions.
 
 ---
@@ -78,7 +78,7 @@ To support effects that can schedule future re-occurrences, effects MAY include 
 
 Callbacks
 
-- `reoccurAfter(context, executionCount, input, output): MaybeExpression<TemporalExpression>` — invoked during `apply` (and evaluated at commit time) to produce an optional in-game duration until the next invocation. If the result is empty (the Maybe is empty) or the function is not present, the runtime will not schedule a repeat. When present, the runtime computes `nextScheduledGTU = currentGTU + resolvedGTU`. A `TemporalExpression` that resolves to 0 GTU schedules for the next available tick. See [`temporalExpression.md`](./temporalExpression.md) for unit registration and GTU semantics.
+- `reoccurAfter(context, executionCount, input, output): MaybeExpression<TemporalExpression>` — invoked during `apply` (and evaluated at commit time) to produce an optional in-game duration until the next invocation. If the result is empty (the Maybe is empty) or the function is not present, the runtime will not schedule a repeat. When present, the runtime computes `nextScheduledGTU = currentGTU + resolvedGTU`. A `TemporalExpression` that resolves to 0 GTU schedules for the next available tick. See [`temporalExpression.md`](../expressions/temporalExpression.md) for unit registration and GTU semantics.
 
 - `isReoccuranceApplicable(context, executionCount, input, output): ConditionExpression` — invoked when the scheduled delay elapses (at scheduled time). This function receives the preserved previous `input` and `output` and must return a ConditionExpression. The runtime evaluates this expression in a fresh `ExecutionContext` for the scheduled check; if it evaluates to true, the runtime re-enqueues the effect (which will run `prepare` → `apply` again and may call `reoccurAfterMs` for further repeats).
 

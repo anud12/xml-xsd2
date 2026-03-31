@@ -1,0 +1,155 @@
+import type { NumberExpression } from './numberExpression';
+
+/**
+ * Marker type for TemporalExpression values on HostApi surfaces.
+ *
+ * Pass this as the `type` field in event/effect argument declarations to
+ * signal that the argument carries a TemporalExpression.
+ *
+ * @see TemporalExpressionApi.type
+ */
+export type TemporalExpressionType = {
+  // marker for dynamic HostApi typing
+};
+
+/**
+ * An immutable, lazily-evaluated in-game duration expression.
+ *
+ * Represents a duration in **Game Time Units (GTU)** — an internal integer
+ * clock unit that is intentionally decoupled from real-world time and frame
+ * rate. Module authors work with named units (e.g. `"round"`, `"day"`)
+ * registered via {@link TemporalExpressionApi.defineUnit}; GTU is an
+ * implementation detail never referenced directly.
+ *
+ * All arithmetic uses 64-bit signed integer semantics, matching
+ * {@link NumberExpression} overflow rules.
+ *
+ * @see TemporalExpressionApi
+ * @see temporalExpression.md
+ */
+export type TemporalExpression = {
+  /**
+   * Scale this duration by a numeric factor.
+   *
+   * Useful for stat-based cooldowns (e.g. cooldown halved by actor speed).
+   * The result is **floor'd** to the nearest integer GTU. Values that resolve
+   * to ≤ 0 GTU are treated as 0 GTU (schedules for the next available tick).
+   *
+   * @param factor - A NumberExpression scaling factor.
+   */
+  multiply: (factor: NumberExpression) => TemporalExpression;
+
+  /**
+   * Return the longer of this duration and `other`.
+   *
+   * Compares resolved GTU values and returns the greater one.
+   */
+  max: (other: TemporalExpression) => TemporalExpression;
+
+  /**
+   * Return the shorter of this duration and `other`.
+   *
+   * Compares resolved GTU values and returns the lesser one.
+   */
+  min: (other: TemporalExpression) => TemporalExpression;
+};
+
+/**
+ * HostApi surface for configuring the game clock and constructing
+ * {@link TemporalExpression} values.
+ *
+ * Exposed as `hostApi.temporal` inside module scripts.
+ *
+ * ## GTU Clock model
+ *
+ * The runtime maintains a monotonically increasing GTU counter. Each tick the
+ * counter advances by `tickAdvancesBy` GTU (default `0` — time is frozen).
+ * Modules opt in to time-based mechanics by declaring `tickAdvancesBy` exactly
+ * once across all loaded modules.
+ *
+ * Named units are integer multiples of 1 GTU registered via `defineUnit`.
+ * Unit names must be globally unique; duplicate names are load-time errors.
+ *
+ * @example
+ * ```ts
+ * // World setup (one module only)
+ * hostApi.temporal.tickAdvancesBy(hostApi.number.of(5)); // 1 tick = 5 GTU
+ * hostApi.temporal.defineUnit("round", hostApi.number.of(6),  { displayName: "Round" });
+ * hostApi.temporal.defineUnit("day",   hostApi.number.of(8640), { displayName: "Day" });
+ *
+ * // Usage
+ * const twoCooldown = hostApi.temporal.of(hostApi.number.of(2), "round"); // 12 GTU
+ * ```
+ *
+ * @see TemporalExpression
+ * @see temporalExpression.md
+ */
+export type TemporalExpressionApi = {
+  /**
+   * Declare how many GTU each runtime tick advances the game clock.
+   *
+   * Must be called **exactly once** across all loaded modules.
+   * Default: `0` (game time does not advance — all time-based mechanics are
+   * effectively disabled).
+   *
+   * @param gtu - GTU advancement per tick; must evaluate to a non-negative integer.
+   * @throws E_TEMPORAL_SCALE_CONFLICT at load time if called more than once.
+   */
+  tickAdvancesBy: (gtu: NumberExpression) => TemporalExpressionApi;
+
+  /**
+   * Register a named time unit defined as `magnitudeInGTU` base GTU.
+   *
+   * Unit names must be globally unique across all loaded modules. The optional
+   * `displayName` provides a human-readable label for UI rendering (does not
+   * need to be unique).
+   *
+   * @param unitName        - Globally unique unit identifier (e.g. `"round"`).
+   * @param magnitudeInGTU  - How many GTU one unit equals; must evaluate to > 0.
+   * @param options.displayName - UI label for this unit (e.g. `"Round"`).
+   * @throws E_TEMPORAL_UNIT_CONFLICT  at load time if `unitName` already exists.
+   * @throws E_TEMPORAL_UNIT_INVALID   at load time if `magnitudeInGTU` ≤ 0.
+   */
+  defineUnit: (
+    unitName: string,
+    magnitudeInGTU: NumberExpression,
+    options?: { displayName?: string }
+  ) => TemporalExpressionApi;
+
+  /**
+   * Create a duration: `n × <named unit>` GTU.
+   *
+   * Evaluates lazily to `n × unit.magnitudeInGTU` GTU (integer). Unknown
+   * `unitName` is a load-time error when statically known, or a runtime warning
+   * (treated as 0 GTU) when dynamic.
+   *
+   * @param n        - Number of units (a NumberExpression).
+   * @param unitName - Registered unit name (e.g. `"round"`).
+   */
+  of: (n: NumberExpression, unitName: string) => TemporalExpression;
+
+  /**
+   * Register or replace a named TemporalExpression rule in the rule repository.
+   *
+   * Returns the API surface for fluent chaining.
+   *
+   * @param ruleName - Unique rule identifier.
+   * @param expr     - The TemporalExpression to register.
+   */
+  asRule: (ruleName: string, expr: TemporalExpression) => TemporalExpressionApi;
+
+  /**
+   * Return a TemporalExpression that resolves the named rule at evaluation time.
+   *
+   * @param ruleName - Rule identifier to look up.
+   */
+  getRule: (ruleName: string) => TemporalExpression;
+
+  /**
+   * Type marker for HostApi surfaces.
+   *
+   * Pass `hostApi.temporal.type` as the `type` field when declaring event or
+   * effect arguments dynamically. No runtime behavior.
+   */
+  type: TemporalExpressionType;
+};
