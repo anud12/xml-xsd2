@@ -2,19 +2,16 @@
 
 A `TextValue` is a **leaf component** that displays a `StringExpression` — typically bound to an entity's `TextMap` value via UI state. It has no children.
 
+Created with `hostApi.ui.text(id, options)`. Every `TextValue` requires a unique `id` — the reconciliation algorithm uses it to match nodes across ticks.
+
 ---
 
-## Declaration shape
+## Options shape
 
 ```ts
-type TextValueDeclaration = {
-  type: "text";
-
-  /** Optional identifier. */
-  id?: string;
-
+type TextOptions = {
   /**
-   * This component's own size hint. Used by the parent layout to allocate space.
+   * Size hint consumed by the parent layout.
    */
   size?: ChildSize;
 
@@ -34,13 +31,13 @@ type TextValueDeclaration = {
 ### Literal string
 
 ```ts
-{ type: "text", value: hostApi.string.of("Health") }
+hostApi.ui.text("health-label", { value: hostApi.string.of("Health") })
 ```
 
 ### Actor TextMap binding
 
 ```ts
-{ type: "text", value: hostApi.ui.state.actor.textMap.get("name") }
+hostApi.ui.text("actor-name", { value: hostApi.ui.state.actor.textMap.get("name") })
 ```
 
 ### Declared value binding (with fallback)
@@ -48,12 +45,11 @@ type TextValueDeclaration = {
 ```ts
 const selection = hostApi.ui.state.declare("selection")
 
-{
-  type: "text",
+hostApi.ui.text("selection-name", {
   value: selection.asEntity
     .map(e => e.textMap.get("name"))
     .orElse(hostApi.string.of("—")),
-}
+})
 ```
 
 ---
@@ -61,36 +57,41 @@ const selection = hostApi.ui.state.declare("selection")
 ## Example — name plate panel
 
 ```ts
-hostApi.ui.registerPanel({
-  id: "nameplate",
-  anchor: { x: hostApi.number.of(0.5), y: hostApi.number.of(1) },
-  pivot:  { x: hostApi.number.of(0.5), y: hostApi.number.of(1) },
-  offset: { x: hostApi.number.of(0),   y: hostApi.number.of(-16) },
-  size:   { width: hostApi.number.of(200), height: hostApi.number.of(40) },
-  visible: selection.isPresent,
-  child: (state, data) => ({
-    type: "box",
-    layout: { columns: [{ scale: hostApi.number.of(1), align: "center" }] },
-    children: [
-      {
-        type: "text",
-        value: state.value("selection").asEntity
-          .map(e => e.textMap.get("name"))
-          .orElse(hostApi.string.of("—")),
-      },
-    ],
-  }),
-})
+export default (hostApi) => {
+  const selection = hostApi.ui.state.declare("selection")
+
+  hostApi.ui.panel(
+    "nameplate",
+    {
+      anchor:  { x: number.of(0.5), y: number.of(1) },
+      pivot:   { x: number.of(0.5), y: number.of(1) },
+      offset:  { x: number.of(0),   y: number.of(-16) },
+      size:    { width: number.of(200), height: number.of(40) },
+      visible: selection.isPresent,
+    },
+    (state, data) =>
+      hostApi.ui.box(
+        "nameplate-content",
+        { layout: { columns: [{ scale: number.of(1) }] } },
+        (state, data) => [
+          hostApi.ui.text("name-text", {
+            value: state.value("selection").asEntity
+              .map(e => e.textMap.get("name"))
+              .orElse(hostApi.string.of("—")),
+          }),
+        ],
+      ),
+  )
+}
 ```
 
 ---
 
 ## Cross-references
 
-- [`box.md`](./box.md) — `Child` union; `SizeConstraint`; `ChildSize`; conditional rendering via exclusion
+- [`box.md`](./box.md) — `Child`; `SizeConstraint`; `ChildSize`; conditional rendering via exclusion
 - [`number-value.md`](./number-value.md) — equivalent component for `NumberMap` values
 - [`ui-state.md`](./ui-state.md) — UI state values used for bindings
 - [`stringExpression.md`](../expressions/stringExpression.md) — `StringExpression` used for `value`
 - [`maybeExpression.md`](../expressions/maybeExpression.md) — narrowing slot values before use
-- [`conditionExpression.md`](../expressions/conditionExpression.md) — `ConditionExpression` for visibility
 - [`entities.md`](../data-model/entities.md) — `TextMap` on Entity

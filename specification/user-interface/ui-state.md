@@ -34,9 +34,13 @@ Each value holds either an `EntityExpression`, a `ContainerExpression`, or is ab
 
 ```ts
 export type UIApi = {
-  registerPanel:  (panel: PanelDeclaration) => void;
-  action:         UIActionApi;
-  state:          UiStateApi;
+  state:  UiStateApi;
+  action: UIActionApi;
+
+  panel:  (id: string, options: PanelOptions, child: (state, data) => Child) => void;
+  box:    (id: string, options: BoxOptions,    children: (state, data) => Child[]) => Child;
+  text:   (id: string, options: TextOptions)   => Child;
+  number: (id: string, options: NumberOptions) => Child;
 }
 
 export type UiStateApi = {
@@ -127,12 +131,10 @@ selection.asEntity.map(e => e.textMap.get("name"))  // → MaybeExpression<Strin
 selection.asContainer.map(c => c.textMap.get("label"))  // → MaybeExpression<StringExpression>
 
 // Panel visible only when value is populated
-hostApi.ui.registerPanel({
-  id: "inspector",
+hostApi.ui.panel("inspector", {
   // ...
   visible: selection.isPresent,
-  child: (state, data) => ({ /* ... */ }),
-})
+}, (state, data) => hostApi.ui.box("inspector-content", { /* ... */ }, (state, data) => [/* ... */]))
 ```
 
 ### Cross-module value reference
@@ -160,34 +162,38 @@ export default (hostApi) => {
     effect: { type: "clear-value", value: "target" },
   })
 
-  hostApi.ui.registerPanel({
-    id: "target-frame",
-    anchor: { x: hostApi.number.of(0.5), y: hostApi.number.of(0) },
-    pivot:  { x: hostApi.number.of(0.5), y: hostApi.number.of(0) },
-    offset: { x: hostApi.number.of(0),   y: hostApi.number.of(8)  },
-    size:   { width: hostApi.number.of(200), height: hostApi.number.of(40) },
-    visible: target.isPresent,
-    child: (state, data) => ({
-      type: "box",
-      layout: {
-        columns: [
-          { min: hostApi.number.of(80) },
-          { scale: hostApi.number.of(1), align: "end" },
-        ],
-        gap: { row: hostApi.number.of(4), column: hostApi.number.of(8) },
-      },
-      children: [
-        { type: "text", value: hostApi.string.of("HP") },
+  hostApi.ui.panel(
+    "target-frame",
+    {
+      anchor:  { x: number.of(0.5), y: number.of(0) },
+      pivot:   { x: number.of(0.5), y: number.of(0) },
+      offset:  { x: number.of(0),   y: number.of(8) },
+      size:    { width: number.of(200), height: number.of(40) },
+      visible: target.isPresent,
+    },
+    (state, data) =>
+      hostApi.ui.box(
+        "target-stats",
         {
-          type: "number",
-          value: state.value("target")
-            .asEntity
-            .map(e => e.numberMap.get("hp"))
-            .orElse(hostApi.number.of(0)),
+          layout: {
+            columns: [
+              { min: number.of(80) },
+              { scale: number.of(1), align: "end" },
+            ],
+            gap: { row: number.of(4), column: number.of(8) },
+          },
         },
-      ],
-    }),
-  })
+        (state, data) => [
+          hostApi.ui.text("hp-label", { value: string.of("HP") }),
+          hostApi.ui.number("hp-value", {
+            value: state.value("target")
+              .asEntity
+              .map(e => e.numberMap.get("hp"))
+              .orElse(number.of(0)),
+          }),
+        ],
+      ),
+  )
 }
 ```
 
@@ -196,10 +202,9 @@ export default (hostApi) => {
 ## Cross-references
 
 - [`overview.md`](./overview.md) — UI system entry point; UI actions
-- [`panel.md`](./panel.md) — `render` fn receives `state` as first argument
+- [`panel.md`](./panel.md) — `child` callback receives `state` as first argument
 - [`text-value.md`](./text-value.md) — `value` bound to state entity text
 - [`number-value.md`](./number-value.md) — `value` bound to state entity numbers
 - [`maybeExpression.md`](../expressions/maybeExpression.md) — `MaybeExpression` used for optional state values
 - [`entities.md`](../data-model/entities.md) — `EntityExpression` — `textMap`, `numberMap`
 - [`containers.md`](../data-model/containers.md) — `ContainerExpression`
-

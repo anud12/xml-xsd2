@@ -2,6 +2,8 @@
 
 A `NumberValue` is a **leaf component** that displays a `NumberExpression` — typically bound to an entity's `NumberMap` value via UI state — with optional formatting. It has no children.
 
+Created with `hostApi.ui.number(id, options)`. Every `NumberValue` requires a unique `id` — the reconciliation algorithm uses it to match nodes across ticks.
+
 ---
 
 ## Number format
@@ -11,20 +13,18 @@ type NumberFormat = {
   /**
    * Number of decimal places to display.
    * Default: 0 (integer display).
-   * Example: decimals 2 renders 3 as "3.00"
+   * Example: decimals: 2 renders 3 as "3.00"
    */
   decimals?: number;
 
   /**
    * String prepended to the formatted number.
-   * Accepts a StringExpression so the prefix can reference dynamic values.
    * Example: string.of("$") renders 42 as "$42"
    */
   prefix?: StringExpression;
 
   /**
    * String appended to the formatted number.
-   * Accepts a StringExpression so the suffix can reference dynamic values.
    * Example: string.of("%") renders 75 as "75%"
    * Example: string.concat(string.of("/"), entity.numberMap.get("maxHp"))
    *          renders 50 as "50/100"
@@ -35,18 +35,11 @@ type NumberFormat = {
 
 ---
 
-## Declaration shape
+## Options shape
 
 ```ts
-type NumberValueDeclaration = {
-  type: "number";
-
-  /** Optional identifier. */
-  id?: string;
-
-  /**
-   * This component's own size hint. Used by the parent layout to allocate space.
-   */
+type NumberOptions = {
+  /** Size hint consumed by the parent layout. */
   size?: ChildSize;
 
   /**
@@ -68,14 +61,13 @@ type NumberValueDeclaration = {
 ### Actor NumberMap binding — integer
 
 ```ts
-{ type: "number", value: hostApi.ui.state.actor.numberMap.get("strength") }
+hostApi.ui.number("actor-strength", { value: hostApi.ui.state.actor.numberMap.get("strength") })
 ```
 
 ### Dynamic slash-separated max suffix
 
 ```ts
-{
-  type: "number",
+hostApi.ui.number("actor-hp", {
   value: hostApi.ui.state.actor.numberMap.get("hp"),
   format: {
     suffix: hostApi.string.concat(
@@ -83,18 +75,17 @@ type NumberValueDeclaration = {
       hostApi.ui.state.actor.numberMap.get("maxHp"),
     ),
   },
-}
+})
 // renders: "50/100"
 ```
 
 ### Percentage with decimals
 
 ```ts
-{
-  type: "number",
+hostApi.ui.number("crit-chance", {
   value: hostApi.ui.state.actor.numberMap.get("critChance"),
   format: { decimals: 1, suffix: hostApi.string.of("%") },
-}
+})
 // renders: "12.5%"
 ```
 
@@ -103,13 +94,12 @@ type NumberValueDeclaration = {
 ```ts
 const selection = hostApi.ui.state.declare("selection")
 
-{
-  type: "number",
+hostApi.ui.number("selection-hp", {
   value: selection.asEntity
     .map(e => e.numberMap.get("hp"))
     .orElse(hostApi.number.of(0)),
   format: { suffix: hostApi.string.of(" HP") },
-}
+})
 ```
 
 ---
@@ -117,46 +107,51 @@ const selection = hostApi.ui.state.declare("selection")
 ## Example — stats panel
 
 ```ts
-hostApi.ui.registerPanel({
-  id: "stats",
-  anchor: { x: hostApi.number.of(1),   y: hostApi.number.of(0) },
-  pivot:  { x: hostApi.number.of(1),   y: hostApi.number.of(0) },
-  offset: { x: hostApi.number.of(-16), y: hostApi.number.of(16) },
-  size:   { width: hostApi.number.of(220), height: hostApi.number.of(120) },
-  child: (state, data) => ({
-    type: "box",
-    layout: {
-      columns: [
-        { min: hostApi.number.of(80) },
-        { scale: hostApi.number.of(1), align: "end" },
-      ],
-      gap: { row: hostApi.number.of(4), column: hostApi.number.of(8) },
+export default (hostApi) => {
+  hostApi.ui.panel(
+    "stats",
+    {
+      anchor: { x: number.of(1),   y: number.of(0)  },
+      pivot:  { x: number.of(1),   y: number.of(0)  },
+      offset: { x: number.of(-16), y: number.of(16) },
+      size:   { width: number.of(220), height: number.of(120) },
     },
-    children: [
-      { type: "text",   value: hostApi.string.of("HP") },
-      {
-        type: "number",
-        value: state.actor.numberMap.get("hp"),
-        format: {
-          suffix: hostApi.string.concat(
-            hostApi.string.of("/"),
-            state.actor.numberMap.get("maxHp"),
-          ),
+    (state, data) =>
+      hostApi.ui.box(
+        "stats-grid",
+        {
+          layout: {
+            columns: [
+              { min: number.of(80) },
+              { scale: number.of(1), align: "end" },
+            ],
+            gap: { row: number.of(4), column: number.of(8) },
+          },
         },
-      },
+        (state, data) => [
+          hostApi.ui.text("hp-label", { value: string.of("HP") }),
+          hostApi.ui.number("hp-value", {
+            value: state.actor.numberMap.get("hp"),
+            format: {
+              suffix: hostApi.string.concat(
+                hostApi.string.of("/"),
+                state.actor.numberMap.get("maxHp"),
+              ),
+            },
+          }),
 
-      { type: "text",   value: hostApi.string.of("Strength") },
-      { type: "number", value: state.actor.numberMap.get("str") },
+          hostApi.ui.text("str-label", { value: string.of("Strength") }),
+          hostApi.ui.number("str-value", { value: state.actor.numberMap.get("str") }),
 
-      { type: "text",   value: hostApi.string.of("Crit") },
-      {
-        type: "number",
-        value: state.actor.numberMap.get("critChance"),
-        format: { decimals: 1, suffix: hostApi.string.of("%") },
-      },
-    ],
-  }),
-})
+          hostApi.ui.text("crit-label", { value: string.of("Crit") }),
+          hostApi.ui.number("crit-value", {
+            value: state.actor.numberMap.get("critChance"),
+            format: { decimals: 1, suffix: hostApi.string.of("%") },
+          }),
+        ],
+      ),
+  )
+}
 ```
 
 ```
@@ -169,11 +164,10 @@ Crit         12.5%
 
 ## Cross-references
 
-- [`box.md`](./box.md) — `Child` union; `SizeConstraint`; `ChildSize`; conditional rendering via exclusion
+- [`box.md`](./box.md) — `Child`; `SizeConstraint`; `ChildSize`; conditional rendering via exclusion
 - [`text-value.md`](./text-value.md) — equivalent component for `TextMap` values
 - [`ui-state.md`](./ui-state.md) — UI state values used for bindings
 - [`numberExpression.md`](../expressions/numberExpression.md) — `NumberExpression` used for `value`
 - [`stringExpression.md`](../expressions/stringExpression.md) — `StringExpression` used for `prefix` and `suffix`
 - [`maybeExpression.md`](../expressions/maybeExpression.md) — narrowing slot values before use
-- [`conditionExpression.md`](../expressions/conditionExpression.md) — `ConditionExpression` for visibility
 - [`entities.md`](../data-model/entities.md) — `NumberMap` on Entity
