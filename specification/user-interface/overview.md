@@ -14,6 +14,7 @@ The UI system is a **shell layered on top of the runtime**. Modules declare the 
 - **State-bound**: components bind to per-client UI state values (actor, and module-declared values) for interactive state.
 - **Minimal primitives**: `Panel`, `Box`, `TextValue`, and `NumberValue` are the initial building blocks.
 - **Conditional by exclusion**: children are rendered by being present in the `children` array; absent means not rendered. There are no visibility flags on components.
+- **Identity-stable**: every component (`Box`, `TextValue`, `NumberValue`) carries a mandatory `id`. The runtime reconciliation algorithm uses these ids to diff successive evaluations of the expression DAG — matching same-id nodes across ticks so that only changed values are sent to the client. Ids must be unique within their parent `children` array.
 
 ---
 
