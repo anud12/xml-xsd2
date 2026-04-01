@@ -40,7 +40,6 @@ export type UIApi = {
   panel:  (id: string, options: PanelOptions, child: (state, data) => Child) => void;
   box:    (id: string, options: BoxOptions,    children: (state, data) => Child[]) => Child;
   text:   (id: string, options: TextOptions)   => Child;
-  number: (id: string, options: NumberOptions) => Child;
 }
 
 export type UiStateApi = {
@@ -204,7 +203,6 @@ export default (hostApi) => {
 - [`overview.md`](./overview.md) — UI system entry point; UI actions
 - [`panel.md`](./panel.md) — `child` callback receives `state` as first argument
 - [`text-value.md`](./text-value.md) — `value` bound to state entity text
-- [`number-value.md`](./number-value.md) — `value` bound to state entity numbers
 - [`maybeExpression.md`](../expressions/maybeExpression.md) — `MaybeExpression` used for optional state values
 - [`entities.md`](../data-model/entities.md) — `EntityExpression` — `textMap`, `numberMap`
 - [`containers.md`](../data-model/containers.md) — `ContainerExpression`

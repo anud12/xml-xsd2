@@ -90,7 +90,6 @@ export default (hostApi) => {
 ## Cross-references
 
 - [`box.md`](./box.md) — `Child`; `SizeConstraint`; `ChildSize`; conditional rendering via exclusion
-- [`number-value.md`](./number-value.md) — equivalent component for `NumberMap` values
 - [`ui-state.md`](./ui-state.md) — UI state values used for bindings
 - [`stringExpression.md`](../expressions/stringExpression.md) — `StringExpression` used for `value`
 - [`maybeExpression.md`](../expressions/maybeExpression.md) — narrowing slot values before use
