@@ -32,12 +32,37 @@ export type SizeConstraint = {
  *
  * `width` is consumed by the parent's column track allocation.
  * `height` is consumed by the parent's row sizing.
+ * `anchor` positions the component within its cell and controls growth direction.
  *
- * @see box.md — Size constraint
+ * @see box.md — Size constraint; Anchor positioning
  */
 export type ChildSize = {
   width?: SizeConstraint;
   height?: SizeConstraint;
+
+  /**
+   * Cell-local anchor point controlling component positioning and growth direction.
+   * Values 0–1 normalized per axis.
+   *
+   * - `0` (start/top): anchors to edge; content grows away (rightward/downward)
+   * - `0.5` (center): anchors to center; content grows symmetrically
+   * - `1` (end/bottom): anchors to edge; content grows away (leftward/upward)
+   *
+   * Per-axis independent. Omitted axes default to `0.5` (center).
+   *
+   * Values outside [0, 1] are clamped. Growth direction biases natural content overflow
+   * (text wrapping, intrinsic sizing). When content exceeds min/max size constraints,
+   * it clamps to limits and anchor repositions to maintain growth intent.
+   *
+   * @see panel.md — Panel anchor is different (screen-space positioning)
+   * @see box.md — Anchor positioning and growth direction semantics
+   */
+  anchor?: {
+    /** Horizontal anchor (0=left, 0.5=center, 1=right). Default: 0.5. */
+    x?: NumberExpression;
+    /** Vertical anchor (0=top, 0.5=center, 1=bottom). Default: 0.5. */
+    y?: NumberExpression;
+  };
 };
 
 /**
