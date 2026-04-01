@@ -14,8 +14,6 @@ export type {
   PanelOptions,
   BoxOptions,
   TextOptions,
-  NumberFormat,
-  NumberOptions,
   Child,
   UIApi,
   UIActionApi,

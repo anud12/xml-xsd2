@@ -357,7 +357,6 @@ hostApi.ui.box(
 
 - [`panel.md`](./panel.md) — Panel declaration; Box is the child of a Panel
 - [`text-value.md`](./text-value.md) — `ui.text` leaf component
-- [`number-value.md`](./number-value.md) — `ui.number` leaf component
 - [`overview.md`](./overview.md) — UI system entry point
 - [`ui-state.md`](./ui-state.md) — `UiStateApi` and `UiDataApi` passed to `children`
 - [`numberExpression.md`](../expressions/numberExpression.md) — `NumberExpression` for size and gap values

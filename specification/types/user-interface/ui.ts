@@ -165,51 +165,6 @@ export type TextOptions = {
    */
   value: StringExpression;
 };
-
-/**
- * Optional formatting applied by `hostApi.ui.number(options)` before display.
- *
- * @see number-value.md
- */
-export type NumberFormat = {
-  /**
-   * Number of decimal places to display. Default: 0 (integer display).
-   * Example: `decimals: 2` renders `3` as `"3.00"`.
-   */
-  decimals?: number;
-
-  /**
-   * String prepended to the formatted number.
-   * Example: `string.of("$")` renders `42` as `"$42"`.
-   */
-  prefix?: StringExpression;
-
-  /**
-   * String appended to the formatted number.
-   * Example: `string.of("%")` renders `75` as `"75%"`.
-   */
-  suffix?: StringExpression;
-};
-
-/**
- * Options for `hostApi.ui.number(options)`.
- *
- * @see number-value.md
- */
-export type NumberOptions = {
-  /** Size hint consumed by the parent layout. */
-  size?: ChildSize;
-
-  /**
-   * The number value to display.
-   * Accepts any `NumberExpression` — literals, NumberMap lookups, or computed expressions.
-   */
-  value: NumberExpression;
-
-  /** Optional formatting applied before display. */
-  format?: NumberFormat;
-};
-
 // ── Child ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -318,23 +273,6 @@ export type UIApi = {
    * @see text-value.md
    */
   text: (id: string, options: TextOptions) => Child;
-
-  /**
-   * Create a number leaf component that displays a `NumberExpression` with
-   * optional formatting.
-   *
-   * Every NumberValue requires a unique `id` within its parent's `children` array.
-   * The runtime reconciliation algorithm uses `id` to match nodes across ticks.
-   *
-   * To conditionally render, exclude the result from the parent `box` children
-   * array rather than using a visibility flag.
-   *
-   * @param id      - Unique identifier within the parent's children array.
-   * @param options - Value, optional format, and optional size hint.
-   *
-   * @see number-value.md
-   */
-  number: (id: string, options: NumberOptions) => Child;
 };
 
 // ── UIActionApi ───────────────────────────────────────────────────────────────
