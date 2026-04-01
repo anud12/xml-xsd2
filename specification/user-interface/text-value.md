@@ -1,96 +1,62 @@
 # TextValue
 
-A `TextValue` is a **leaf component** that displays a `StringExpression` — typically bound to an entity's `TextMap` value via UI state. It has no children.
+A `TextValue` displays a `StringExpression` (typically from entity `TextMap` via UI state). Leaf component with no children.
 
-Created with `hostApi.ui.text(id, options)`. Every `TextValue` requires a unique `id` — the reconciliation algorithm uses it to match nodes across ticks.
+```ts
+hostApi.ui.text(id, options)
+```
+
+See [`concepts.md`](./concepts.md) for shared concepts: **component identity** and **size constraints**.
 
 ---
 
-## Options shape
+## Type
 
 ```ts
 type TextOptions = {
-  /**
-   * Size hint consumed by the parent layout.
-   */
-  size?: ChildSize;
-
-  /**
-   * The string value to display.
-   * Accepts any StringExpression — literals, entity TextMap lookups,
-   * UI state bindings, or composed expressions.
-   */
-  value: StringExpression;
-}
+  value: StringExpression;  // String to display (literals, entity lookups, expressions)
+  size?: ChildSize;         // Optional size hint for parent layout
+};
 ```
 
 ---
 
-## Usage patterns
+## Examples
 
-### Literal string
-
+**Literal text:**
 ```ts
-hostApi.ui.text("health-label", { value: hostApi.string.of("Health") })
+hostApi.ui.text("label", { value: string.of("Health") })
 ```
 
-### Actor TextMap binding
-
+**Entity TextMap binding:**
 ```ts
-hostApi.ui.text("actor-name", { value: hostApi.ui.state.actor.textMap.get("name") })
+hostApi.ui.text("name", { value: state.actor.textMap.get("name") })
 ```
 
-### Declared value binding (with fallback)
-
+**State value with fallback:**
 ```ts
 const selection = hostApi.ui.state.declare("selection")
-
-hostApi.ui.text("selection-name", {
+hostApi.ui.text("selected-name", {
   value: selection.asEntity
     .map(e => e.textMap.get("name"))
-    .orElse(hostApi.string.of("—")),
+    .orElse(string.of("—"))
 })
 ```
 
----
-
-## Example — name plate panel
-
+**In a label|value grid:**
 ```ts
-export default (hostApi) => {
-  const selection = hostApi.ui.state.declare("selection")
-
-  hostApi.ui.panel(
-    "nameplate",
-    {
-      anchor:  { x: number.of(0.5), y: number.of(1) },
-      pivot:   { x: number.of(0.5), y: number.of(1) },
-      offset:  { x: number.of(0),   y: number.of(-16) },
-      size:    { width: number.of(200), height: number.of(40) },
-      visible: selection.isPresent,
-    },
-    (state, data) =>
-      hostApi.ui.box(
-        "nameplate-content",
-        { layout: { columns: [{ scale: number.of(1) }] } },
-        (state, data) => [
-          hostApi.ui.text("name-text", {
-            value: state.value("selection").asEntity
-              .map(e => e.textMap.get("name"))
-              .orElse(hostApi.string.of("—")),
-          }),
-        ],
-      ),
-  )
-}
+hostApi.ui.box("grid", {
+  layout: { columns: [{ min: 80 }, { scale: 1 }] }
+}, (state, data) => [
+  text("actor-name-label", { value: string.of("Name") }),
+  text("actor-name", { value: state.actor.textMap.get("name") }),
+])
 ```
 
 ---
 
 ## Cross-references
 
-- [`box.md`](./box.md) — `Child`; `SizeConstraint`; `ChildSize`; conditional rendering via exclusion
-- [`ui-state.md`](./ui-state.md) — UI state values used for bindings
-- [`stringExpression.md`](../expressions/stringExpression.md) — `StringExpression` used for `value`
-- [`maybeExpression.md`](../expressions/maybeExpression.md) — narrowing slot values before use
-- [`entities.md`](../data-model/entities.md) — `TextMap` on Entity
+- [`concepts.md`](./concepts.md) — Identity, sizing, state binding
+- [`box.md`](./box.md) — Component tree structure
+- [`stringExpression.md`](../expressions/stringExpression.md) — `StringExpression` values
