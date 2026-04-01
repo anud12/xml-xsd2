@@ -79,6 +79,72 @@ type ChildSize = {
 
 ---
 
+## Anchor positioning
+
+Components can anchor themselves within their grid cell, controlling both positioning and content growth direction. Anchor is specified as part of `ChildSize`:
+
+```ts
+type ChildSize = {
+  width?:  SizeConstraint;
+  height?: SizeConstraint;
+  
+  anchor?: {
+    x?: NumberExpression;  // 0 = left, 0.5 = center (default), 1 = right
+    y?: NumberExpression;  // 0 = top, 0.5 = center (default), 1 = bottom
+  };
+}
+```
+
+### Semantics
+
+The anchor point controls two behaviors:
+
+1. **Positioning** — where within the cell the component references itself
+2. **Growth direction** — the direction natural content expansion flows from that anchor
+
+| Anchor | Positioning | Growth Direction | Visual |
+|--------|-------------|------------------|--------|
+| 0.0 | Left/top edge | Rightward/downward | `\|AA---|` |
+| 0.5 | Center | Symmetric | `\|--AA--|` |
+| 1.0 | Right/bottom edge | Leftward/upward | `\|---AA\|` |
+
+**Key behaviors:**
+- Per-axis independent: `x` and `y` work separately. Asymmetric anchors are allowed.
+- Default (omitted): `{ x: 0.5, y: 0.5 }` — content centers with symmetric growth.
+- Values outside [0, 1] are clamped.
+- When natural content exceeds min/max size constraints, it clamps to limits and anchor repositions to maintain growth direction intent.
+
+### Examples
+
+**Left-aligned label in fixed cell:**
+```ts
+hostApi.ui.text("label", {
+  value: string.of("HP"),
+  size: { anchor: { x: number.of(0) } }
+})
+// Text anchors left; wraps rightward if truncated
+```
+
+**Right-aligned value in fixed cell:**
+```ts
+hostApi.ui.number("hp-value", {
+  value: state.actor.numberMap.get("hp"),
+  size: { anchor: { x: number.of(1) } }
+})
+// Number anchors right; grows leftward if space needs to expand
+```
+
+**Centered content, top-anchored (grows downward):**
+```ts
+hostApi.ui.box("title", {
+  layout: { columns: [{ scale: 1 }] },
+  size: { anchor: { x: number.of(0.5), y: number.of(0) } }
+}, (state, data) => [ /* ... */ ])
+// Box centers horizontally, anchors top; children overflow downward
+```
+
+---
+
 ## Layout
 
 A Box with a `layout` option acts as a **grid container** for its children.
