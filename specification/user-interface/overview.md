@@ -22,7 +22,8 @@ The UI system is a **shell layered on top of the runtime**. Modules declare the 
 
 | Document | Description |
 |---|---|
-| [`panel.md`](./panel.md) | A positioned, sized UI window anchored to the screen. Top-level; never nested. Declares default positioning and a `render` function. |
-| [`box.md`](./box.md) | A layout block inside a panel. Grid-based; forms the content tree. Defines `Child`, `SizeConstraint`, `TrackDefinition`. |
+| [`concepts.md`](./concepts.md) | Shared concepts: component identity, size constraints, anchor positioning, conditional rendering, state binding. |
+| [`panel.md`](./panel.md) | Top-level positioned UI window. Defines anchor/pivot/offset positioning, default state, child callback. |
+| [`box.md`](./box.md) | Layout block using grid model. Defines columns, auto-placement, track alignment, common patterns. |
 | [`text-value.md`](./text-value.md) | Leaf component. Displays a `StringExpression` — typically a `TextMap` value. |
-| [`ui-state.md`](./ui-state.md) | Per-client UI state. `actor` (built-in) and module-declared values (`declare`/`value`). Drives interactive bindings. |
+| [`ui-state.md`](./ui-state.md) | Per-client UI state. `actor` (built-in) and module-declared values. Drives interactive bindings. |

@@ -1,208 +1,88 @@
 # UI State
 
-The UI state is a **per-client, UI-only API** that modules use to bind UI components to named values holding the current client's interactive state. It is scoped under `hostApi.ui.state` and is not available outside UI declarations.
+Per-client, UI-only API for interactive state. Modules use this to bind UI components to per-client values. Scoped under `hostApi.ui.state`; not available outside UI declarations.
 
-UI state values are evaluated **per-client** at render time — each connected client maintains its own independent values. They are never part of shared world state.
+State values are evaluated per-client at render time — each client maintains independent state.
+
+See [`concepts.md`](./concepts.md) for shared concepts: **state binding** patterns.
 
 ---
 
-## Built-in value: `actor`
+## Built-in Value
 
-The only fixed value. Resolves to the entity owned by this client (the authenticated actor). Always present — never absent, never declarable.
+**`actor`** — The entity owned by the authenticated client. Always present; never declarable.
 
 ```ts
 hostApi.ui.state.actor   // → EntityExpression
 ```
 
----
-
-## Declared values
-
-All other values are **module-declared**. Modules call `declare` at load time to register a named value and receive an expression handle. Any number of values may be declared.
-
+Use in bindings directly:
 ```ts
-const selection  = hostApi.ui.state.declare("selection")
-const hover      = hostApi.ui.state.declare("hover")
-const inspecting = hostApi.ui.state.declare("inspecting")
+hostApi.ui.text("name", { value: hostApi.ui.state.actor.textMap.get("name") })
 ```
 
-Each value holds either an `EntityExpression`, a `ContainerExpression`, or is absent. Use the narrowing accessors to work with the current value.
+---
+
+## Declared Values
+
+Module-declared values are named slots that hold `EntityExpression`, `ContainerExpression`, or are absent. Declare at load time:
+
+```ts
+const selection = hostApi.ui.state.declare("selection")
+const hover = hostApi.ui.state.declare("hover")
+```
+
+Use narrowing accessors to work safely with the value:
+```ts
+selection.asEntity           // Resolves to EntityExpression or None
+selection.asContainer        // Resolves to ContainerExpression or None
+selection.isPresent          // Resolves to true/false
+```
+
+Binding example:
+```ts
+hostApi.ui.text("selection-name", {
+  value: selection.asEntity
+    .map(e => e.textMap.get("name"))
+    .orElse(string.of("No selection"))
+})
+```
+
+---
+
+## UI Actions
+
+Modules can register UI-only actions that mutate per-client state:
+
+```ts
+hostApi.ui.action.register({
+  name: "on-select",
+  effect: { type: "set-value", value: "selection" }
+})
+```
+
+State mutations are local to the client and are never broadcast to server or other clients.
 
 ---
 
 ## API
 
-```ts
-export type UIApi = {
-  state:  UiStateApi;
-  action: UIActionApi;
-
-  panel:  (id: string, options: PanelOptions, child: (state, data) => Child) => void;
-  box:    (id: string, options: BoxOptions,    children: (state, data) => Child[]) => Child;
-  text:   (id: string, options: TextOptions)   => Child;
-}
-
-export type UiStateApi = {
-  /**
-   * The entity owned by this client (authenticated actor).
-   * Always present — no narrowing needed.
-   */
-  actor: EntityExpression;
-
-  /**
-   * Declares a named UI state value at module load time.
-   * Returns an expression handle usable in UI bindings.
-   * Only one module should call declare for a given name;
-   * others should use value() for cross-module access.
-   */
-  declare: (name: string) => UiValueExpression;
-
-  /**
-   * References a previously declared value by name.
-   * Intended for cross-module access where another module owns the declaration.
-   */
-  value: (name: string) => UiValueExpression;
-}
-
-type UiValueExpression = {
-  /**
-   * Narrows to EntityExpression.
-   * Resolves to None if the value holds a container or is absent.
-   */
-  asEntity: MaybeExpression<EntityExpression>;
-
-  /**
-   * Narrows to ContainerExpression.
-   * Resolves to None if the value holds an entity or is absent.
-   */
-  asContainer: MaybeExpression<ContainerExpression>;
-
-  /**
-   * Evaluates to true if the value is currently populated (entity or container).
-   */
-  isPresent: ConditionExpression;
-}
-```
-
----
-
-## Updating values — UI actions
-
-Values are updated by UI actions. A `set-value` action binds a trigger (e.g. a click on a component) to a named value:
+**UiStateApi** — Available in UI callbacks:
 
 ```ts
-hostApi.ui.action.register({
-  name: "selectEntity",
-  effect: { type: "set-value", value: "selection" },
-})
-
-hostApi.ui.action.register({
-  name: "clearSelection",
-  effect: { type: "clear-value", value: "selection" },
-})
+hostApi.ui.state.actor                    // EntityExpression for authenticated client
+hostApi.ui.state.declare(name)            // Create/retrieve a named state value
+hostApi.ui.state.value(name)              // Reference a value declared by another module
 ```
 
-When the action is triggered, the runtime places the interaction target into the named value (for `set-value`) or clears it (for `clear-value`).
-
----
-
-## Usage patterns
-
-### Actor — always an entity
-
-```ts
-// Actor's name
-hostApi.ui.state.actor.textMap.get("name")     // → StringExpression
-
-// Actor's HP
-hostApi.ui.state.actor.numberMap.get("hp")     // → NumberExpression
-```
-
-### Declared value — narrow before use
-
-```ts
-const selection = hostApi.ui.state.declare("selection")
-
-// Selected entity's name (None if value holds a container or is absent)
-selection.asEntity.map(e => e.textMap.get("name"))  // → MaybeExpression<StringExpression>
-
-// Selected container's label
-selection.asContainer.map(c => c.textMap.get("label"))  // → MaybeExpression<StringExpression>
-
-// Panel visible only when value is populated
-hostApi.ui.panel("inspector", {
-  // ...
-  visible: selection.isPresent,
-}, (state, data) => hostApi.ui.box("inspector-content", { /* ... */ }, (state, data) => [/* ... */]))
-```
-
-### Cross-module value reference
-
-```ts
-// Module B references a value declared by Module A
-const selection = hostApi.ui.state.value("selection")
-```
-
----
-
-## Example — target frame panel
-
-```ts
-export default (hostApi) => {
-  const target = hostApi.ui.state.declare("target")
-
-  hostApi.ui.action.register({
-    name: "setTarget",
-    effect: { type: "set-value", value: "target" },
-  })
-
-  hostApi.ui.action.register({
-    name: "clearTarget",
-    effect: { type: "clear-value", value: "target" },
-  })
-
-  hostApi.ui.panel(
-    "target-frame",
-    {
-      anchor:  { x: number.of(0.5), y: number.of(0) },
-      pivot:   { x: number.of(0.5), y: number.of(0) },
-      offset:  { x: number.of(0),   y: number.of(8) },
-      size:    { width: number.of(200), height: number.of(40) },
-      visible: target.isPresent,
-    },
-    (state, data) =>
-      hostApi.ui.box(
-        "target-stats",
-        {
-          layout: {
-            columns: [
-              { min: number.of(80) },
-              { scale: number.of(1), align: "end" },
-            ],
-            gap: { row: number.of(4), column: number.of(8) },
-          },
-        },
-        (state, data) => [
-          hostApi.ui.text("hp-label", { value: string.of("HP") }),
-          hostApi.ui.number("hp-value", {
-            value: state.value("target")
-              .asEntity
-              .map(e => e.numberMap.get("hp"))
-              .orElse(number.of(0)),
-          }),
-        ],
-      ),
-  )
-}
-```
+See `specification/types/user-interface/ui-state.ts` for full type definitions.
 
 ---
 
 ## Cross-references
 
-- [`overview.md`](./overview.md) — UI system entry point; UI actions
-- [`panel.md`](./panel.md) — `child` callback receives `state` as first argument
-- [`text-value.md`](./text-value.md) — `value` bound to state entity text
-- [`maybeExpression.md`](../expressions/maybeExpression.md) — `MaybeExpression` used for optional state values
-- [`entities.md`](../data-model/entities.md) — `EntityExpression` — `textMap`, `numberMap`
-- [`containers.md`](../data-model/containers.md) — `ContainerExpression`
+- [`concepts.md`](./concepts.md) — State binding patterns
+- [`panel.md`](./panel.md) — Panel callback receives state proxy
+- [`box.md`](./box.md) — Box children callback receives state proxy
+- [`text-value.md`](./text-value.md) — Example bindings to state values
+- [`entities.md`](../data-model/entities.md) — Entity data model with `TextMap`, `NumberMap`
