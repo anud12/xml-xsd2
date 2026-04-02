@@ -12,25 +12,6 @@ See [`concepts.md`](./concepts.md) for shared concepts: **component identity**, 
 
 ---
 
-## Styling
-
-Boxes can declare optional background and border textures:
-
-- **`background`** — Texture used as the box background. Fills entire box bounds (respects stretching mode).
-- **`border`** — Texture used as the box border (implementation-specific rendering).
-
-Both are optional. If omitted, no texture is rendered.
-
-Textures are resolved by name at render time. If a texture name is not found, the client uses a platform default. See [`rendering.md`](./rendering.md) for texture resolution details.
-
----
-
-## Overflow
-
-When content exceeds a box's grid bounds, it is **clipped silently**. There is no scrolling and no overflow indicators.
-
----
-
 ## Grid Layout
 
 All layout is expressed as a grid defined by `columns` track definitions. Children auto-place row-first by default.
@@ -60,12 +41,14 @@ type TrackDefinition = SizeConstraint & {
 
 ```ts
 type BoxOptions = {
-  size?: ChildSize;       // Size hint for parent layout
-  layout?: GridLayout;    // Grid layout config; omit for non-layout box
-  background?: TextureResource;  // Optional background texture
-  border?: TextureResource;      // Optional border texture
+  size?: ChildSize;              // Size hint for parent layout
+  layout?: GridLayout;           // Grid layout config; omit for non-layout box
+  background?: TextureResource;  // Optional background texture (see rendering.md)
+  border?: TextureResource;      // Optional border texture (see rendering.md)
 };
 ```
+
+Content exceeding grid bounds is **clipped silently** (no scrolling, no overflow indicators). See [`rendering.md`](./rendering.md).
 
 ---
 
@@ -75,7 +58,6 @@ type BoxOptions = {
 ```ts
 hostApi.ui.box("row", {
   layout: { columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }], gap: { column: 8 } },
-  background: { name: string.of("row-bg"), stretch: "fill" },
 }, (state, data) => [/* A */, /* B */, /* C */])
 ```
 
@@ -88,18 +70,15 @@ hostApi.ui.box("stats", {
   },
   background: { name: string.of("stats-bg"), stretch: "fit" },
 }, (state, data) => [
-  text("Health"), text("100/100"),
-  text("Mana"), text("50/100"),
+  text("hp-label", { value: string.of("Health") }),
+  text("hp-value", { value: state.actor.textMap.get("hp") }),
 ])
 ```
 
 **Inventory grid (4 columns):**
 ```ts
 hostApi.ui.box("inv", {
-  layout: {
-    columns: Array(4).fill({ min: 48 }),
-    gap: { row: 4, column: 4 }
-  }
+  layout: { columns: Array(4).fill({ min: 48 }), gap: { row: 4, column: 4 } }
 }, (state, data) => [/* 8 slots */])
 ```
 
