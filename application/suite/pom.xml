@@ -58,6 +58,44 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>1.12.1</version>
+                <executions>
+                    <execution>
+                        <id>install node and npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <nodeVersion>v18.17.1</nodeVersion>
+                            <npmVersion>9.6.7</npmVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm install typescript</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <arguments>install typescript@5 --no-audit --no-fund --no-progress</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>tsc-check-js</id>
+                        <goals>
+                            <goal>npx</goal>
+                        </goals>
+                        <phase>process-test-resources</phase>
+                        <configuration>
+                            <arguments>tsc --noEmit --project tsconfig.json</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
