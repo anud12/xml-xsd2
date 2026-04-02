@@ -12,6 +12,25 @@ See [`concepts.md`](./concepts.md) for shared concepts: **component identity**, 
 
 ---
 
+## Styling
+
+Boxes can declare optional background and border textures:
+
+- **`background`** — Texture used as the box background. Fills entire box bounds (respects stretching mode).
+- **`border`** — Texture used as the box border (implementation-specific rendering).
+
+Both are optional. If omitted, no texture is rendered.
+
+Textures are resolved by name at render time. If a texture name is not found, the client uses a platform default. See [`rendering.md`](./rendering.md) for texture resolution details.
+
+---
+
+## Overflow
+
+When content exceeds a box's grid bounds, it is **clipped silently**. There is no scrolling and no overflow indicators.
+
+---
+
 ## Grid Layout
 
 All layout is expressed as a grid defined by `columns` track definitions. Children auto-place row-first by default.
@@ -41,8 +60,10 @@ type TrackDefinition = SizeConstraint & {
 
 ```ts
 type BoxOptions = {
-  size?: ChildSize;     // Size hint for parent layout
-  layout?: GridLayout;  // Grid layout config; omit for non-layout box
+  size?: ChildSize;       // Size hint for parent layout
+  layout?: GridLayout;    // Grid layout config; omit for non-layout box
+  background?: TextureResource;  // Optional background texture
+  border?: TextureResource;      // Optional border texture
 };
 ```
 
@@ -53,7 +74,8 @@ type BoxOptions = {
 **Flex row (3 equal columns):**
 ```ts
 hostApi.ui.box("row", {
-  layout: { columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }], gap: { column: 8 } }
+  layout: { columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }], gap: { column: 8 } },
+  background: { name: string.of("row-bg"), stretch: "fill" },
 }, (state, data) => [/* A */, /* B */, /* C */])
 ```
 
@@ -63,7 +85,8 @@ hostApi.ui.box("stats", {
   layout: {
     columns: [{ min: 80 }, { scale: 1, align: "end" }],
     gap: { row: 4, column: 8 }
-  }
+  },
+  background: { name: string.of("stats-bg"), stretch: "fit" },
 }, (state, data) => [
   text("Health"), text("100/100"),
   text("Mana"), text("50/100"),
@@ -99,4 +122,5 @@ hostApi.ui.box("status", {
 - [`concepts.md`](./concepts.md) — Identity, size constraints, anchor, conditional rendering, state binding
 - [`panel.md`](./panel.md) — Box is the child content of a Panel
 - [`text-value.md`](./text-value.md) — Leaf component for text content
+- [`rendering.md`](./rendering.md) — Overflow, clipping, resource resolution
 - [`ui-state.md`](./ui-state.md) — State and data bindings

@@ -7,6 +7,9 @@
 export type { UiValueExpression, UiStateApi, UiDataApi, UiValueEffect } from './ui-state';
 
 export type {
+  TextureStretch,
+  TextureResource,
+  FontResource,
   SizeConstraint,
   ChildSize,
   TrackDefinition,

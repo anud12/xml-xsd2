@@ -3,6 +3,51 @@ import type { StringExpression } from '../primitives/stringExpression';
 import type { ConditionExpression } from '../primitives/conditionExpression';
 import type { UiStateApi, UiDataApi } from './ui-state';
 
+// ── Rendering primitives ──────────────────────────────────────────────────────
+
+/**
+ * Texture stretching mode controlling how a texture fills a component.
+ *
+ * - `"fill"`: stretch/squash texture to exactly fit component bounds (ignores aspect ratio)
+ * - `"fit"`: scale texture to fit within bounds while preserving aspect ratio
+ * - `"tile"`: repeat texture across component bounds
+ * - `"center"`: place texture at center without scaling (clip if texture exceeds bounds)
+ *
+ * @see rendering.md — Texture stretching
+ */
+export type TextureStretch = 'fill' | 'fit' | 'tile' | 'center';
+
+/**
+ * Named reference to a texture asset resolved by client at render time.
+ * Missing textures fall back to platform default; a warning is logged.
+ *
+ * @see rendering.md — Resource resolution
+ */
+export type TextureResource = {
+  /** Texture name. Can be a StringExpression for dynamic resolution. */
+  name: StringExpression;
+
+  /**
+   * How the texture fills the component.
+   * Default: `"fill"` (stretch to fit).
+   */
+  stretch?: TextureStretch;
+};
+
+/**
+ * Named reference to a font asset resolved by client at render time.
+ * Missing fonts fall back to platform default; a warning is logged.
+ *
+ * Font size, color, weight, and style are determined by the font asset itself
+ * (not configurable per-component). The asset name must resolve to a complete font spec.
+ *
+ * @see rendering.md — Resource resolution
+ */
+export type FontResource = {
+  /** Font name (e.g., "body-font", "title-font"). Can be a StringExpression for dynamic resolution. */
+  name: StringExpression;
+};
+
 // ── Layout primitives ─────────────────────────────────────────────────────────
 
 /**
@@ -125,6 +170,7 @@ export type GridLayout = {
  * per-client automatically.
  *
  * @see panel.md
+ * @see rendering.md — Resource resolution
  */
 export type PanelOptions = {
   /**
@@ -153,12 +199,19 @@ export type PanelOptions = {
    * rendered. Default: true.
    */
   visible?: ConditionExpression;
+
+  /** Optional background texture for the panel. */
+  background?: TextureResource;
+
+  /** Optional border texture for the panel. */
+  border?: TextureResource;
 };
 
 /**
  * Options for `hostApi.ui.box(options, children)`.
  *
  * @see box.md
+ * @see rendering.md — Resource resolution
  */
 export type BoxOptions = {
   /**
@@ -173,12 +226,19 @@ export type BoxOptions = {
    * When absent, this box is a leaf node.
    */
   layout?: GridLayout;
+
+  /** Optional background texture for the box. */
+  background?: TextureResource;
+
+  /** Optional border texture for the box. */
+  border?: TextureResource;
 };
 
 /**
  * Options for `hostApi.ui.text(options)`.
  *
  * @see text-value.md
+ * @see rendering.md — Resource resolution
  */
 export type TextOptions = {
   /** Size hint consumed by the parent layout. */
@@ -189,6 +249,9 @@ export type TextOptions = {
    * Accepts any `StringExpression` — literals, TextMap lookups, or composed expressions.
    */
   value: StringExpression;
+
+  /** Optional font for rendering the text. If omitted, uses platform default. */
+  font?: FontResource;
 };
 // ── Child ─────────────────────────────────────────────────────────────────────
 
