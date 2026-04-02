@@ -9,4 +9,8 @@
     "moduleResolution": "Node",
     "typeRoots": ["./types"]
   },
+  "include": [
+    "src/test/resources/**/*.js",
+    "types/**/*.d.ts"
+  ]
 }
