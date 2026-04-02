@@ -10,12 +10,23 @@ See [`concepts.md`](./concepts.md) for shared concepts: **component identity** a
 
 ---
 
+## Styling & Overflow
+
+TextValue can declare an optional font for rendering:
+
+- **`font`** — Font name resolved by client at render time. If omitted, uses platform default.
+
+If text exceeds the component's `width.max` constraint, it is **truncated silently** (no ellipsis marker). Text is vertically centered within the component's height.
+
+---
+
 ## Type
 
 ```ts
 type TextOptions = {
-  value: StringExpression;  // String to display (literals, entity lookups, expressions)
-  size?: ChildSize;         // Optional size hint for parent layout
+  value: StringExpression;       // String to display (literals, entity lookups, expressions)
+  size?: ChildSize;              // Optional size hint for parent layout
+  font?: FontResource;           // Optional font; defaults to platform default if omitted
 };
 ```
 
@@ -28,9 +39,12 @@ type TextOptions = {
 hostApi.ui.text("label", { value: string.of("Health") })
 ```
 
-**Entity TextMap binding:**
+**Entity TextMap binding with font:**
 ```ts
-hostApi.ui.text("name", { value: state.actor.textMap.get("name") })
+hostApi.ui.text("name", {
+  value: state.actor.textMap.get("name"),
+  font: { name: string.of("body-font") }
+})
 ```
 
 **State value with fallback:**
@@ -39,7 +53,8 @@ const selection = hostApi.ui.state.declare("selection")
 hostApi.ui.text("selected-name", {
   value: selection.asEntity
     .map(e => e.textMap.get("name"))
-    .orElse(string.of("—"))
+    .orElse(string.of("—")),
+  font: { name: string.of("title-font") }
 })
 ```
 
@@ -48,8 +63,14 @@ hostApi.ui.text("selected-name", {
 hostApi.ui.box("grid", {
   layout: { columns: [{ min: 80 }, { scale: 1 }] }
 }, (state, data) => [
-  text("actor-name-label", { value: string.of("Name") }),
-  text("actor-name", { value: state.actor.textMap.get("name") }),
+  text("actor-name-label", {
+    value: string.of("Name"),
+    font: { name: string.of("label-font") }
+  }),
+  text("actor-name", {
+    value: state.actor.textMap.get("name"),
+    font: { name: string.of("body-font") }
+  }),
 ])
 ```
 
@@ -59,4 +80,5 @@ hostApi.ui.box("grid", {
 
 - [`concepts.md`](./concepts.md) — Identity, sizing, state binding
 - [`box.md`](./box.md) — Component tree structure
+- [`rendering.md`](./rendering.md) — Resource resolution, overflow, truncation
 - [`stringExpression.md`](../expressions/stringExpression.md) — `StringExpression` values

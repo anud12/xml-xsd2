@@ -23,12 +23,35 @@ offset: { x: number.of(-16), y: number.of(16) }
 
 ---
 
+## Styling
+
+Panels can declare optional background and border textures:
+
+- **`background`** — Texture used as the panel background. Fills entire panel bounds (respects stretching mode).
+- **`border`** — Texture used as the panel border (implementation-specific rendering).
+
+Both are optional. If omitted, no texture is rendered.
+
+Textures are resolved by name at render time. If a texture name is not found, the client uses a platform default. See [`rendering.md`](./rendering.md) for texture resolution details.
+
+---
+
 ## Properties
 
 - **`size`** — Panel dimensions in logical units: `{ width: NumberExpression; height: NumberExpression }`
 - **`scale`** — Optional per-panel scale multiplier (default 1.0). Multiplies global UI scale.
 - **`visible`** — Optional condition; panel hidden when `false` (default: `true`).
+- **`background`** — Optional background texture.
+- **`border`** — Optional border texture.
 - **Default state** — `anchor`, `pivot`, `offset`, `size`, `scale` define initial render. User can reposition/resize at runtime; overrides stored per-client.
+
+---
+
+## Focus & Layering
+
+Panels respond to user clicks **client-side only**. When a user clicks a panel, the client raises it to the front of the rendering stack. This is purely visual; the runtime does not observe clicks.
+
+Initial panel order is determined by **declaration order**: panels declared first render at the back; panels declared last render at the front.
 
 ---
 
@@ -52,6 +75,8 @@ type PanelOptions = {
   size: { width: NumberExpression; height: NumberExpression };
   scale?: NumberExpression;           // default: 1.0
   visible?: ConditionExpression;      // default: true
+  background?: TextureResource;       // optional
+  border?: TextureResource;           // optional
 };
 ```
 
@@ -59,13 +84,14 @@ type PanelOptions = {
 
 ## Examples
 
-**Top-left HUD, 16-unit inset:**
+**Top-left HUD, 16-unit inset, with background:**
 ```ts
 hostApi.ui.panel("hud", {
   anchor: { x: number.of(0), y: number.of(0) },
   pivot:  { x: number.of(0), y: number.of(0) },
   offset: { x: number.of(16), y: number.of(16) },
   size:   { width: number.of(200), height: number.of(120) },
+  background: { name: string.of("ui-panel-bg"), stretch: "fill" },
 }, (state, data) => hostApi.ui.box("content", { /* ... */ }, (state, data) => [/* ... */]));
 ```
 
@@ -78,6 +104,8 @@ hostApi.ui.panel("modal", {
   offset: { x: number.of(0), y: number.of(0) },
   size:   { width: number.of(400), height: number.of(300) },
   visible: inspecting.isPresent,
+  background: { name: string.of("modal-bg"), stretch: "fit" },
+  border: { name: string.of("modal-border"), stretch: "fill" },
 }, (state, data) => hostApi.ui.box("modal-content", { /* ... */ }, (state, data) => [/* ... */]));
 ```
 
@@ -89,6 +117,7 @@ hostApi.ui.panel("minimap", {
   offset: { x: number.of(-16), y: number.of(-16) },
   size:   { width: number.of(150), height: number.of(150) },
   scale:  number.of(1.25),
+  background: { name: string.of("minimap-bg"), stretch: "center" },
 }, (state, data) => hostApi.ui.box("minimap-content", { /* ... */ }, (state, data) => [/* ... */]));
 ```
 
@@ -98,6 +127,7 @@ hostApi.ui.panel("minimap", {
 
 - [`box.md`](./box.md) — Box; the root `Child` returned by the panel callback
 - [`ui-state.md`](./ui-state.md) — `UiStateApi` passed as `state` to the callback
+- [`rendering.md`](./rendering.md) — Resource resolution, texture stretching, z-ordering, focus tracking
 - [`numberExpression.md`](../expressions/numberExpression.md) — `NumberExpression` used for anchor, pivot, offset, size and scale
 - [`conditionExpression.md`](../expressions/conditionExpression.md) — `ConditionExpression` used for visibility
 - [`runtime.md`](../runtime/runtime.md) — delta streaming; panels are evaluated and diffed each tick

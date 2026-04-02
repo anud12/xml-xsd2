@@ -27,3 +27,4 @@ The UI system is a **shell layered on top of the runtime**. Modules declare the 
 | [`box.md`](./box.md) | Layout block using grid model. Defines columns, auto-placement, track alignment, common patterns. |
 | [`text-value.md`](./text-value.md) | Leaf component. Displays a `StringExpression` — typically a `TextMap` value. |
 | [`ui-state.md`](./ui-state.md) | Per-client UI state. `actor` (built-in) and module-declared values. Drives interactive bindings. |
+| [`rendering.md`](./rendering.md) | Rendering model: coordinate system, z-ordering, resource resolution, overflow semantics, evaluation tick. |
