@@ -10,25 +10,17 @@ See [`concepts.md`](./concepts.md) for shared concepts: **component identity** a
 
 ---
 
-## Styling & Overflow
-
-TextValue can declare an optional font for rendering:
-
-- **`font`** — Font name resolved by client at render time. If omitted, uses platform default.
-
-If text exceeds the component's `width.max` constraint, it is **truncated silently** (no ellipsis marker). Text is vertically centered within the component's height.
-
----
-
 ## Type
 
 ```ts
 type TextOptions = {
-  value: StringExpression;       // String to display (literals, entity lookups, expressions)
-  size?: ChildSize;              // Optional size hint for parent layout
-  font?: FontResource;           // Optional font; defaults to platform default if omitted
+  value: StringExpression;  // String to display (literals, entity lookups, expressions)
+  size?: ChildSize;         // Optional size hint for parent layout
+  font?: FontResource;      // Optional font; platform default if omitted (see rendering.md)
 };
 ```
+
+Text exceeding `width.max` is **truncated silently** (no ellipsis). Text is vertically centered within the component's height.
 
 ---
 
@@ -56,22 +48,6 @@ hostApi.ui.text("selected-name", {
     .orElse(string.of("—")),
   font: { name: string.of("title-font") }
 })
-```
-
-**In a label|value grid:**
-```ts
-hostApi.ui.box("grid", {
-  layout: { columns: [{ min: 80 }, { scale: 1 }] }
-}, (state, data) => [
-  text("actor-name-label", {
-    value: string.of("Name"),
-    font: { name: string.of("label-font") }
-  }),
-  text("actor-name", {
-    value: state.actor.textMap.get("name"),
-    font: { name: string.of("body-font") }
-  }),
-])
 ```
 
 ---
