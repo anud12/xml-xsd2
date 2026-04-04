@@ -46,6 +46,8 @@ pub fn create_startup_sqlite_bytes() -> Vec<u8> {
             "PRAGMA page_size = 512; \
              CREATE VIEW IF NOT EXISTS module AS \
                SELECT '' AS id, '' AS name, '' AS version WHERE 0; \
+             CREATE VIEW IF NOT EXISTS events AS \
+               SELECT '' AS name WHERE 0; \
              VACUUM;",
         )
         .expect("init startup db");
