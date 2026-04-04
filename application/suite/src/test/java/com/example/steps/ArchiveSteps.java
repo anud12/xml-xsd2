@@ -150,8 +150,8 @@ public class ArchiveSteps {
     }
 
 
-    @Then("assert output table {string} columns matches {string}")
-    public void assertOutputTableColumnsMatches(String tableName, String csvFile) throws Exception {
+    @Then("assert exported state output table {string} includes regexes from {string}")
+    public void exportedTableShouldIncludeRegexes(String tableName, String csvFile) throws Exception {
         StateAssertions.assertOutputTableColumnsMatchesCsv(state, tableName, csvFile);
     }
 }
