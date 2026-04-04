@@ -28,31 +28,15 @@ public class ArchiveSteps {
         ArchiveSetup.addFileToArchive(state, fileName);
     }
 
-
-
-    @When("I run the application in debug mode using archive")
-    public void i_run_the_application_in_debug_mode_using_archive() throws IOException, InterruptedException {
-        ArchiveRunner.runApplicationDebugThreadedWithArchive(state);
-    }
-
     @When("I run the application in debug mode")
     public void i_run_the_application_in_debug_mode() throws IOException, InterruptedException {
         ArchiveRunner.runApplicationDebugThreadedWithArchive(state);
     }
 
-    @Then("assert output table {string} must be {string} csv")
-    public void outputTableMustBeCsv(String tableName, String csvFile) throws Exception {
-        StateAssertions.assertOutputTableCsv(state, tableName, csvFile);
-    }
 
     @And("assert log line containing {string} regex")
     public void hasLogLineContaining(String arg0) {
         ArchiveAssertions.assertLogLineContainsRegex(state, arg0);
-    }
-
-    @And("wait until log line contains {string} regex")
-    public void waitUntilLogLineContainsRegex(String regex) throws InterruptedException {
-        ArchiveAssertions.waitUntilLogLineContainsRegex(state, regex);
     }
 
     @Then("DEBUG Print stdout after {int} ms")
