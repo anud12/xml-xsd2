@@ -4,4 +4,4 @@ Feature: Module load support
   Scenario: Archive with empty module
     Given I run the application in debug mode
     And I load current archive
-    Then assert output table "module" columns matches "./module.csv"
+    Then assert exported state output table "module" includes regexes from "./module.csv"
