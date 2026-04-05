@@ -2,6 +2,7 @@ package com.example.steps;
 
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
+import io.cucumber.java.PendingException;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -137,5 +138,68 @@ public class ArchiveSteps {
     @Then("assert exported state output table {string} includes regexes from {string}")
     public void exportedTableShouldIncludeRegexes(String tableName, String csvFile) throws Exception {
         StateAssertions.assertOutputTableColumnsMatchesCsv(state, tableName, csvFile);
+    }
+
+    @When("I send action {string} from actor {string} to entity {string}")
+    public void sendActionToEntity(String actionName, String actorId, String targetId) throws IOException, InterruptedException {
+        String cmd = String.format("DEBUG: ACTION %s %s entity %s%s", actionName, actorId, targetId, System.lineSeparator());
+        writeDebugCommand(cmd);
+    }
+
+    @When("I send action {string} from actor {string} to container {string}")
+    public void sendActionToContainer(String actionName, String actorId, String containerId) throws IOException, InterruptedException {
+        String cmd = String.format("DEBUG: ACTION %s %s container %s%s", actionName, actorId, containerId, System.lineSeparator());
+        writeDebugCommand(cmd);
+    }
+
+    @Then("assert log line containing {string} regex is false")
+    public void assertLogLineNotContaining(String regex) {
+        String output = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
+        String safeRegex = regex.replaceAll("(?<!\\\\)\\{", "\\\\{")
+                .replaceAll("(?<!\\\\)\\}", "\\\\}");
+        Pattern pattern = Pattern.compile(safeRegex);
+        boolean found = false;
+        for (String line : output.split("\\r?\\n")) {
+            if (pattern.matcher(line).find()) {
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            throw new AssertionError(String.format(
+                    "Expected no log lines matching regex '%s' but found at least one.\nFull output:\n%s",
+                    regex, output));
+        }
+    }
+
+    private void writeDebugCommand(String cmd) throws IOException, InterruptedException {
+        Process p = state.runProcess;
+        if (p == null) throw new IllegalStateException("state.runProcess is null");
+        OutputStream os = p.getOutputStream();
+        if (os == null) throw new IllegalStateException("Process output stream is null");
+        os.write(cmd.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        os.flush();
+
+        // Wait for acknowledgement
+        long timeoutMillis = 5000;
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < timeoutMillis) {
+            String output = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
+            if (output.contains(DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED)) break;
+            Thread.sleep(10);
+        }
+    }
+
+    @When("I export state to {string}")
+    public void exportStateToFile(String fileName) throws IOException, InterruptedException {
+        String cmd = String.format("DEBUG: EXPORT %s%s", fileName, System.lineSeparator());
+        writeDebugCommand(cmd);
+        Thread.sleep(500); // Give time for export to complete
+    }
+
+    @And("I send action {string} from actor {string}")
+    public void iSendNoInputActionFromActor(String actionName, String actorId) throws IOException, InterruptedException {
+        String cmd = String.format("DEBUG: ACTION %s %s%s", actionName, actorId, System.lineSeparator());
+        writeDebugCommand(cmd);
     }
 }

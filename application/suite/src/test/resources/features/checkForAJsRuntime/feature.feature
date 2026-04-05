@@ -7,6 +7,7 @@ Feature: Runtime
     Given I run the application in debug mode
     And I have added "./manifest<module_suffix>.json" file to archive
     And I have added "./index<module_suffix>.js" file to archive
+    And I load current archive
     Then assert log line containing "Runtime launched" regex
     Then assert exported state output table "events" includes regexes from "./events<module_suffix>.csv"
     Examples:

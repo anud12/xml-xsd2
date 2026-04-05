@@ -2,16 +2,19 @@ import {ConditionExpressionApi} from "./primitives/conditionExpression";
 import {NumberExpressionApi} from "./primitives/numberExpression";
 import {StringExpression} from "./primitives/stringExpression";
 import {MaybeExpressionApi} from "./primitives/maybeExpression";
+import {TemporalExpressionApi} from "./primitives/temporalExpression";
 import {RegisterEffectFunction} from "./Effect";
 import {EntityExpressionApi} from "./Entity";
 import {NumberMapExpressionApi} from "./numberMap";
 import {TextMapExpressionApi} from "./textMap";
+import {RegisterActionFunction} from "./action";
 
 export type HostApi = {
   condition: ConditionExpressionApi,
   number: NumberExpressionApi,
   string: StringExpression,
   maybe: MaybeExpressionApi,
+  temporal: TemporalExpressionApi,
 
   numberMap: NumberMapExpressionApi,
   textMap: TextMapExpressionApi,
@@ -19,6 +22,7 @@ export type HostApi = {
   entity: EntityExpressionApi,
   container: ConditionExpressionApi,
 
-  registerEvent: RegisterEffectFunction,
+  registerEffect: RegisterEffectFunction,
+  registerAction: RegisterActionFunction,
   emitEvent: <T>(eventName: string, arguments: T) => void
 }
