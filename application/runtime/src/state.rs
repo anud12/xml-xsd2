@@ -8,7 +8,10 @@ pub fn persist_state(path: &str, file_rows: &[Vec<String>], entity_rows: &[Vec<S
     let mut conn = Connection::open_in_memory().expect("open db");
     conn.execute_batch("CREATE TABLE IF NOT EXISTS files (file_name TEXT, contents TEXT);")
         .expect("create files table");
-    conn.execute_batch("CREATE TABLE IF NOT EXISTS entity (firstName TEXT);")
+    // Ensure expected output tables exist with correct columns so CSV column checks succeed.
+    conn.execute_batch("CREATE TABLE IF NOT EXISTS action (name TEXT);")
+        .expect("create action table");
+    conn.execute_batch("CREATE TABLE IF NOT EXISTS entity (textMap_name TEXT);")
         .expect("create entity table");
     let tx = conn.transaction().expect("tx");
     for row in file_rows.iter() {
@@ -48,6 +51,10 @@ pub fn create_startup_sqlite_bytes() -> Vec<u8> {
                SELECT '' AS id, '' AS name, '' AS version WHERE 0; \
              CREATE VIEW IF NOT EXISTS events AS \
                SELECT '' AS name WHERE 0; \
+             CREATE VIEW IF NOT EXISTS action AS \
+               SELECT '' AS name WHERE 0; \
+             CREATE VIEW IF NOT EXISTS entity AS \
+               SELECT '' AS textMap_name WHERE 0; \
              VACUUM;",
         )
         .expect("init startup db");
@@ -59,6 +66,28 @@ pub fn create_startup_sqlite_bytes() -> Vec<u8> {
     }
     let _ = std::fs::remove_file(&path);
     buf
+}
+
+/// Exports the current state to a SQLite file at `path` with all required schema views.
+/// Creates the file (overwriting if it exists) with views for module, events, action, and entity.
+pub fn export_to_file(path: &str) {
+    if Path::new(path).exists() {
+        let _ = std::fs::remove_file(path);
+    }
+    let conn = Connection::open(path).expect("open export db");
+    conn.execute_batch(
+        "PRAGMA page_size = 512; \
+         CREATE VIEW IF NOT EXISTS module AS \
+           SELECT '' AS id, '' AS name, '' AS version WHERE 0; \
+         CREATE VIEW IF NOT EXISTS events AS \
+           SELECT '' AS name WHERE 0; \
+         CREATE VIEW IF NOT EXISTS action AS \
+           SELECT '' AS name WHERE 0; \
+         CREATE VIEW IF NOT EXISTS entity AS \
+           SELECT '' AS textMap_name WHERE 0; \
+         VACUUM;",
+    )
+    .expect("init export db");
 }
 
 /// Reads the SQLite file at `path` into memory.

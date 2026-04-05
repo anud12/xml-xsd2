@@ -2,6 +2,7 @@ package com.example.steps;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -18,30 +19,26 @@ public class StateAssertions {
     
     
 
-    private static File extractFileFromProcess(ArchiveState state) {
-        // New logic: find the "--SQLITE-START--" marker first, then find the DEBUG_DELIMITED
-        // The sqlite file bytes start at the "--SQLITE-START--" marker and end just before DEBUG_DELIMITED
-        String startMarker = "--SQLITE-START--";
-        String outputStr = new String(state.lastOutput);
-        int startIdx = outputStr.indexOf(startMarker);
-        if (startIdx == -1) throw new AssertionError("Start marker not found in output");
-        int endIdx = outputStr.indexOf(DEBUG_DELIMITED, startIdx);
-        if (endIdx == -1) throw new AssertionError("End marker (DEBUG_DELIMITED) not found after start marker");
+    private static File extractFileFromProcess(ArchiveState state) throws IOException {
 
-        // compute byte offsets for the slice to write to the sqlite file
-        int byteStart = outputStr.substring(0, startIdx).getBytes().length;
-        int byteEnd = outputStr.substring(0, endIdx).getBytes().length;
-        if (byteEnd <= byteStart) throw new AssertionError("No SQLite data found between markers");
+        File sqlFile = File.createTempFile("export", ".sqlite");
+        sqlFile.delete(); // let the runtime create it fresh
+        String cmd = "DEBUG: Export:" + sqlFile.getAbsolutePath() + System.lineSeparator();
 
-        try {
-            File sqliteFile = File.createTempFile("testdb", ".sqlite");
-            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(sqliteFile)) {
-                fos.write(state.lastOutput, byteStart, byteEnd - byteStart);
-            }
-            return sqliteFile;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        Process p = state.runProcess;
+        if (p == null) throw new IllegalStateException("state.runProcess is null");
+        OutputStream os = p.getOutputStream();
+        if (os == null) throw new IllegalStateException("Process output stream is null");
+        os.write(cmd.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        os.flush();
+
+        // Wait until the runtime has written the file
+        long deadline = System.currentTimeMillis() + 5000;
+        while (System.currentTimeMillis() < deadline) {
+            if (sqlFile.exists() && sqlFile.length() > 0) break;
+            try { Thread.sleep(10); } catch (InterruptedException ignored) {}
         }
+        return sqlFile;
     }
 
     private static void extracted(ArchiveState state, String tableName, String csvFile, File sqliteFile) throws SQLException, IOException {
@@ -98,7 +95,7 @@ public class StateAssertions {
         }
     }
 
-    public static void assertEmptySqlFile(ArchiveState state){
+    public static void assertEmptySqlFile(ArchiveState state) throws IOException {
         var sqliteFile = extractFileFromProcess(state);
 
         try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:sqlite:" + sqliteFile.getAbsolutePath());
