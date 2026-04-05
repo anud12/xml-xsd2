@@ -4,7 +4,7 @@ import type { StringExpressionType } from '../primitives/stringExpression';
 import type { NumberExpressionType } from '../primitives/numberExpression';
 import type { TemporalExpression, TemporalExpressionType } from '../primitives/temporalExpression';
 import type { MaybeExpression } from '../primitives/maybeExpression';
-import type { EntityExpressionType } from '../data-model/entity';
+import type { EntityExpression, EntityExpressionType } from '../data-model/entity';
 import type { ContainerExpressionType } from '../data-model/container';
 
 /**
@@ -30,8 +30,8 @@ export type EventArgType =
  * Execution context provided to `prepare` and `apply` callbacks of an effect.
  *
  * Available during the effect's execution phase only. Provides the ability to
- * emit further events synchronously (during `prepare`) and any other runtime
- * services the runtime exposes to effects.
+ * emit further events synchronously (during `prepare`) and create entities
+ * during `apply`. The runtime exposes any other services via this context.
  *
  * @see effects.md — Stage ordering
  */
@@ -52,6 +52,25 @@ export type EventContext = {
    * @see effects.md — Cross-event emission and recursion guard
    */
   emitEvent: (eventName: string, input: Record<string, any>) => void;
+
+  /**
+   * Create a new entity during the effect's `apply` phase.
+   *
+   * Entities are created as part of the effect's recorded mutations and are
+   * committed atomically with other state changes. If the commit fails, the
+   * entity creation is rolled back.
+   *
+   * Must only be called from `apply`, not from `prepare`.
+   *
+   * The newly created entity is not available for querying or mutation within
+   * the same apply phase; it materializes at commit time.
+   *
+   * @param entity - An EntityExpression built via hostApi.entity.create()...
+   * @returns This EventContext for method chaining.
+   *
+   * @see effects.md — Entity creation during apply phase
+   */
+  createEntity: (entity: EntityExpression) => EventContext;
 };
 
 /**

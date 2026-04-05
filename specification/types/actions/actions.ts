@@ -21,9 +21,12 @@ export type ContainerPoint =
 /**
  * Discriminated union describing what the action is targeting.
  *
- * Exactly one of `entity`, `container`, or `point` must be specified per
- * wire message. The runtime validates that the chosen variant matches the
- * registered action's `targetType`.
+ * Each action targets a single entity, container, or point. Bulk operations
+ * are handled by either:
+ * - The client sending multiple ActionMessages (one per target)
+ * - The action's apply function emitting multiple events
+ *
+ * The runtime validates that the chosen variant matches the registered action's `targetType`.
  *
  * @see RegisterActionArgs.targetType
  * @see actions.md — Wire Message section
@@ -36,36 +39,53 @@ export type ActionTarget =
 /**
  * WebSocket wire message sent by a client to trigger an action.
  *
- * The runtime processes this message through a 9-step pipeline (see
+ * The runtime processes this message through a 9-step flow (see
  * actions.md — Runtime Processing Flow). The `actorEntityId` must correspond
  * to an entity owned by the sending session; otherwise the message is rejected
  * with an auth error.
  *
+ * For no-input actions registered via `registerAction`, the `target` field is omitted.
+ *
  * @see actions.md
  */
-export type ActionMessage = {
-  /** Name of the registered action to invoke. */
-  actionName: string;
-  /**
-   * Id of the entity performing the action.
-   *
-   * Must be an entity owned by the session that sent this message.
-   * Validated at step [2] before any module code runs.
-   */
-  actorEntityId: UniqueGlobalEntityId;
-  /**
-   * The target of the action (entity, container, or coordinate within a
-   * container).
-   */
-  target: ActionTarget;
-};
+export type ActionMessage =
+  | {
+      /** Name of the registered action to invoke. */
+      actionName: string;
+      /**
+       * Id of the entity performing the action.
+       *
+       * Must be an entity owned by the session that sent this message.
+       * Validated at step [2] before any module code runs.
+       */
+      actorEntityId: UniqueGlobalEntityId;
+      /**
+       * The target of the action (entity, container, or coordinate within a
+       * container). Omitted for no-input actions.
+       */
+      target: ActionTarget;
+    }
+  | {
+      /** Name of the registered no-input action to invoke. */
+      actionName: string;
+      /**
+       * Id of the entity performing the action.
+       *
+       * Must be an entity owned by the session that sent this message.
+       */
+      actorEntityId: UniqueGlobalEntityId;
+      /** Target is omitted for no-input actions. */
+      target?: never;
+    };
 
 /**
- * Execution context available to `guard`, `cooldown`, and `input` mapper
- * callbacks within an action declaration.
+ * Execution context available to `guard`, `cooldown`, and `apply` callbacks
+ * within an action declaration.
  *
- * Provides typed access to the actor and the resolved wire target. All
- * properties are read-only against the current read-buffer snapshot.
+ * Provides read-only access to the actor. The target is passed separately as
+ * the second parameter to allow for proper type narrowing.
+ *
+ * All properties are read-only against the current read-buffer snapshot.
  *
  * @see RegisterActionArgs
  * @see actions.md — ActionContext section
@@ -73,132 +93,110 @@ export type ActionMessage = {
 export type ActionContext = {
   /** The entity performing the action, resolved from `actorEntityId`. */
   actor: EntityExpression;
-  /** The resolved target from the wire message. */
-  target: ActionTarget;
+  /**
+   * Emit an event to trigger further side effects.
+   * 
+   * Events are emitted synchronously during the action execution phase.
+   * The event's `prepare` phase runs immediately against the current read-buffer.
+   * Multiple events may be emitted from a single `apply` function.
+   * 
+   * @param eventName - Name of the registered event to emit
+   * @param input - Input payload for the event (structure depends on the event's input schema)
+   */
+  emitEvent: (eventName: string, input: any) => any;
 };
 
 /**
- * A single node in an action's effect pipeline DAG.
- *
- * Nodes with no `after` dependencies are root nodes and run concurrently.
- * A node begins its `prepare()` only after all nodes listed in `after` have
- * completed their `prepare()`. The pipeline commits atomically in a single
- * commit once all nodes have prepared.
- *
- * @see RegisterActionArgs.pipeline
- * @see actions.md — Pipeline Execution Semantics
+ * Discriminated union of target specifications passed to guard/cooldown/apply callbacks.
+ * 
+ * Each variant represents a single target (not arrays). Bulk operations are handled
+ * by multiple ActionMessages or via emitting multiple events.
  */
-export type PipelineNode = {
-  /** Name of the registered Effect/Event to invoke. */
-  effect: string;
+export type ActionTargetSpec =
+  | { type: 'entity'; id: UniqueGlobalEntityId }
+  | { type: 'container'; id: UniqueGlobalContainerId }
+  | { type: 'point'; containerId: UniqueGlobalContainerId; position: ContainerPoint };
 
-  /**
-   * Effect names this node must wait for before its own `prepare()` begins.
-   *
-   * Those effects' `prepare()` outputs are passed to the `input` mapper via
-   * the `upstream` argument. Omit or leave empty for root nodes.
-   */
-  after?: string[];
-
-  /**
-   * Maps `ActionContext` and upstream `prepare()` outputs to this effect's
-   * declared input shape.
-   *
-   * Only needed when this node depends on upstream outputs or must inject
-   * action context into the effect. Omit when the effect constructs its own
-   * input independently.
-   *
-   * @param context  - The shared ActionContext for this pipeline run.
-   * @param upstream - Map of `{ [effectName]: prepareOutput }` for each effect
-   *                   declared in `after`.
-   */
-  input?: (context: ActionContext, upstream: Record<string, any>) => any;
+/**
+ * Map of target spec variants keyed by target type.
+ * 
+ * Used by RegisterActionArgsFor<T> generic to properly type callbacks for each action type.
+ */
+export type ActionTargetSpecMap = {
+  entity:    { type: 'entity'; id: UniqueGlobalEntityId };
+  container: { type: 'container'; id: UniqueGlobalContainerId };
+  point:     { type: 'point'; containerId: UniqueGlobalContainerId; position: ContainerPoint };
 };
 
 /**
- * Arguments for registering a named Action via `hostApi.registerAction`.
+ * Union of all possible single-target types.
+ * 
+ * Each action registers for exactly one of these types.
+ */
+export type ActionTargetType = 'entity' | 'container' | 'point';
+
+/**
+ * Base properties shared by all action configurations.
+ */
+type RegisterActionArgsBase = {
+  name: string;
+  description?: string;
+  cooldownGroup?: string;
+};
+
+/**
+ * Generic action configuration bound to a specific target type.
  *
- * An action is the sole external entrypoint into the runtime. Clients send
- * actions over WebSocket; modules declare them and bind them to effect
- * pipelines.
- *
- * @example
- * ```ts
- * hostApi.registerAction({
- *   name: "pickUp",
- *   targetType: "entity",
- *   guard: ctx => ctx.actor.withTextMap(hostApi.textMap.create())
- *                         .withNumberMap(hostApi.numberMap.create()),
- *   cooldown: _ctx => hostApi.temporal.of(hostApi.number.of(1), "round"),
- *   pipeline: [{ effect: "transferEntityToActorInventory" }],
- * });
- * ```
+ * The generic parameter T ensures that:
+ * - Guard/cooldown/apply callbacks receive properly typed target specs
+ * - The target spec discriminant matches the declared target type
+ * - TypeScript enforces correct usage via discriminated union narrowing
  *
  * @see actions.md
  */
+type RegisterActionArgsFor<T extends ActionTargetType> = {
+  guard?: (context: ActionContext, target: ActionTargetSpecMap[T]) => ConditionExpression;
+  cooldown?: (context: ActionContext, target: ActionTargetSpecMap[T]) => TemporalExpression;
+  apply: (context: ActionContext, target: ActionTargetSpecMap[T]) => void;
+} & RegisterActionArgsBase;
+
+/**
+ * Entity-targeted action registration.
+ */
+export type RegisterEntityActionArgs = RegisterActionArgsFor<'entity'>;
+
+/**
+ * Container-targeted action registration.
+ */
+export type RegisterContainerActionArgs = RegisterActionArgsFor<'container'>;
+
+/**
+ * Point-targeted action registration.
+ */
+export type RegisterPointActionArgs = RegisterActionArgsFor<'point'>;
+
+/**
+ * No-input action registration.
+ * 
+ * Actions that do not interact with a specific target and only affect the actor.
+ * The apply callback receives only the ActionContext (no target parameter).
+ * 
+ * @example
+ * ```ts
+ * hostApi.registerAction({
+ *   name: "rest",
+ *   cooldown: (_ctx) => hostApi.temporal.seconds(hostApi.number.of(5)),
+ *   apply: (ctx) => {
+ *     ctx.emitEvent("restActor", { actorId: ctx.actor.id });
+ *   }
+ * });
+ * ```
+ */
 export type RegisterActionArgs = {
-  /**
-   * Unique action name; clients identify this action by name on the wire.
-   *
-   * Must be unique across all loaded modules.
-   */
   name: string;
-
-  /** Optional human-readable description (for tooling and documentation). */
   description?: string;
-
-  /**
-   * The kind of target this action accepts.
-   *
-   * Must match the `type` field in the wire message's {@link ActionTarget}.
-   * Validated at step [4] before any module code runs.
-   */
-  targetType: 'entity' | 'container' | 'point';
-
-  /**
-   * Optional eligibility guard evaluated against the read-buffer before the
-   * pipeline runs.
-   *
-   * If the guard returns false or throws, the action is rejected and the client
-   * receives a structured error response plus a corrective state delta.
-   * Use this for actor and target eligibility checks (role, classification,
-   * proximity, etc.).
-   */
-  guard?: (context: ActionContext) => ConditionExpression;
-
-  /**
-   * Minimum in-game time between invocations of `cooldownGroup` for the same
-   * actor.
-   *
-   * Evaluated with the current ActionContext. Uses {@link TemporalExpression}
-   * semantics — see temporalExpression.md for unit registration and GTU
-   * semantics.
-   *
-   * @see cooldownGroup
-   * @see temporalExpression.md
-   */
-  cooldown?: (context: ActionContext) => TemporalExpression;
-
-  /**
-   * Name of the shared per-actor cooldown group.
-   *
-   * Actions sharing the same `cooldownGroup` share a single per-actor timer.
-   * If omitted, the action's `name` is used as its own group (independent
-   * cooldown).
-   *
-   * @example `"melee"` — shared by "attack" and "heavyAttack"
-   */
   cooldownGroup?: string;
-
-  /**
-   * DAG of Effects to execute when this action is dispatched.
-   *
-   * Nodes with no `after` dependencies run `prepare()` concurrently. All
-   * `prepare()` calls complete before any `apply()` is invoked. The entire
-   * pipeline commits atomically in a single commit.
-   *
-   * DAG cycles are detected at module load time and cause
-   * `E_PIPELINE_CYCLE`.
-   */
-  pipeline: PipelineNode[];
+  guard?: (context: ActionContext) => ConditionExpression;
+  cooldown?: (context: ActionContext) => TemporalExpression;
+  apply: (context: ActionContext) => void;
 };

@@ -8,7 +8,34 @@ import {EntityExpression} from "./Entity";
 export type RegisterEffectFunction = <Input, Output>(argument: RegisterEventArgs<Input, Output>) => void;
 
 export type EventContext = {
-  createEntity:(expression:EntityExpression) => EventContext
+  /**
+   * Emit a named event synchronously within the current `prepare` wave.
+   *
+   * The emitted event enters the same synchronous prepare wave and follows the
+   * same stage ordering (prepare → apply → commit). Must only be called from
+   * `prepare`, not from `apply`.
+   *
+   * The runtime enforces a recursion guard to prevent infinite synchronous
+   * emission chains.
+   */
+  emitEvent: (eventName: string, input: Record<string, any>) => void;
+
+  /**
+   * Create a new entity during the effect's `apply` phase.
+   *
+   * Entities are created as part of the effect's recorded mutations and are
+   * committed atomically with other state changes. If the commit fails, the
+   * entity creation is rolled back.
+   *
+   * Must only be called from `apply`, not from `prepare`.
+   *
+   * The newly created entity is not available for querying or mutation within
+   * the same apply phase; it materializes at commit time.
+   *
+   * @param entity - An EntityExpression built via hostApi.entity.create()...
+   * @returns This EventContext for method chaining.
+   */
+  createEntity: (entity: EntityExpression) => EventContext;
 }
 
 export type RegisterEventArgs<Input, Output> = {

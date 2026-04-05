@@ -46,12 +46,98 @@ The reason for splitting into `prepare` and `apply` is that when an event is emi
 
 ---
 
+## EventContext Type
+
+`EventContext` is the execution context passed to both `prepare` and `apply` callbacks. It provides the runtime services available during effect execution.
+
+**Type Definition**:
+
+```typescript
+export type EventContext = {
+  /**
+   * Emit a named event synchronously within the current `prepare` wave.
+   *
+   * The emitted event enters the same synchronous prepare wave and follows the
+   * same stage ordering (prepare → apply → commit). Must only be called from
+   * `prepare`, not from `apply`.
+   *
+   * The runtime enforces a recursion guard to prevent infinite synchronous
+   * emission chains.
+   *
+   * @param eventName - Name of the registered effect/event to emit.
+   * @param input     - Input payload matching the target event's declared input
+   *                    schema.
+   */
+  emitEvent: (eventName: string, input: Record<string, any>) => void;
+
+  /**
+   * Create a new entity during the effect's `apply` phase.
+   *
+   * Entities are created as part of the effect's recorded mutations and are
+   * committed atomically with other state changes. If the commit fails, the
+   * entity creation is rolled back.
+   *
+   * Must only be called from `apply`, not from `prepare`.
+   *
+   * The newly created entity is not available for querying or mutation within
+   * the same apply phase; it materializes at commit time.
+   *
+   * @param entity - An EntityExpression built via hostApi.entity.create()...
+   * @returns This EventContext for method chaining.
+   */
+  createEntity: (entity: EntityExpression) => EventContext;
+};
+```
+
+---
+
+### Entity Creation
+
+Effects may create entities during the `apply` phase as part of their recorded mutations. Created entities are:
+
+- **Transactional**: Entity creation is recorded as a mutation intent and is committed atomically with other state changes. If the commit fails, the entity creation is rolled back.
+- **Only in apply**: The `createEntity` method is available only in the `apply` phase. Calling it from `prepare` will raise an error.
+- **Deferred materialization**: The newly created entity does not exist until the commit completes. It cannot be queried or mutated within the same `apply` phase.
+- **Chainable**: The method returns `EventContext` for fluent method chaining, allowing multiple entities to be created in a single expression.
+- **Reusable expressions**: The same `EntityExpression` can be passed to `createEntity` multiple times to create multiple distinct entities.
+
+**Example**:
+```typescript
+apply: (context, output) => {
+  const newEntity = hostApi.entity.create()
+    .withTextMap(hostApi.textMap.create().put("name", hostApi.string.of("goblin")))
+    .withNumberMap(hostApi.numberMap.create().put("health", hostApi.number.of(100)));
+  
+  context.createEntity(newEntity);
+  
+  // Entity does not exist yet — cannot query or mutate
+}
+```
+
+**Chaining multiple creations**:
+```typescript
+apply: (context, output) => {
+  const template = hostApi.entity.create()
+    .withNumberMap(hostApi.numberMap.create().put("health", hostApi.number.of(50)));
+  
+  context
+    .createEntity(template)
+    .createEntity(template)
+    .createEntity(template);
+  
+  // Three entities created from the same template, materialized at commit
+}
+```
+
+---
+
 ### Error handling
   - If an exception is thrown during `prepare` or `apply`:
     - Any recorded mutations from that event's `apply` (or from the current wave) must be discarded.
     - The runtime must not perform a commit that includes partially recorded mutations from a failing event.
     - The runtime should surface the error to a host-provided logger/observer and continue processing subsequent independent events (per policy).
   - Commit errors (evaluation-time errors when evaluating expression wrappers) should abort that commit and discard recorded mutations; the runtime may optionally attempt a rollback to the prior read-buffer state (which is already preserved by double-buffering).
+  - If entity creation fails during the commit phase, the entire commit is aborted and all entities (and other mutations) from that commit wave are rolled back.
 
 ---
 
@@ -169,6 +255,12 @@ const appendNumberEvent: RegisterEventArgs = {
   },
   apply: (context, output): void => {
     output.originEntity.setProperty("evil", output.numberToBeAdded);
+    
+    // Create a new entity during the effect
+    const newEntity = hostApi.entity.create()
+      .withNumberMap(hostApi.numberMap.create().put("health", output.numberToBeAdded));
+    
+    context.createEntity(newEntity);
   },
 
   // Example reoccurrence hooks

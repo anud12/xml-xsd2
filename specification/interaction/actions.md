@@ -1,10 +1,10 @@
-﻿# Actions — Concepts
+# Actions — Overview
 
-This document describes the core `Actions` concept.
+This document describes the core `Actions` concept and wire protocol.
 
 ## Summary
 
-An `Action` is the **sole external entrypoint** into the runtime. Clients send Actions over WebSocket to initiate state changes. The runtime validates, guards, and dispatches each Action into a declarative pipeline of Effects. No module code or Effect can originate an Action — only connected clients can.
+An `Action` is the **sole external entrypoint** into the runtime. Clients send Actions over WebSocket to initiate state changes. The runtime validates, guards, and dispatches each Action into a sequence of Effects. No module code or Effect can originate an Action — only connected clients can.
 
 ---
 
@@ -15,14 +15,14 @@ Actions provide a typed, authenticated, rate-limited boundary between clients an
 - **Single entrypoint**: all client-initiated state changes flow through Actions.
 - **Declarative guard**: eligibility is evaluated as a `ConditionExpression` before any Effect runs.
 - **Cooldown control**: per-actor rate-limiting via a [`TemporalExpression`](../expressions/temporalExpression.md) *(spec pending)*.
-- **Effect pipeline**: fan-out to one or more Effects with an explicit, statically-validated dependency DAG.
+- **Effect pipeline**: emit one or more Effects with explicit side effects.
 - **Client-server parity**: the client runs the same runtime and modules; only state synchronization is needed over the wire.
 
 ---
 
 ## Wire Message
 
-The client sends a JSON message over WebSocket:
+Most actions are targeted. The client sends a JSON message over WebSocket:
 
 ```ts
 type ActionMessage = {
@@ -42,145 +42,38 @@ type ContainerPoint =
   | { dimension1: NumberExpression; dimension2: NumberExpression }
 ```
 
----
+### No-Input Actions
 
-## Action Registration (Host API)
-
-Modules register Actions using `registerAction`. The runtime validates the declaration at module load time.
+For no-input actions (registered via `registerAction`), the `target` field is omitted:
 
 ```ts
-export type HostApi = {
-  /* ... rest of declarations ... */
-  registerAction: (args: RegisterActionArgs) => void;
-}
-
-type RegisterActionArgs = {
-  /** Unique name; clients identify this action by name on the wire */
-  name: string;
-  description?: string;
-
-  /** What kind of target this action accepts */
-  targetType: "entity" | "container" | "point";
-
-  /**
-   * Evaluated against the read-buffer before the pipeline runs.
-   * If false (or throws), the action is rejected and the client receives an error response.
-   * Both actor and target are accessible here — use this for eligibility and target validation.
-   */
-  guard?: (context: ActionContext) => ConditionExpression;
-
-  /**
-   * Minimum time between invocations of this cooldownGroup for the same actor.
-   * See temporalExpression.md for TemporalExpression semantics.
-   */
-  cooldown?: (context: ActionContext) => TemporalExpression;
-
-  /**
-   * Actions sharing the same cooldownGroup share a per-actor timer.
-   * If omitted, the action name is used as its own group (independent cooldown).
-   * Example: "attack" and "heavy_attack" both declaring cooldownGroup: "melee"
-   * will share a single per-actor cooldown timer.
-   */
-  cooldownGroup?: string;
-
-  /**
-   * DAG of Effects to execute. Nodes with no `after` dependencies run concurrently.
-   * All prepare() calls complete before any apply() is invoked.
-   * The entire pipeline commits atomically in a single commit.
-   */
-  pipeline: PipelineNode[];
-}
-
-type ActionContext = {
-  /** The entity performing the action (resolved from actorEntityId) */
-  actor: EntityExpression;
-  /** The resolved target from the wire message */
-  target: ActionTarget;
-}
-
-type PipelineNode = {
-  /** Name of the registered Effect to invoke */
-  effect: string;
-
-  /**
-   * Effect names this node must wait for before its own prepare() begins.
-   * Those effects' prepare() outputs are passed to the `input` mapper below.
-   * Omit or leave empty for root nodes (no dependencies).
-   */
-  after?: string[];
-
-  /**
-   * Maps ActionContext and upstream prepare() outputs to this effect's declared input.
-   * Only needed if this node depends on upstream outputs or needs to inject action context.
-   * Omit if the effect takes no input or constructs its own input independently.
-   */
-  input?: (context: ActionContext, upstream: Record<string, any>) => any;
+type NoInputActionMessage = {
+  actionName: string;
+  actorEntityId: UniqueGlobalEntityId;
+  // target is omitted
 }
 ```
+
+**Guidance**: 
+- Each targeted action targets a **single** entity, container, or point. Bulk operations are handled by:
+  - The client sending multiple `ActionMessage` instances (one per target), or
+  - The action's `apply` function emitting multiple events in a chain.
+- No-input actions are for simple, actor-only operations (rest, meditate, idle, etc.) with no target interaction.
 
 ---
 
 ## ActionContext
 
-Available in `guard`, `cooldown`, and pipeline `input` mappers:
+Available in `guard`, `cooldown`, and `apply` callbacks:
 
 ```ts
 type ActionContext = {
-  actor: EntityExpression;   // entity identified by actorEntityId
-  target: ActionTarget;      // the resolved wire target
+  actor: EntityExpression;                // entity identified by actorEntityId
+  emitEvent: (eventName: string, input: any) => any;  // emit events for side effects
 }
 ```
 
----
-
-## Runtime Processing Flow
-
-```
-[1] Receive ActionMessage over WebSocket
-    │  Validate wire shape (actionName, actorEntityId, target type)
-    │  → Malformed: reject with parse error, discard
-
-[2] Resolve actorEntityId
-    │  → Not found: reject with auth error
-    │  → Entity not owned by this session: reject with auth error
-
-[3] Look up registered Action definition by actionName
-    │  → Unknown action: reject with error to client
-
-[4] Validate target type matches Action.targetType
-    │  → Mismatch: reject with error to client
-    │  For "point" targets: validate dimension count matches container's declared dimensions
-
-[5] Evaluate guard ConditionExpression (read-only, current read-buffer)
-    │  → False or throws: reject with error + corrective state delta to client
-
-[6] Check cooldown for (actorEntityId, cooldownGroup ?? actionName)
-    │  → Not elapsed: reject with error + corrective state delta to client
-
-[7] Create ExecutionContext (seed, tick, source=actorEntityId, actionId=actionName)
-
-[8] Execute pipeline (DAG):
-    │  a. Identify root nodes (no `after` dependencies) → prepare() in parallel
-    │  b. As each node's prepare() completes, unblock dependent nodes
-    │  c. Repeat until all nodes have completed prepare()
-    │  d. Run all apply() calls in topological order
-    │  e. Single atomic commit
-
-[9] On successful commit:
-    │  Record new cooldown expiry for (actorEntityId, cooldownGroup ?? actionName)
-    │  Stream state deltas to relevant clients
-```
-
----
-
-## Pipeline Execution Semantics
-
-- **Parallelism**: Root nodes (no `after` deps) run `prepare()` concurrently. A node begins `prepare()` only once all nodes it depends on have completed their `prepare()`.
-- **Output passing**: The `input` mapper receives `upstream` as a map of `{ [effectName]: prepareOutput }` containing only the effects declared in `after`.
-- **Single commit**: All `apply()` calls and the commit happen after all `prepare()` calls complete. There are no intermediate commits within a pipeline.
-- **Failure isolation**: If a node's `prepare()` throws, all nodes that depend on it (transitively) are skipped. Independent branches of the DAG continue. The final commit includes only the mutations from non-failed branches.
-- **Static validation**: DAG cycles are detected at module load time. A module with a cyclic pipeline is rejected with `E_PIPELINE_CYCLE`.
-- **ExecutionContext**: All nodes in a pipeline share the same `ExecutionContext` (same seed, tick, actor, action). Each node's random draws increment the shared Call Index deterministically in topological order.
+The target is passed as the second parameter to each callback, allowing TypeScript to properly narrow the type based on which registration function was used.
 
 ---
 
@@ -188,7 +81,7 @@ type ActionContext = {
 
 - `actorEntityId` in the wire message must correspond to an entity owned by the sending session. The runtime maintains a session → owned entity set.
 - The guard `ConditionExpression` is the module's mechanism for actor and target eligibility checks (role, classification, proximity, etc.).
-- All module-provided callbacks (`guard`, `cooldown`, `input` mappers) execute in the sandboxed module environment; they cannot directly mutate state.
+- All module-provided callbacks (`guard`, `cooldown`, `apply`) execute in the sandboxed module environment; they cannot directly mutate state.
 
 ---
 
@@ -203,6 +96,120 @@ The client runs the same runtime and loads the same modules as the server. The W
 
 ---
 
+## Action Types
+
+Actions are organized by target type, plus a no-input variant. See specialized documentation for each:
+
+- **[Entity Actions](./entity-action.md)** — Actions targeting a single entity
+- **[Container Actions](./container-action.md)** — Actions targeting a single container
+- **[Point Actions](./point-action.md)** — Actions targeting a coordinate within a container
+- **[No-Input Actions](#no-input-actions)** — Simple actor-only actions with no target
+
+---
+
+## No-Input Actions (Simplified)
+
+No-input actions skip target validation and follow a simpler processing flow:
+
+```
+[1] Receive ActionMessage over WebSocket (target field omitted)
+    │  Validate wire shape (actionName, actorEntityId)
+    │  → Malformed: reject with parse error, discard
+
+[2] Resolve actorEntityId
+    │  → Not found: reject with auth error
+    │  → Entity not owned by this session: reject with auth error
+
+[3] Look up registered Action definition by actionName
+    │  → Unknown action: reject with error to client
+
+[4] Evaluate guard ConditionExpression (read-only, current read-buffer)
+    │  → False or throws: reject with error + corrective state delta to client
+
+[5] Check cooldown for (actorEntityId, cooldownGroup ?? actionName)
+    │  → Not elapsed: reject with error + corrective state delta to client
+
+[6] Acquire per-actor action lock (serialize all actions from this actor)
+
+[7] Create ExecutionContext (seed, tick, source=actorEntityId, actionId=actionName)
+
+[8] Invoke apply function:
+    │  a. Call apply(actionContext) synchronously (no target parameter)
+    │  b. Events emitted via context.emitEvent() run synchronously (prepare phase)
+    │  c. Runtime enqueues apply phases for emitted events
+    │  d. All apply() calls for current wave complete
+    │  e. Single atomic commit
+    │  f. If apply() throws: cooldown still fires; exception propagated to client;
+    │     partial events already emitted stand
+
+[9] Release per-actor action lock
+
+[10] On successful commit:
+    │  Record new cooldown expiry for (actorEntityId, cooldownGroup ?? actionName)
+    │  Stream state deltas to relevant clients
+```
+
+**Key Difference**: No-input actions skip the target validation step entirely, making them faster for simple actor-only operations.
+
+---
+
+## Common Semantics
+
+### Runtime Processing Flow (Targeted Actions)
+
+```
+[1] Receive ActionMessage over WebSocket
+    │  Validate wire shape (actionName, actorEntityId, target type)
+    │  → Malformed: reject with parse error, discard
+
+[2] Resolve actorEntityId
+    │  → Not found: reject with auth error
+    │  → Entity not owned by this session: reject with auth error
+
+[3] Look up registered Action definition by actionName
+    │  → Unknown action: reject with error to client
+
+[4] Validate target type matches action's registered type
+    │  → Mismatch: reject with error to client
+    │  For "point" targets: validate dimension count matches container's declared dimensions
+
+[5] Evaluate guard ConditionExpression (read-only, current read-buffer)
+    │  → False or throws: reject with error + corrective state delta to client
+
+[6] Check cooldown for (actorEntityId, cooldownGroup ?? actionName)
+    │  → Not elapsed: reject with error + corrective state delta to client
+
+[7] Acquire per-actor action lock (serialize all actions from this actor)
+
+[8] Create ExecutionContext (seed, tick, source=actorEntityId, actionId=actionName)
+
+[9] Invoke apply function:
+    │  a. Call apply(actionContext, target) synchronously
+    │  b. Events emitted via context.emitEvent() run synchronously (prepare phase)
+    │  c. Runtime enqueues apply phases for emitted events
+    │  d. All apply() calls for current wave complete
+    │  e. Single atomic commit
+    │  f. If apply() throws: cooldown still fires; exception propagated to client;
+    │     partial events already emitted stand
+
+[10] Release per-actor action lock
+
+[11] On successful commit:
+    │  Record new cooldown expiry for (actorEntityId, cooldownGroup ?? actionName)
+    │  Stream state deltas to relevant clients
+```
+
+### Apply Function & Event Emission
+
+- **Synchronous execution**: The `apply` function runs synchronously and may emit events via `context.emitEvent()`.
+- **Event chaining**: Events emitted from `apply` have their `prepare` phase run immediately (read-only). The event's `apply` phase is enqueued.
+- **Recursion guard**: Cross-event emission is guarded against infinite recursion via depth limits, stack detection, or cycle detection as per the Events specification.
+- **Single commit**: All mutations from the action and its emitted events are committed atomically after all `apply` calls complete.
+- **Failure isolation**: If an event's `prepare` throws, dependent emissions are skipped but independent branches continue. The commit includes only successful mutations.
+- **ExecutionContext**: All events emitted from an action share the same `ExecutionContext`. Random draws increment the shared Call Index deterministically.
+
+---
+
 ## Failure Modes & Edge Cases
 
 | Scenario | Mitigation |
@@ -211,88 +218,29 @@ The client runs the same runtime and loads the same modules as the server. The W
 | Unknown `actorEntityId` | Auth error; no state touched |
 | `actorEntityId` not owned by session | Auth error; no state touched |
 | Unknown `actionName` | Error returned; module observability log entry |
-| Target entity/container deleted between send and processing | Guard or first Effect-level filter returns absent; pipeline short-circuits cleanly |
-| Guard throws | Treated as `false`; error returned + corrective delta |
-| Cooldown check race (two concurrent messages, same actor) | Cooldown reset is atomic with commit; only one wins; second receives rejection + corrective delta |
-| Pipeline DAG cycle | Rejected at module load time with `E_PIPELINE_CYCLE` |
-| Upstream Effect `prepare()` throws | Dependent nodes skipped; independent branches continue; commit includes only successful branches |
-| `input` mapper throws | Treated as `prepare()` failure for that node |
+| Target entity/container deleted between send and processing | Guard returns `false`; action rejected |
+| Guard throws (exception, not false) | Exception logged; treated as `false`; error returned + corrective delta |
+| `apply()` throws (exception, not false) | Exception logged and propagated to client; cooldown still fires; partial events already emitted stand |
+| Event emission fails | Event logged; independent events continue; committed state includes successful event emissions |
+| Cooldown check race (two concurrent actions, same actor) | Per-actor lock serializes; only one executes; second queued and rejected when checked again (cooldown active) |
+| Two actions from same actor arrive simultaneously | Per-actor lock enforces sequential execution; second action waits for first to complete |
 | `ContainerPoint` dimension count mismatches container arity | Validated at step [4] before any module code runs |
 | Module hot-reload mid-session | Runtime pauses, sends full resync to all clients, resumes with new module |
-| Client sends duplicate ActionMessage (retry) | Cooldown rejection on second message + corrective delta; idempotency is the cooldown's responsibility |
-
----
-
-## Examples
-
-### Simple action — single effect
-
-```ts
-hostApi.registerAction({
-  name: "pickUp",
-  targetType: "entity",
-  guard: (ctx) => ctx.actor.hasClassification(hostApi.string.of("player"))
-    .and(ctx.target.entity.hasClassification(hostApi.string.of("item"))),
-  cooldown: (ctx) => hostApi.temporal.seconds(hostApi.number.of(1)), // TODO: TemporalExpression
-  pipeline: [
-    { effect: "transferEntityToActorInventory" }
-  ]
-});
-```
-
-### Grouped cooldown — two actions share one timer
-
-```ts
-hostApi.registerAction({
-  name: "attack",
-  targetType: "entity",
-  cooldownGroup: "melee",
-  cooldown: (_ctx) => hostApi.temporal.seconds(hostApi.number.of(1)),
-  pipeline: [{ effect: "meleeAttack" }]
-});
-
-hostApi.registerAction({
-  name: "heavyAttack",
-  targetType: "entity",
-  cooldownGroup: "melee",
-  cooldown: (_ctx) => hostApi.temporal.seconds(hostApi.number.of(1)),
-  pipeline: [{ effect: "heavyMeleeAttack" }]
-});
-```
-
-### Pipeline with dependency — Effect B uses Effect A's output
-
-```ts
-hostApi.registerAction({
-  name: "loot",
-  targetType: "container",
-  pipeline: [
-    {
-      effect: "resolveLootTable",     // root node — runs first
-    },
-    {
-      effect: "spawnLootItems",       // depends on resolveLootTable's output
-      after: ["resolveLootTable"],
-      input: (ctx, upstream) => ({
-        items: upstream["resolveLootTable"].resolvedItems,
-        targetContainer: ctx.target,
-      }),
-    },
-  ]
-});
-```
+| Client sends duplicate ActionMessage (retry) | Cooldown rejection on second message + corrective delta; idempotency guaranteed by cooldown |
 
 ---
 
 ## Cross-References
 
+- [`entity-action.md`](./entity-action.md) — Entity action registration and examples
+- [`container-action.md`](./container-action.md) — Container action registration and examples
+- [`point-action.md`](./point-action.md) — Point action registration and examples
 - [`effects.md`](./effects.md) — Effect registration, prepare/apply/commit semantics
 - [`conditionExpression.md`](../expressions/conditionExpression.md) — guard expression primitives
 - [`temporalExpression.md`](../expressions/temporalExpression.md) — cooldown duration expression *(spec pending)*
 - [`entities.md`](../data-model/entities.md) — EntityExpression used in ActionContext
 - [`containers.md`](../data-model/containers.md) — ContainerExpression and dimension model
 - [`runtime.md`](../runtime/runtime.md) — ExecutionContext, double-buffer commit, module sandboxing
-- [`randomness.md`](../runtime/randomness.md) — deterministic PRNG keyed by ExecutionContext
 
 ---
 
@@ -300,10 +248,16 @@ hostApi.registerAction({
 
 - [ ] Validate wire message shape and reject malformed inputs
 - [ ] Enforce session → owned-entity authorization at step [2]
-- [ ] Evaluate guard `ConditionExpression` against read-buffer before pipeline
-- [ ] Implement per-actor-per-cooldownGroup cooldown tracking (runtime decides storage)
-- [ ] Execute pipeline DAG: parallel root nodes, topological unblocking, single commit
-- [ ] Detect and reject cyclic pipeline DAGs at module load time (`E_PIPELINE_CYCLE`)
+- [ ] Implement unified action registry (stores entity/container/point registrations, dispatches by name)
+- [ ] Implement per-actor action queue with mutex (serialize all actions from one actor)
+- [ ] Implement per-actor-per-cooldownGroup cooldown tracking with defaults to action name
+- [ ] Evaluate guard `ConditionExpression` against read-buffer before apply
+- [ ] Execute apply function synchronously; emitted events run prepare phase immediately
+- [ ] Catch apply() exceptions: log, propagate to client, fire cooldown, stand partial events
+- [ ] Independent event emission: catch event failures, log, continue with remaining events
+- [ ] Implement recursion guard for cross-event emission (per effects.md)
+- [ ] Single atomic commit: all mutations from action and events committed together
 - [ ] On rejection: return structured error + corrective state delta to client
+- [ ] Per-actor serialization: queue pending actions when one is in-flight
 - [ ] On module hot-reload: pause, full resync to all clients, resume
 - [ ] Replace `TemporalExpression` placeholder once spec is finalized
