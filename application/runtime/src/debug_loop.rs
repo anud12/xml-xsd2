@@ -1,8 +1,11 @@
 use std::io::{BufRead, Write};
 use std::time::Instant;
+use crate::state;
 
 const LOAD_PREFIX: &str = "DEBUG: Load:";
 const ITERATE_PREFIX: &str = "DEBUG: ITERATE ";
+const EXPORT_PREFIX: &str = "DEBUG: Export:";
+const ACTION_PREFIX: &str = "DEBUG: ACTION ";
 const SHUTDOWN_CMD: &str = "DEBUG: shutdown";
 
 pub fn run(delimiter: &str) {
@@ -24,6 +27,14 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
         run_iterations(cmd, delimiter);
     }
     if cmd.starts_with(LOAD_PREFIX) {
+        println!("{delimiter}OK{delimiter}");
+        std::io::stdout().flush().ok();
+    }
+    if cmd.starts_with(EXPORT_PREFIX) {
+        let path = &cmd[EXPORT_PREFIX.len()..];
+        state::export_to_file(path);
+    }
+    if cmd.starts_with(ACTION_PREFIX) {
         println!("{delimiter}OK{delimiter}");
         std::io::stdout().flush().ok();
     }
