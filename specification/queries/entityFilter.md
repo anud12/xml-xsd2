@@ -15,7 +15,7 @@ Because filters are evaluated against a snapshot of the reading buffer must not 
 
 ## Entity shape
 
-Entities are assumed to expose the following read-only shape:
+**EntityFilter predicates operate against the internal raw entity representation**, which includes:
 
 - `id`: String
 - `classifications`: List<String>
@@ -23,7 +23,15 @@ Entities are assumed to expose the following read-only shape:
 - `number_map`: Map<String, List<Long>> (each key maps to zero-or-more numeric values)
 - `containers`: List<ContainerRef> (references to containers this entity is a member of)
 
-(See `entities.md` and `containers.md` for details.)
+However, **entities returned by queries** expose lazy accessor methods instead of direct map access:
+- `id: UniqueGlobalEntityId` — entity identifier
+- `getText(key: StringExpression): MaybeExpression<StringExpression>` — read text attribute
+- `getNumber(key: StringExpression): MaybeExpression<NumberExpression>` — read number attribute
+- `getTextKeys(): ListExpression<string>` — list all text keys
+- `getNumberKeys(): ListExpression<string>` — list all number keys
+- `containers: ListExpression<ContainerExpression>` — container memberships (lazy)
+
+See `entities.md` for details on the accessor API.
 
 ## Evaluation semantics
 
@@ -116,6 +124,9 @@ When a callback is invoked while evaluating a predicate it runs with an implicit
 - `containers`: `ListExpression<ContainerRefExpression>` — container references
 
 Predicates must use only expression primitives and are evaluated lazily; they must not mutate the world.
+
+**Note on query vs. mutation contexts:**
+The `text()` and `number()` helper functions in entity evaluation context are provided during **filter evaluation** (query predicates) and operate against the raw entity representation. When modules **retrieve and mutate entities** through effects or HostApi, they use the lazy accessor methods (`getText`, `getNumber`, etc.) defined in `entities.md`. These are two separate contexts: filters query the raw shape, while effect mutations use the accessor API.
 
 ## Examples
 

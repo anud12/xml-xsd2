@@ -86,6 +86,28 @@ export type EventContext = {
    * @returns This EventContext for method chaining.
    */
   createEntity: (entity: EntityExpression) => EventContext;
+
+  /**
+   * Query the entity repository for entities matching the given filter.
+   *
+   * Returns a lazy ListExpression<Entity> that is bound to the read-buffer snapshot
+   * (double-buffer semantics). The filter is applied deterministically at commit time
+   * against the immutable snapshot of the repository state at the start of the current tick.
+   *
+   * Available in `prepare`, `apply`, and `isReoccuranceApplicable` phases. Multiple calls
+   * with the same filter produce semantically identical results (deterministic), but each
+   * call returns a freshly-constructed expression node.
+   *
+   * The returned ListExpression can be composed with other list operations:
+   * - map, filter, length, forEach, randomElement, etc.
+   * - Composition is lazy; evaluation occurs only at commit time.
+   *
+   * If the filter matches no entities, the expression evaluates to an empty list (not an error).
+   *
+   * @param entityFilter - The EntityFilter to apply against the global repository
+   * @returns A lazy ListExpression<Entity> representing matching entities
+   */
+  getEntityBy: (entityFilter: EntityFilter) => ListExpression<Entity>;
 };
 ```
 
@@ -183,6 +205,107 @@ Implementation notes:
 - The runtime MUST provide an internal scheduler (persisted or in-memory) to track scheduled entries. Scheduling entries are materialized at commit time and included in commit writes for atomicity.
 - The runtime should enforce per-module schedule quotas (max scheduled effects, invocations per tick) to avoid resource exhaustion.
 - When persisting scheduled entries, include enough data (module id, effect id, executionCount, input/output snapshot or stable refs) to reconstruct the eventual `ExecutionContext` for the re-invocation.
+
+---
+
+### Entity Query (`getEntityBy`)
+
+The `getEntityBy` method provides a declarative, expression-based mechanism to query the entity repository from within effect callbacks. It is the primary way to locate and work with entities during effect execution.
+
+**Semantics:**
+
+- **Availability**: `getEntityBy` is available in `prepare`, `apply`, and `isReoccuranceApplicable` phases.
+- **Snapshot binding**: The returned `ListExpression<Entity>` is bound to the read-buffer snapshot (double-buffer semantics). Regardless of when it is called, the filter operates against the immutable repository state at the **start of the current tick**.
+- **Lazy evaluation**: The filter is not applied until commit time. Multiple calls to `getEntityBy` with the same filter produce semantically identical results (deterministic) but return freshly-constructed expression nodes.
+- **Composition**: The result is a `ListExpression<Entity>` and can be composed with other list operations: `map`, `filter`, `length`, `forEach`, `randomElement`, etc. Composition remains lazy.
+- **Empty results**: If the filter matches no entities, the expression evaluates to an empty list (not an error).
+
+**Snapshot Consistency Guarantee:**
+
+If `getEntityBy` is called multiple times during the same effect, all queries operate against the same read-buffer snapshot, even if `emitEvent` is called between queries. This guarantees that nested events and successive queries are consistent and deterministic.
+
+```typescript
+prepare: (context, input) => {
+  const targets = context.getEntityBy(filter1); // Snapshot A
+  context.emitEvent("nested", {}); // May call getEntityBy internally — also sees Snapshot A
+  const survivors = context.getEntityBy(filter2); // Same Snapshot A
+  return { targets, survivors }; // Both expressions bound to Snapshot A
+}
+```
+
+**Use Case: Querying and Mutating Entities**
+
+```typescript
+const damageAllEnemies: RegisterEventArgs = {
+  name: "damageAllEnemies",
+  description: "Find all enemies in a zone and apply damage",
+  input: {
+    zoneId: { type: host.string.type, description: "Target zone" },
+    damageAmount: { type: host.number.type, description: "Damage to apply" },
+  },
+  output: {
+    enemiesHit: { type: host.list.type, description: "Entities that were damaged" },
+  },
+  prepare: (context, input) => {
+    // Build a composite filter: enemies in the target zone
+    const zoneFilter = host.container.filter.create()
+      .byId(id => id.equals(input.zoneId));
+    const enemyFilter = host.entity.filter.create()
+      .byClassification(host.string.of("enemy"))
+      .and(host.entity.filter.create().hasContainer(zoneFilter));
+    
+    // Query returns a lazy ListExpression<Entity>
+    const enemies = context.getEntityBy(enemyFilter);
+    
+    return { enemies, damageAmount: input.damageAmount };
+  },
+  apply: (context, output) => {
+    // Record mutations on the lazy list
+    // forEach is evaluated at commit time
+    output.enemies.forEach((enemy) => {
+      const currentHealth = enemy.getProperty("health");
+      enemy.setProperty("health", currentHealth.subtract(output.damageAmount));
+    });
+  },
+};
+```
+
+**Use Case: Reoccurrence Check with Entity Query**
+
+```typescript
+const poisonDamageOverTime: RegisterEventArgs = {
+  name: "poisonDamageOverTime",
+  description: "Apply poison damage; reoccur while poisoned entities exist",
+  input: {
+    amount: { type: host.number.type },
+  },
+  apply: (context, output) => {
+    // Damage all poisoned entities
+    const filter = host.entity.filter.create()
+      .hasTextValue(host.string.of("status"), v => v.equals(host.string.of("poisoned")));
+    context.getEntityBy(filter).forEach(entity => {
+      entity.setProperty("health", entity.getProperty("health").subtract(output.amount));
+    });
+  },
+  reoccurAfter: (context, execCount, input, output) => 
+    host.maybe.some(host.temporal.of(host.number.of(1), "round")),
+  
+  isReoccuranceApplicable: (context, execCount, input, output) => {
+    // At scheduled time, query the repository again in a fresh ExecutionContext
+    // Check if any poisoned entities remain
+    const filter = host.entity.filter.create()
+      .hasTextValue(host.string.of("status"), v => v.equals(host.string.of("poisoned")));
+    const remaining = context.getEntityBy(filter);
+    return host.condition.isGreaterThan(remaining.length(), host.number.of(0));
+  },
+};
+```
+
+**Important Notes:**
+
+- **Cannot iterate in prepare**: Because `ListExpression` is lazy, you cannot branch logic in `prepare` based on the count of matching entities. If you need to count entities to make decisions, perform that logic in `apply` or use other effect mechanisms.
+- **Mutations are deferred**: Entities are not actually modified until the `apply` phase completes and the commit occurs. If you query the same filter after calling mutations, you will still see the pre-mutation state (snapshot).
+- **Performance with large result sets**: The lazy evaluation model ensures that `getEntityBy` does not eagerly materialize large result sets. Filtering and iteration are deferred to commit time, where they can be optimized by the runtime.
 
 ## Example
 ```typescript

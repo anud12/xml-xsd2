@@ -3,7 +3,9 @@ import {ExpressionTypes} from "./primitives/expression";
 import {MaybeExpression} from "./primitives/maybeExpression";
 import {NumberExpression} from "./primitives/numberExpression";
 import {ConditionExpression} from "./primitives/conditionExpression";
-import {EntityExpression} from "./Entity";
+import {Entity, EntityExpression} from "./Entity";
+import {EntityFilter} from "./EntityFilter";
+import {ListExpression} from "./primitives/ListExpression";
 
 export type RegisterEffectFunction = <Input, Output>(argument: RegisterEventArgs<Input, Output>) => void;
 
@@ -36,6 +38,28 @@ export type EventContext = {
    * @returns This EventContext for method chaining.
    */
   createEntity: (entity: EntityExpression) => EventContext;
+
+  /**
+   * Query the entity repository for entities matching the given filter.
+   *
+   * Returns a lazy ListExpression<Entity> that is bound to the read-buffer snapshot
+   * (double-buffer semantics). The filter is applied deterministically at commit time
+   * against the immutable snapshot of the repository state at the start of the current tick.
+   *
+   * Available in `prepare`, `apply`, and `isReoccuranceApplicable` phases. Multiple calls
+   * with the same filter produce semantically identical results (deterministic), but each
+   * call returns a freshly-constructed expression node.
+   *
+   * The returned ListExpression can be composed with other list operations:
+   * - map, filter, length, forEach, randomElement, etc.
+   * - Composition is lazy; evaluation occurs only at commit time.
+   *
+   * If the filter matches no entities, the expression evaluates to an empty list (not an error).
+   *
+   * @param entityFilter - The EntityFilter to apply against the global repository
+   * @returns A lazy ListExpression<Entity> representing matching entities
+   */
+  getEntityBy: (entityFilter: EntityFilter) => ListExpression<Entity>;
 }
 
 export type RegisterEventArgs<Input, Output> = {

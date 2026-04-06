@@ -54,15 +54,15 @@ export type HostApi = {
   maybe: MaybeExpressionApi<any>
 }
 
-export type MaybeExpressionApi<T> = {
+export type MaybeExpressionApi = {
   /** Wrap an expression/value as present */
-  of: (v: T) => MaybeExpression<T>,
+  of: <T>(v: T) => MaybeExpression<T>,
   /** Create an absent value */
-  none: () => MaybeExpression<T>,
+  none: () => MaybeExpression,
 
   /** Register/lookup named maybe rules (optional) */
-  asRule: (ruleName: string, expr: MaybeExpression<T>) => MaybeExpressionApi<T>,
-  getRule: (ruleName: string) => MaybeExpression<T>,
+  asRule: (ruleName: string, expr: MaybeExpression<T>) => MaybeExpressionApi,
+  getRule: (ruleName: string) => MaybeExpression<unknown>,
   type: MaybeExpressionType,
 }
 
