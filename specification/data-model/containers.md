@@ -27,11 +27,12 @@ This means an Entity may both exist in a Zone/Region location graph and also par
 ```typescript
 type Container = {
   id: UniqueGlobalContainerId,
-  textMap?: TextMap,
-  numberMap?: NumberMap,
-  entities: EntityReference,
-  // Optional dimensions: the number of declared dimensions determines container arity (1 -> 1D, 2 -> 2D).
-  dimensions?: Dimension[],
+  getText: (key: StringExpression) => MaybeExpression<StringExpression>,
+  getNumber: (key: StringExpression) => MaybeExpression<NumberExpression>,
+  getTextKeys: () => ListExpression<string>,
+  getNumberKeys: () => ListExpression<string>,
+  entities: ListExpression<EntityExpression>,
+  dimensions?: ListExpression<Dimension>,
 }
 
 type Dimension = {
@@ -49,12 +50,7 @@ type DimensionSize = {
 
 type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
 
-type TextMap = {
-  [name:string]: StringExpression, //collection of `StringExpression` values accessible by `name`.
-}
-type NumberMap = {
-  [name:string]: NumberExpression, //collection of `NumberExpression` values accessible by `name`.
-}
+**Note: TextMap and NumberMap are internal implementation details.** Containers use accessor methods (`getText`, `getNumber`, `getTextKeys`, `getNumberKeys`) for accessing attributes and should not be accessed directly from modules. These map types are not exposed to the Entity or Container public API.
 type EntityReference = {
   entity?: { entityIdReference: UniqueGlobalEntityId }[],
 }
@@ -225,6 +221,10 @@ export type ContainerExpression = {
 
 ### Examples
 
+**Important:** The examples below show two different contexts:
+- **DimensionExpression.withMapping()** during **CONSTRUCTION** (builder phase) receives an `EntityExpression` (builder context), which can access `entity.number_map.get()` directly.
+- **Container dimensions** shown in **runtime data models** receive **runtime Entity** objects, which must use the accessor API (`entity.getNumber()`, `entity.getText()`) instead of direct map access.
+
 ```ts
 // Build inline member entity using text/number map helpers
 const potionEntity = /* intent: build inline EntityExpression with text 'name'='Health Potion' and number 'hp_restored'=20 */;
@@ -244,14 +244,14 @@ hostApi.container.asRule?.("basic_inventory", inv);
 const instantiated = hostApi.container.getRule?.("basic_inventory")
   .withEntity(/* intent: inline EntityExpression with text 'name'='Gem' */);
 
-// Example: 1D container (slots) data model
+// Example: 1D container (slots) data model — uses runtime Entity accessor API
 const bagContainer: Container = {
   id: "bag-1",
   dimensions: [
     {
       name: "slot",
-      // mapping is a function that receives the member entity and returns a NumberExpression
-      mapping: (entity) => entity.number_map.get("slotIndex"),
+      // mapping receives runtime Entity and must use accessor API: getNumber()
+      mapping: (entity) => entity.getNumber(hostApi.string.of("slotIndex")).orElse(hostApi.number.of(0)),
       size: {
         value: hostApi.number.of(20),
         outOfBounds: "clamp",
@@ -263,18 +263,20 @@ const bagContainer: Container = {
   },
 };
 
-// Example: 2D container (grid) with wrap behavior
+// Example: 2D container (grid) data model — uses runtime Entity accessor API with wrap behavior
 const gridContainer: Container = {
   id: "chest-grid-1",
   dimensions: [
     {
       name: "row",
-      mapping: (entity) => entity.number_map.get("row"),
+      // mapping receives runtime Entity and must use accessor API: getNumber()
+      mapping: (entity) => entity.getNumber(hostApi.string.of("row")).orElse(hostApi.number.of(0)),
       size: { value: hostApi.number.of(3), outOfBounds: "wrap" },
     },
     {
       name: "col",
-      mapping: (entity) => entity.number_map.get("col"),
+      // mapping receives runtime Entity and must use accessor API: getNumber()
+      mapping: (entity) => entity.getNumber(hostApi.string.of("col")).orElse(hostApi.number.of(0)),
       size: { value: hostApi.number.of(5), outOfBounds: "wrap" },
     },
   ],

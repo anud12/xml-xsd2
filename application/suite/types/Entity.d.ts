@@ -1,6 +1,11 @@
 import {NumberMapExpression} from "./numberMap";
 import {TextMapExpression} from "./textMap";
 import {ContainerExpression} from "./Contaier";
+import {StringExpression} from "./primitives/stringExpression";
+import {ListExpression} from "./primitives/ListExpression";
+import {NumberExpression} from "./primitives/numberExpression";
+import {MaybeExpression} from "./primitives/maybeExpression";
+import {EntityFilterApi} from "./EntityFilter";
 
 export type EntityExpressionApi = {
   /** Create an empty entity builder */
@@ -11,6 +16,7 @@ export type EntityExpressionApi = {
   getRule?: (ruleName: string) => EntityExpression,
 
   type: EntityExpressionType,
+  filter: EntityFilterApi,
 }
 
 export type EntityExpressionType = {
@@ -24,4 +30,12 @@ export type EntityExpression = {
   withNumberMap: (numberMap: NumberMapExpression) => EntityExpression,
   /** Append a container membership (ContainerExpression or ContainerReference) */
   withContainer: (container: ContainerExpression) => EntityExpression,
+}
+
+export type Entity = {
+  getText: (key: StringExpression) => MaybeExpression<StringExpression>,
+  getNumber: (key: StringExpression) => MaybeExpression<NumberExpression>,
+  getTextKeys: () => ListExpression<string>,
+  getNumberKeys: () => ListExpression<string>,
+  containers: ListExpression<ContainerExpression>
 }

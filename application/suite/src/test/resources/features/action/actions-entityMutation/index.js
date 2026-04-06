@@ -30,4 +30,41 @@ export default function (hostApi) {
       actionContext.emitEvent('create_entity_effect', {});
     }
   });
+
+  hostApi.registerEffect({
+    name:"append_name_effect",
+    input: {
+      entity: {
+        type: hostApi.entity.type,
+        description:"Entity to modify append name"
+      }
+    },
+    output: {
+      entity: {
+        type: hostApi.entity.type,
+        description:"Entity to modify append name"
+      }
+    },
+    prepare: (context, input) => {
+      return input
+    },
+    apply: (context, output) => {
+      const entity = context.getEntityBy(hostApi.entity.filter.create()
+        .hasTextValue(hostApi.string.of("name"), value => value.isContainingExactly(hostApi.string.of("summoned")))
+      ).randomElement();
+
+      entity.ifPresent(entity => entity
+        .getText(hostApi.string.of("name"))
+        .ifPresent(name => name.concat(hostApi.string.of("_suffix")))
+      )
+
+    }
+  });
+
+  hostApi.registerAction({
+    name: "append_name_action",
+    apply: context => {
+      context.emitEvent("append_name_effect", {});
+    }
+  })
 }

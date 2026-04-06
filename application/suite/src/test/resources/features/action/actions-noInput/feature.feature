@@ -17,7 +17,7 @@ Feature: No-Input Action with Entity Creation
     And I have added "./index.js" file to archive
     And I load current archive
     When I run 1 iterations
-    And I send action "summon" from actor "actor1"
+    And I send action "create_entity_action" from actor "actor1"
     And I run 1 iterations
     Then assert exported state output table "entity" includes regexes from "./entity.csv"
 
@@ -27,8 +27,8 @@ Feature: No-Input Action with Entity Creation
     And I have added "./index.js" file to archive
     And I load current archive
     When I run 1 iterations
-    And I send action "summon" from actor "actor1"
+    And I send action "create_entity_action" from actor "actor1"
     And I run 1 iterations
-    And I send action "summon" from actor "actor1"
+    And I send action "create_entity_action" from actor "actor1"
     And I run 1 iterations
     Then assert exported state output table "entity" includes regexes from "./entity_double.csv"
