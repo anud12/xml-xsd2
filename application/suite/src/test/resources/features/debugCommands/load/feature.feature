@@ -3,5 +3,7 @@ Feature: Module load support
 
   Scenario: Archive with empty module
     Given I run the application in debug mode
+    And I have added "./manifest-empty-second.json" file to archive
+    And I have added "./index.js" file to archive
     And I load current archive
     Then assert exported state output table "module" includes regexes from "./module.csv"

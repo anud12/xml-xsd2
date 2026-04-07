@@ -22,6 +22,7 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let delimiter = extract_debug_delimiter(&args);
     let zip_path = find_zip_path(&args).unwrap_or_default();
+    crate::state::set_archive_path(&zip_path);
 
     println!("Runtime launched");
     std::io::stdout().flush().ok();
@@ -36,6 +37,12 @@ crate::state::set_last_file_rows(file_rows.clone());
     module::process_module(&files, &mut entity_rows);
     // store entity rows after processing
     crate::state::set_last_entity_rows(entity_rows.clone());
+
+    // Debug: print collected file rows
+    println!("main: initial file_rows count {}", file_rows.len());
+    for r in file_rows.iter() {
+        if !r.is_empty() { println!("main: file={}", r[0]); }
+    }
 
     if let Some(ref delim) = delimiter {
         // 8 invalid UTF-8 bytes shift byteStart (Java's re-encoded byte count) forward by 16,

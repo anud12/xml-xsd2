@@ -21,8 +21,10 @@ pub fn read_zip_files(zip_path: &str) -> HashMap<String, String> {
         };
         let name = f.name().to_string();
         println!("loaded {}", name);
-        let mut contents = String::new();
-        f.read_to_string(&mut contents).unwrap_or_default();
+        let mut raw: Vec<u8> = Vec::new();
+        use std::io::Read as _;
+        f.read_to_end(&mut raw).unwrap_or_default();
+        let contents = String::from_utf8_lossy(&raw).to_string();
         println!("{} loaded", name);
         files.insert(name, contents);
     }
