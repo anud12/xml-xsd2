@@ -2,19 +2,22 @@ package com.example.steps;
 
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
-import io.cucumber.java.PendingException;
+// ...existing code...
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.regex.Pattern;
 
 import static com.example.steps.ArchiveRunner.DEBUG_DELIMITED;
+import static com.example.steps.StateAssertions.extractFileFromProcess;
 
 public class ArchiveSteps {
     private final ArchiveState state = new ArchiveState();
@@ -114,7 +117,7 @@ public class ArchiveSteps {
 
     @And("I load current archive")
     public void iLoadCurrentArchive() throws Exception {
-        byte[] zipBytes = java.nio.file.Files.readAllBytes(state.archive.file().toPath());
+        byte[] zipBytes = Files.readAllBytes(state.archive.file().toPath());
         String encoded = java.util.Base64.getEncoder().encodeToString(zipBytes);
         String cmd = "DEBUG: Load:" + encoded + System.lineSeparator();
 
@@ -201,5 +204,10 @@ public class ArchiveSteps {
     public void iSendNoInputActionFromActor(String actionName, String actorId) throws IOException, InterruptedException {
         String cmd = String.format("DEBUG: ACTION %s %s%s", actionName, actorId, System.lineSeparator());
         writeDebugCommand(cmd);
+    }
+
+    @Then("DEBUG export state into {string}")
+    public void debugExportStateInto(String fileName) throws IOException {
+        extractFileFromProcess(state, new File(fileName));
     }
 }
