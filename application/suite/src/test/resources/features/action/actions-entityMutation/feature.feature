@@ -12,4 +12,5 @@ Feature: No-Input Action with Entity Creation
     And I send action "summon" from actor "actor1"
     And I run 1 iterations
     And I send action "append_name_action" from actor "actor1"
+    Then DEBUG export state into "./export.sqlite"
     Then assert exported state output table "entity" includes regexes from "./entity.csv"

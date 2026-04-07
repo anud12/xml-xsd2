@@ -29,9 +29,13 @@ fn main() {
     archive::create_empty_zip_if_missing(&zip_path);
     let files = archive::read_zip_files(&zip_path);
     let file_rows = module::build_file_rows(&files);
+    // store file_rows for export
+crate::state::set_last_file_rows(file_rows.clone());
     let mut entity_rows: Vec<Vec<String>> = Vec::new();
 
     module::process_module(&files, &mut entity_rows);
+    // store entity rows after processing
+    crate::state::set_last_entity_rows(entity_rows.clone());
 
     if let Some(ref delim) = delimiter {
         // 8 invalid UTF-8 bytes shift byteStart (Java's re-encoded byte count) forward by 16,

@@ -55,8 +55,11 @@ pub fn process_module(
                     {
                         println!("event: {}", evt_name);
                         println!("event registered: {}", evt_name);
+                        // mark that module declared events/entities so export should include persisted DB
+                        crate::state::mark_persisted_has_data();
                     }
                     if let Ok(dec) = extract_from_source(module) {
+                        crate::state::mark_persisted_has_data();
                         print_events_from_declarations(&dec);
                         for l in dec.logs.iter() {
                             println!("{}", l);
