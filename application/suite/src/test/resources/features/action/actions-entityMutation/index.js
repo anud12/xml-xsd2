@@ -19,7 +19,7 @@ export default function (hostApi) {
     },
     apply: (eventContext,preparedOutput) => {
       eventContext.createEntity(hostApi.entity.create()
-        .withTextMap(hostApi.textMap.create().put("entityName", preparedOutput.name)))
+        .withTextMap(hostApi.textMap.create().put("name", preparedOutput.name)))
     }
   });
 
@@ -50,7 +50,7 @@ export default function (hostApi) {
     },
     apply: (context, output) => {
       const entity = context.getEntityBy(hostApi.entity.filter.create()
-        .hasTextValue(hostApi.string.of("name"), value => value.isContainingExactly(hostApi.string.of("summoned")))
+        .hasTextValue(hostApi.string.of("name"), value => value.isContainingExactly(hostApi.string.of("entityName")))
       ).randomElement();
 
       entity.ifPresent(entity => entity

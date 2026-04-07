@@ -88,7 +88,8 @@ public class StateAssertions {
 
             File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
             String headerLine = Files.readString(expected.toPath()).replaceAll("\r\n", "\n").split("\n")[0];
-            java.util.List<String> expectedColumns = Arrays.asList(headerLine.split(","));
+            java.util.List<String> expectedColumns = new java.util.ArrayList<>(Arrays.asList(headerLine.split(",", -1)));
+            expectedColumns.removeIf(s -> s == null || s.isEmpty());
 
             if (!actualColumns.containsAll(expectedColumns)) {
                 java.util.List<String> missing = new java.util.ArrayList<>(expectedColumns);
@@ -134,6 +135,7 @@ public class StateAssertions {
 
         // Read actual rows from the DB as a list of maps column->value
         java.util.List<java.util.Map<String, String>> actualRows = new java.util.ArrayList<>();
+
         try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:sqlite:" + sqliteFile.getAbsolutePath());
              java.sql.Statement stmt = conn.createStatement();
              java.sql.ResultSet rs = stmt.executeQuery("SELECT * FROM '" + tableName + "'")) {
@@ -160,52 +162,114 @@ public class StateAssertions {
             throw new AssertionError("Expected CSV '" + csvFile + "' to contain header and at least one pattern row");
         }
         String headerLine = lines[0];
-        java.util.List<String> expectedColumns = Arrays.asList(headerLine.split(","));
+        java.util.List<String> expectedColumns = new java.util.ArrayList<>(Arrays.asList(headerLine.split(",", -1)));
+        expectedColumns.removeIf(s -> s == null || s.isEmpty());
 
-        // Build pattern rows: list of maps column->Pattern
-        java.util.List<java.util.Map<String, Pattern>> patternRows = new java.util.ArrayList<>();
-        for (int r = 1; r < lines.length; r++) {
-            String ln = lines[r];
-            if (ln.trim().isEmpty()) continue; // skip empty pattern lines
-            String[] cells = ln.split(",", -1);
-            if (cells.length != expectedColumns.size()) {
-                throw new AssertionError("CSV pattern row " + r + " has wrong number of columns (expected " + expectedColumns.size() + ", got " + cells.length + ")");
+        // Build pattern rows: list of maps column->Pattern (stream-based)
+        java.util.List<java.util.Map<String, Pattern>> patternRows = java.util.stream.IntStream
+                .range(1, lines.length)
+                .filter(r -> !lines[r].trim().isEmpty())
+                .mapToObj(r -> {
+                    String ln = lines[r];
+                    String[] cells = ln.split(",", -1);
+                    java.util.List<String> cellList = new java.util.ArrayList<>(Arrays.asList(cells));
+                    // Trim trailing empty columns which are often present in CSV patterns
+                    while (cellList.size() > expectedColumns.size() && cellList.get(cellList.size() - 1).isEmpty()) {
+                        cellList.remove(cellList.size() - 1);
+                    }
+                    if (cellList.size() != expectedColumns.size()) {
+                        throw new AssertionError("CSV pattern row " + r + " has wrong number of columns (expected " + expectedColumns.size() + ", got " + cellList.size() + ")");
+                    }
+                    return java.util.stream.IntStream.range(0, expectedColumns.size())
+                            .boxed()
+                            .collect(java.util.stream.Collectors.toMap(i -> expectedColumns.get(i), i -> Pattern.compile(cellList.get(i), Pattern.DOTALL), (a, b) -> a, java.util.LinkedHashMap::new));
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        // Require exact count: the CSV defines how many rows are expected
+        int expectedCount = patternRows.size();
+        int actualCount = actualRows.size();
+        if (actualCount != expectedCount) {
+            StringBuilder msg = new StringBuilder();
+            msg.append("Row count mismatch for table '").append(tableName).append("': expected ").append(expectedCount).append(" rows (from CSV), but found ").append(actualCount).append(" rows in DB.\n");
+            msg.append("Actual rows:\n");
+            for (int i = 0; i < actualRows.size(); i++) {
+                msg.append(i).append(": ").append(actualRows.get(i)).append("\n");
             }
-            java.util.Map<String, Pattern> prow = new java.util.HashMap<>();
-            for (int i = 0; i < expectedColumns.size(); i++) {
-                String col = expectedColumns.get(i);
-                String pat = cells[i];
-                Pattern p = Pattern.compile(pat, Pattern.DOTALL);
-                prow.put(col, p);
+            msg.append("CSV pattern rows:\n");
+            for (int i = 0; i < patternRows.size(); i++) {
+                msg.append(i).append(": ").append(patternRows.get(i).keySet()).append(" -> ").append(patternRows.get(i).values()).append("\n");
             }
-            patternRows.add(prow);
+            throw new AssertionError(msg.toString());
         }
 
-        // For each actual row, ensure at least one pattern row matches
-        java.util.List<java.util.Map<String, String>> missing = new java.util.ArrayList<>();
-        for (java.util.Map<String, String> actual : actualRows) {
-            boolean anyMatches = false;
-            for (java.util.Map<String, Pattern> prow : patternRows) {
+        // Build match matrix: patternRows x actualRows
+        boolean[][] matches = new boolean[expectedCount][actualCount];
+        for (int p = 0; p < expectedCount; p++) {
+            for (int a = 0; a < actualCount; a++) {
                 boolean ok = true;
                 for (String col : expectedColumns) {
-                    Pattern p = prow.get(col);
-                    String actualVal = actual.getOrDefault(col, "");
-                    if (actualVal == null) actualVal = "";
-                    if (!p.matcher(actualVal).matches()) { ok = false; break; }
+                    Pattern pat = patternRows.get(p).get(col);
+                    String val = actualRows.get(a).getOrDefault(col, "");
+                    if (pat == null) {
+                        // If CSV didn't include a column (shouldn't happen), treat as mismatch
+                        ok = false;
+                        break;
+                    }
+                    if (!pat.matcher(val).matches()) {
+                        ok = false;
+                        break;
+                    }
                 }
-                if (ok) { anyMatches = true; break; }
+                matches[p][a] = ok;
             }
-            if (!anyMatches) missing.add(actual);
         }
 
-        if (!missing.isEmpty()) {
-            StringBuilder b = new StringBuilder();
-            b.append("The following rows from table '").append(tableName).append("' did not match any pattern from ").append(csvFile).append("\n");
-            for (java.util.Map<String, String> row : missing) {
-                b.append(row.toString()).append("\n");
+        // Find a perfect matching between patternRows (left) and actualRows (right)
+        int[] patternToActual = new int[expectedCount];
+        int[] actualToPattern = new int[actualCount];
+        java.util.Arrays.fill(patternToActual, -1);
+        java.util.Arrays.fill(actualToPattern, -1);
+
+        class AssignHelper {
+            boolean tryAssign(int p, boolean[] seen) {
+                for (int a = 0; a < actualCount; a++) {
+                    if (!matches[p][a] || seen[a]) continue;
+                    seen[a] = true;
+                    if (actualToPattern[a] == -1 || tryAssign(actualToPattern[a], seen)) {
+                        actualToPattern[a] = p;
+                        patternToActual[p] = a;
+                        return true;
+                    }
+                }
+                return false;
             }
-            throw new AssertionError(b.toString());
         }
+
+        AssignHelper helper = new AssignHelper();
+        for (int p = 0; p < expectedCount; p++) {
+            boolean[] seen = new boolean[actualCount];
+            if (!helper.tryAssign(p, seen)) {
+                // Build diagnostic message showing which pattern couldn't be satisfied
+                StringBuilder msg = new StringBuilder();
+                msg.append("Unable to match CSV pattern row #").append(p).append(" to any DB row for table '").append(tableName).append("'.\n");
+                msg.append("Pattern row: ").append(patternRows.get(p)).append("\n");
+                msg.append("Actual rows:\n");
+                for (int a = 0; a < actualRows.size(); a++) {
+                    msg.append(a).append(": ").append(actualRows.get(a)).append("\n");
+                }
+                msg.append("Match matrix (pattern x actual):\n");
+                for (int pi = 0; pi < expectedCount; pi++) {
+                    msg.append("P").append(pi).append(": ");
+                    for (int ai = 0; ai < actualCount; ai++) msg.append(matches[pi][ai] ? "1" : "0");
+                    msg.append("\n");
+                }
+                throw new AssertionError(msg.toString());
+            }
+        }
+
+        // If we reach here, a perfect one-to-one matching was found
+
     }
 
 }

@@ -1,11 +1,15 @@
 use anyhow::Result;
 use rquickjs::Context;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 /// Minimal shape describing declarations discovered in a script/context.
 #[derive(Debug, Deserialize, serde::Serialize)]
 pub struct Declarations {
     pub events: Vec<String>,
+    pub actions: Vec<String>,
+    pub creators: HashMap<String, Vec<String>>,
+    pub emits: HashMap<String, Vec<String>>,
     pub functions: Vec<String>,
     pub entities: Vec<String>,
     pub logs: Vec<String>,
@@ -45,20 +49,107 @@ pub fn install_host_api(ctx: &Context) -> Result<()> {
                     globalThis.__registeredEvents = globalThis.__registeredEvents || [];
                     globalThis.__registeredEvents.push(ev);
 
-                    // Try to inspect the apply function body to heuristically discover
-                    // created entities (string.of usages inside handler source). This
-                    // preserves the previous ability to detect created entities when
+                    // Try to inspect the prepare/apply function bodies to heuristically discover
+                    // created entities (string.of usages inside handler source) and emitted
+                    // events. This preserves the previous ability to detect created entities when
                     // they are only present inside handler functions.
                     try {
-                        if (ev && typeof ev === 'object' && ev.apply && typeof ev.apply === 'function') {
-                            let src = ev.apply.toString();
-                            const re = /string\.of\(\s*"([^\"]+)"\s*\)/g;
-                            let m;
-                            while ((m = re.exec(src)) !== null) {
-                                globalThis.__createdEntities = globalThis.__createdEntities || [];
-                                globalThis.__createdEntities.push(m[1]);
+                        const scanFn = (fn, owner) => {
+                            if (fn && typeof fn === 'function') {
+                                let src = fn.toString();
+                                const re = /string\.of\(\s*"([^\"]+)"\s*\)/g;
+                                let m;
+                                while ((m = re.exec(src)) !== null) {
+                                    globalThis.__createdEntitiesFor = globalThis.__createdEntitiesFor || {};
+                                    globalThis.__createdEntitiesFor[owner] = globalThis.__createdEntitiesFor[owner] || [];
+                                    globalThis.__createdEntitiesFor[owner].push(m[1]);
+                                }
+                                const emitRe = /emitEvent\(\s*['\"]([^'\"]+)['\"]/g;
+                                let em;
+                                while ((em = emitRe.exec(src)) !== null) {
+                                    globalThis.__emitsMap = globalThis.__emitsMap || {};
+                                    globalThis.__emitsMap[owner] = globalThis.__emitsMap[owner] || [];
+                                    globalThis.__emitsMap[owner].push(em[1]);
+                                }
                             }
-                        }
+                        };
+                        let owner = n;
+                        scanFn(ev.prepare, owner);
+                        scanFn(ev.apply, owner);
+                    } catch(e) { /* ignore */ }
+                },
+                registerAction(ev) {
+                    let n = 'unknown';
+                    if (ev && typeof ev === 'object') {
+                        if (typeof ev.name === 'string') n = ev.name;
+                        else if (ev.apply && typeof ev.apply === 'function' && ev.apply.name) n = ev.apply.name;
+                    } else if (typeof ev === 'string') {
+                        n = ev;
+                    }
+                    globalThis.__logs = globalThis.__logs || [];
+                    globalThis.__logs.push(`action registered: ${n}`);
+                    globalThis.__registeredActions = globalThis.__registeredActions || [];
+                    globalThis.__registeredActions.push(ev);
+                    try {
+                        const scanFn = (fn, owner) => {
+                            if (fn && typeof fn === 'function') {
+                                let src = fn.toString();
+                                const re = /string\.of\(\s*"([^\"]+)"\s*\)/g;
+                                let m;
+                                while ((m = re.exec(src)) !== null) {
+                                    globalThis.__createdEntitiesFor = globalThis.__createdEntitiesFor || {};
+                                    globalThis.__createdEntitiesFor[owner] = globalThis.__createdEntitiesFor[owner] || [];
+                                    globalThis.__createdEntitiesFor[owner].push(m[1]);
+                                }
+                                const emitRe = /emitEvent\(\s*['\"]([^'\"]+)['\"]/g;
+                                let em;
+                                while ((em = emitRe.exec(src)) !== null) {
+                                    globalThis.__emitsMap = globalThis.__emitsMap || {};
+                                    globalThis.__emitsMap[owner] = globalThis.__emitsMap[owner] || [];
+                                    globalThis.__emitsMap[owner].push(em[1]);
+                                }
+                            }
+                        };
+                        let owner = n;
+                        scanFn(ev.prepare, owner);
+                        scanFn(ev.apply, owner);
+                    } catch(e) { /* ignore */ }
+                },
+                registerEffect(ev) {
+                    let n = 'unknown';
+                    if (ev && typeof ev === 'object') {
+                        if (typeof ev.name === 'string') n = ev.name;
+                        else if (ev.apply && typeof ev.apply === 'function' && ev.apply.name) n = ev.apply.name;
+                    } else if (typeof ev === 'string') {
+                        n = ev;
+                    }
+                    globalThis.__logs = globalThis.__logs || [];
+                    globalThis.__logs.push(`effect registered: ${n}`);
+                    globalThis.__registeredEvents = globalThis.__registeredEvents || [];
+                    globalThis.__registeredEvents.push(ev);
+                    try {
+                        const scanFn = (fn, owner) => {
+                            if (fn && typeof fn === 'function') {
+                                let src = fn.toString();
+                                const re = /string\.of\(\s*"([^\"]+)"\s*\)/g;
+                                let m;
+                                while ((m = re.exec(src)) !== null) {
+                                    globalThis.__createdEntitiesFor = globalThis.__createdEntitiesFor || {};
+                                    globalThis.__createdEntitiesFor[owner] = globalThis.__createdEntitiesFor[owner] || [];
+                                    globalThis.__createdEntitiesFor[owner].push(m[1]);
+                                }
+                                const emitRe = /emitEvent\(\s*['\"]([^'\"]+)['\"]/g;
+                                let em;
+                                while ((em = emitRe.exec(src)) !== null) {
+                                    globalThis.__emitsMap = globalThis.__emitsMap || {};
+                                    globalThis.__emitsMap[owner] = globalThis.__emitsMap[owner] || [];
+                                    globalThis.__emitsMap[owner].push(em[1]);
+                                }
+                            }
+                        };
+                        let owner = n;
+                        scanFn(ev.prepare, owner);
+                        scanFn(ev.apply, owner);
                     } catch(e) { /* ignore */ }
                 },
                 createEntity(obj) {
@@ -91,7 +182,7 @@ pub fn install_host_api(ctx: &Context) -> Result<()> {
 }
 
 /// Inspect the QuickJS global scope and return a JSON-deserializable
-/// representation of discovered declarations (events, functions, entities).
+/// representation of discovered declarations (events, actions, functions, entities).
 ///
 /// Implementation evaluates a small JS snippet that reads the sentinel
 /// __registeredEvents and __createdEntities and top-level functions, returning
@@ -100,9 +191,19 @@ pub fn extract_declarations(ctx: &Context) -> Result<Declarations> {
     let json = ctx.with(|ctx| {
         ctx.eval::<String, _>(
             r#"(function(){
-                const out = { events: [], functions: [], entities: [] };
+                const out = { events: [], actions: [], functions: [], entities: [], creators: {}, emits: {} };
                 const re = globalThis.__registeredEvents || [];
                 out.events = re.map(ev => {
+                    if (typeof ev === 'string') return ev;
+                    if (ev && typeof ev === 'object') {
+                        if (typeof ev.name === 'string') return ev.name;
+                        if (ev.apply && typeof ev.apply === 'function' && ev.apply.name) return ev.apply.name;
+                        try { return JSON.stringify(ev); } catch(e) { return String(ev); }
+                    }
+                    return String(ev);
+                });
+                const ra = globalThis.__registeredActions || [];
+                out.actions = ra.map(ev => {
                     if (typeof ev === 'string') return ev;
                     if (ev && typeof ev === 'object') {
                         if (typeof ev.name === 'string') return ev.name;
@@ -125,6 +226,8 @@ pub fn extract_declarations(ctx: &Context) -> Result<Declarations> {
                     try { return typeof globalThis[k] === 'function' && !k.startsWith('_') && k !== 'host'; }
                     catch(e) { return false; }
                 }).sort();
+                out.creators = globalThis.__createdEntitiesFor || {};
+                out.emits = globalThis.__emitsMap || {};
                 return JSON.stringify(out);
             })()"#,
         )
