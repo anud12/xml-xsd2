@@ -80,20 +80,20 @@ hostApi.temporal.defineUnit("day",   hostApi.number.of(8640), { displayName: "Da
 
 ## Host API (TypeScript)
 
-```ts
-export type HostApi = {
-  /* ... rest of declarations ... */
-  temporal: TemporalExpressionApi;
-}
+## Host API (TypeScript)
 
-export type TemporalExpressionApi = {
+### API Structure
+
+**TemporalApi** is the factory and operation builder:
+```ts
+export type TemporalApi = {
   /**
    * Declare how many GTU each runtime tick advances the game clock.
    * Must be called exactly once across all loaded modules.
    * Default: 0 (game time does not advance — all time-based mechanics disabled).
    * Load-time error if called more than once: E_TEMPORAL_SCALE_CONFLICT.
    */
-  tickAdvancesBy: (gtu: NumberExpression) => TemporalExpressionApi;
+  tickAdvancesBy: (gtu: NumberExpression) => TemporalApi;
 
   /**
    * Register a named time unit defined as `magnitudeInGTU` base game-time units.
@@ -109,7 +109,7 @@ export type TemporalExpressionApi = {
     unitName: string,
     magnitudeInGTU: NumberExpression,
     options?: { displayName?: string }
-  ) => TemporalExpressionApi;
+  ) => TemporalApi;
 
   /**
    * Create a duration: n × the named unit.
@@ -117,9 +117,21 @@ export type TemporalExpressionApi = {
    * or a runtime error (treated as 0 GTU with a log warning) when dynamic.
    */
   of: (n: NumberExpression, unitName: string) => TemporalExpression;
+  
+  /** Build an operation: multiply duration by factor */
+  multiply: (factor: NumberExpression) => TemporalApi,
+  
+  /** Build an operation: max of two durations */
+  max: (other: TemporalExpression) => TemporalApi,
+  
+  /** Build an operation: min of two durations */
+  min: (other: TemporalExpression) => TemporalApi,
+  
+  /** Evaluate this operation sequence against a given value */
+  evaluate: (value: TemporalExpression) => TemporalExpression,
 
   /** Register and retrieve named temporal duration rules */
-  asRule: (ruleName: string, expr: TemporalExpression) => TemporalExpressionApi;
+  asRule: (ruleName: string, expr: TemporalExpression) => TemporalApi;
   getRule: (ruleName: string) => TemporalExpression;
 
   /** Marker for HostApi surfaces */
@@ -129,8 +141,17 @@ export type TemporalExpressionApi = {
 export type TemporalExpressionType = {
   // marker for dynamic HostApi typing
 }
+```
 
+**TemporalExpression** is the lazy expression tree (composition only):
+```ts
 export type TemporalExpression = {
+  /** Apply an operation to transform the current value. Returns self for chaining. */
+  apply: (operation: TemporalApi) => TemporalExpression;
+  
+  /** Replace the current value entirely (reset point). Returns self for chaining. */
+  set: (value: TemporalExpression) => TemporalExpression;
+
   /**
    * Scale this duration by a NumberExpression factor.
    * Useful for stat-based cooldowns (e.g. cooldown halved by actor speed).
@@ -145,6 +166,13 @@ export type TemporalExpression = {
   min: (other: TemporalExpression) => TemporalExpression;
 }
 ```
+
+### Implementation Notes
+
+- **`TemporalExpression` is immutable** with an operation queue. The underlying GTU value never changes; only the queued operations grow.
+- **`.apply(operation)`** appends the operation to the queue and returns `this` for chaining.
+- **`.set(value)`** discards the current queue and replaces the value with a new one. Returns `this` for chaining.
+- **Sequential execution**: operations in the queue apply in declaration order when the expression is evaluated.
 
 ---
 

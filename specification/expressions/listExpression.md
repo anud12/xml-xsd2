@@ -43,29 +43,44 @@ Short-circuiting: evaluation is lazy across nodes; implementations should avoid 
 
 ## Host API (TypeScript)
 
-```ts
-export type HostApi = {
-  /* ... rest of declarations ... */
-  list: ListExpressionApi
-}
+### API Structure
 
-export type ListExpressionApi = {
+**ListOperations** is the factory and operation builder:
+```ts
+export type ListApi = {
   /** Create a literal list (elements may be primitives or expression wrappers). Accepts variable arguments. */
   of: <T> (...items: T[]) => ListExpression<T>;
-
-  /** Register and retrieve named list rules. */
-  asRule: (ruleName: string, expr: ListExpression<unknown>) => ListExpressionApi;
-  getRule: (ruleName: string) => ListExpression<unknown>;
+  
+  /** Build an operation: concatenate two lists */
+  concat: <T>(other: ListExpression<T>) => ListOperations,
+  
+  /** Build an operation: append a single element */
+  append: <T>(element: T) => ListOperations,
+  
+  /** Build an operation: grouping node to control evaluation order */
+  group: <T>(expr: ListExpression<T>) => ListOperations,
+  
+  /** Build an operation: lazy transformation of each element */
+  map: <T>(cb: (elementExpr: T, index?: number) => any) => ListOperations,
+  
+  /** Evaluate this operation sequence against a given value */
+  evaluate: <T>(value: ListExpression<T>) => ListExpression<T>,
+  
+  /** Register and retrieve named list rules */
+  asRule: (ruleName: string, expr: ListExpression<unknown>) => ListOperations,
+  getRule: (ruleName: string) => ListExpression<unknown>,
 }
+```
 
-export type ListExpressionType = {
-// used when declaring argument types dynamically in HostApi clients
-}
-
+**ListExpression** is the lazy expression tree (composition only):
+```ts
 export type ListExpression<T> = {
-  /** Convenience to create a literal (delegates to ListExpressionApi.of) */
-  of: (...items: T[]) => ListExpression<T>;
-
+  /** Apply an operation to transform the current value. Returns self for chaining. */
+  apply: (operation: ListOperations) => ListExpression<T>;
+  
+  /** Replace the current value entirely (reset point). Returns self for chaining. */
+  set: (value: ListExpression<T>) => ListExpression<T>;
+  
   /** Concatenate two lists */
   concat: (other: ListExpression<T>) => ListExpression<T>;
 
@@ -98,8 +113,15 @@ export type ListExpression<T> = {
   /** Deterministic selection of an element using the instance RNG (returns MaybeExpression) */
   randomElement: () => MaybeExpression<T>;
 }
-
 ```
+
+### Implementation Notes
+
+- **`ListExpression<T>` is immutable** with an operation queue. The underlying list value never changes; only the queued operations grow.
+- **`.apply(operation)`** appends the operation to the queue and returns `this` for chaining.
+- **`.set(value)`** discards the current queue and replaces the value with a new one. Returns `this` for chaining.
+- **`of(...items)` is eagerly computed and cached** for literal items only; other constructors remain lazy.
+- **Sequential execution**: operations in the queue apply in declaration order when the expression is evaluated.
 
 Notes:
 - `any` above denotes an element expression or literal; concrete HostApi implementations SHOULD provide typed helpers (e.g., List<StringExpression>) or specialized helpers such as `listOfStrings` for ergonomic host bindings.
