@@ -48,31 +48,52 @@ Determinism
 
 ## Host API (TypeScript)
 
+## Host API (TypeScript)
+
+### API Structure
+
+**MaybeOperations** is the factory and operation builder:
 ```ts
-export type HostApi = {
-  /* ...rest of declarations... */
-  maybe: MaybeExpressionApi<any>
-}
-
-export type MaybeExpressionApi = {
-  /** Wrap an expression/value as present */
+export type MaybeApi = {
+  /** Wrap an expression/value as present (returns MaybeExpression immediately) */
   of: <T>(v: T) => MaybeExpression<T>,
-  /** Create an absent value */
+  
+  /** Create an absent value (returns MaybeExpression immediately) */
   none: () => MaybeExpression,
-
+  
+  /** Build an operation: transform value if present */
+  map: <T, U>(mapper: (v: T) => U) => MaybeOperations,
+  
+  /** Build an operation: chain transformation returning MaybeExpression */
+  flatMap: <T, U>(mapper: (v: T) => MaybeExpression<U>) => MaybeOperations,
+  
+  /** Build an operation: filter value if present */
+  filter: <T>(predicate: (v: T) => ConditionExpression) => MaybeOperations,
+  
+  /** Evaluate this operation sequence against a given value */
+  evaluate: <T>(value: MaybeExpression<T>) => MaybeExpression<T>,
+  
   /** Register/lookup named maybe rules (optional) */
-  asRule: (ruleName: string, expr: MaybeExpression<T>) => MaybeExpressionApi,
+  asRule: <T>(ruleName: string, expr: MaybeExpression<T>) => MaybeOperations,
   getRule: (ruleName: string) => MaybeExpression<unknown>,
+  
+  /** Marker for HostApi surfaces */
   type: MaybeExpressionType,
 }
 
 export type MaybeExpressionType = {
   // marker for HostApi surfaces
 }
+```
 
+**MaybeExpression** is the lazy expression tree (composition only):
+```ts
 export type MaybeExpression<T> = {
-  of: (v: T) => MaybeExpression<T>,
-  none: () => MaybeExpression<T>,
+  /** Apply an operation to transform the current value. Returns self for chaining. */
+  apply: (operation: MaybeOperations) => MaybeExpression<T>;
+  
+  /** Replace the current value entirely (reset point). Returns self for chaining. */
+  set: (value: MaybeExpression<T>) => MaybeExpression<T>;
 
   /** Presence checks */
   isPresent: () => ConditionExpression,
@@ -90,6 +111,14 @@ export type MaybeExpression<T> = {
   ifPresent: (cb: (v: T) => void) => void,
 }
 ```
+
+### Implementation Notes
+
+- **`MaybeExpression<T>` is immutable** with an operation queue. The underlying value (present/absent) never changes; only the queued operations grow.
+- **`.apply(operation)`** appends the operation to the queue and returns `this` for chaining.
+- **`.set(value)`** discards the current queue and replaces the value with a new one. Returns `this` for chaining.
+- **Sequential execution**: operations in the queue apply in declaration order when the expression is evaluated.
+- **Fail-soft by default**: if evaluating an inner expression throws or a referenced rule is missing, the operation treats it as `None` and logs the event.
 
 Notes:
 - `T` above denotes the contained value type; concrete HostApi bindings SHOULD provide typed helpers where feasible (e.g., Maybe<StringExpression> helpers).

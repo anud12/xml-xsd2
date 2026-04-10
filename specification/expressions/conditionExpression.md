@@ -30,32 +30,72 @@ Callback-based `ifTrue` and `ifFalse` provide explicit, lazy branching: the call
 
 ## Host API (TypeScript)
 
+### API Structure
+
+**ConditionOperations** is the factory and combinator builder:
+```ts
+export type ConditionApi = {
+  /** Create a constant boolean value (returns ConditionExpression immediately) */
+  of: (value: boolean) => ConditionExpression;
+  
+  /** Build a combinator: logical AND */
+  and: (other: ConditionExpression) => ConditionOperations;
+  
+  /** Build a combinator: logical OR */
+  or: (other: ConditionExpression) => ConditionOperations;
+  
+  /** Build a combinator: logical NOT */
+  negate: () => ConditionOperations;
+  
+  /** Evaluate this combinator sequence against a given condition */
+  evaluate: (value: ConditionExpression) => ConditionExpression;
+  
+  /** Register and retrieve named condition rules */
+  asRule: (ruleName: string, expr: ConditionExpression) => ConditionOperations;
+  getRule: (ruleName: string) => ConditionExpression;
+  
+  /** Marker for HostApi surfaces */
+  type: ConditionExpressionType;
+};
+
+export type ConditionExpressionType = {
+  // marker for dynamic HostApi typing
+};
+```
+
+**ConditionExpression** is the lazy expression tree (composition only):
 ```ts
 export type ConditionExpression = {
-  /** Short-circuiting combinators. Immutable. */
+  /** Apply a combinator to build a new condition tree. Returns self for chaining. */
+  apply: (operation: ConditionOperations) => ConditionExpression;
+  
+  /** Replace current value (reset point). Returns self for chaining. */
+  set: (value: ConditionExpression) => ConditionExpression;
+  
+  /** Short-circuiting AND combinator. Immutable. */
   and: (other: ConditionExpression) => ConditionExpression;
-  or:  (other: ConditionExpression) => ConditionExpression;
+  
+  /** Short-circuiting OR combinator. Immutable. */
+  or: (other: ConditionExpression) => ConditionExpression;
 
   /** Logical inversion. */
   negate: () => ConditionExpression;
 
-  /** Convenience combinators that accept callbacks producing ConditionExpression values lazily. */
-  ifTrue:  (cb: () => ConditionExpression) => ConditionExpression; // invoke cb only when receiver is true
-  ifFalse: (cb: () => ConditionExpression) => ConditionExpression; // invoke cb only when receiver is false
-};
-
-export type ConditionExpressionApi = {
-  /** Factory function */
-  of: (value: boolean) => ConditionExpression;
-
-  /** Register and retrieve named condition rules. */
-  asRule: (ruleName: string, expr: ConditionExpression) => ConditionExpressionApi;
-  getRule: (ruleName: string) => ConditionExpression;
-
-  /** Marker for HostApi surfaces */
-  type: ConditionExpressionType;
+  /** Convenience combinator that accepts callback producing ConditionExpression lazily. */
+  ifTrue: (cb: () => ConditionExpression) => ConditionExpression;
+  
+  /** Convenience combinator that accepts callback producing ConditionExpression lazily. */
+  ifFalse: (cb: () => ConditionExpression) => ConditionExpression;
 };
 ```
+
+### Implementation Notes
+
+- **`ConditionExpression` is immutable** with a combinator queue. The underlying truth value never changes; only the queued combinators grow.
+- **`.apply(operation)`** appends the combinator to the queue and returns `this` for chaining.
+- **`.set(value)`** discards the current queue and replaces the value with a new one. Returns `this` for chaining.
+- **Short-circuit semantics** apply during evaluation: `and` stops on first false, `or` stops on first true.
+- **Sequential execution**: combinators in the queue apply in declaration order when the expression is evaluated.
 
 Notes:
 - All nodes are lazy; factories construct tree nodes and the runtime is responsible for evaluation.

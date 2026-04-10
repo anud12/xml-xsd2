@@ -46,32 +46,44 @@ References:
 ## Host Api 
 
 The runtime exposes the following TypeScript declaration file (.d.ts) which enhances the HostApi.
+
+### API Structure
+
+**NumberOperations** is the factory and operation builder:
 ```typescript
-export type HostApi = {
-/*... rest of declarations */
-number: NumberExpressionApi
+export type NumberOperations = {
+    /** Create a constant value (returns NumberExpression immediately) */
+    of: (number: number) => NumberExpression,
+    
+    /** Create a deterministically random value (returns NumberExpression immediately) */
+    random: (fromInclusive: NumberExpression, toInclusive: NumberExpression) => NumberExpression,
+    
+    /** Build an operation: add */
+    add: (value: NumberExpression) => NumberOperations,
+    
+    /** Build an operation: subtract */
+    subtract: (value: NumberExpression) => NumberOperations,
+    
+    /** Build an operation: multiply */
+    multiply: (value: NumberExpression) => NumberOperations,
+    
+    /** Build an operation: divide (throws if value == 0 at build time) */
+    divide: (value: NumberExpression) => NumberOperations,
+    
+    /** Evaluate this operation sequence against a given value */
+    evaluate: (value: NumberExpression) => NumberExpression,
 }
+```
 
-
-export type NumberExpressionApi = {
-    of: (number:number) => NumberExpression,
-    asRule:(ruleName: string, numberExpression: NumberExpression) => NumberExpressionApi,
-    getRule: (ruleName: string) => NumberExpressionApi,
-    type: NumberExpressionType,
-}
-
-export type NumberExpressionType = {
-    //** used when declaring type of arguments dynamically.
-}
-
+**NumberExpression** is the lazy expression tree (composition only):
+```typescript
 export type NumberExpression = {
-    of: (number:number) => NumberExpression,
-    sum: (numberExpression:NumberExpression) => NumberExpression,
-    subtract: (numberExpression:NumberExpression) => NumberExpression,
-    multiply: (numberExpression:NumberExpression) => NumberExpression,
-    divide: (numberExpression:NumberExpression) => NumberExpression,
-    random: (fromInclusive:NumberExpression, toInclusive: NumberExpression) => NumberExpression,
-
+    /** Apply an operation to transform the current value. Returns self for chaining. */
+    apply: (operation: NumberOperations) => NumberExpression,
+    
+    /** Replace the current value entirely (reset point). Returns self for chaining. */
+    set: (value: NumberExpression) => NumberExpression,
+    
     /** Comparison operations returning a lazy ConditionExpression. Prefix 'is' required. */
     isGreaterThan: (other: NumberExpression) => ConditionExpression,
     isLessThan: (other: NumberExpression) => ConditionExpression,
@@ -80,4 +92,17 @@ export type NumberExpression = {
     isEqualTo: (other: NumberExpression) => ConditionExpression,
     isNotEqualTo: (other: NumberExpression) => ConditionExpression,
 }
+
+export type HostApi = {
+    /* ... rest of declarations ... */
+    number: NumberOperations
+}
 ```
+
+### Implementation Notes
+
+- **`NumberExpression` is a constant value** with an operation queue. The underlying numeric value never changes; only the queued operations grow.
+- **`.apply(operation)`** appends the operation to the queue and returns `this` for chaining.
+- **`.set(value)`** discards the current queue and replaces the value with a new one. Returns `this` for chaining. Useful for control flow (e.g., reset to a default).
+- **`NumberOperations.divide(0)`** throws immediately at build time (fail-fast).
+- **Sequential execution**: operations in the queue execute in declaration order when the expression is evaluated.
