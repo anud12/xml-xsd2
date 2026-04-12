@@ -4,5 +4,21 @@
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>NewGameProject</RootNamespace>
+    <!-- Rust integration properties -->
+    <RuntimeDllName>xml_xsd2.dll</RuntimeDllName>
+    <RustManifest>$(MSBuildProjectDirectory)\..\runtime\Cargo.toml</RustManifest>
+    <RustBuildProfile>release</RustBuildProfile>
+    <RustDllPath>$(MSBuildProjectDirectory)\..\runtime\target\$(RustBuildProfile)\$(RuntimeDllName)</RustDllPath>
   </PropertyGroup>
+
+  <!-- Build Rust runtime and copy DLL into the client folder before building C# assemblies -->
+  <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">
+    <Message Text="Building Rust runtime (cargo)..." Importance="high" />
+    <Exec Command="cargo build --manifest-path &quot;$(RustManifest)&quot; --$(RustBuildProfile)" />
+    <Message Text="Copying Rust runtime DLL to client folder..." Importance="high" />
+    <ItemGroup>
+      <RustBuiltDll Include="$(RustDllPath)" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RustBuiltDll)" DestinationFolder="$(MSBuildProjectDirectory)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

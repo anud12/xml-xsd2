@@ -50,3 +50,31 @@ Adjust paths if running from the repo root or another working directory.
 
 ## License
 Specify a license for this code (e.g., MIT, Apache-2.0) or add a LICENSE file to the repository.
+
+## Native embedding (P/Invoke)
+
+The runtime can be built as a native shared library and called from C# via P/Invoke. Quick steps:
+
+1. Build the runtime as a DLL from the repository root:
+
+```
+cargo build --manifest-path application\runtime\Cargo.toml --release
+```
+
+2. Copy the produced DLL into the Godot client folder (Windows example):
+
+```
+copy application\runtime\target\release\xml_xsd2.dll application\client\
+```
+
+3. Use the provided RuntimeInterop.cs wrapper (application/client/RuntimeInterop.cs). Example usage from a Godot C# script:
+
+```
+var dbPath = RuntimeInterop.ProcessArchive("path\\to\\module.zip");
+GD.Print("Persisted state at: " + dbPath);
+```
+
+Notes:
+- The built DLL is named `xml_xsd2.dll` on Windows; update the LIB_NAME constant in RuntimeInterop.cs if needed.
+- Ensure the DLL is accessible to the Godot runtime (place it in the project root or add its folder to PATH).
+- Alternatively use the subprocess/stdio approach if you prefer decoupling the runtime from the engine process.
