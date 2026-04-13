@@ -1,4 +1,4 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
-xml_xsd2.dll
+libxml_xsd2.dll

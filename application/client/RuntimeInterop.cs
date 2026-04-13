@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 public static class RuntimeInterop
 {
     // Adjust LIB_NAME if the produced DLL name differs (e.g., xml-xsd2 or xml_xsd2)
-    private const string LIB_NAME = "xml_xsd2";
+    private const string LIB_NAME = "libxml_xsd2";
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr runtime_process_archive([MarshalAs(UnmanagedType.LPStr)] string path);
