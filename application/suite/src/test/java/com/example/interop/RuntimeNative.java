@@ -26,4 +26,6 @@ public interface RuntimeNative extends Library {
     void runtime_free_string(Pointer s);
 
     boolean runtime_export_state(String path);
+
+    void runtime_clear_state();
 }
