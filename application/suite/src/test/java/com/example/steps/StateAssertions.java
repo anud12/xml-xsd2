@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 import static com.example.steps.ArchiveRunner.DEBUG_DELIMITED;
 
 import com.example.interop.RuntimeInteropJava;
+import com.example.interop.structs.*;
 
 public class StateAssertions {
 
@@ -56,7 +57,7 @@ public class StateAssertions {
             }
         }
         File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
-        String expectedCsv = java.nio.file.Files.readString(expected.toPath()).replaceAll("\r\n", "\n");
+        String expectedCsv = java.nio.file.Files.readString(expected.toPath()).replaceAll("\\R", "\n");
         if (!csvBuilder.toString().trim().equals(expectedCsv.trim())) {
             throw new AssertionError("CSV output mismatch:\nExpected:\n" + expectedCsv + "\nActual:\n" + csvBuilder);
         }
@@ -75,7 +76,7 @@ public class StateAssertions {
             }
 
             File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
-            String headerLine = java.nio.file.Files.readString(expected.toPath()).replaceAll("\r\n", "\n").split("\n")[0];
+            String headerLine = java.nio.file.Files.readString(expected.toPath()).replaceAll("\\R", "\n").split("\n")[0];
             java.util.List<String> expectedColumns = new java.util.ArrayList<>(java.util.Arrays.asList(headerLine.split(",", -1)));
             expectedColumns.removeIf(s -> s == null || s.isEmpty());
 
@@ -135,7 +136,7 @@ public class StateAssertions {
 
         // Read expected CSV and parse header + pattern rows
         File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
-        String content = java.nio.file.Files.readString(expected.toPath()).replaceAll("\r\n", "\n");
+        String content = java.nio.file.Files.readString(expected.toPath()).replaceAll("\\R", "\n");
         String[] lines = content.split("\n", -1);
         if (lines.length <= 1) {
             throw new AssertionError("Expected CSV '" + csvFile + "' to contain header and at least one pattern row");
@@ -250,5 +251,206 @@ public class StateAssertions {
         // If we reach here, a perfect one-to-one matching was found
 
     }
+    public static void assertExportedStateEmpty(ArchiveState state) throws Exception {
+        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::new);
+        com.sun.jna.Pointer p = lib.exportStateStruct();
+        if (p == null) {
+            throw new AssertionError("exportStateStruct returned NULL pointer");
+        }
+        try {
+            com.example.interop.structs.ExportedState es = new com.example.interop.structs.ExportedState(p);
+            es.read();
+            if (es.has_data != 0) {
+                throw new AssertionError("Expected exported state to be empty");
+            }
+        } finally {
+            lib.freeExportedState(p);
+        }
+    }
+
+    public static void assertExportedStateTableColumnsMatchesCsv(ArchiveState state, String tableName, String csvFile) throws Exception {
+        // Read expected CSV
+        File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
+        String content = java.nio.file.Files.readString(expected.toPath()).replaceAll("\\R", "\n");
+        String[] lines = content.split("\n", -1);
+        if (lines.length <= 1) {
+            throw new AssertionError("Expected CSV '" + csvFile + "' to contain header and at least one pattern row; path=" + expected.getAbsolutePath() + "; content='" + content + "'");
+        }
+        String headerLine = lines[0];
+        java.util.List<String> expectedColumns = new java.util.ArrayList<>(java.util.Arrays.asList(headerLine.split(",", -1)));
+        expectedColumns.removeIf(s -> s == null || s.isEmpty());
+
+        // Build pattern rows (list of maps column->Pattern)
+        java.util.List<java.util.Map<String, Pattern>> patternRows = java.util.stream.IntStream
+                .range(1, lines.length)
+                .filter(r -> !lines[r].trim().isEmpty())
+                .mapToObj(r -> {
+                    String ln = lines[r];
+                    String[] cells = ln.split(",", -1);
+                    java.util.List<String> cellList = new java.util.ArrayList<>(java.util.Arrays.asList(cells));
+                    while (cellList.size() > expectedColumns.size() && cellList.get(cellList.size() - 1).isEmpty()) {
+                        cellList.remove(cellList.size() - 1);
+                    }
+                    if (cellList.size() != expectedColumns.size()) {
+                        throw new AssertionError("CSV pattern row " + r + " has wrong number of columns (expected " + expectedColumns.size() + ", got " + cellList.size() + ")");
+                    }
+                    return java.util.stream.IntStream.range(0, expectedColumns.size())
+                            .boxed()
+                            .collect(java.util.stream.Collectors.toMap(i -> expectedColumns.get(i), i -> Pattern.compile(cellList.get(i), Pattern.DOTALL), (a, b) -> a, java.util.LinkedHashMap::new));
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        // Get actual rows from ExportedState
+        java.util.List<java.util.Map<String, String>> actualRows = new java.util.ArrayList<>();
+        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::new);
+        com.sun.jna.Pointer p = lib.exportStateStruct();
+        if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
+        try {
+            com.example.interop.structs.ExportedState es = new com.example.interop.structs.ExportedState(p);
+            es.read();
+            String t = tableName.toLowerCase();
+            switch (t) {
+                case "entity": {
+                    int len = es.entities.len == null ? 0 : es.entities.len.intValue();
+                    if (len > 0 && es.entities.data != null) {
+                        com.sun.jna.Pointer[] ptrs = es.entities.data.getPointerArray(0, len);
+                        for (com.sun.jna.Pointer q : ptrs) {
+                            String v = q == null ? "" : q.getString(0);
+                            java.util.Map<String,String> m = new java.util.HashMap<>();
+                            m.put("textMap_name", v);
+                            actualRows.add(m);
+                        }
+                    }
+                    break;
+                }
+                case "action": {
+                    int len = es.actions.len == null ? 0 : es.actions.len.intValue();
+                    if (len > 0 && es.actions.data != null) {
+                        com.sun.jna.Pointer[] ptrs = es.actions.data.getPointerArray(0, len);
+                        for (com.sun.jna.Pointer q : ptrs) {
+                            String v = q == null ? "" : q.getString(0);
+                            java.util.Map<String,String> m = new java.util.HashMap<>();
+                            m.put("name", v);
+                            actualRows.add(m);
+                        }
+                    }
+                    break;
+                }
+                case "events": {
+                    int len = es.events.len == null ? 0 : es.events.len.intValue();
+                    if (len > 0 && es.events.data != null) {
+                        com.sun.jna.Pointer[] ptrs = es.events.data.getPointerArray(0, len);
+                        for (com.sun.jna.Pointer q : ptrs) {
+                            String v = q == null ? "" : q.getString(0);
+                            java.util.Map<String,String> m = new java.util.HashMap<>();
+                            m.put("name", v);
+                            actualRows.add(m);
+                        }
+                    }
+                    break;
+                }
+                case "module": {
+                    int len = es.modules.len == null ? 0 : es.modules.len.intValue();
+                    if (len > 0 && es.modules.data != null) {
+                        long structSize = new com.example.interop.structs.ModuleRow().size();
+                        for (int i = 0; i < len; i++) {
+                            com.example.interop.structs.ModuleRow mr = new com.example.interop.structs.ModuleRow(es.modules.data.share(i * structSize));
+                            mr.read();
+                            String id = mr.id == null ? "" : mr.id.getString(0);
+                            String name = mr.name == null ? "" : mr.name.getString(0);
+                            String version = mr.version == null ? "" : mr.version.getString(0);
+                            java.util.Map<String,String> m = new java.util.HashMap<>();
+                            m.put("id", id);
+                            m.put("name", name);
+                            m.put("version", version);
+                            actualRows.add(m);
+                        }
+                    }
+                    break;
+                }
+                default:
+                    throw new AssertionError("Unsupported table for exported-state validation: " + tableName);
+            }
+        } finally {
+            lib.freeExportedState(p);
+        }
+
+        // Require exact count
+        int expectedCount = patternRows.size();
+        int actualCount = actualRows.size();
+        if (actualCount != expectedCount) {
+            StringBuilder msg = new StringBuilder();
+            msg.append("Row count mismatch for table '").append(tableName).append("': expected ").append(expectedCount).append(" rows (from CSV), but found ").append(actualCount).append(" rows in exported state.\n");
+            msg.append("Actual rows:\n");
+            for (int i = 0; i < actualRows.size(); i++) {
+                msg.append(i).append(": ").append(actualRows.get(i)).append("\n");
+            }
+            msg.append("CSV pattern rows:\n");
+            for (int i = 0; i < patternRows.size(); i++) {
+                msg.append(i).append(": ").append(patternRows.get(i).keySet()).append(" -> ").append(patternRows.get(i).values()).append("\n");
+            }
+            throw new AssertionError(msg.toString());
+        }
+
+        // Build match matrix and try to find perfect matching (same algorithm as SQL-based assertions)
+        boolean[][] matches = new boolean[expectedCount][actualCount];
+        for (int pidx = 0; pidx < expectedCount; pidx++) {
+            for (int aidx = 0; aidx < actualCount; aidx++) {
+                boolean ok = true;
+                for (String col : expectedColumns) {
+                    Pattern pat = patternRows.get(pidx).get(col);
+                    String val = actualRows.get(aidx).getOrDefault(col, "");
+                    if (pat == null) { ok = false; break; }
+                    if (!pat.matcher(val).matches()) { ok = false; break; }
+                }
+                matches[pidx][aidx] = ok;
+            }
+        }
+
+        int[] patternToActual = new int[expectedCount];
+        int[] actualToPattern = new int[actualCount];
+        java.util.Arrays.fill(patternToActual, -1);
+        java.util.Arrays.fill(actualToPattern, -1);
+
+        class AssignHelper {
+            boolean tryAssign(int pidx, boolean[] seen) {
+                for (int aidx = 0; aidx < actualCount; aidx++) {
+                    if (!matches[pidx][aidx] || seen[aidx]) continue;
+                    seen[aidx] = true;
+                    if (actualToPattern[aidx] == -1 || tryAssign(actualToPattern[aidx], seen)) {
+                        actualToPattern[aidx] = pidx;
+                        patternToActual[pidx] = aidx;
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        AssignHelper helper = new AssignHelper();
+        for (int pidx = 0; pidx < expectedCount; pidx++) {
+            boolean[] seen = new boolean[actualCount];
+            if (!helper.tryAssign(pidx, seen)) {
+                StringBuilder msg = new StringBuilder();
+                msg.append("Unable to match CSV pattern row #").append(pidx).append(" to any exported-state row for table '").append(tableName).append("'.\n");
+                msg.append("Pattern row: ").append(patternRows.get(pidx)).append("\n");
+                msg.append("Actual rows:\n");
+                for (int a = 0; a < actualRows.size(); a++) {
+                    msg.append(a).append(": ").append(actualRows.get(a)).append("\n");
+                }
+                msg.append("Match matrix (pattern x actual):\n");
+                for (int pi = 0; pi < expectedCount; pi++) {
+                    msg.append("P").append(pi).append(": ");
+                    for (int ai = 0; ai < actualCount; ai++) msg.append(matches[pi][ai] ? "1" : "0");
+                    msg.append("\n");
+                }
+                throw new AssertionError(msg.toString());
+            }
+        }
+    }
 }
+
+
+
+
 

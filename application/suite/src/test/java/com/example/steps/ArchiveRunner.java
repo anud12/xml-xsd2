@@ -19,6 +19,8 @@ public class ArchiveRunner {
         // Use JNA FFI to process the archive and populate runtime caches.
         String zipPath = state.archive.file().getAbsolutePath();
         state.runtimeInteropJava = Optional.of(new RuntimeInteropJava());
+        // Clear any previously cached runtime state (native library may persist across tests)
+        state.runtimeInteropJava.ifPresent(RuntimeInteropJava::clearState);
         String dbPath = state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.processArchive(zipPath))
                 .get();
         // Emulate startup log output for existing test assertions

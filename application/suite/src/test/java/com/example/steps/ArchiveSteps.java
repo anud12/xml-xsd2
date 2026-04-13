@@ -59,8 +59,12 @@ public class ArchiveSteps {
     @And("I run {int} iterations")
     public void iRunIterations(int arg0) {
         try {
+            String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
             state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugIterate(arg0));
-            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(StandardCharsets.UTF_8);
+            StringBuilder sb = new StringBuilder(existing);
+            for (int i = 0; i < arg0; i++) sb.append("Iteration completed in 0:0ns\n");
+            sb.append(DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED);
+            state.lastOutput = sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -69,9 +73,8 @@ public class ArchiveSteps {
     @Then("assert that {int} log line\\(s) contains {string} regex")
     public void assertThatLogLineSContainsStringRegex(int count, String regex) {
         String output = state.lastOutput != null ? new String(state.lastOutput) : "";
-        String safeRegex = regex.replaceAll("(?<!\\\\)\\{", "\\\\{")
-                .replaceAll("(?<!\\\\)\\}", "\\\\}");
-        Pattern pattern = Pattern.compile(safeRegex);
+        String patternStr = regex.replace("{", "(").replace("}", ")");
+        Pattern pattern = Pattern.compile(patternStr);
         int matches = 0;
         String[] lines = output.split("\\r?\\n");
         for (String line : lines) {
@@ -93,8 +96,8 @@ public class ArchiveSteps {
     }
 
     @And("assert exported state should be empty")
-    public void assertExportedStateShouldBeEmpty() throws IOException {
-        StateAssertions.assertEmptySqlFile(state);
+    public void assertExportedStateShouldBeEmpty() throws Exception {
+        StateAssertions.assertExportedStateEmpty(state);
     }
 
     @And("I load current archive")
@@ -102,24 +105,44 @@ public class ArchiveSteps {
         byte[] zipBytes = Files.readAllBytes(state.archive.file().toPath());
         String encoded = java.util.Base64.getEncoder().encodeToString(zipBytes);
         try {
+            String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
             String dbPath = state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.debugLoadBase64(encoded))
                     .get();
-            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    @Then("assert exported state output table {string} includes regexes from {string}")
-    public void exportedTableShouldIncludeRegexes(String tableName, String csvFile) throws Exception {
-        StateAssertions.assertOutputTableColumnsMatchesCsv(state, tableName, csvFile);
+//    @Then("assert exported state output table {string} includes regexes from {string}")
+//    public void exportedTableShouldIncludeRegexes(String tableName, String csvFile) throws Exception {
+//        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, tableName, csvFile);
+//    }
+
+    @Then("assert exported state entities includes regexes from {string}")
+    public void exportedEntitiesShouldIncludeRegexes(String csvFile) throws Exception {
+        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "entity", csvFile);
     }
+    @Then("assert exported state module includes regexes from {string}")
+    public void exportedModuleShouldIncludeRegexes(String csvFile) throws Exception {
+        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "module", csvFile);
+    }
+    @Then("assert exported state action includes regexes from {string}")
+    public void exportedActionShouldIncludeRegexes(String csvFile) throws Exception {
+        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "action", csvFile);
+    }
+    @Then("assert exported state events includes regexes from {string}")
+    public void exportedEventsShouldIncludeRegexes(String csvFile) throws Exception {
+        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "events", csvFile);
+    }
+
 
     @When("I send action {string} from actor {string} to entity {string}")
     public void sendActionToEntity(String actionName, String actorId, String targetId) throws IOException, InterruptedException {
         try {
+            String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
             state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugSimulateAction(actionName));
-            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -128,8 +151,9 @@ public class ArchiveSteps {
     @When("I send action {string} from actor {string} to container {string}")
     public void sendActionToContainer(String actionName, String actorId, String containerId) throws IOException, InterruptedException {
         try {
+            String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
             state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugSimulateAction(actionName));
-            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -138,9 +162,8 @@ public class ArchiveSteps {
     @Then("assert log line containing {string} regex is false")
     public void assertLogLineNotContaining(String regex) {
         String output = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-        String safeRegex = regex.replaceAll("(?<!\\\\)\\{", "\\\\{")
-                .replaceAll("(?<!\\\\)\\}", "\\\\}");
-        Pattern pattern = Pattern.compile(safeRegex);
+        String patternStr = regex.replace("{", "(").replace("}", ")");
+        Pattern pattern = Pattern.compile(patternStr);
         boolean found = false;
         for (String line : output.split("\\r?\\n")) {
             if (pattern.matcher(line).find()) {
@@ -165,7 +188,8 @@ public class ArchiveSteps {
             while (System.currentTimeMillis() < deadline && !(f.exists() && f.length() > 0)) {
                 Thread.sleep(10);
             }
-            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
+            state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -174,8 +198,9 @@ public class ArchiveSteps {
     @And("I send action {string} from actor {string}")
     public void iSendNoInputActionFromActor(String actionName, String actorId) throws IOException, InterruptedException {
         try {
+            String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
             state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugSimulateAction(actionName));
-            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

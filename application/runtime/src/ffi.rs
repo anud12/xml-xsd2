@@ -47,6 +47,11 @@ pub extern "C" fn runtime_export_state(path: *const c_char) -> bool {
     }
 }
 
+#[export_name = "runtime_clear_state"]
+pub extern "C" fn runtime_clear_state() {
+    crate::state::clear_state();
+}
+
 // Debug-like API exposed over C FFI. These mirror the interactive debug loop commands
 // but are safe callable programmatically from embedding languages.
 
@@ -310,7 +315,9 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
         // Convert simple string-lists (take first column of row vectors)
         let (entities_ptr, entities_len) = string_vec_to_c_array(entities_cached.into_iter().map(|r| r.get(0).cloned().unwrap_or_default()).collect());
         let (actions_ptr, actions_len) = string_vec_to_c_array(actions_cached.into_iter().map(|r| r.get(0).cloned().unwrap_or_default()).collect());
-        let (events_ptr, events_len) = string_vec_to_c_array(events_cached.into_iter().map(|r| r.get(0).cloned().unwrap_or_default()).collect());
+        // Normalize any 'effect' substrings to 'event' to match export_to_file behavior
+        let norm_events: Vec<String> = events_cached.into_iter().map(|r| r.get(0).cloned().unwrap_or_default().replace("effect", "event")).collect();
+        let (events_ptr, events_len) = string_vec_to_c_array(norm_events);
         let (patterns_ptr, patterns_len) = string_vec_to_c_array(patterns_cached);
 
         // Modules (id,name,version) and files (filename,contents)

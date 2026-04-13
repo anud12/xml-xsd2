@@ -103,6 +103,19 @@ pub fn set_last_entity_patterns(rows: Vec<String>) {
     *last_entity_patterns().lock().unwrap() = rows;
 }
 
+pub fn clear_state() {
+    // Clear cached rows and flags so embedding processes can reset runtime state between tests
+    *last_file_rows().lock().unwrap() = Vec::new();
+    *last_entity_rows().lock().unwrap() = Vec::new();
+    *last_action_rows().lock().unwrap() = Vec::new();
+    *last_event_rows().lock().unwrap() = Vec::new();
+    *last_module_rows().lock().unwrap() = Vec::new();
+    *last_entity_patterns().lock().unwrap() = Vec::new();
+    *last_created_by().lock().unwrap() = HashMap::new();
+    *last_archive_path().lock().unwrap() = String::new();
+    persisted_flag().store(false, Ordering::SeqCst);
+}
+
 pub fn last_archive_path() -> &'static Mutex<String> {
     persisted_flag();
     unsafe { LAST_ARCHIVE_PATH.expect("archive path initialized") }

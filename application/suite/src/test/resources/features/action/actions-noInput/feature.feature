@@ -9,7 +9,7 @@ Feature: No-Input Action with Entity Creation
     And I have added "./index.js" file to archive
     And I load current archive
     When I run 1 iterations
-    Then assert exported state output table "action" includes regexes from "./action.csv"
+    Then assert exported state action includes regexes from "./action.csv"
 
   Scenario: No-input action execution creates entity via effect
     Given I run the application in debug mode
@@ -19,7 +19,7 @@ Feature: No-Input Action with Entity Creation
     When I run 1 iterations
     And I send action "create_entity_action" from actor "actor1"
     And I run 1 iterations
-    Then assert exported state output table "entity" includes regexes from "./entity.csv"
+    Then assert exported state entities includes regexes from "./entity.csv"
 
   Scenario: Multiple entities can be created from repeated no-input actions
     Given I run the application in debug mode
@@ -31,4 +31,4 @@ Feature: No-Input Action with Entity Creation
     And I run 1 iterations
     And I send action "create_entity_action" from actor "actor1"
     And I run 1 iterations
-    Then assert exported state output table "entity" includes regexes from "./entity_double.csv"
+    Then assert exported state entities includes regexes from "./entity_double.csv"

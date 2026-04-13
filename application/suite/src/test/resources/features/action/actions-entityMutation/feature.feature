@@ -10,7 +10,7 @@ Feature: No-Input Action with Entity Creation
     And I load current archive
     When I run 1 iterations
     And I send action "create_entity_action" from actor "actor1"
-    Then assert exported state output table "entity" includes regexes from "./entity.csv"
+    Then assert exported state entities includes regexes from "./entity.csv"
     And I run 1 iterations
     And I send action "append_name_action" from actor "actor1"
-    Then assert exported state output table "entity" includes regexes from "./entity_mutated.csv"
+    Then assert exported state entities includes regexes from "./entity_mutated.csv"

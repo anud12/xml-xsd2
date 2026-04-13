@@ -90,4 +90,8 @@ public class RuntimeInteropJava {
     public void freeExportedState(com.sun.jna.Pointer ptr) {
         LIB.runtime_free_exported_state(ptr);
     }
+
+    public void clearState() {
+        LIB.runtime_clear_state();
+    }
 }
