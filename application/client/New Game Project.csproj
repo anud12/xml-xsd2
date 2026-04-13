@@ -5,7 +5,7 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>NewGameProject</RootNamespace>
     <!-- Rust integration properties -->
-    <RuntimeDllName>xml_xsd2.dll</RuntimeDllName>
+    <RuntimeDllName>libxml_xsd2.dll</RuntimeDllName>
     <RustManifest>$(MSBuildProjectDirectory)\..\runtime\Cargo.toml</RustManifest>
     <RustBuildProfile>release</RustBuildProfile>
     <RustDllPath>$(MSBuildProjectDirectory)\..\runtime\target\$(RustBuildProfile)\$(RuntimeDllName)</RustDllPath>

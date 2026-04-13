@@ -54,6 +54,12 @@
             <artifactId>slf4j-simple</artifactId>
             <version>2.0.17</version>
         </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.13.0</version>
+            <scope>test</scope>
+        </dependency>
 </dependencies>
     <build>
         <plugins>
@@ -100,6 +106,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
+                    <argLine>-Djava.library.path=${project.build.directory}/test-classes -Djna.library.path=${project.build.directory}/test-classes</argLine>
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
@@ -110,6 +117,53 @@
                     </properties>
                 </configuration>
             </plugin>
+        <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.1.0</version>
+            <executions>
+                <execution>
+                    <id>build-rust-runtime</id>
+                    <phase>generate-test-resources</phase>
+                    <goals>
+                        <goal>exec</goal>
+                    </goals>
+                    <configuration>
+                        <executable>cargo</executable>
+                        <arguments>
+                            <argument>build</argument>
+                            <argument>--manifest-path</argument>
+                            <argument>${project.basedir}/../runtime/Cargo.toml</argument>
+                            <argument>--release</argument>
+                        </arguments>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+        <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <version>3.0.0</version>
+            <executions>
+                <execution>
+                    <id>copy-native</id>
+                    <phase>process-test-resources</phase>
+                    <goals>
+                        <goal>run</goal>
+                    </goals>
+                    <configuration>
+                        <target>
+                            <mkdir dir="${project.build.directory}/test-classes"/>
+                            <copy todir="${project.build.directory}/test-classes" overwrite="true">
+                                <fileset dir="${project.basedir}/../runtime/target/release">
+                                    <include name="xml_xsd2.*"/>
+                                    <include name="libxml_xsd2.*"/>
+                                </fileset>
+                            </copy>
+                        </target>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
         </plugins>
     </build>
 </project>
