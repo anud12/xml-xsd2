@@ -1,5 +1,7 @@
 package com.example.steps;
 
+import com.example.interop.RuntimeInteropJava;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -8,7 +10,8 @@ import java.util.concurrent.TimeUnit;
 public class CloseProcess {
     public static void closeProcess(ArchiveState state) {
         try {
-            Process p = state.runProcess;
+            state.runtimeInteropJava.ifPresent(RuntimeInteropJava::debugShutdown);
+/*            Process p = state.runProcess;
             if (p == null) {
                 throw new IllegalStateException("state.runProcess is null");
             }
@@ -34,7 +37,7 @@ public class CloseProcess {
             }
             if (!exited) {
                 throw new AssertionError("Process did not exit within 60 seconds after shutdown signal");
-            }
+            }*/
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

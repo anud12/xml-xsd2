@@ -81,7 +81,7 @@ pub extern "C" fn runtime_debug_iterate(times: u32) {
     for _ in 0..times {
         let start = Instant::now();
         let elapsed = start.elapsed();
-        println!("Iteration completed in {{{}:{}}}ns", elapsed.as_secs(), elapsed.subsec_nanos());
+        debug_println!("Iteration completed in {{{}:{}}}ns", elapsed.as_secs(), elapsed.subsec_nanos());
     }
 }
 
@@ -163,7 +163,7 @@ pub extern "C" fn runtime_debug_simulate_action(action_name: *const c_char) -> b
 
 #[export_name = "runtime_debug_shutdown"]
 pub extern "C" fn runtime_debug_shutdown() {
-    println!("debug: shutdown requested");
+    debug_println!("debug: shutdown requested");
 }
 
 #[repr(C)]

@@ -24,8 +24,8 @@ pub fn find_manifest(files: &HashMap<String, String>) -> Option<(String, serde_j
 pub fn print_events_from_declarations(dec: &Declarations) -> HashSet<String> {
     let mut seen = HashSet::new();
     for ev in dec.events.iter() {
-        println!("event: {}", ev);
-        println!("event registered: {}", ev);
+        debug_println!("event: {}", ev);
+        debug_println!("event registered: {}", ev);
         seen.insert(ev.clone());
     }
     seen
@@ -39,8 +39,8 @@ pub fn process_module(
 ) {
     match find_manifest(files) {
         Some((manifest_name, manifest_json)) => {
-            println!("module process: found manifest {}", manifest_name);
-            println!("{} loaded", manifest_name);
+            debug_println!("module process: found manifest {}", manifest_name);
+            debug_println!("{} loaded", manifest_name);
             if let Some(id_v) = manifest_json.get("id").and_then(|v| v.as_str()) {
                 let name_v = manifest_json.get("name").and_then(|v| v.as_str()).unwrap_or("");
                 let version_v = manifest_json.get("version").and_then(|v| v.as_str()).unwrap_or("");
@@ -48,33 +48,33 @@ pub fn process_module(
             }
             if let Some(entry) = manifest_json.get("entry").and_then(|v| v.as_str()) {
                 if let Some(module) = files.get(entry) {
-                    println!("{} loaded", entry);
+                    debug_println!("{} loaded", entry);
                     if let Some(evt_name) =
                         manifest_json.get("eventName").and_then(|v| v.as_str())
                     {
-                        println!("event: {}", evt_name);
-                        println!("event registered: {}", evt_name);
+                        debug_println!("event: {}", evt_name);
+                        debug_println!("event registered: {}", evt_name);
                         // mark that module declared events/entities so export should include persisted DB
-                        println!("module process: manifest has eventName, marking persisted_has_data");
+                        debug_println!("module process: manifest has eventName, marking persisted_has_data");
                         crate::state::mark_persisted_has_data();
                     }
                     if let Ok(dec) = extract_from_source(module) {
-                        println!("module process: extract_from_source succeeded");
+                        debug_println!("module process: extract_from_source succeeded");
                         crate::state::mark_persisted_has_data();
-                        println!("module process: marked persisted_has_data after extract");
+                        debug_println!("module process: marked persisted_has_data after extract");
                         // Print effects/events
                         print_events_from_declarations(&dec);
                         // Print actions
                         for action in dec.actions.iter() {
-                            println!("action: {}", action);
-                            println!("action registered: {}", action);
+                            debug_println!("action: {}", action);
+                            debug_println!("action registered: {}", action);
                         }
                         for l in dec.logs.iter() {
-                            println!("{}", l);
+                            debug_println!("{}", l);
                         }
                         // Debug: print creators/emits mapping discovered from module
-                        println!("creators: {:?}", dec.creators);
-                        println!("emits: {:?}", dec.emits);
+                        debug_println!("creators: {:?}", dec.creators);
+                        debug_println!("emits: {:?}", dec.emits);
                         // Prefer creators mapping (action/effect -> created entity names) when available
                         let mut patterns: Vec<String> = Vec::new();
                         for (_k, v) in dec.creators.iter() {
@@ -132,8 +132,8 @@ pub fn process_module(
             }
         }
         None => {
-            println!("manifest.json not found");
-            println!("module rejected");
+            debug_println!("manifest.json not found");
+            debug_println!("module rejected");
         }
     }
 }

@@ -34,16 +34,16 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
         let mut files = std::collections::HashMap::new();
         match general_purpose::STANDARD.decode(payload) {
             Ok(bytes) => {
-                println!("debug: LOAD payload decoded {} bytes", bytes.len());
+                debug_println!("debug: LOAD payload decoded {} bytes", bytes.len());
                 // Write to a temp file and read its files
                 let tmp = std::env::temp_dir().join(format!("archive_{}.zip", std::process::id()));
                 match std::fs::write(&tmp, &bytes) {
-                    Ok(_) => println!("debug: wrote tmp archive to {}", tmp.display()),
+                    Ok(_) => debug_println!("debug: wrote tmp archive to {}", tmp.display()),
                     Err(e) => eprintln!("debug: failed to write tmp archive: {:?}", e),
                 }
                 let tmp_path = tmp.to_str().unwrap_or_default();
                 files = crate::archive::read_zip_files(tmp_path);
-                println!("debug: read_zip_files returned {} files", files.len());
+                debug_println!("debug: read_zip_files returned {} files", files.len());
             }
             Err(e) => {
                 eprintln!("debug: failed to decode load payload: {:?}", e);
@@ -53,14 +53,14 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
             // Fallback to the archive path passed at startup (may have been appended to by the test harness)
             let archive_path = crate::state::last_archive_path().lock().unwrap().clone();
             if !archive_path.is_empty() && std::path::Path::new(&archive_path).exists() {
-                println!("debug: fallback reading archive from configured path {}", archive_path);
+                debug_println!("debug: fallback reading archive from configured path {}", archive_path);
                 files = crate::archive::read_zip_files(&archive_path);
-                println!("debug: read_zip_files (fallback) returned {} files", files.len());
+                debug_println!("debug: read_zip_files (fallback) returned {} files", files.len());
             }
         }
 
         let file_rows = crate::module::build_file_rows(&files);
-        println!("debug: built file_rows length {}", file_rows.len());
+        debug_println!("debug: built file_rows length {}", file_rows.len());
         crate::state::set_last_file_rows(file_rows.clone());
         // Let the module processing populate action/event declarations and entity patterns.
         let mut entity_rows: Vec<Vec<String>> = Vec::new();
@@ -68,15 +68,15 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
         // Persist the loaded state so exports from the test harness reflect the loaded module
         crate::state::set_last_entity_rows(entity_rows.clone());
         let dest = crate::state::persist_state("state.db", &file_rows, &entity_rows);
-        println!("debug: persist_state wrote {}", dest);
+        debug_println!("debug: persist_state wrote {}", dest);
 
-        println!("{delimiter}OK{delimiter}");
+        debug_println!("{delimiter}OK{delimiter}");
         std::io::stdout().flush().ok();
     }
     if cmd.starts_with(EXPORT_PREFIX) {
         let path = &cmd[EXPORT_PREFIX.len()..];
         state::export_to_file(path);
-        println!("{delimiter}OK{delimiter}");
+        debug_println!("{delimiter}OK{delimiter}");
         std::io::stdout().flush().ok();
     }
     if cmd.starts_with(ACTION_PREFIX) {
@@ -105,7 +105,7 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
             let current_entities = crate::state::last_entity_rows().lock().unwrap().clone();
             match crate::js_executor::simulate_action(&files_map, action_name, &current_entities) {
                 Ok((created, store)) => {
-                    println!("debug: simulate_action returned created={:?} store={:?}", created, store);
+                    debug_println!("debug: simulate_action returned created={:?} store={:?}", created, store);
                     if !store.is_empty() {
                         // store contains authoritative state after simulation
                         // If the store equals the pre-simulated store and no created items
@@ -142,7 +142,7 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
                     }
                     // Print resulting in-memory entity rows for debugging
                     let cur = crate::state::last_entity_rows().lock().unwrap().clone();
-                    println!("debug: last_entity_rows now {:?}", cur);
+                    debug_println!("debug: last_entity_rows now {:?}", cur);
                 }
                 Err(e) => {
                     eprintln!("debug: simulate_action failed: {:?}", e);
@@ -159,12 +159,12 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
                         }
                     }
                     let cur = crate::state::last_entity_rows().lock().unwrap().clone();
-                    println!("debug: last_entity_rows after fallback {:?}", cur);
+                    debug_println!("debug: last_entity_rows after fallback {:?}", cur);
                 }
             }
             crate::state::mark_persisted_has_data();
         }
-        println!("{delimiter}OK{delimiter}");
+        debug_println!("{delimiter}OK{delimiter}");
         std::io::stdout().flush().ok();
     }
     true
@@ -173,14 +173,14 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
 fn run_iterations(cmd: &str, delimiter: &str) {
     let n: usize = cmd[ITERATE_PREFIX.len()..].trim().parse().unwrap_or(0);
     (0..n).for_each(|_| print_iteration_timing());
-    println!("{delimiter}OK{delimiter}");
+    debug_println!("{delimiter}OK{delimiter}");
     std::io::stdout().flush().ok();
 }
 
 fn print_iteration_timing() {
     let start = Instant::now();
     let elapsed = start.elapsed();
-    println!(
+    debug_println!(
         "Iteration completed in {{{}:{}}}ns",
         elapsed.as_secs(),
         elapsed.subsec_nanos()

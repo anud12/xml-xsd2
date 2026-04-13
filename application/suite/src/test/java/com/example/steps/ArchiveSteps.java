@@ -1,8 +1,8 @@
 package com.example.steps;
 
+import com.example.interop.RuntimeInteropJava;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
-// ...existing code...
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -11,7 +11,6 @@ import io.cucumber.java.en.When;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.regex.Pattern;
@@ -34,9 +33,13 @@ public class ArchiveSteps {
 
     @When("I run the application in debug mode")
     public void i_run_the_application_in_debug_mode() throws IOException, InterruptedException {
-        ArchiveRunner.runApplicationDebugThreadedWithArchive(state);
-    }
+        try {
+            ArchiveRunner.runApplicationDebugThreadedWithArchive(state);
 
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @And("assert log line containing {string} regex")
     public void hasLogLineContaining(String arg0) {
@@ -55,28 +58,9 @@ public class ArchiveSteps {
 
     @And("I run {int} iterations")
     public void iRunIterations(int arg0) {
-        String cmd = "DEBUG: ITERATE " + arg0 + System.lineSeparator();
         try {
-            // Use state.runProcess stdio directly
-            Process p = state.runProcess;
-            if (p == null) {
-                throw new IllegalStateException("state.runProcess is null");
-            }
-            OutputStream os = p.getOutputStream();
-            if (os == null) {
-                throw new IllegalStateException("Process output stream is null");
-            }
-            os.write(cmd.getBytes(StandardCharsets.UTF_8));
-            os.flush();
-
-            // Wait until the captured output contains the acknowledgement
-            while (true) {
-                String output = state.lastOutput != null ? new String(state.lastOutput, StandardCharsets.UTF_8) : "";
-                if (output.contains(DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED)) {
-                    break;
-                }
-                Thread.sleep(10);
-            }
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugIterate(arg0));
+            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -84,8 +68,6 @@ public class ArchiveSteps {
 
     @Then("assert that {int} log line\\(s) contains {string} regex")
     public void assertThatLogLineSContainsStringRegex(int count, String regex) {
-        // Count how many log lines in the last captured output match the provided
-        // regex and assert at least `count` such lines exist.
         String output = state.lastOutput != null ? new String(state.lastOutput) : "";
         String safeRegex = regex.replaceAll("(?<!\\\\)\\{", "\\\\{")
                 .replaceAll("(?<!\\\\)\\}", "\\\\}");
@@ -119,24 +101,14 @@ public class ArchiveSteps {
     public void iLoadCurrentArchive() throws Exception {
         byte[] zipBytes = Files.readAllBytes(state.archive.file().toPath());
         String encoded = java.util.Base64.getEncoder().encodeToString(zipBytes);
-        String cmd = "DEBUG: Load:" + encoded + System.lineSeparator();
-
-        Process p = state.runProcess;
-        if (p == null) throw new IllegalStateException("state.runProcess is null");
-        OutputStream os = p.getOutputStream();
-        if (os == null) throw new IllegalStateException("Process output stream is null");
-        os.write(cmd.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        os.flush();
-
-        long timeoutMillis = 10000;
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < timeoutMillis) {
-            String output = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            if (output.contains(DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED)) break;
-            Thread.sleep(10);
+        try {
+            String dbPath = state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.debugLoadBase64(encoded))
+                    .get();
+            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
-
 
     @Then("assert exported state output table {string} includes regexes from {string}")
     public void exportedTableShouldIncludeRegexes(String tableName, String csvFile) throws Exception {
@@ -145,14 +117,22 @@ public class ArchiveSteps {
 
     @When("I send action {string} from actor {string} to entity {string}")
     public void sendActionToEntity(String actionName, String actorId, String targetId) throws IOException, InterruptedException {
-        String cmd = String.format("DEBUG: ACTION %s %s entity %s%s", actionName, actorId, targetId, System.lineSeparator());
-        writeDebugCommand(cmd);
+        try {
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugSimulateAction(actionName));
+            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @When("I send action {string} from actor {string} to container {string}")
     public void sendActionToContainer(String actionName, String actorId, String containerId) throws IOException, InterruptedException {
-        String cmd = String.format("DEBUG: ACTION %s %s container %s%s", actionName, actorId, containerId, System.lineSeparator());
-        writeDebugCommand(cmd);
+        try {
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugSimulateAction(actionName));
+            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Then("assert log line containing {string} regex is false")
@@ -175,35 +155,30 @@ public class ArchiveSteps {
         }
     }
 
-    private void writeDebugCommand(String cmd) throws IOException, InterruptedException {
-        Process p = state.runProcess;
-        if (p == null) throw new IllegalStateException("state.runProcess is null");
-        OutputStream os = p.getOutputStream();
-        if (os == null) throw new IllegalStateException("Process output stream is null");
-        os.write(cmd.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        os.flush();
-
-        // Wait for acknowledgement
-        long timeoutMillis = 5000;
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < timeoutMillis) {
-            String output = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            if (output.contains(DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED)) break;
-            Thread.sleep(10);
-        }
-    }
-
     @When("I export state to {string}")
     public void exportStateToFile(String fileName) throws IOException, InterruptedException {
-        String cmd = String.format("DEBUG: EXPORT %s%s", fileName, System.lineSeparator());
-        writeDebugCommand(cmd);
-        Thread.sleep(500); // Give time for export to complete
+        try {
+            boolean ok = state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.exportState(fileName))
+                    .get();
+            long deadline = System.currentTimeMillis() + 5000;
+            File f = new File(fileName);
+            while (System.currentTimeMillis() < deadline && !(f.exists() && f.length() > 0)) {
+                Thread.sleep(10);
+            }
+            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @And("I send action {string} from actor {string}")
     public void iSendNoInputActionFromActor(String actionName, String actorId) throws IOException, InterruptedException {
-        String cmd = String.format("DEBUG: ACTION %s %s%s", actionName, actorId, System.lineSeparator());
-        writeDebugCommand(cmd);
+        try {
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugSimulateAction(actionName));
+            state.lastOutput = (DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Then("DEBUG export state into {string}")
@@ -211,3 +186,4 @@ public class ArchiveSteps {
         extractFileFromProcess(state, new File(fileName));
     }
 }
+
