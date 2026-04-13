@@ -2,14 +2,12 @@ package com.example.steps;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
 import static com.example.steps.ArchiveRunner.DEBUG_DELIMITED;
+
+import com.example.interop.RuntimeInteropJava;
 
 public class StateAssertions {
 
@@ -26,25 +24,17 @@ public class StateAssertions {
     }
 
     public static File extractFileFromProcess(ArchiveState state, File sqlFile) throws IOException {
-        String cmd = "DEBUG: Export:" + sqlFile.getAbsolutePath() + System.lineSeparator();
-
-        Process p = state.runProcess;
-        if (p == null) throw new IllegalStateException("state.runProcess is null");
-        OutputStream os = p.getOutputStream();
-        if (os == null) throw new IllegalStateException("Process output stream is null");
-        os.write(cmd.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        os.flush();
-
-        // Wait until the runtime has written the file
+        boolean ok = state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.exportState(sqlFile.getAbsolutePath()))
+                .get();
         long deadline = System.currentTimeMillis() + 5000;
         while (System.currentTimeMillis() < deadline) {
             if (sqlFile.exists() && sqlFile.length() > 0) break;
-            try { Thread.sleep(10); } catch (InterruptedException ignored) {}
+            try { Thread.sleep(10); } catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new IOException("Interrupted", e); }
         }
         return sqlFile;
     }
 
-    private static void extracted(ArchiveState state, String tableName, String csvFile, File sqliteFile) throws SQLException, IOException {
+    private static void extracted(ArchiveState state, String tableName, String csvFile, File sqliteFile) throws java.sql.SQLException, IOException {
         StringBuilder csvBuilder = new StringBuilder();
         try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:sqlite:" + sqliteFile.getAbsolutePath());
              java.sql.Statement stmt = conn.createStatement()) {
@@ -66,13 +56,11 @@ public class StateAssertions {
             }
         }
         File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
-        String expectedCsv = Files.readString(expected.toPath()).replaceAll("\r\n", "\n");
+        String expectedCsv = java.nio.file.Files.readString(expected.toPath()).replaceAll("\r\n", "\n");
         if (!csvBuilder.toString().trim().equals(expectedCsv.trim())) {
             throw new AssertionError("CSV output mismatch:\nExpected:\n" + expectedCsv + "\nActual:\n" + csvBuilder);
         }
     }
-
-
 
     public static void assertOutputTableColumnsMatchesCsv(ArchiveState state, String tableName, String csvFile) throws Exception {
         File sqliteFile = extractFileFromProcess(state);
@@ -87,8 +75,8 @@ public class StateAssertions {
             }
 
             File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
-            String headerLine = Files.readString(expected.toPath()).replaceAll("\r\n", "\n").split("\n")[0];
-            java.util.List<String> expectedColumns = new java.util.ArrayList<>(Arrays.asList(headerLine.split(",", -1)));
+            String headerLine = java.nio.file.Files.readString(expected.toPath()).replaceAll("\r\n", "\n").split("\n")[0];
+            java.util.List<String> expectedColumns = new java.util.ArrayList<>(java.util.Arrays.asList(headerLine.split(",", -1)));
             expectedColumns.removeIf(s -> s == null || s.isEmpty());
 
             if (!actualColumns.containsAll(expectedColumns)) {
@@ -115,21 +103,12 @@ public class StateAssertions {
                     throw new AssertionError("Expected no tables defined in sqlite DB but found: " + tables);
                 }
             }
-        } catch (SQLException e) {
+        } catch (java.sql.SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    /**
-     * For each row in the database table, assert that it is matched by at least one row in the
-     * provided CSV file. The CSV's first line is treated as a header with column names. Each
-     * subsequent line is treated as a set of regex patterns (one per header column). A DB row
-     * matches a CSV pattern-row when, for every column named in the CSV header, the cell value
-     * from the DB matches the corresponding regex (using full-match semantics).
-     *
-     * This implements an "includes" style check: the CSV may list a set of pattern-rows and the
-     * table is considered valid when every actual row is included by at least one pattern-row.
-     */
+    // rest of methods unchanged...
     public static void assertOutputTableRowsMatchRegexIncludesCsv(ArchiveState state, String tableName, String csvFile) throws Exception {
         File sqliteFile = extractFileFromProcess(state);
 
@@ -156,13 +135,13 @@ public class StateAssertions {
 
         // Read expected CSV and parse header + pattern rows
         File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
-        String content = Files.readString(expected.toPath()).replaceAll("\r\n", "\n");
+        String content = java.nio.file.Files.readString(expected.toPath()).replaceAll("\r\n", "\n");
         String[] lines = content.split("\n", -1);
         if (lines.length <= 1) {
             throw new AssertionError("Expected CSV '" + csvFile + "' to contain header and at least one pattern row");
         }
         String headerLine = lines[0];
-        java.util.List<String> expectedColumns = new java.util.ArrayList<>(Arrays.asList(headerLine.split(",", -1)));
+        java.util.List<String> expectedColumns = new java.util.ArrayList<>(java.util.Arrays.asList(headerLine.split(",", -1)));
         expectedColumns.removeIf(s -> s == null || s.isEmpty());
 
         // Build pattern rows: list of maps column->Pattern (stream-based)
@@ -172,7 +151,7 @@ public class StateAssertions {
                 .mapToObj(r -> {
                     String ln = lines[r];
                     String[] cells = ln.split(",", -1);
-                    java.util.List<String> cellList = new java.util.ArrayList<>(Arrays.asList(cells));
+                    java.util.List<String> cellList = new java.util.ArrayList<>(java.util.Arrays.asList(cells));
                     // Trim trailing empty columns which are often present in CSV patterns
                     while (cellList.size() > expectedColumns.size() && cellList.get(cellList.size() - 1).isEmpty()) {
                         cellList.remove(cellList.size() - 1);
@@ -271,5 +250,5 @@ public class StateAssertions {
         // If we reach here, a perfect one-to-one matching was found
 
     }
-
 }
+

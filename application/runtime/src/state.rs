@@ -250,7 +250,7 @@ pub fn export_to_file(path: &str) {
         let actions = actions_cached;
         let events = events_cached;
     if !modules_cached.is_empty() {
-        println!("export: inserting module rows from module cache ({})", modules_cached.len());
+        debug_println!("export: inserting module rows from module cache ({})", modules_cached.len());
         let tx_m = mem_conn.transaction().expect("tx_mod");
         for row in modules_cached.iter() {
             let id = row.get(0).map(|s| s.as_str()).unwrap_or("");
@@ -264,7 +264,7 @@ pub fn export_to_file(path: &str) {
         }
         tx_m.commit().ok();
     } else if !files.is_empty() {
-        println!("export: inserting module rows from {} file rows", files.len());
+        debug_println!("export: inserting module rows from {} file rows", files.len());
         let tx = mem_conn.transaction().expect("tx");
         for row in files.iter() {
             if row.len() >= 2 {
@@ -275,14 +275,14 @@ pub fn export_to_file(path: &str) {
                         let id = v.get("id").and_then(|x| x.as_str()).unwrap_or("");
                         let name = v.get("name").and_then(|x| x.as_str()).unwrap_or("");
                         let version = v.get("version").and_then(|x| x.as_str()).unwrap_or("");
-                        println!("export: found manifest {} {} {}", id, name, version);
+                        debug_println!("export: found manifest {} {} {}", id, name, version);
                         tx.execute(
                             "INSERT INTO module (id, name, version) VALUES (?1, ?2, ?3)",
                             &[&id, &name, &version],
                         )
                         .ok();
                     } else {
-                        println!("export: manifest {} failed to parse as json", fname);
+                        debug_println!("export: manifest {} failed to parse as json", fname);
                     }
                 }
             }
@@ -292,7 +292,7 @@ pub fn export_to_file(path: &str) {
         // Fallback: try using the originally provided archive path (if any)
         let archive_path = last_archive_path().lock().unwrap().clone();
         if !archive_path.is_empty() && Path::new(&archive_path).exists() {
-            println!("export: fallback reading archive from {}", archive_path);
+            debug_println!("export: fallback reading archive from {}", archive_path);
             let files_map = crate::archive::read_zip_files(&archive_path);
             let mut tx = mem_conn.transaction().expect("tx_manifest_fallback");
             let mut found = false;
@@ -305,7 +305,7 @@ pub fn export_to_file(path: &str) {
                         tx.execute("INSERT INTO module (id, name, version) VALUES (?1, ?2, ?3)", &[&id, &name, &version]).ok();
                         found = true;
                     } else {
-                        println!("export: fallback manifest {} failed to parse as json", fname);
+                        debug_println!("export: fallback manifest {} failed to parse as json", fname);
                     }
                 }
             }

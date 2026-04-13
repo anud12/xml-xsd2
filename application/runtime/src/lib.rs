@@ -1,3 +1,7 @@
+pub mod native_stdio;
+#[macro_use]
+mod macros;
+
 pub mod js_runtime;
 pub mod js_host_api;
 pub mod js_executor;
