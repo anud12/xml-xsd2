@@ -1,8 +1,9 @@
 package com.example.utils;
 
-import java.util.Optional;
-
 import com.example.interop.RuntimeInteropJava;
+
+import java.util.ArrayList;
+import java.util.Optional;
 
 /**
  * ArchiveRunner adapted to use JNA FFI instead of spawning a separate runtime process.
@@ -19,6 +20,7 @@ public class ArchiveRunner {
         String zipPath = state.archive.file().getAbsolutePath();
         var runtimeInteropJava = RuntimeInteropJava.newRuntimeInteropJava();
         state.runtimeInteropJava = Optional.of(runtimeInteropJava);
+        runtimeInteropJava.register_logger(state.logMessages::add);
         runtimeInteropJava.runtime_clear_state();
         runtimeInteropJava.runtime_process_archive(zipPath);
         state.lastOutput = ("\n" + STARTUP_LOG + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -26,9 +28,16 @@ public class ArchiveRunner {
 
     public static void cleanup(ArchiveState state) {
         try {
-            state.runtimeInteropJava.ifPresent(RuntimeInteropJava::runtime_debug_shutdown);
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> {
+                runtimeInteropJava.runtime_debug_shutdown();
+                runtimeInteropJava.register_logger(s -> {
+                });
+            });
+
             state.runtimeInteropJava = Optional.empty();
-        } catch (Throwable ignored) {}
+            state.logMessages = new ArrayList<>();
+        } catch (Throwable ignored) {
+        }
     }
 }
 

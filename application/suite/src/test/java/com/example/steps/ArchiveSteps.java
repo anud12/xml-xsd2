@@ -42,7 +42,7 @@ public class ArchiveSteps {
 
     @And("assert log line containing {string} regex")
     public void hasLogLineContaining(String arg0) {
-        ArchiveAssertions.assertLogLineContainsRegex(state, arg0);
+        LogAssertions.assertLogLineContainsRegex(state, arg0);
     }
 
     @Then("DEBUG Print stdout after {int} ms")
