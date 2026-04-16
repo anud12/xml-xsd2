@@ -47,7 +47,7 @@ Short-circuiting: evaluation is lazy across nodes; implementations should avoid 
 
 **ListOperations** is the factory and operation builder:
 ```ts
-export type ListApi = {
+export type ListOperations = {
   /** Create a literal list (elements may be primitives or expression wrappers). Accepts variable arguments. */
   of: <T> (...items: T[]) => ListExpression<T>;
   
@@ -82,13 +82,13 @@ export type ListExpression<T> = {
   set: (value: ListExpression<T>) => ListExpression<T>;
   
   /** Concatenate two lists */
-  concat: (other: ListExpression<T>) => ListExpression<T>;
+  concat: <T>(other: ListExpression<T>) => ListExpression<T>;
 
   /** Append a single element */
-  append: (element: T) => ListExpression<T>;
+  append: <T>(element: T) => ListExpression<T>;
 
   /** Grouping node to control evaluation order */
-  group: (expr: ListExpression<T>) => ListExpression<T>;
+  group: <T>(expr: ListExpression<T>) => ListExpression<T>;
 
   /** Zero-based index access; returns a MaybeExpression containing the evaluated element when present */
   get: (index: NumberExpression) => MaybeExpression<T>;
@@ -98,9 +98,6 @@ export type ListExpression<T> = {
 
   /** Iterate elements and invoke cb(elementValue:any, index?:number) for side-effects. Callback invoked at evaluation time. Returns void. */
   forEach: (cb: (element: T, index?: number) => void) => void;
-
-  /** Lazily transform each element. Callback receives the element expression (not evaluated value) and returns an expression or literal. Returns a new ListExpression. */
-  map: (cb: (elementExpr: T, index?: number) => any) => ListExpression<T>;
 
   /** Existential membership test returning a ConditionExpression */
   isContaining: (element: T) => ConditionExpression;

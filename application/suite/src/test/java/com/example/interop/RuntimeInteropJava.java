@@ -1,5 +1,6 @@
 package com.example.interop;
 
+import com.sun.jna.Library;
 import com.sun.jna.Pointer;
 
 import static com.sun.jna.Native.*;
@@ -7,11 +8,10 @@ import static com.sun.jna.Native.*;
 /**
  * Small Java wrapper that uses the RuntimeNative JNA interface for tests.
  */
-public class RuntimeInteropJava {
-    private final RuntimeNative LIB;
+public interface RuntimeInteropJava extends Library {
 
-    public RuntimeInteropJava() {
-        RuntimeNative lib = null;
+    public static RuntimeInteropJava newRuntimeInteropJava() {
+        RuntimeInteropJava lib = null;
         String jnaPath = System.getProperty("jna.library.path");
         String javaLibPath = System.getProperty("java.library.path");
         String[] candidates = new String[] {jnaPath, javaLibPath, System.getProperty("user.dir")};
@@ -20,78 +20,49 @@ public class RuntimeInteropJava {
             java.io.File dll = new java.io.File(p, "libxml_xsd2.dll");
             if (dll.exists()) {
                 try {
-                    lib = load(dll.getAbsolutePath(), RuntimeNative.class);
+                    lib = load(dll.getAbsolutePath(), RuntimeInteropJava.class);
                     break;
                 } catch (UnsatisfiedLinkError e) { }
             }
             java.io.File so = new java.io.File(p, "libxml_xsd2.so");
             if (so.exists()) {
                 try {
-                    lib = load(so.getAbsolutePath(), RuntimeNative.class);
+                    lib = load(so.getAbsolutePath(), RuntimeInteropJava.class);
                     break;
                 } catch (UnsatisfiedLinkError e) { }
             }
         }
         if (lib == null) {
             try {
-                lib = load("libxml_xsd2", RuntimeNative.class);
+                lib = load("libxml_xsd2", RuntimeInteropJava.class);
             } catch (UnsatisfiedLinkError e1) {
                 try {
-                    lib = load("xml_xsd2", RuntimeNative.class);
+                    lib = load("xml_xsd2", RuntimeInteropJava.class);
                 } catch (UnsatisfiedLinkError e2) {
                     throw e2;
                 }
             }
         }
-        LIB = lib;
+        return lib;
     }
 
-    public String processArchive(String path) {
-        Pointer p = LIB.runtime_process_archive(path);
-        if (p == null) return null;
-        try {
-            String s = p.getString(0);
-            return s;
-        } finally {
-            LIB.runtime_free_string(p);
-        }
-    }
+    Pointer runtime_process_archive(String path);
 
-    public String debugLoadBase64(String payloadB64) {
-        Pointer p = LIB.runtime_debug_load_base64(payloadB64);
-        if (p == null) return null;
-        try {
-            return p.getString(0);
-        } finally {
-            LIB.runtime_free_string(p);
-        }
-    }
+    Pointer runtime_debug_load_base64(String payload);
 
-    public void debugIterate(int times) {
-        LIB.runtime_debug_iterate(times);
-    }
+    void runtime_debug_iterate(int times);
 
-    public boolean debugSimulateAction(String actionName) {
-        return LIB.runtime_debug_simulate_action(actionName);
-    }
+    boolean runtime_debug_simulate_action(String actionName);
 
-    public void debugShutdown() {
-        LIB.runtime_debug_shutdown();
-    }
+    void runtime_debug_shutdown();
 
-    public boolean exportState(String path) {
-        return LIB.runtime_export_state(path);
-    }
+    Pointer runtime_export_state_struct();
 
-    public com.sun.jna.Pointer exportStateStruct() {
-        return LIB.runtime_export_state_struct();
-    }
+    void runtime_free_exported_state(Pointer ptr);
 
-    public void freeExportedState(com.sun.jna.Pointer ptr) {
-        LIB.runtime_free_exported_state(ptr);
-    }
 
-    public void clearState() {
-        LIB.runtime_clear_state();
-    }
+    boolean runtime_export_state(String path);
+
+    void runtime_clear_state();
+
 }

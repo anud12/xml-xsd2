@@ -1,8 +1,5 @@
-package com.example.steps;
+package com.example.utils;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 public class ArchiveAssertions {

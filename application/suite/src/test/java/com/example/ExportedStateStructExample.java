@@ -1,8 +1,8 @@
 package com.example;
 
-import com.example.steps.ArchiveState;
-import com.example.steps.ArchiveRunner;
-import com.example.steps.StateAssertions;
+import com.example.utils.ArchiveState;
+import com.example.utils.ArchiveRunner;
+import com.example.utils.StateAssertions;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

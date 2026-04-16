@@ -8,7 +8,7 @@ This document specifies a small ConditionExpression API. The surface provides co
 
 Factory / rule functions:
 - `of(value: boolean) => ConditionExpression`
-- `asRule(ruleName: string, expr: ConditionExpression) => ConditionExpressionApi`
+- `asRule(ruleName: string, expr: ConditionExpression) => ConditionOperations`
 - `getRule(ruleName: string) => ConditionExpression`
 
 Combinators / helpers on ConditionExpression:

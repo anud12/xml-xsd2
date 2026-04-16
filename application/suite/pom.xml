@@ -129,6 +129,9 @@
                         <goal>exec</goal>
                     </goals>
                     <configuration>
+                        <environmentVariables>
+                            <RUSTFLAGS>-Awarnings</RUSTFLAGS>
+                        </environmentVariables>
                         <executable>cargo</executable>
                         <arguments>
                             <argument>build</argument>
