@@ -1,4 +1,4 @@
-package com.example.steps;
+package com.example.utils;
 
 import io.cucumber.java.Scenario;
 import java.io.File;

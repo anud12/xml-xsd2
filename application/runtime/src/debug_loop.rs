@@ -34,16 +34,16 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
         let mut files = std::collections::HashMap::new();
         match general_purpose::STANDARD.decode(payload) {
             Ok(bytes) => {
-                debug_println!("debug: LOAD payload decoded {} bytes", bytes.len());
+                runtime_log!("debug: LOAD payload decoded {} bytes", bytes.len());
                 // Write to a temp file and read its files
                 let tmp = std::env::temp_dir().join(format!("archive_{}.zip", std::process::id()));
                 match std::fs::write(&tmp, &bytes) {
-                    Ok(_) => debug_println!("debug: wrote tmp archive to {}", tmp.display()),
+                    Ok(_) => runtime_log!("debug: wrote tmp archive to {}", tmp.display()),
                     Err(e) => eprintln!("debug: failed to write tmp archive: {:?}", e),
                 }
                 let tmp_path = tmp.to_str().unwrap_or_default();
                 files = crate::archive::read_zip_files(tmp_path);
-                debug_println!("debug: read_zip_files returned {} files", files.len());
+                runtime_log!("debug: read_zip_files returned {} files", files.len());
             }
             Err(e) => {
                 eprintln!("debug: failed to decode load payload: {:?}", e);
@@ -53,14 +53,14 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
             // Fallback to the archive path passed at startup (may have been appended to by the test harness)
             let archive_path = crate::state::last_archive_path().lock().unwrap().clone();
             if !archive_path.is_empty() && std::path::Path::new(&archive_path).exists() {
-                debug_println!("debug: fallback reading archive from configured path {}", archive_path);
+                runtime_log!("debug: fallback reading archive from configured path {}", archive_path);
                 files = crate::archive::read_zip_files(&archive_path);
-                debug_println!("debug: read_zip_files (fallback) returned {} files", files.len());
+                runtime_log!("debug: read_zip_files (fallback) returned {} files", files.len());
             }
         }
 
         let file_rows = crate::module::build_file_rows(&files);
-        debug_println!("debug: built file_rows length {}", file_rows.len());
+        runtime_log!("debug: built file_rows length {}", file_rows.len());
         crate::state::set_last_file_rows(file_rows.clone());
         // Let the module processing populate action/event declarations and entity patterns.
         let mut entity_rows: Vec<Vec<String>> = Vec::new();
@@ -68,7 +68,7 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
         // Persist the loaded state so exports from the test harness reflect the loaded module
         crate::state::set_last_entity_rows(entity_rows.clone());
         let dest = crate::state::persist_state("state.db", &file_rows, &entity_rows);
-        debug_println!("debug: persist_state wrote {}", dest);
+        runtime_log!("debug: persist_state wrote {}", dest);
 
         debug_println!("{delimiter}OK{delimiter}");
         std::io::stdout().flush().ok();

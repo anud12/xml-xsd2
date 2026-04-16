@@ -9,7 +9,8 @@ pub mod debug_loop;
 pub mod archive;
 pub mod state;
 pub mod module;
-pub mod ffi;
+pub mod ffi_mod;
+pub use ffi_mod as ffi;
 
 // Re-export commonly used types for tests and external callers
 pub use js_host_api::Declarations;

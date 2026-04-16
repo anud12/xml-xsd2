@@ -1,14 +1,11 @@
-package com.example.steps;
+package com.example.utils;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-import static com.example.steps.ArchiveRunner.DEBUG_DELIMITED;
-
 import com.example.interop.RuntimeInteropJava;
-import com.example.interop.structs.*;
 
 public class StateAssertions {
 
@@ -25,7 +22,7 @@ public class StateAssertions {
     }
 
     public static File extractFileFromProcess(ArchiveState state, File sqlFile) throws IOException {
-        boolean ok = state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.exportState(sqlFile.getAbsolutePath()))
+        boolean ok = state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.runtime_export_state(sqlFile.getAbsolutePath()))
                 .get();
         long deadline = System.currentTimeMillis() + 5000;
         while (System.currentTimeMillis() < deadline) {
@@ -252,8 +249,8 @@ public class StateAssertions {
 
     }
     public static void assertExportedStateEmpty(ArchiveState state) throws Exception {
-        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::new);
-        com.sun.jna.Pointer p = lib.exportStateStruct();
+        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::newRuntimeInteropJava);
+        com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) {
             throw new AssertionError("exportStateStruct returned NULL pointer");
         }
@@ -264,7 +261,7 @@ public class StateAssertions {
                 throw new AssertionError("Expected exported state to be empty");
             }
         } finally {
-            lib.freeExportedState(p);
+            lib.runtime_free_exported_state(p);
         }
     }
 
@@ -302,8 +299,8 @@ public class StateAssertions {
 
         // Get actual rows from ExportedState
         java.util.List<java.util.Map<String, String>> actualRows = new java.util.ArrayList<>();
-        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::new);
-        com.sun.jna.Pointer p = lib.exportStateStruct();
+        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::newRuntimeInteropJava);
+        com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
         try {
             com.example.interop.structs.ExportedState es = new com.example.interop.structs.ExportedState(p);
@@ -372,7 +369,7 @@ public class StateAssertions {
                     throw new AssertionError("Unsupported table for exported-state validation: " + tableName);
             }
         } finally {
-            lib.freeExportedState(p);
+            lib.runtime_free_exported_state(p);
         }
 
         // Require exact count

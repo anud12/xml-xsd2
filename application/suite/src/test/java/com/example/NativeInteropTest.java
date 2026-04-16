@@ -4,9 +4,9 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import java.io.File;
 
-import com.example.steps.ArchiveState;
-import com.example.steps.ArchiveRunner;
-import com.example.steps.StateAssertions;
+import com.example.utils.ArchiveState;
+import com.example.utils.ArchiveRunner;
+import com.example.utils.StateAssertions;
 
 public class NativeInteropTest {
     @Test

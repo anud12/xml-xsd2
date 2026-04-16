@@ -1,6 +1,6 @@
 package com.example.steps;
 
-import com.example.interop.RuntimeInteropJava;
+import com.example.utils.*;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
@@ -11,12 +11,11 @@ import io.cucumber.java.en.When;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.regex.Pattern;
 
-import static com.example.steps.ArchiveRunner.DEBUG_DELIMITED;
-import static com.example.steps.StateAssertions.extractFileFromProcess;
+import static com.example.utils.ArchiveRunner.DEBUG_DELIMITED;
+import static com.example.utils.StateAssertions.extractFileFromProcess;
 
 public class ArchiveSteps {
     private final ArchiveState state = new ArchiveState();
@@ -60,7 +59,7 @@ public class ArchiveSteps {
     public void iRunIterations(int arg0) {
         try {
             String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugIterate(arg0));
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.runtime_debug_iterate(arg0));
             StringBuilder sb = new StringBuilder(existing);
             for (int i = 0; i < arg0; i++) sb.append("Iteration completed in 0:0ns\n");
             sb.append(DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED);
@@ -106,7 +105,7 @@ public class ArchiveSteps {
         String encoded = java.util.Base64.getEncoder().encodeToString(zipBytes);
         try {
             String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            String dbPath = state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.debugLoadBase64(encoded))
+            state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.runtime_debug_load_base64(encoded))
                     .get();
             state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
@@ -141,7 +140,7 @@ public class ArchiveSteps {
     public void sendActionToEntity(String actionName, String actorId, String targetId) throws IOException, InterruptedException {
         try {
             String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugSimulateAction(actionName));
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.runtime_debug_simulate_action(actionName));
             state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -152,7 +151,7 @@ public class ArchiveSteps {
     public void sendActionToContainer(String actionName, String actorId, String containerId) throws IOException, InterruptedException {
         try {
             String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugSimulateAction(actionName));
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.runtime_debug_simulate_action(actionName));
             state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -181,7 +180,7 @@ public class ArchiveSteps {
     @When("I export state to {string}")
     public void exportStateToFile(String fileName) throws IOException, InterruptedException {
         try {
-            boolean ok = state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.exportState(fileName))
+            boolean ok = state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.runtime_export_state(fileName))
                     .get();
             long deadline = System.currentTimeMillis() + 5000;
             File f = new File(fileName);
@@ -199,7 +198,7 @@ public class ArchiveSteps {
     public void iSendNoInputActionFromActor(String actionName, String actorId) throws IOException, InterruptedException {
         try {
             String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.debugSimulateAction(actionName));
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.runtime_debug_simulate_action(actionName));
             state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);

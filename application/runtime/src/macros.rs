@@ -1,7 +1,11 @@
-macro_rules! debug_println {
+macro_rules! runtime_log {
     ($($arg:tt)*) => {
-        if crate::native_stdio::is_native_stdout_enabled() {
-            println!($($arg)*);
-        }
+        crate::native_stdio::send_log(&format!($($arg)*));
     };
 }
+
+// Backwards-compatible alias: some modules historically used debug_println!.
+macro_rules! debug_println {
+    ($($arg:tt)*) => {
+        runtime_log!($($arg)*);
+    };
