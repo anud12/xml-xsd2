@@ -64,4 +64,12 @@ public interface RuntimeInteropJava extends Library {
 
     void runtime_clear_state();
 
+    // Callback interface for passing Java lambdas to native DLL that accept a single String argument
+    interface MyCallback extends com.sun.jna.Callback {
+        void invoke(String s);
+    }
+
+    // Register a callback in the native runtime accepting a single string
+    void register_logger(MyCallback cb);
+
 }
