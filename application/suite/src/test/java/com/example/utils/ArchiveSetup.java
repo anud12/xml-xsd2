@@ -29,7 +29,7 @@ public class ArchiveSetup {
         try (var stream = Files.walk(dir)) {
             state.featureFiles = stream
                     .filter(Files::isRegularFile)
-                    .collect(Collectors.toMap(path -> path.getFileName().toString(), path -> new File(path.toUri()), (a, b) -> a));
+                    .collect(Collectors.toMap(path -> dir.relativize(path).toString().replaceAll("\\\\", "/"), path -> new File(path.toUri()), (a, b) -> a));
         }
     }
 

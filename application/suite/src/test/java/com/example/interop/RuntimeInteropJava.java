@@ -60,7 +60,6 @@ public interface RuntimeInteropJava extends Library {
 
     void runtime_free_exported_state(Pointer ptr);
 
-
     boolean runtime_export_state(String path);
 
     void runtime_clear_state();
