@@ -1,4 +1,4 @@
-package com.example.interop.structs;
+package com.example.interop.exportedState;
 
 import com.sun.jna.*;
 import java.util.*;

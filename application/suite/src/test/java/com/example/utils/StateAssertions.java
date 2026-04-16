@@ -255,7 +255,7 @@ public class StateAssertions {
             throw new AssertionError("exportStateStruct returned NULL pointer");
         }
         try {
-            com.example.interop.structs.ExportedState es = new com.example.interop.structs.ExportedState(p);
+            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
             es.read();
             if (es.has_data != 0) {
                 throw new AssertionError("Expected exported state to be empty");
@@ -303,7 +303,7 @@ public class StateAssertions {
         com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
         try {
-            com.example.interop.structs.ExportedState es = new com.example.interop.structs.ExportedState(p);
+            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
             es.read();
             String t = tableName.toLowerCase();
             switch (t) {
@@ -349,9 +349,9 @@ public class StateAssertions {
                 case "module": {
                     int len = es.modules.len == null ? 0 : es.modules.len.intValue();
                     if (len > 0 && es.modules.data != null) {
-                        long structSize = new com.example.interop.structs.ModuleRow().size();
+                        long structSize = new com.example.interop.exportedState.ModuleRow().size();
                         for (int i = 0; i < len; i++) {
-                            com.example.interop.structs.ModuleRow mr = new com.example.interop.structs.ModuleRow(es.modules.data.share(i * structSize));
+                            com.example.interop.exportedState.ModuleRow mr = new com.example.interop.exportedState.ModuleRow(es.modules.data.share(i * structSize));
                             mr.read();
                             String id = mr.id == null ? "" : mr.id.getString(0);
                             String name = mr.name == null ? "" : mr.name.getString(0);
