@@ -48,9 +48,6 @@ public interface RuntimeInteropJava extends Library {
         return lib;
     }
 
-//    Pointer runtime_process_archive(String path);
-
-    Pointer runtime_debug_load_base64(String payload);
 
     void runtime_debug_iterate(int times);
 
@@ -61,8 +58,6 @@ public interface RuntimeInteropJava extends Library {
     Pointer runtime_export_state_struct();
 
     void runtime_free_exported_state(Pointer ptr);
-
-    boolean runtime_export_state(String path);
 
     void runtime_clear_state();
 
