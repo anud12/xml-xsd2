@@ -6,15 +6,24 @@ import java.net.URI;
 import java.nio.file.*;
 import java.util.Map;
 
-public record ZipArchive(File file) {
+public record ZipArchive(FileSystem zipFs, Path zipPath) {
 
-    public ZipArchive append(File fileToAdd) throws IOException {
-        URI zipUri = URI.create("jar:" + file.toURI());
-        try (FileSystem zipFs = FileSystems.newFileSystem(zipUri, Map.of("create", "true"))) {
-            Path dest = zipFs.getPath(fileToAdd.getName());
-            Files.copy(fileToAdd.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
-        }
+    public ZipArchive append(File fileToAdd, Path destination) throws IOException {
+
+        // Convert the Path destination to a path inside the ZipFileSystem
+        Path pathInZip = zipFs.getPath(destination.toString());
+        // Copy from the local file to the internal ZIP path
+        Files.copy(fileToAdd.toPath(), pathInZip, StandardCopyOption.REPLACE_EXISTING);
         return this;
+    }
+
+    public byte[] byteContents() {
+        try {
+            zipFs.close();
+            return Files.readAllBytes(zipPath);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static ZipArchive createTemp() {
@@ -24,8 +33,14 @@ public record ZipArchive(File file) {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        temp.delete();        // delete the stub — ZIP FS will create a fresh one
+        temp.delete();
         temp.deleteOnExit();  // still clean up on JVM exit
-        return new ZipArchive(temp);
+        URI zipUri = URI.create("jar:" + temp.toURI());
+        try {
+            FileSystem zipFs = FileSystems.newFileSystem(zipUri, Map.of("create", "true"));
+            return new ZipArchive(zipFs, temp.toPath());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

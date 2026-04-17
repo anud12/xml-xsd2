@@ -33,12 +33,13 @@ public class ArchiveSetup {
         }
     }
 
-    public static void addFileToArchive(ArchiveState state, String fileName) throws IOException {
+    public static void addFileToArchive(ArchiveState state, String fileName, String destination) throws IOException {
         if(!fileName.startsWith("./")) {
             throw new RuntimeException("Non local path found");
         }
         fileName = fileName.replaceFirst("./", "");
         var file = Objects.requireNonNull(state.featureFiles.get(fileName), "File '" + fileName + "' not found in " + state.featureFiles.keySet());
-        state.archive.append(file);
+
+        state.archive.append(file, Path.of(destination));
     }
 }

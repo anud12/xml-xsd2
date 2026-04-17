@@ -11,7 +11,6 @@ import io.cucumber.java.en.When;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.regex.Pattern;
 
 import static com.example.utils.ArchiveRunner.DEBUG_DELIMITED;
@@ -25,9 +24,9 @@ public class ArchiveSteps {
         ArchiveSetup.before(state, scenario);
     }
 
-    @Given("I have added {string} file to archive")
-    public void the_test_directory_contains_file(String fileName) throws IOException {
-        ArchiveSetup.addFileToArchive(state, fileName);
+    @Given("I have added {string} file as {string} to archive")
+    public void the_test_directory_contains_file(String fileName, String destination) throws IOException {
+        ArchiveSetup.addFileToArchive(state, fileName, destination);
     }
 
     @When("I run the application in debug mode")
@@ -40,9 +39,9 @@ public class ArchiveSteps {
         }
     }
 
-    @And("assert log line containing {string} regex")
-    public void hasLogLineContaining(String arg0) {
-        LogAssertions.assertLogLineContainsRegex(state, arg0);
+    @And("assert exactly {long} log lines matches {string}")
+    public void hasExactlyNLogLinesMatches(long arg0, String arg1) {
+        LogAssertions.assertLogLineContainsRegex(state, arg0, arg1);
     }
 
     @Then("DEBUG Print stdout after {int} ms")
@@ -101,22 +100,14 @@ public class ArchiveSteps {
 
     @And("I load current archive")
     public void iLoadCurrentArchive() throws Exception {
-        byte[] zipBytes = Files.readAllBytes(state.archive.file().toPath());
-        String encoded = java.util.Base64.getEncoder().encodeToString(zipBytes);
         try {
-            String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.runtime_debug_load_base64(encoded))
+            var contents = state.archive.byteContents();
+            state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.runtime_load_archive(contents, contents.length))
                     .get();
-            state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
-
-//    @Then("assert exported state output table {string} includes regexes from {string}")
-//    public void exportedTableShouldIncludeRegexes(String tableName, String csvFile) throws Exception {
-//        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, tableName, csvFile);
-//    }
 
     @Then("assert exported state entities includes regexes from {string}")
     public void exportedEntitiesShouldIncludeRegexes(String csvFile) throws Exception {
@@ -126,7 +117,7 @@ public class ArchiveSteps {
     public void exportedModuleShouldIncludeRegexes(String csvFile) throws Exception {
         StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "module", csvFile);
     }
-    @Then("assert exported state action includes regexes from {string}")
+    @Then("assert exported state action includes regexes from {string} file")
     public void exportedActionShouldIncludeRegexes(String csvFile) throws Exception {
         StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "action", csvFile);
     }
@@ -140,7 +131,7 @@ public class ArchiveSteps {
     public void sendActionToEntity(String actionName, String actorId, String targetId) throws IOException, InterruptedException {
         try {
             String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.runtime_debug_simulate_action(actionName));
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.trigger_action(actionName));
             state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -151,7 +142,7 @@ public class ArchiveSteps {
     public void sendActionToContainer(String actionName, String actorId, String containerId) throws IOException, InterruptedException {
         try {
             String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.runtime_debug_simulate_action(actionName));
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.trigger_action(actionName));
             state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -194,20 +185,15 @@ public class ArchiveSteps {
         }
     }
 
-    @And("I send action {string} from actor {string}")
-    public void iSendNoInputActionFromActor(String actionName, String actorId) throws IOException, InterruptedException {
+    @And("I trigger action {string}")
+    public void iTriggerAction(String actionName) {
         try {
             String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.runtime_debug_simulate_action(actionName));
+            state.runtimeInteropJava.ifPresent(runtimeInteropJava -> runtimeInteropJava.trigger_action(actionName));
             state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Then("DEBUG export state into {string}")
-    public void debugExportStateInto(String fileName) throws IOException {
-        extractFileFromProcess(state, new File(fileName));
     }
 }
 

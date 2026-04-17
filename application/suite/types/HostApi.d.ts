@@ -25,4 +25,5 @@ export type HostApi = {
   registerEffect: RegisterEffectFunction,
   registerAction: RegisterActionFunction,
   emitEvent: <T>(eventName: string, arguments: T) => void
+  log:(string:string) => void;
 }
