@@ -9,10 +9,14 @@ pub fn build_file_rows(files: &HashMap<String, String>) -> Vec<Vec<String>> {
 
 /// Locates the manifest JSON in the archive files and parses it.
 pub fn find_manifest(files: &HashMap<String, String>) -> Option<(String, serde_json::Value)> {
-    // Accept various manifest file naming conventions and path prefixes
+    // Accept various manifest file naming conventions and path prefixes (case-insensitive)
     files
         .iter()
-        .find(|(k, _)| k.ends_with("manifest.json") || (k.to_lowercase().contains("manifest") && k.ends_with(".json")))
+        .find(|(k, _)| {
+            let k_lower = k.to_lowercase();
+            // match any filename or path that mentions "manifest" and has a json extension
+            k_lower.contains("manifest") && k_lower.contains(".json")
+        })
         .and_then(|(k, s)| {
             serde_json::from_str::<serde_json::Value>(s)
                 .ok()
@@ -133,6 +137,10 @@ pub fn process_module(
         }
         None => {
             runtime_log!("manifest.json not found");
+            // dump available file keys to aid debugging
+            for (k, _) in files.iter() {
+                runtime_log!("file present: {}", k);
+            }
             runtime_log!("module rejected");
         }
     }

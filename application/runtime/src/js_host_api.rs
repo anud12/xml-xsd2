@@ -165,6 +165,14 @@ pub fn install_host_api(ctx: &Context) -> Result<()> {
                             globalThis.__logs.push(`entity created: ${String(obj)}`);
                         }
                     } catch(e) { globalThis.__createdEntities.push(String(obj)); globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push(`entity created: ${String(obj)}`); }
+                },
+                // Simple logging function that modules can call via host.log or when passed
+                // into default exports as 'log' in the hostApi parameter.
+                log(msg) {
+                    try {
+                        globalThis.__logs = globalThis.__logs || [];
+                        globalThis.__logs.push(String(msg));
+                    } catch(e) { }
                 }
             };
 

@@ -12,8 +12,10 @@ pub extern "C" fn runtime_process_archive(path: *const c_char) -> *mut c_char {
 
     // Mirror main.rs processing flow
     crate::state::set_archive_path(zip_path);
+    runtime_log!("process_archive: zip_path='{}' exists={} ", zip_path, std::path::Path::new(zip_path).exists());
     crate::archive::create_empty_zip_if_missing(zip_path);
     let files = crate::archive::read_zip_files(zip_path);
+    runtime_log!("process_archive: read {} files", files.len());
     let file_rows = crate::module::build_file_rows(&files);
     crate::state::set_last_file_rows(file_rows.clone());
     let mut entity_rows: Vec<Vec<String>> = Vec::new();

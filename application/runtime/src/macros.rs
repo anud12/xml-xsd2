@@ -9,3 +9,4 @@ macro_rules! debug_println {
     ($($arg:tt)*) => {
         runtime_log!($($arg)*);
     };
+}

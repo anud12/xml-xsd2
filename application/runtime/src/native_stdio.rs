@@ -6,8 +6,10 @@ use std::os::raw::c_char;
 // Default: false for library usage (suppresses native stdout writes that can corrupt forked JVM channels).
 static NATIVE_STDOUT_ENABLED: AtomicBool = AtomicBool::new(false);
 
-// Optional extern "C" log callback pointer (fn(*const c_char)). Stored as a raw pointer.
+// Optional Rust-side log callback pointer (fn(&str)). Stored as a raw pointer.
 static LOG_CALLBACK: AtomicPtr<std::ffi::c_void> = AtomicPtr::new(std::ptr::null_mut());
+// Optional C-compatible callback pointer (extern "C" fn(*const c_char)).
+static C_LOG_CALLBACK: AtomicPtr<std::ffi::c_void> = AtomicPtr::new(std::ptr::null_mut());
 
 /// Check if native stdout is enabled.
 pub fn is_native_stdout_enabled() -> bool {
@@ -34,17 +36,33 @@ pub fn set_log_callback(cb: Option<fn(&str)>) {
 /// Pass a null pointer to clear the callback.
 #[no_mangle]
 pub extern "C" fn runtime_set_log_callback(cb: *const std::ffi::c_void) {
-    LOG_CALLBACK.store(cb as *mut _, Ordering::SeqCst);
+    C_LOG_CALLBACK.store(cb as *mut _, Ordering::SeqCst);
+}
+
+/// Backwards-compatible exported name for Java tests: register_logger
+#[no_mangle]
+pub extern "C" fn register_logger(cb: *const std::ffi::c_void) {
+    C_LOG_CALLBACK.store(cb as *mut _, Ordering::SeqCst);
 }
 
 /// Send a log message. If a callback is registered it is invoked, otherwise it falls back to
 /// printing to native stdout when enabled.
 pub fn send_log(msg: &str) {
-    let ptr = LOG_CALLBACK.load(Ordering::SeqCst);
-    if !ptr.is_null() {
-        // Try Rust-side fn(&str)
+    // First try C callback
+    let cptr = C_LOG_CALLBACK.load(Ordering::SeqCst);
+    if !cptr.is_null() {
+        // SAFETY: assume the pointer is an extern "C" fn(*const c_char).
+        let c_fn: extern "C" fn(*const c_char) = unsafe { std::mem::transmute(cptr) };
+        let cstr = CString::new(msg).unwrap_or_else(|_| CString::new("").unwrap());
+        unsafe { c_fn(cstr.as_ptr()) };
+        return;
+    }
+
+    // Then try Rust fn(&str) callback
+    let rptr = LOG_CALLBACK.load(Ordering::SeqCst);
+    if !rptr.is_null() {
         // SAFETY: if the pointer was set via set_log_callback it is a `fn(&str)` pointer casted to void*.
-        let f: fn(&str) = unsafe { std::mem::transmute(ptr) };
+        let f: fn(&str) = unsafe { std::mem::transmute(rptr) };
         f(msg);
     } else if is_native_stdout_enabled() {
         // Fallback to native stdout if enabled.
@@ -52,25 +70,3 @@ pub fn send_log(msg: &str) {
     }
 }
 
-/// FFI helper that accepts an extern "C" fn(*const c_char) pointer. Pass null to clear.
-#[no_mangle]
-pub extern "C" fn runtime_set_log_callback_c(cb: Option<extern "C" fn(*const c_char)>) {
-    match cb {
-        Some(f) => {
-            let wrapper = move |s: &str| {
-                if let Ok(c) = CString::new(s) {
-                    f(c.as_ptr());
-                }
-            };
-            // Box the wrapper function and store as a fn(&str) pointer by leaking it. This is safe for the
-            // lifetime of the process in this context. Clearing the callback isn't reclaiming the allocation,
-            // but tests/processes are short-lived. If reclaiming is required, a more complex registry is needed.
-            let boxed: Box<dyn Fn(&str) + Send + Sync> = Box::new(wrapper);
-            // Transmute to a fn(&str) by creating a thin function pointer isn't possible for trait objects.
-            // Instead, create a trampoline fn by leaking the boxed closure as a concrete fn pointer isn't trivial.
-            // For simplicity, store the raw C function pointer directly so senders can call it when registered via C API.
-            LOG_CALLBACK.store(f as *const _ as *mut _, Ordering::SeqCst);
-        }
-        None => LOG_CALLBACK.store(std::ptr::null_mut(), Ordering::SeqCst),
-    }
-}
