@@ -128,13 +128,13 @@ public class StateAssertions {
                     break;
                 }
                 case "panel": {
-                    int len = es.events.len == null ? 0 : es.panels.len.intValue();
-                    if (len > 0 && es.events.data != null) {
-                        com.sun.jna.Pointer[] ptrs = es.events.data.getPointerArray(0, len);
+                    int len = es.panels.len == null ? 0 : es.panels.len.intValue();
+                    if (len > 0 && es.panels.data != null) {
+                        com.sun.jna.Pointer[] ptrs = es.panels.data.getPointerArray(0, len);
                         for (com.sun.jna.Pointer q : ptrs) {
                             String v = q == null ? "" : q.getString(0);
                             java.util.Map<String,String> m = new java.util.HashMap<>();
-                            m.put("name", v);
+                            m.put("id", v);
                             actualRows.add(m);
                         }
                     }

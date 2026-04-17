@@ -16,6 +16,7 @@ static mut LAST_EVENT_ROWS: Option<&'static Mutex<Vec<Vec<String>>>> = None;
 static mut LAST_MODULE_ROWS: Option<&'static Mutex<Vec<Vec<String>>>> = None;
 static mut LAST_ARCHIVE_PATH: Option<&'static Mutex<String>> = None;
 static mut LAST_ENTITY_PATTERNS: Option<&'static Mutex<Vec<String>>> = None;
+static mut LAST_PANELS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_CREATED_BY: Option<&'static Mutex<HashMap<String, Vec<String>>>> = None;
 
 fn persisted_flag() -> &'static AtomicBool {
@@ -36,6 +37,8 @@ fn persisted_flag() -> &'static AtomicBool {
         unsafe { LAST_ARCHIVE_PATH = Some(ap); }
         let p = Box::leak(Box::new(Mutex::new(Vec::new())));
         unsafe { LAST_ENTITY_PATTERNS = Some(p); }
+        let panels = Box::leak(Box::new(Mutex::new(Vec::new())));
+        unsafe { LAST_PANELS = Some(panels); }
         let cb = Box::leak(Box::new(Mutex::new(HashMap::new())));
         unsafe { LAST_CREATED_BY = Some(cb); }
     });
@@ -65,6 +68,11 @@ pub fn last_module_rows() -> &'static Mutex<Vec<Vec<String>>> {
 pub fn last_entity_patterns() -> &'static Mutex<Vec<String>> {
     persisted_flag();
     unsafe { LAST_ENTITY_PATTERNS.expect("entity patterns initialized") }
+}
+
+pub fn last_panels() -> &'static Mutex<Vec<String>> {
+    persisted_flag();
+    unsafe { LAST_PANELS.expect("panels initialized") }
 }
 
 pub fn last_created_by() -> &'static Mutex<HashMap<String, Vec<String>>> {
@@ -102,6 +110,9 @@ pub fn set_last_module_rows(rows: Vec<Vec<String>>) {
 pub fn set_last_entity_patterns(rows: Vec<String>) {
     *last_entity_patterns().lock().unwrap() = rows;
 }
+pub fn set_last_panels(rows: Vec<String>) {
+    *last_panels().lock().unwrap() = rows;
+}
 
 pub fn clear_state() {
     // Clear cached rows and flags so embedding processes can reset runtime state between tests
@@ -111,6 +122,7 @@ pub fn clear_state() {
     *last_event_rows().lock().unwrap() = Vec::new();
     *last_module_rows().lock().unwrap() = Vec::new();
     *last_entity_patterns().lock().unwrap() = Vec::new();
+    *last_panels().lock().unwrap() = Vec::new();
     *last_created_by().lock().unwrap() = HashMap::new();
     *last_archive_path().lock().unwrap() = String::new();
     persisted_flag().store(false, Ordering::SeqCst);
@@ -213,6 +225,8 @@ pub fn create_startup_sqlite_bytes() -> Vec<u8> {
                SELECT '' AS name WHERE 0; \
              CREATE VIEW IF NOT EXISTS entity AS \
                SELECT '' AS textMap_name WHERE 0; \
+             CREATE VIEW IF NOT EXISTS panel AS \
+               SELECT '' AS id WHERE 0; \
              VACUUM;",
         )
         .expect("init startup db");
@@ -241,8 +255,9 @@ pub fn export_to_file(path: &str) {
     let actions_cached = last_action_rows().lock().unwrap().clone();
     let events_cached = last_event_rows().lock().unwrap().clone();
     let modules_cached = last_module_rows().lock().unwrap().clone();
+    let panels_cached = last_panels().lock().unwrap().clone();
 
-    let has_cached = !files_cached.is_empty() || !actions_cached.is_empty() || !events_cached.is_empty() || !entities_cached.is_empty() || !modules_cached.is_empty();
+    let has_cached = !files_cached.is_empty() || !actions_cached.is_empty() || !events_cached.is_empty() || !entities_cached.is_empty() || !modules_cached.is_empty() || !panels_cached.is_empty();
 
     if has_cached {
         // Build an on-demand export matching cached in-memory rows by creating tables then inserting rows.
@@ -253,6 +268,7 @@ pub fn export_to_file(path: &str) {
              CREATE TABLE IF NOT EXISTS events (name TEXT); \
              CREATE TABLE IF NOT EXISTS action (name TEXT); \
              CREATE TABLE IF NOT EXISTS entity (textMap_name TEXT); \
+             CREATE TABLE IF NOT EXISTS panel (id TEXT); \
              VACUUM;",
         )
         .expect("init in-memory export db");
@@ -262,6 +278,7 @@ pub fn export_to_file(path: &str) {
         let entities = entities_cached;
         let actions = actions_cached;
         let events = events_cached;
+        let panels = panels_cached;
     if !modules_cached.is_empty() {
         runtime_log!("export: inserting module rows from module cache ({})", modules_cached.len());
         let tx_m = mem_conn.transaction().expect("tx_mod");
@@ -340,6 +357,13 @@ pub fn export_to_file(path: &str) {
             tx.execute("INSERT INTO events (name) VALUES (?1)", &[&norm]).ok();
         }
         tx.commit().ok();
+    }
+    if !panels.is_empty() {
+        let txp = mem_conn.transaction().expect("tx_panels");
+        for p in panels.iter() {
+            txp.execute("INSERT INTO panel (id) VALUES (?1)", &[&p]).ok();
+        }
+        txp.commit().ok();
     }
     if !entities.is_empty() {
         let tx = mem_conn.transaction().expect("tx2");

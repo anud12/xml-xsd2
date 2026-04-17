@@ -13,6 +13,7 @@ pub struct Declarations {
     pub functions: Vec<String>,
     pub entities: Vec<String>,
     pub logs: Vec<String>,
+    pub panels: Vec<String>,
 }
 
 /// Install a minimal, explicit host API into the provided QuickJS Context.
@@ -152,6 +153,16 @@ pub fn install_host_api(ctx: &Context) -> Result<()> {
                         scanFn(ev.apply, owner);
                     } catch(e) { /* ignore */ }
                 },
+                registerPanel(p) {
+                    let id = 'unknown';
+                    if (p && typeof p === 'object') {
+                        if (typeof p.id === 'string') id = p.id;
+                        else if (typeof p.name === 'string') id = p.name;
+                    } else if (typeof p === 'string') { id = p; }
+                    globalThis.__registeredPanels = globalThis.__registeredPanels || [];
+                    globalThis.__registeredPanels.push(id);
+                    // Do not invoke children callback during module load to avoid side-effects
+                },
                 createEntity(obj) {
                     globalThis.__createdEntities = globalThis.__createdEntities || [];
                     try {
@@ -199,7 +210,7 @@ pub fn extract_declarations(ctx: &Context) -> Result<Declarations> {
     let json = ctx.with(|ctx| {
         ctx.eval::<String, _>(
             r#"(function(){
-                const out = { events: [], actions: [], functions: [], entities: [], creators: {}, emits: {} };
+                const out = { events: [], actions: [], functions: [], entities: [], creators: {}, emits: {}, panels: [] };
                 const re = globalThis.__registeredEvents || [];
                 out.events = re.map(ev => {
                     if (typeof ev === 'string') return ev;
@@ -236,6 +247,7 @@ pub fn extract_declarations(ctx: &Context) -> Result<Declarations> {
                 }).sort();
                 out.creators = globalThis.__createdEntitiesFor || {};
                 out.emits = globalThis.__emitsMap || {};
+                out.panels = globalThis.__registeredPanels || [];
                 return JSON.stringify(out);
             })()"#,
         )

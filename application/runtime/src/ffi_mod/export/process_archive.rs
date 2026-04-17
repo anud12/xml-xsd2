@@ -20,6 +20,7 @@ pub extern "C" fn runtime_process_archive(path: *const c_char) -> *mut c_char {
     crate::state::set_last_file_rows(file_rows.clone());
     let mut entity_rows: Vec<Vec<String>> = Vec::new();
     crate::module::process_module(&files, &mut entity_rows);
+    eprintln!("process_archive: panels after process_module = {:?}", crate::state::last_panels().lock().unwrap());
     crate::state::set_last_entity_rows(entity_rows.clone());
 
     // Persist state to disk and return the destination path as a C string (caller must free)
