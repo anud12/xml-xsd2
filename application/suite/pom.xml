@@ -158,7 +158,6 @@
                             <mkdir dir="${project.build.directory}/test-classes"/>
                             <copy todir="${project.build.directory}/test-classes" overwrite="true">
                                 <fileset dir="${project.basedir}/../runtime/target/release">
-                                    <include name="xml_xsd2.*"/>
                                     <include name="libxml_xsd2.*"/>
                                 </fileset>
                             </copy>

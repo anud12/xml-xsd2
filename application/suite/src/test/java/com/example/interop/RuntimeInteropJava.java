@@ -3,7 +3,7 @@ package com.example.interop;
 import com.sun.jna.Library;
 import com.sun.jna.Pointer;
 
-import static com.sun.jna.Native.*;
+import static com.sun.jna.Native.load;
 
 /**
  * Small Java wrapper that uses the RuntimeNative JNA interface for tests.
@@ -14,7 +14,7 @@ public interface RuntimeInteropJava extends Library {
         RuntimeInteropJava lib = null;
         String jnaPath = System.getProperty("jna.library.path");
         String javaLibPath = System.getProperty("java.library.path");
-        String[] candidates = new String[] {jnaPath, javaLibPath, System.getProperty("user.dir")};
+        String[] candidates = new String[]{jnaPath, javaLibPath, System.getProperty("user.dir")};
         for (String p : candidates) {
             if (p == null) continue;
             java.io.File dll = new java.io.File(p, "libxml_xsd2.dll");
@@ -22,14 +22,16 @@ public interface RuntimeInteropJava extends Library {
                 try {
                     lib = load(dll.getAbsolutePath(), RuntimeInteropJava.class);
                     break;
-                } catch (UnsatisfiedLinkError e) { }
+                } catch (UnsatisfiedLinkError e) {
+                }
             }
             java.io.File so = new java.io.File(p, "libxml_xsd2.so");
             if (so.exists()) {
                 try {
                     lib = load(so.getAbsolutePath(), RuntimeInteropJava.class);
                     break;
-                } catch (UnsatisfiedLinkError e) { }
+                } catch (UnsatisfiedLinkError e) {
+                }
             }
         }
         if (lib == null) {
@@ -46,13 +48,13 @@ public interface RuntimeInteropJava extends Library {
         return lib;
     }
 
-    Pointer runtime_process_archive(String path);
+//    Pointer runtime_process_archive(String path);
 
     Pointer runtime_debug_load_base64(String payload);
 
     void runtime_debug_iterate(int times);
 
-    boolean runtime_debug_simulate_action(String actionName);
+    boolean trigger_action(String actionName);
 
     void runtime_debug_shutdown();
 
@@ -71,5 +73,12 @@ public interface RuntimeInteropJava extends Library {
 
     // Register a callback in the native runtime accepting a single string
     void register_logger(MyCallback cb);
+
+    /**
+     * Native entrypoint: load an archive from raw bytes.
+     * Exposes the native function that accepts a byte buffer
+     */
+    boolean runtime_load_archive(byte[] data, int length);
+
 
 }

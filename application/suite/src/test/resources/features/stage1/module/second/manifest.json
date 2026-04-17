@@ -1,7 +1,6 @@
 {
-  "id": "com.example.empty.second.event",
+  "id": "module",
   "version": "1.0.0",
-  "name": "Empty Second Event Module",
-  "entry": "index.js",
-  "eventName": "empty second event"
+  "name": "Event Module",
+  "entry": "index.js"
 }

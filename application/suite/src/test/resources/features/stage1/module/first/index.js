@@ -2,8 +2,6 @@
  */
 /** @type {ModuleEntrypoint} */
 export default ({string, ...hostApi}) => {
-  hostApi.registerEffect({
-    name: "empty effect",
-  })
+  hostApi.log("First module loaded");
 
 }

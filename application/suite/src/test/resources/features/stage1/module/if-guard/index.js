@@ -2,5 +2,8 @@
  */
 /** @type {ModuleEntrypoint} */
 export default ({string, ...hostApi}) => {
-  hostApi.log("Second module loaded");
+  if(false) {
+    hostApi.log("if guard loaded");
+  }
+
 }
