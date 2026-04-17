@@ -7,6 +7,7 @@ public class ExportedState extends Structure {
     public CStringArray entities;
     public CStringArray actions;
     public CStringArray events;
+    public CStringArray panels;
     public ModuleArray modules;
     public FileArray files;
     public CStringArray entity_patterns;
@@ -15,7 +16,7 @@ public class ExportedState extends Structure {
 
     @Override
     protected List<String> getFieldOrder() {
-        return Arrays.asList("entities","actions","events","modules","files","entity_patterns","created_by","has_data");
+        return Arrays.asList("entities","actions","events", "panels","modules","files","entity_patterns","created_by","has_data");
     }
 
     public ExportedState() { super(); }

@@ -9,12 +9,10 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.regex.Pattern;
 
 import static com.example.utils.ArchiveRunner.DEBUG_DELIMITED;
-import static com.example.utils.StateAssertions.extractFileFromProcess;
 
 public class ArchiveSteps {
     private final ArchiveState state = new ArchiveState();
@@ -113,7 +111,7 @@ public class ArchiveSteps {
     public void exportedEntitiesShouldIncludeRegexes(String csvFile) throws Exception {
         StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "entity", csvFile);
     }
-    @Then("assert exported state module includes regexes from {string}")
+    @Then("assert exported state module includes regexes from {string} file")
     public void exportedModuleShouldIncludeRegexes(String csvFile) throws Exception {
         StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "module", csvFile);
     }
@@ -121,9 +119,14 @@ public class ArchiveSteps {
     public void exportedActionShouldIncludeRegexes(String csvFile) throws Exception {
         StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "action", csvFile);
     }
-    @Then("assert exported state events includes regexes from {string}")
+    @Then("assert exported state events includes regexes from {string}  file")
     public void exportedEventsShouldIncludeRegexes(String csvFile) throws Exception {
         StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "events", csvFile);
+    }
+
+    @Then("assert exported state panel includes regexes from {string} file")
+    public void exportedPanelShouldIncludeRegexes(String csvFile) throws Exception {
+        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "panel", csvFile);
     }
 
 
@@ -165,23 +168,6 @@ public class ArchiveSteps {
             throw new AssertionError(String.format(
                     "Expected no log lines matching regex '%s' but found at least one.\nFull output:\n%s",
                     regex, output));
-        }
-    }
-
-    @When("I export state to {string}")
-    public void exportStateToFile(String fileName) throws IOException, InterruptedException {
-        try {
-            boolean ok = state.runtimeInteropJava.map(runtimeInteropJava -> runtimeInteropJava.runtime_export_state(fileName))
-                    .get();
-            long deadline = System.currentTimeMillis() + 5000;
-            File f = new File(fileName);
-            while (System.currentTimeMillis() < deadline && !(f.exists() && f.length() > 0)) {
-                Thread.sleep(10);
-            }
-            String existing = state.lastOutput != null ? new String(state.lastOutput, java.nio.charset.StandardCharsets.UTF_8) : "";
-            state.lastOutput = (existing + DEBUG_DELIMITED + "OK" + DEBUG_DELIMITED).getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 

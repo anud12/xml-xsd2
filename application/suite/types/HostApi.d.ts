@@ -8,6 +8,7 @@ import {EntityExpressionApi} from "./Entity";
 import {NumberMapExpressionApi} from "./numberMap";
 import {TextMapExpressionApi} from "./textMap";
 import {RegisterActionFunction} from "./action";
+import {RegisterPanelFunction} from "./ui/Panel";
 
 export type HostApi = {
   condition: ConditionExpressionApi,
@@ -24,6 +25,9 @@ export type HostApi = {
 
   registerEffect: RegisterEffectFunction,
   registerAction: RegisterActionFunction,
+
+  registerPanel: RegisterPanelFunction,
+
   emitEvent: <T>(eventName: string, arguments: T) => void
   log:(string:string) => void;
 }
