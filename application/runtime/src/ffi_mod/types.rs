@@ -51,6 +51,7 @@ pub struct ExportedState {
     pub entities: CStringArray,
     pub actions: CStringArray,
     pub events: CStringArray,
+    pub panels: CStringArray,
     pub modules: ModuleArray,
     pub files: FileArray,
     pub entity_patterns: CStringArray,

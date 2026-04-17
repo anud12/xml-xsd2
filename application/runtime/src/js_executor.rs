@@ -51,12 +51,14 @@ pub fn extract_from_source(source: &str) -> Result<Declarations> {
             if (typeof __module_default === 'function') {
                 __module_default({
                     string: { of: s => s },
+                    number: { of: n => n },
                     entity: { create: function(){ return { withTextMap: function(tm){ return tm; } }; } },
                     textMap: { create: function(){ return { put: function(k,v){ const o = {}; o[k]=v; return o; } }; } },
                     emitEvent: host.emitEvent,
                     registerEvent: host.registerEvent,
                     registerAction: host.registerAction,
                     registerEffect: host.registerEffect,
+                    registerPanel: host.registerPanel,
                     log: host.log
                 });
             }
@@ -120,12 +122,14 @@ pub fn simulate_action(
             if (typeof __module_default === 'function') {
                 __module_default({
                     string: { of: s => s },
+                    number: { of: n => n },
                     entity: { create: function(){ return { withTextMap: function(tm){ return tm; } }; } },
                     textMap: { create: function(){ return { put: function(k,v){ const o = {}; o[k]=v; return o; } }; } },
                     emitEvent: host.emitEvent,
                     registerEvent: host.registerEvent,
                     registerAction: host.registerAction,
                     registerEffect: host.registerEffect,
+                    registerPanel: host.registerPanel,
                     log: host.log
                 });
             }
@@ -274,6 +278,14 @@ pub fn simulate_action(
 
     let result_json = ctx.with(|ctx| ctx.eval::<String, _>(script.as_str()))?;
     eprintln!("debug: simulate_action raw json: {}", result_json);
+    // Extract any logs produced during action execution from the JS context and forward them
+    // to the runtime log so Java tests can observe messages like "action called".
+    let logs_json = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__logs || [])")).unwrap_or_else(|_| "[]".to_string());
+    if let Ok(logs_vec) = serde_json::from_str::<Vec<String>>(&logs_json) {
+        for l in logs_vec.iter() {
+            runtime_log!("{}", l);
+        }
+    }
     #[derive(serde::Deserialize)]
     struct SimResult {
         created: Vec<String>,
@@ -302,3 +314,5 @@ pub fn simulate_action(
 
     Ok((sim.created, store_rows))
 }
+
+
