@@ -1,6 +1,10 @@
 use std::process::Command;
 
 fn main() {
+    use std::fs;
+    use std::env;
+    use std::path::Path;
+
     // Always invoke 'mvn' from PATH. Tests will fail if Maven is missing.
     let status = Command::new("mvn.cmd")
         .arg("test")

@@ -56,7 +56,8 @@ pub fn extract_from_source(source: &str) -> Result<Declarations> {
                     emitEvent: host.emitEvent,
                     registerEvent: host.registerEvent,
                     registerAction: host.registerAction,
-                    registerEffect: host.registerEffect
+                    registerEffect: host.registerEffect,
+                    log: host.log
                 });
             }
         } catch(e) { }
@@ -124,7 +125,8 @@ pub fn simulate_action(
                     emitEvent: host.emitEvent,
                     registerEvent: host.registerEvent,
                     registerAction: host.registerAction,
-                    registerEffect: host.registerEffect
+                    registerEffect: host.registerEffect,
+                    log: host.log
                 });
             }
         } catch(e) { }"#;
