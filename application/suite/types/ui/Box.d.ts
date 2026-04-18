@@ -1,12 +1,10 @@
-import {TextureResource} from "../TextureResource";
 import {NumberExpression} from "../primitives/numberExpression";
+import {TextureResource} from "../texture/TextureResource";
 
 export type TrackDefinition = SizeConstraint & {
   align?: "start" | "end";             // default: "start" — content alignment within track
 };
-export type BoxApi = {
-
-}
+export type BoxApi = {}
 
 export type SizeConstraint = {
   min?: NumberExpression;    // Never sized below this (logical units)

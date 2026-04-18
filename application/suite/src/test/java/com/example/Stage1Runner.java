@@ -7,7 +7,7 @@ import org.junit.platform.suite.api.Suite;
 import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 
 @Suite
-@SelectClasspathResource("features")
+@SelectClasspathResource("features/stage1")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
-public class RunCucumberTest {
+public class Stage1Runner {
 }
