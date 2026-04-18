@@ -13,7 +13,7 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
     let mut panels_cached = crate::state::last_panels().lock().unwrap().clone();
     let created_by_cached = crate::state::last_created_by().lock().unwrap().clone();
     // Debug: print panels cache to stderr for troubleshooting
-    eprintln!("export_state_struct: panels_cached = {:?}", panels_cached);
+    // debug: panels_cached (disabled)
     // Fallback: if panels not registered by JS, try extracting from any panel.csv file in last_file_rows
     if panels_cached.is_empty() {
         let files_cached = crate::state::last_file_rows().lock().unwrap().clone();
@@ -53,7 +53,7 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
                     let fname = row.get(0).unwrap().to_lowercase();
                     if fname.ends_with("index.js") || fname.ends_with(".js") {
                         let src = row.get(1).unwrap();
-                        eprintln!("export_state_struct: index.js length={} chars\n---BEGIN---\n{}\n---END---", src.chars().count(), src);
+                        // index.js diagnostic output disabled
                         // crude patterns: registerPanel('id') or registerPanel({ id: 'id' })
                         for cap in src.match_indices("registerPanel(") {
                             let start = cap.0 + cap.1.len();
@@ -107,11 +107,11 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
                 }
             }
         }
-        eprintln!("export_state_struct: panels_cached (after fallback) = {:?}", panels_cached);
+        // panels_cached fallback diagnostic disabled
         // Debug list filenames available in files_cached to understand why fallback failed
         let files_cached = crate::state::last_file_rows().lock().unwrap().clone();
         let names: Vec<String> = files_cached.iter().filter_map(|r| r.get(0).cloned()).collect();
-        eprintln!("export_state_struct: files_cached names = {:?}", names);
+        // files_cached names diagnostic disabled
     }
 
     unsafe {
