@@ -1,14 +1,15 @@
 use std::process::Command;
 
 fn main() {
-    use std::fs;
-    use std::env;
-    use std::path::Path;
 
     // Always invoke 'mvn' from PATH. Tests will fail if Maven is missing.
     let status = Command::new("mvn.cmd")
+        .arg("clean")
+        .arg("compile")
         .arg("test")
         .arg("-ntp")
+        .arg("-P stage1,stage2")
+
         .current_dir("../suite") // Point to your Java root
         .status()
         .expect("Failed to execute 'mvn' from PATH; ensure Maven is installed and 'mvn' is on PATH");
