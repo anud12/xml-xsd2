@@ -10,6 +10,16 @@
     <RustBuildProfile>release</RustBuildProfile>
     <RustDllPath>$(MSBuildProjectDirectory)\..\runtime\target\$(RustBuildProfile)\$(RuntimeDllName)</RustDllPath>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
+    <PackageReference Include="Xunit.Gherkin.Quick" Version="4.5.0" />
+    <None Update="Features\**\*.feature">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="RiderTestRunner\NetCoreRunner.tscn" />
+  </ItemGroup>
 
   <!-- Build Rust runtime and copy DLL into the client folder before building C# assemblies -->
   <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">
