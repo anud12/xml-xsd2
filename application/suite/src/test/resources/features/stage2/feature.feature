@@ -1,4 +1,4 @@
-Feature: Stage 2 Interactivity
+Feature: Stage 2 Ui Interactivity
 
   Rule: UI
     Scenario Outline: Create panel
