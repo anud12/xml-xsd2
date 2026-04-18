@@ -28,12 +28,10 @@ export type PanelOptions = {
   offset: { x: NumberExpression; y: NumberExpression };
   size: { width: NumberExpression; height: NumberExpression };
   /**
-   * Like CSS `flex-grow`. A component with `scale: 2` claims twice as
-   * much remaining space as one with `scale: 1`.
-   * Defaults to 0 (sized to min, or content if no min).
+   * Panel scale per real pixel ratio
    */
   scale?: NumberExpression;
-  background?: TextureResource;
+  background: TextureResource;
 
   children: (panelApi:PanelApi) => void
 };
