@@ -1,9 +1,12 @@
 ﻿using Xunit;
+using System.Linq;
+using System.Reflection;
 using Xunit.Gherkin.Quick;
+using Xunit.Abstractions;
 
 namespace NewGameProject;
 
-[FeatureFile("./feature.feature")]
+[FeatureFile("Features/feature.feature")]
 public class AddTwoNumbersFeature: Feature
 {
     private readonly Calculator _calculator = new Calculator();
@@ -38,7 +41,9 @@ public class AddTwoNumbersFeature: Feature
 internal class Calculator
 {
     public int Result { get; private set; }
-    public void SetFirstNumber(int number) => Result = number;
-    public void SetSecondNumber(int number) => Result = number;
-    public void AddNumbers() => Result += 1;
+    private int _first;
+    private int _second;
+    public void SetFirstNumber(int number) => _first = number;
+    public void SetSecondNumber(int number) => _second = number;
+    public void AddNumbers() => Result = _first + _second;
 }
