@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Read;
+
 use std::path::Path;
 
 /// Reads all files from a zip archive into a name→content map.

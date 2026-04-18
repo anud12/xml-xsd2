@@ -1,5 +1,6 @@
+#![allow(dead_code)]
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
-use std::ffi::{CString, CStr};
+use std::ffi::CString;
 use std::os::raw::c_char;
 
 // Controls whether the runtime should write to the native stdout/stderr streams.
@@ -24,6 +25,7 @@ pub fn set_native_stdout_enabled(enabled: bool) {
 
 /// Set a Rust-side log callback (fn(&str)). Useful for tests embedded in the same process.
 /// Pass `None` to clear the callback.
+#[allow(dead_code)]
 pub fn set_log_callback(cb: Option<fn(&str)>) {
     let ptr = match cb {
         Some(f) => f as *const () as *mut std::ffi::c_void,
@@ -54,7 +56,7 @@ pub fn send_log(msg: &str) {
         // SAFETY: assume the pointer is an extern "C" fn(*const c_char).
         let c_fn: extern "C" fn(*const c_char) = unsafe { std::mem::transmute(cptr) };
         let cstr = CString::new(msg).unwrap_or_else(|_| CString::new("").unwrap());
-        unsafe { c_fn(cstr.as_ptr()) };
+        c_fn(cstr.as_ptr());
         return;
     }
 

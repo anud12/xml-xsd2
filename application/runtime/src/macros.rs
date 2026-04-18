@@ -1,6 +1,6 @@
 macro_rules! runtime_log {
     ($($arg:tt)*) => {
-        crate::native_stdio::send_log(&format!($($arg)*));
+        crate::native_stdio::send_log(&format!($($arg)*))
     };
 }
 
