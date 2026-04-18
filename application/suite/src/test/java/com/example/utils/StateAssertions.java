@@ -2,10 +2,17 @@ package com.example.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.example.interop.RuntimeInteropJava;
+import com.sun.jna.Pointer;
+import io.cucumber.core.internal.com.fasterxml.jackson.core.JsonProcessingException;
+import io.cucumber.core.internal.com.fasterxml.jackson.databind.ObjectMapper;
 
 public class StateAssertions {
 
@@ -75,7 +82,7 @@ public class StateAssertions {
                         com.sun.jna.Pointer[] ptrs = es.entities.data.getPointerArray(0, len);
                         for (com.sun.jna.Pointer q : ptrs) {
                             String v = q == null ? "" : q.getString(0);
-                            java.util.Map<String,String> m = new java.util.HashMap<>();
+                            java.util.Map<String, String> m = new java.util.HashMap<>();
                             m.put("textMap_name", v);
                             actualRows.add(m);
                         }
@@ -88,7 +95,7 @@ public class StateAssertions {
                         com.sun.jna.Pointer[] ptrs = es.actions.data.getPointerArray(0, len);
                         for (com.sun.jna.Pointer q : ptrs) {
                             String v = q == null ? "" : q.getString(0);
-                            java.util.Map<String,String> m = new java.util.HashMap<>();
+                            java.util.Map<String, String> m = new java.util.HashMap<>();
                             m.put("name", v);
                             actualRows.add(m);
                         }
@@ -101,7 +108,7 @@ public class StateAssertions {
                         com.sun.jna.Pointer[] ptrs = es.events.data.getPointerArray(0, len);
                         for (com.sun.jna.Pointer q : ptrs) {
                             String v = q == null ? "" : q.getString(0);
-                            java.util.Map<String,String> m = new java.util.HashMap<>();
+                            java.util.Map<String, String> m = new java.util.HashMap<>();
                             m.put("name", v);
                             actualRows.add(m);
                         }
@@ -118,7 +125,7 @@ public class StateAssertions {
                             String id = mr.id == null ? "" : mr.id.getString(0);
                             String name = mr.name == null ? "" : mr.name.getString(0);
                             String version = mr.version == null ? "" : mr.version.getString(0);
-                            java.util.Map<String,String> m = new java.util.HashMap<>();
+                            java.util.Map<String, String> m = new java.util.HashMap<>();
                             m.put("id", id);
                             m.put("name", name);
                             m.put("version", version);
@@ -133,7 +140,7 @@ public class StateAssertions {
                         com.sun.jna.Pointer[] ptrs = es.panels.data.getPointerArray(0, len);
                         for (com.sun.jna.Pointer q : ptrs) {
                             String v = q == null ? "" : q.getString(0);
-                            java.util.Map<String,String> m = new java.util.HashMap<>();
+                            java.util.Map<String, String> m = new java.util.HashMap<>();
                             m.put("id", v);
                             actualRows.add(m);
                         }
@@ -172,8 +179,14 @@ public class StateAssertions {
                 for (String col : expectedColumns) {
                     Pattern pat = patternRows.get(pidx).get(col);
                     String val = actualRows.get(aidx).getOrDefault(col, "");
-                    if (pat == null) { ok = false; break; }
-                    if (!pat.matcher(val).matches()) { ok = false; break; }
+                    if (pat == null) {
+                        ok = false;
+                        break;
+                    }
+                    if (!pat.matcher(val).matches()) {
+                        ok = false;
+                        break;
+                    }
                 }
                 matches[pidx][aidx] = ok;
             }
@@ -218,6 +231,29 @@ public class StateAssertions {
                 }
                 throw new AssertionError(msg.toString());
             }
+        }
+    }
+
+    public static void assertReturnedPanelNamesIsIn(ArchiveState state, String arg) {
+        try {
+            var objectMapper = new ObjectMapper();
+            List<String> expectedNames = objectMapper.reader().readValue(arg, ArrayList.class);
+            var runtimeInteropJava = state.runtimeInteropJava.get();
+
+            String[] nameArray = runtimeInteropJava.get_panel_names().getStringArray(0);
+            List<String> resultNames = Arrays.asList(nameArray);
+            if (!(expectedNames.containsAll(resultNames)) || !(resultNames.containsAll(expectedNames))) {
+                StringBuilder msg = new StringBuilder();
+                msg.append("Unable to match result get_panel_names");
+                msg.append("Expected : ").append(expectedNames.stream().collect(Collectors.joining(",", "[", "]"))).append("\n");
+                msg.append("Actual:").append(resultNames.stream().collect(Collectors.joining(",", "[", "]"))).append("\n");
+                throw new AssertionError(msg.toString());
+            }
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

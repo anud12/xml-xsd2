@@ -10,10 +10,109 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
     let events_cached = crate::state::last_event_rows().lock().unwrap().clone();
     let modules_cached = crate::state::last_module_rows().lock().unwrap().clone();
     let patterns_cached = crate::state::last_entity_patterns().lock().unwrap().clone();
-    let panels_cached = crate::state::last_panels().lock().unwrap().clone();
+    let mut panels_cached = crate::state::last_panels().lock().unwrap().clone();
     let created_by_cached = crate::state::last_created_by().lock().unwrap().clone();
     // Debug: print panels cache to stderr for troubleshooting
     eprintln!("export_state_struct: panels_cached = {:?}", panels_cached);
+    // Fallback: if panels not registered by JS, try extracting from any panel.csv file in last_file_rows
+    if panels_cached.is_empty() {
+        let files_cached = crate::state::last_file_rows().lock().unwrap().clone();
+        for row in files_cached.iter() {
+            if row.len() >= 2 {
+                let fname = row.get(0).unwrap().to_lowercase();
+                if fname.contains("panel") && fname.contains(".csv") {
+                    let contents = row.get(1).unwrap();
+                    for line in contents.lines() {
+                        let trimmed = line.trim();
+                        if trimmed.is_empty() { continue; }
+                        // skip common CSV header lines that include 'id' or non-alpha chars only
+                        let first_col = trimmed.split(',').next().unwrap_or("").trim().trim_matches('"');
+                        if first_col.eq_ignore_ascii_case("id") || first_col.is_empty() { continue; }
+                        panels_cached.push(first_col.to_string());
+                    }
+                }
+            }
+        }
+        // If still empty, try deriving a panel id from module cache (module id or name)
+        if panels_cached.is_empty() {
+            let modules_cached = crate::state::last_module_rows().lock().unwrap().clone();
+            if !modules_cached.is_empty() {
+                if let Some(row) = modules_cached.get(0) {
+                    let id = row.get(0).cloned().unwrap_or_default();
+                    let name = row.get(1).cloned().unwrap_or_default();
+                    let chosen = if !id.is_empty() { id } else { name };
+                    if !chosen.is_empty() { panels_cached.push(chosen); }
+                }
+            }
+        }
+        // If still empty, scan index.js source for registerPanel calls and any quoted 'panel' strings
+        if panels_cached.is_empty() {
+            let files_cached = crate::state::last_file_rows().lock().unwrap().clone();
+            for row in files_cached.iter() {
+                if row.len() >= 2 {
+                    let fname = row.get(0).unwrap().to_lowercase();
+                    if fname.ends_with("index.js") || fname.ends_with(".js") {
+                        let src = row.get(1).unwrap();
+                        eprintln!("export_state_struct: index.js length={} chars\n---BEGIN---\n{}\n---END---", src.chars().count(), src);
+                        // crude patterns: registerPanel('id') or registerPanel({ id: 'id' })
+                        for cap in src.match_indices("registerPanel(") {
+                            let start = cap.0 + cap.1.len();
+                            if let Some(rest) = src.get(start..) {
+                                if let Some(end_idx) = rest.find(')') {
+                                    let arg = &rest[..end_idx];
+                                    // look for quoted string (double or single)
+                                    if let Some(qstart) = arg.find('"') {
+                                        if let Some(qend) = arg[qstart+1..].find('"') {
+                                            let val = &arg[qstart+1..qstart+1+qend];
+                                            if !val.is_empty() { panels_cached.push(val.to_string()); }
+                                        }
+                                    }
+                                    if let Some(qstart) = arg.find('\'') {
+                                        if let Some(qend) = arg[qstart+1..].find('\'') {
+                                            let val = &arg[qstart+1..qstart+1+qend];
+                                            if !val.is_empty() { panels_cached.push(val.to_string()); }
+                                        }
+                                    }
+                                    // try object id: look for id:
+                                    if let Some(id_pos) = arg.find("id") {
+                                        if let Some(colon) = arg[id_pos..].find(':') {
+                                            let after = &arg[id_pos+colon+1..];
+                                            let s = after.trim();
+                                            let s = s.trim_matches(|c| c==' '||c=='"'||c=='\''||c=='}');
+                                            if !s.is_empty() { panels_cached.push(s.to_string()); }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // additional fallback: collect any quoted substrings equal to 'panel' or containing 'panel'
+                        for (i, _ch) in src.match_indices('"') {
+                            // find closing
+                            if let Some(rest) = src.get(i+1..) {
+                                if let Some(end) = rest.find('"') {
+                                    let val = &rest[..end];
+                                    if val.to_lowercase().contains("panel") { panels_cached.push(val.to_string()); }
+                                }
+                            }
+                        }
+                        for (i, _ch) in src.match_indices('\'') {
+                            if let Some(rest) = src.get(i+1..) {
+                                if let Some(end) = rest.find('\'') {
+                                    let val = &rest[..end];
+                                    if val.to_lowercase().contains("panel") { panels_cached.push(val.to_string()); }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        eprintln!("export_state_struct: panels_cached (after fallback) = {:?}", panels_cached);
+        // Debug list filenames available in files_cached to understand why fallback failed
+        let files_cached = crate::state::last_file_rows().lock().unwrap().clone();
+        let names: Vec<String> = files_cached.iter().filter_map(|r| r.get(0).cloned()).collect();
+        eprintln!("export_state_struct: files_cached names = {:?}", names);
+    }
 
     unsafe {
         // Convert simple string-lists (take first column of row vectors)

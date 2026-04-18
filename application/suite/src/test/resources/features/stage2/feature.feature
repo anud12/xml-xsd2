@@ -8,8 +8,8 @@ Feature: Stage 2 Interactivity
       And I have added "./<directory>/texture.exr" file as "./texture.exr" to archive
       When I load current archive
       Then assert exported state panel includes regexes from "./<directory>/panel.csv" file
-      Then assert exactly 0 log lines matches "register panel"
+      Then assert that `get_panel_names` is array "<panelName>" from json
       Examples:
-        | directory          |
-        | create_panel/first |
-        | create_panel/second |
+        | directory           | panelName                          |
+        | create_panel/first  | [\"panel\", \"panel_2\"]               |
+        | create_panel/second | [\"second panel\", \"second panel_2\"] |

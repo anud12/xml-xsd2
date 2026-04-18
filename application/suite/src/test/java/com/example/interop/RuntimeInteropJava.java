@@ -75,5 +75,7 @@ public interface RuntimeInteropJava extends Library {
      */
     boolean runtime_load_archive(byte[] data, int length);
 
+    Pointer get_panel_names();
+
 
 }
