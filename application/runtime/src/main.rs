@@ -8,6 +8,7 @@ mod js_executor;
 mod debug_loop;
 mod archive;
 mod state;
+mod export_helpers;
 mod module;
 
 use std::io::Write;

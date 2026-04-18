@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use libc::{c_char, c_void};
 use std::collections::HashMap;
 
@@ -64,7 +64,7 @@ pub unsafe fn string_vec_to_c_array(vec: Vec<String>) -> (*mut *mut c_char, usiz
     if vec.is_empty() {
         return (std::ptr::null_mut(), 0);
     }
-    let mut v: Vec<*mut c_char> = vec
+    let v: Vec<*mut c_char> = vec
         .into_iter()
         .map(|s| CString::new(s).unwrap_or_else(|_| CString::new("").unwrap()).into_raw())
         .collect();
@@ -158,6 +158,7 @@ pub struct UnsubscribeHandle {
 
 static SUBS_INIT: std::sync::Once = std::sync::Once::new();
 static mut ENTITY_SUBSCRIPTIONS: Option<&'static std::sync::Mutex<Vec<*mut Subscription>>> = None;
+#[allow(dead_code)]
 pub(super) static SUB_ID_COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
 
 pub fn ensure_entity_subscriptions() {
