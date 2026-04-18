@@ -1,4 +1,4 @@
-Feature: Stage 1 Implementation
+Feature: Stage 1 Module loading, and action execution
 
   Rule: Module Initialization
     Scenario Outline: Archive with module and script should log by executing the js file
