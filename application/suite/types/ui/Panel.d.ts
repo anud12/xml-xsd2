@@ -1,6 +1,6 @@
 import {NumberExpression} from "../primitives/numberExpression";
-import {TextureResource} from "../TextureResource";
 import {BoxApi, BoxOptions} from "./Box";
+import {TextureResource} from "../texture/TextureResource";
 
 export type RegisterPanelFunction = (panelOptions: PanelOptions) => {}
 

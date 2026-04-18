@@ -9,6 +9,7 @@ import {NumberMapExpressionApi} from "./numberMap";
 import {TextMapExpressionApi} from "./textMap";
 import {RegisterActionFunction} from "./action";
 import {RegisterPanelFunction} from "./ui/Panel";
+import {TextureApi} from "./texture/TextureApi";
 
 export type HostApi = {
   condition: ConditionExpressionApi,
@@ -27,6 +28,8 @@ export type HostApi = {
   registerAction: RegisterActionFunction,
 
   registerPanel: RegisterPanelFunction,
+
+  texture: TextureApi,
 
   emitEvent: <T>(eventName: string, arguments: T) => void
   log:(string:string) => void;
