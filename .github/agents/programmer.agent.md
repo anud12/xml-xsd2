@@ -81,10 +81,12 @@ Split a file immediately when any of the following is true:
 
 ---
 
-## Function Complexity
+## Function Spliting
 
-### The Rule
-**Cyclomatic complexity must stay at or below 3 per function.** This means at most 2 branching points (if, ternary, switch case, logical `&&`/`||`, loop). If a function exceeds this, it is decomposed — no exceptions.
+- Make sure that each function has a max if depth of 2,
+- Has at max 40 lines of code
+
+If a function exceeds this, it is decomposed - no exceptions.
 
 ### What Low Complexity Looks Like
 
