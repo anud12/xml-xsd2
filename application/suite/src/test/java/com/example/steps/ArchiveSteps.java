@@ -3,6 +3,7 @@ package com.example.steps;
 import com.example.utils.*;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
+import io.cucumber.java.PendingException;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.util.regex.Pattern;
 
 import static com.example.utils.ArchiveRunner.DEBUG_DELIMITED;
+import static com.example.utils.StateAssertions.assertReturnedPanelNamesIsIn;
 
 public class ArchiveSteps {
     private final ArchiveState state = new ArchiveState();
@@ -180,6 +182,11 @@ public class ArchiveSteps {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Then("assert that `get_panel_names` is array {string} from json")
+    public void assertThatGet_panel_namesReturns(String arg0) {
+        assertReturnedPanelNamesIsIn(state,arg0);
     }
 }
 
