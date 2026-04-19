@@ -31,7 +31,7 @@ public class InteropFeatures : Feature
         return Directory.GetCurrentDirectory();
     }
 
-    [Given(@"I load the runtime")]
+    [Given("I load the runtime")]
     public void I_load_the_runtime()
     {
         // Ensure a fresh archive is used for each scenario to avoid stale entries from previous runs.
@@ -48,7 +48,7 @@ public class InteropFeatures : Feature
         }
     }
 
-    [Given(@"I have added {string} file as {string} to archive")]
+    [Given("I have added {string} file as {string} to archive")]
     public void I_have_added_string_file_as_string_to_archive(string path, string name)
     {
         if (string.IsNullOrEmpty(_currentArchivePath))
@@ -147,7 +147,7 @@ public class InteropFeatures : Feature
         }
     }
 
-    [When(@"I load current archive")]
+    [When("I load current archive")]
     public void I_load_current_archive()
     {
         // Ensure native runtime DLL is accessible to the test process (copy to test output folder if needed)
@@ -181,7 +181,7 @@ public class InteropFeatures : Feature
         // store or log dbPath if needed for further assertions
     }
 
-    [Then(@"assert that `GetPanelIds` returns {string}")]
+    [Then("assert that `GetPanelIds` returns {string}")]
     public void Assert_that_getPanelIds_returns(string expectedList)
     {
         var resultString = RuntimeInterop.GetPanelIds();
@@ -189,14 +189,14 @@ public class InteropFeatures : Feature
         Assert.Equal(expectedListArray, resultString);
     }
 
-    [Then(@"assert that `GetPanelData` for {string} has id {string}")]
+    [Then("assert that `GetPanelData` for {string} has id {string}")]
     public void Assert_that_getPanelIds_returns_expected_id(string panelId, string expected)
     {
         var resultPanel = RuntimeInterop.GetPanelById(panelId);
         Assert.Equal(resultPanel.Id, expected);
     }
     
-    [Then(@"assert that `GetPanelData` for {string} has background {string}")]
+    [Then("assert that `GetPanelData` for {string} has background {string}")]
     public void Assert_that_getPanelIds_returns_expected_background(string panelId, string expected)
     {
         var resultPanel = RuntimeInterop.GetPanelById(panelId);

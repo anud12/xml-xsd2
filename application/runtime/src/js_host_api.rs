@@ -49,7 +49,7 @@ fn host_api_script_register_block(kind: &str) -> String {
 }
 
 fn host_api_script_panel() -> &'static str {
-    r#"registerPanel(p) { let id = 'unknown'; if (p && typeof p === 'object') { if (typeof p.id === 'string') id = p.id; else if (typeof p.name === 'string') id = p.name; } else if (typeof p === 'string') { id = p; } globalThis.__registeredPanels = globalThis.__registeredPanels || []; globalThis.__registeredPanels.push(id); },"#
+    r#"registerPanel(p) { try { var toPush = p; if (p && typeof p === 'object') { toPush = JSON.stringify(p); } else if (typeof p === 'string') { toPush = JSON.stringify({ id: p }); } else { toPush = JSON.stringify({ id: String(p) }); } globalThis.__registeredPanels = globalThis.__registeredPanels || []; globalThis.__registeredPanels.push(toPush); } catch(e) { /* ignore */ } },"#
 }
 
 fn host_api_script_create_entity() -> &'static str {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using NewGameProject.Runtime.Types;
 
 public static class RuntimeInterop
@@ -31,11 +32,39 @@ public static class RuntimeInterop
     }
     
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
-    private static extern Panel get_panel_by_id(string id);
+    private static extern IntPtr get_panel_by_id([MarshalAs(UnmanagedType.LPStr)] string id);
     
     public static Panel GetPanelById(string id)
     {
-        return get_panel_by_id(id);
+        IntPtr ptr = get_panel_by_id(id);
+        if (ptr == IntPtr.Zero) return default(Panel);
+        try
+        {
+            // The native runtime now returns a JSON string for the panel object
+            var s = Marshal.PtrToStringAnsi(ptr) ?? string.Empty;
+            try
+            {
+                using var doc = JsonDocument.Parse(s);
+                var root = doc.RootElement;
+                var pid = root.GetProperty("id").GetString() ?? string.Empty;
+                string background = null;
+                if (root.TryGetProperty("background", out var b)) {
+                    if (b.ValueKind == JsonValueKind.String) background = b.GetString();
+                    else if (b.ValueKind == JsonValueKind.Null) background = null;
+                    else { background = b.ToString(); }
+                }
+                return new Panel { Id = pid, Background = background };
+            }
+            catch (Exception)
+            {
+                // Fallback: treat returned string as plain id
+                return new Panel { Id = s, Background = null };
+            }
+        }
+        finally
+        {
+            runtime_free_string(ptr);
+        }
     }
 
 
