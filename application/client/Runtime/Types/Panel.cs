@@ -12,9 +12,7 @@ public struct Panel
     public Vector2 Offset;
     public Size Size;
 
-    // In FFI, complex objects like textures are usually passed as 
-    // pointer addresses (IntPtr) or string paths.
-    public string BackgroundPath;
+    public string Background;
 
     // The 'children' function becomes a delegate (function pointer)
     public IntPtr ChildrenCallback;

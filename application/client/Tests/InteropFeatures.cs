@@ -190,9 +190,16 @@ public class InteropFeatures : Feature
     }
 
     [Then(@"assert that `GetPanelData` for {string} has id {string}")]
-    public void Assert_that_getPanelIds_returns(string panelId, string expectedId)
+    public void Assert_that_getPanelIds_returns_expected_id(string panelId, string expected)
     {
         var resultPanel = RuntimeInterop.GetPanelById(panelId);
-        Assert.Equal(resultPanel.Id, expectedId);
+        Assert.Equal(resultPanel.Id, expected);
+    }
+    
+    [Then(@"assert that `GetPanelData` for {string} has background {string}")]
+    public void Assert_that_getPanelIds_returns_expected_background(string panelId, string expected)
+    {
+        var resultPanel = RuntimeInterop.GetPanelById(panelId);
+        Assert.Equal(resultPanel.Background, expected);
     }
 }

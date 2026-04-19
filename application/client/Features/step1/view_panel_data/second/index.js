@@ -21,7 +21,7 @@ export default (hostApi) => {
       height: number.of(100),
       width: number.of(100)
     },
-    background: hostApi.texture.of("./texture.exr"),
+    background: hostApi.texture.of("./second_texture.exr"),
     children: panelApi => {
       hostApi.log("register panel")
     }
