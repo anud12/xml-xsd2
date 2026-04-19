@@ -5,7 +5,7 @@
     Given I have added "./<directory>/manifest.json" file as "./manifest.json" to archive
     Given I have added "./<directory>/index.js" file as "./index.js" to archive
     When I load current archive
-    Then assert that "GetPanelNames" returns "<panelNames>"
+    Then assert that `GetPanelNames` returns "<panelNames>"
     Examples:
       | directory           | panelNames                  |
       | create_panel/first  | panel,panel_2               |

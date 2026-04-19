@@ -25,13 +25,17 @@ public class InteropFeatures : Feature
             Console.WriteLine("InteropFeatures ctor: listing step attributes");
             var methods = this.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             foreach (var m in methods)
-            {                var attrs = m.GetCustomAttributes(false);
+            {
+                var attrs = m.GetCustomAttributes(false);
                 foreach (var a in attrs)
-                {                    var atype = a.GetType().Name;
+                {
+                    var atype = a.GetType().Name;
                     if (atype.Contains("Given") || atype.Contains("When") || atype.Contains("Then") || atype.Contains("Step"))
-                    {                        Console.WriteLine($"Method {m.Name} attribute {atype}");
+                    {
+                        Console.WriteLine($"Method {m.Name} attribute {atype}");
                         foreach (var p in a.GetType().GetProperties())
-                        {                            try { var val = p.GetValue(a); Console.WriteLine($"  {p.Name} => {val}"); } catch { }
+                        {
+                            try { var val = p.GetValue(a); Console.WriteLine($"  {p.Name} => {val}"); } catch { }
                         }
                     }
                 }
@@ -200,7 +204,7 @@ public class InteropFeatures : Feature
         // store or log dbPath if needed for further assertions
     }
 
-    [Then(@"assert that ""GetPanelNames"" returns {string}")]
+    [Then(@"assert that `GetPanelNames` returns {string}")]
     public void Assert_that_getPanelNames_returns (string expectedList)
     {
         var resultString = RuntimeInterop.GetPanelNames();
