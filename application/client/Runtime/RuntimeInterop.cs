@@ -13,8 +13,18 @@ public static class RuntimeInterop
     public static string[] GetPanelNames()
     {
         var ptr = get_panel_names();
-        if (ptr == IntPtr.Zero) return null;
-        return Marshal.PtrToStructure<string[]>(ptr);
+        if (ptr == IntPtr.Zero) return Array.Empty<string>();
+        var result = new System.Collections.Generic.List<string>();
+        int offset = 0;
+        while (true)
+        {
+            IntPtr strPtr = Marshal.ReadIntPtr(ptr, offset);
+            if (strPtr == IntPtr.Zero) break;
+            var s = Marshal.PtrToStringAnsi(strPtr);
+            result.Add(s ?? string.Empty);
+            offset += IntPtr.Size;
+        }
+        return result.ToArray();
     }
 
 

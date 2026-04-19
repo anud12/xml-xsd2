@@ -21,7 +21,14 @@ pub fn apply_declarations(dec: &Declarations) {
     runtime_log!("emits: {:?}", dec.emits);
     let patterns = collect_patterns(dec);
     crate::state::set_last_entity_patterns(patterns);
-    crate::state::set_last_panels(dec.panels.clone());
+    // Append discovered panels to the cached last_panels so multiple modules processed in one archive
+    // contribute cumulatively rather than overwriting the cache.
+    {
+        let mut existing = crate::state::last_panels().lock().unwrap();
+        for p in dec.panels.iter() {
+            if !existing.contains(p) { existing.push(p.clone()); }
+        }
+    }
     for p in dec.panels.iter() { runtime_log!("panel: {}", p); }
     crate::state::set_last_action_rows(dec.actions.iter().map(|a| vec![a.clone()]).collect());
     crate::state::set_last_event_rows(dec.events.iter().map(|e| vec![e.clone()]).collect());
