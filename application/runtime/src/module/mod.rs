@@ -14,20 +14,46 @@ pub fn build_file_rows(files: &HashMap<String, String>) -> Vec<Vec<String>> {
 /// Processes the loaded archive: extracts entities/events from the JS module entry point.
 /// Returns entity rows to be persisted.
 pub fn process_module(files: &HashMap<String, String>, _entity_rows: &mut Vec<Vec<String>>) {
-    if let Some((manifest_name, manifest_json)) = manifest::find_manifest(files) {
-        runtime_log!("module process: found manifest {}", manifest_name);
+    // Debug: print available file keys so tests can see what the archive contained.
+    eprintln!("process_module: files ({} entries):", files.len());
+    for (k, _) in files.iter() { eprintln!("  - {}", k); }
+
+    // Find all manifest files and process each one so a single archive can contain multiple modules.
+    let manifests: Vec<(String, serde_json::Value)> = files.iter()
+        .filter(|(k, _)| {
+            let k_lower = k.to_lowercase();
+            k_lower.contains("manifest") && k_lower.contains(".json")
+        })
+        .filter_map(|(k, s)| serde_json::from_str::<serde_json::Value>(s).ok().map(|v| (k.clone(), v)))
+        .collect();
+
+    eprintln!("process_module: found {} manifest(s)", manifests.len());
+
+    if manifests.is_empty() {
+        eprintln!("process_module: manifest.json not found");
+        eprintln!("process_module: module rejected");
+        return;
+    }
+
+    for (manifest_name, manifest_json) in manifests {
+        eprintln!("process_module: processing manifest {}", manifest_name);
         manifest::set_module_rows(&manifest_json);
-        handle_entry_point(&manifest_json, files);
-    } else {
-        runtime_log!("manifest.json not found");
-        for (k, _) in files.iter() { runtime_log!("file present: {}", k); }
-        runtime_log!("module rejected");
+        handle_entry_point(&manifest_name, &manifest_json, files);
     }
 }
 
-fn handle_entry_point(manifest_json: &serde_json::Value, files: &HashMap<String, String>) {
+fn handle_entry_point(manifest_name: &str, manifest_json: &serde_json::Value, files: &HashMap<String, String>) {
     let entry_name = manifest::get_entry_name(manifest_json);
-    if let Some(module_src) = files.get(&entry_name) {
+    // Try exact match first, then try resolving the entry relative to the manifest's directory.
+    if let Some(module_src) = files.get(&entry_name).or_else(|| {
+        if let Some(pos) = manifest_name.rfind('/') {
+            let dir = &manifest_name[..pos];
+            let candidate = format!("{}/{}", dir, entry_name);
+            files.get(&candidate)
+        } else {
+            None
+        }
+    }) {
         runtime_log!("{} loaded", entry_name);
         manifest::mark_manifest_event(manifest_json);
         process_module_source(module_src);

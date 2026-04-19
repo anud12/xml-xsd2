@@ -24,6 +24,9 @@
   <ItemGroup>
     <Content Include="RiderTestRunner\NetCoreRunner.tscn" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Features\step1\create_panel\" />
+  </ItemGroup>
 
   <!-- Build Rust runtime and copy DLL into the client folder before building C# assemblies -->
   <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">

@@ -1,0 +1,6 @@
+{
+  "id": "second",
+  "version": "1.0.0",
+  "name": "Event Module Second",
+  "entry": "index.js"
+}
