@@ -11,6 +11,7 @@ pub extern "C" fn runtime_process_archive(path: *const c_char) -> *mut c_char {
     };
 
     // Mirror main.rs processing flow
+    crate::state::clear_state(); // reset cached runtime state between calls
     crate::state::set_archive_path(zip_path);
     runtime_log!("process_archive: zip_path='{}' exists={} ", zip_path, std::path::Path::new(zip_path).exists());
     crate::archive::create_empty_zip_if_missing(zip_path);

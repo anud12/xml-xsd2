@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using NewGameProject.Runtime.Types;
 
 public static class RuntimeInterop
 {
@@ -8,13 +10,13 @@ public static class RuntimeInterop
 
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr get_panel_names();
+    private static extern IntPtr get_panel_ids();
 
-    public static string[] GetPanelNames()
+    public static string[] GetPanelIds()
     {
-        var ptr = get_panel_names();
+        var ptr = get_panel_ids();
         if (ptr == IntPtr.Zero) return Array.Empty<string>();
-        var result = new System.Collections.Generic.List<string>();
+        var result = new List<string>();
         int offset = 0;
         while (true)
         {
@@ -24,7 +26,16 @@ public static class RuntimeInterop
             result.Add(s ?? string.Empty);
             offset += IntPtr.Size;
         }
+
         return result.ToArray();
+    }
+    
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern Panel get_panel_by_id(string id);
+    
+    public static Panel GetPanelById(string id)
+    {
+        return get_panel_by_id(id);
     }
 
 

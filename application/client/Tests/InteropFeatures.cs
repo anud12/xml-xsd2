@@ -1,16 +1,15 @@
-using Xunit;
-using Xunit.Gherkin.Quick;
 using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+using Xunit;
+using Xunit.Gherkin.Quick;
 
 namespace NewGameProject;
 
 class State
 {
-    
 }
 
 [FeatureFile(@".*Features/step1/.*\.feature", FeatureFilePathType.Regex)]
@@ -19,30 +18,6 @@ public class InteropFeatures : Feature
     private State state = new();
     private string _currentArchivePath = Path.Combine(Path.GetTempPath(), "module.zip");
 
-    public InteropFeatures()
-    {
-        try {
-            Console.WriteLine("InteropFeatures ctor: listing step attributes");
-            var methods = this.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            foreach (var m in methods)
-            {
-                var attrs = m.GetCustomAttributes(false);
-                foreach (var a in attrs)
-                {
-                    var atype = a.GetType().Name;
-                    if (atype.Contains("Given") || atype.Contains("When") || atype.Contains("Then") || atype.Contains("Step"))
-                    {
-                        Console.WriteLine($"Method {m.Name} attribute {atype}");
-                        foreach (var p in a.GetType().GetProperties())
-                        {
-                            try { var val = p.GetValue(a); Console.WriteLine($"  {p.Name} => {val}"); } catch { }
-                        }
-                    }
-                }
-            }
-        } catch (Exception ex) { Console.WriteLine("InteropFeatures ctor error: " + ex.Message); }
-
-    }
 
     private string FindRepoRoot()
     {
@@ -52,6 +27,7 @@ public class InteropFeatures : Feature
             if (dir.GetFiles("*.sln").Length > 0) return dir.FullName;
             dir = dir.Parent;
         }
+
         return Directory.GetCurrentDirectory();
     }
 
@@ -59,40 +35,21 @@ public class InteropFeatures : Feature
     public void I_load_the_runtime()
     {
         // Ensure a fresh archive is used for each scenario to avoid stale entries from previous runs.
-        try {
+        try
+        {
             if (!string.IsNullOrEmpty(_currentArchivePath) && File.Exists(_currentArchivePath))
                 File.Delete(_currentArchivePath);
             // Use a fresh unique archive name per scenario to avoid cross-test contamination.
             _currentArchivePath = Path.Combine(Path.GetTempPath(), "module_" + Guid.NewGuid().ToString() + ".zip");
-        } catch (Exception ex) { Console.WriteLine("I_load_the_runtime cleanup error: " + ex.Message); }
-    }
-
-    [Given(@"I have added ""./create_panel/first/manifest.json"" file as ""./manifest.json"" to archive")]
-    public void I_have_added_first_manifest_to_archive()
-    {
-        var filename = "manifest.json";
-        Console.WriteLine($"FindRepoRoot for first: {FindRepoRoot()}");
-        var matches = Directory.GetFiles(FindRepoRoot(), filename, SearchOption.AllDirectories)
-            .Where(p => p.Replace(Path.DirectorySeparatorChar, '/').Contains("/create_panel/first/"))
-            .ToArray();
-        Console.WriteLine($"Matches for first: {string.Join(", ", matches)}");
-        if (matches.Length == 0) throw new FileNotFoundException("manifest.json for create_panel/first not found");
-        I_have_added_string_file_as_string_to_archive(matches[0], "./manifest.json");
-    }
-
-    [Given(@"I have added ""./create_panel/second/manifest.json"" file as ""./manifest.json"" to archive")]
-    public void I_have_added_second_manifest_to_archive()
-    {
-        var filename = "manifest.json";
-        var matches = Directory.GetFiles(FindRepoRoot(), filename, SearchOption.AllDirectories)
-            .Where(p => p.Replace(Path.DirectorySeparatorChar, '/').Contains("/create_panel/second/"))
-            .ToArray();
-        if (matches.Length == 0) throw new FileNotFoundException("manifest.json for create_panel/second not found");
-        I_have_added_string_file_as_string_to_archive(matches[0], "./manifest.json");
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Could not create temporary archive: " + ex.Message);
+        }
     }
 
     [Given(@"I have added {string} file as {string} to archive")]
-    public void I_have_added_string_file_as_string_to_archive (string path, string name)
+    public void I_have_added_string_file_as_string_to_archive(string path, string name)
     {
         if (string.IsNullOrEmpty(_currentArchivePath))
             _currentArchivePath = Path.Combine(Directory.GetCurrentDirectory(), "module.zip");
@@ -134,10 +91,12 @@ public class InteropFeatures : Feature
                 {
                     matches = Directory.GetFiles(FindRepoRoot(), filename, SearchOption.AllDirectories);
                 }
+
                 if (matches.Length == 0)
                 {
                     throw new FileNotFoundException($"Could not find file {filename} under project.");
                 }
+
                 sourcePath = matches[0];
             }
         }
@@ -152,7 +111,8 @@ public class InteropFeatures : Feature
         // By default, place the destination file in the same relative directory inside the archive
         // as the source file is located (relative to repo root). This allows multiple modules to coexist in one zip.
         string entryName = destinationName;
-        try {
+        try
+        {
             var repoRoot = FindRepoRoot();
             var relPath = Path.GetRelativePath(repoRoot, sourcePath).Replace('\\', '/');
             var dir = Path.GetDirectoryName(relPath)?.Replace('\\', '/');
@@ -160,13 +120,19 @@ public class InteropFeatures : Feature
             {
                 entryName = dir.TrimEnd('/') + "/" + destinationName.TrimStart('/');
             }
-        } catch { /* fallback to destinationName */ }
+        }
+        catch
+        {
+            /* fallback to destinationName */
+        }
 
         // Ensure archive exists
         if (!File.Exists(_currentArchivePath))
         {
             using (var fs = new FileStream(_currentArchivePath, FileMode.Create))
-            using (var writer = new ZipArchive(fs, ZipArchiveMode.Create)) { }
+            using (var writer = new ZipArchive(fs, ZipArchiveMode.Create))
+            {
+            }
         }
 
         // Add or replace entry in the archive
@@ -185,41 +151,48 @@ public class InteropFeatures : Feature
     public void I_load_current_archive()
     {
         // Ensure native runtime DLL is accessible to the test process (copy to test output folder if needed)
-        try {
+        try
+        {
             var projectRoot = FindRepoRoot();
             var dllSource = Path.Combine(projectRoot, "libxml_xsd2.dll");
             var asmDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? projectRoot;
             var dllDest = Path.Combine(asmDir, "libxml_xsd2.dll");
             if (File.Exists(dllSource))
             {
-                try {
+                try
+                {
                     // Copy if missing or if source is newer than destination to ensure runtime changes are picked up by tests.
-                    if (!File.Exists(dllDest) || File.GetLastWriteTimeUtc(dllSource) > File.GetLastWriteTimeUtc(dllDest))
+                    if (!File.Exists(dllDest) ||
+                        File.GetLastWriteTimeUtc(dllSource) > File.GetLastWriteTimeUtc(dllDest))
                         File.Copy(dllSource, dllDest, true);
-                } catch (Exception ex) { Console.WriteLine("Could not copy native DLL: " + ex.Message); }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Could not copy native DLL: " + ex.Message);
+                }
             }
-        } catch (Exception ex) { Console.WriteLine("Could not copy native DLL: " + ex.Message); }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Could not find native DLL: " + ex.Message);
+        }
 
         var dbPath = RuntimeInterop.ProcessArchive(_currentArchivePath);
         // store or log dbPath if needed for further assertions
     }
 
-    [Then(@"assert that `GetPanelNames` returns {string}")]
-    public void Assert_that_getPanelNames_returns (string expectedList)
+    [Then(@"assert that `GetPanelIds` returns {string}")]
+    public void Assert_that_getPanelIds_returns(string expectedList)
     {
-        var resultString = RuntimeInterop.GetPanelNames();
+        var resultString = RuntimeInterop.GetPanelIds();
         var expectedListArray = expectedList.Split(",");
         Assert.Equal(expectedListArray, resultString);
-        
     }
-}
 
-internal class Calculator
-{
-    public int Result { get; private set; }
-    private int _first;
-    private int _second;
-    public void SetFirstNumber(int number) => _first = number;
-    public void SetSecondNumber(int number) => _second = number;
-    public void AddNumbers() => Result = _first + _second;
+    [Then(@"assert that `GetPanelData` for {string} has id {string}")]
+    public void Assert_that_getPanelIds_returns(string panelId, string expectedId)
+    {
+        var resultPanel = RuntimeInterop.GetPanelById(panelId);
+        Assert.Equal(resultPanel.Id, expectedId);
+    }
 }

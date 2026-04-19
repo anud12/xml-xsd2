@@ -17,4 +17,22 @@ fn main() {
     if !status.success() {
         std::process::exit(status.code().unwrap_or(1));
     }
+
+
+    // Define the arguments as a vector or just chain them
+    let status = Command::new("dotnet")
+        .arg("test")
+        .arg("--configuration")
+        .arg("Release")
+        .arg("--no-restore")
+        // Filter by specific project or solution if needed
+        .arg("../client/New Game Project.csproj")
+        // Set the working directory to where your solution/project lives
+        .current_dir("../suite")
+        .status()
+        .expect("Failed to execute 'dotnet'. Ensure the .NET SDK is installed and in your PATH.");
+
+    if !status.success() {
+        std::process::exit(status.code().unwrap_or(1));
+    }
 }
