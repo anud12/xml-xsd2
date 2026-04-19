@@ -129,3 +129,66 @@ pub extern "system" fn get_panel_by_id(id: *const libc::c_char) -> *mut libc::c_
     // Forward to canonical narrow implementation
     get_panel_by_id_c(id)
 }
+
+// New API: return a pointer to a PanelFfi struct. Caller must free with runtime_free_panel.
+#[no_mangle]
+pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate::ffi_mod::types::PanelFfi {
+    if id.is_null() { return std::ptr::null_mut(); }
+    let id_str = unsafe { CStr::from_ptr(id).to_string_lossy().to_string() };
+    let panels = crate::state::last_panels().lock().unwrap().clone();
+
+    // Try to find matching JSON panel
+    for p in panels.iter() {
+        if p.trim_start().starts_with('{') {
+            if let Some(pos) = p.find("\"id\"") {
+                if let Some(colon) = p[pos..].find(':') {
+                    let after = &p[pos + colon + 1..];
+                    let mut s = after.trim_start();
+                    if s.starts_with('"') {
+                        s = &s[1..];
+                        if let Some(end) = s.find('"') { s = &s[..end]; }
+                    } else {
+                        if let Some(end) = s.find(',') { s = &s[..end]; }
+                        if let Some(end) = s.find('}') { s = &s[..end]; }
+                        s = s.trim();
+                    }
+                    if s == id_str {
+                        // create PanelFfi from JSON: extract background crude
+                        let mut bg_ptr: *mut libc::c_char = std::ptr::null_mut();
+                        if let Some(bpos) = p.find("\"background\"") {
+                            if let Some(colon2) = p[bpos..].find(':') {
+                                let after2 = &p[bpos + colon2 + 1..];
+                                let mut sb = after2.trim_start();
+                                if sb.starts_with('"') {
+                                    sb = &sb[1..];
+                                    if let Some(endb) = sb.find('"') { sb = &sb[..endb]; }
+                                } else {
+                                    if let Some(endb) = sb.find(',') { sb = &sb[..endb]; }
+                                    if let Some(endb) = sb.find('}') { sb = &sb[..endb]; }
+                                    sb = sb.trim();
+                                }
+                                if !sb.is_empty() {
+                                    bg_ptr = CString::new(sb.to_string()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
+                                }
+                            }
+                        }
+                        let id_ptr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
+                        let panel = Box::new(crate::ffi_mod::types::PanelFfi { id: id_ptr, background: bg_ptr });
+                        return Box::into_raw(panel);
+                    }
+                }
+            }
+        } else {
+            if p == &id_str {
+                let id_ptr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
+                let panel = Box::new(crate::ffi_mod::types::PanelFfi { id: id_ptr, background: std::ptr::null_mut() });
+                return Box::into_raw(panel);
+            }
+        }
+    }
+
+    // Not found: return minimal panel with id and null background
+    let id_ptr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
+    let panel = Box::new(crate::ffi_mod::types::PanelFfi { id: id_ptr, background: std::ptr::null_mut() });
+    Box::into_raw(panel)
+}

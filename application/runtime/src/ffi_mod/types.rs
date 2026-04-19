@@ -172,3 +172,10 @@ pub fn entity_subscriptions() -> &'static std::sync::Mutex<Vec<*mut Subscription
     ensure_entity_subscriptions();
     unsafe { ENTITY_SUBSCRIPTIONS.expect("entity subs initialized") }
 }
+
+// FFI Panel struct exposed to managed clients
+#[repr(C)]
+pub struct PanelFfi {
+    pub id: *mut c_char,
+    pub background: *mut c_char,
+}

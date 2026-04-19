@@ -7,15 +7,14 @@ namespace NewGameProject.Runtime.Types;
 public struct Panel
 {
     public string Id;
+    // Only fields required by tests are kept in layout parity with native PanelFfi
+    public string Background;
+
     public Vector2 Anchor;
     public Vector2 Pivot;
     public Vector2 Offset;
     public Size Size;
 
-    public string Background;
-
-    // The 'children' function becomes a delegate (function pointer)
-    public IntPtr ChildrenCallback;
 
 }
 

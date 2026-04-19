@@ -32,39 +32,35 @@ public static class RuntimeInterop
     }
     
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr get_panel_by_id([MarshalAs(UnmanagedType.LPStr)] string id);
-    
+    private static extern IntPtr get_panel_by_id_struct([MarshalAs(UnmanagedType.LPStr)] string id);
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_free_panel(IntPtr p);
+
     public static Panel GetPanelById(string id)
     {
-        IntPtr ptr = get_panel_by_id(id);
+        IntPtr ptr = get_panel_by_id_struct(id);
         if (ptr == IntPtr.Zero) return default(Panel);
         try
         {
-            // The native runtime now returns a JSON string for the panel object
-            var s = Marshal.PtrToStringAnsi(ptr) ?? string.Empty;
-            try
-            {
-                using var doc = JsonDocument.Parse(s);
-                var root = doc.RootElement;
-                var pid = root.GetProperty("id").GetString() ?? string.Empty;
-                string background = null;
-                if (root.TryGetProperty("background", out var b)) {
-                    if (b.ValueKind == JsonValueKind.String) background = b.GetString();
-                    else if (b.ValueKind == JsonValueKind.Null) background = null;
-                    else { background = b.ToString(); }
-                }
-                return new Panel { Id = pid, Background = background };
-            }
-            catch (Exception)
-            {
-                // Fallback: treat returned string as plain id
-                return new Panel { Id = s, Background = null };
-            }
+            // Marshal native PanelFfi struct into managed Panel
+            var native = Marshal.PtrToStructure<NativePanel>(ptr);
+            string background = null;
+            if (native.background != IntPtr.Zero) background = Marshal.PtrToStringAnsi(native.background);
+            var pid = Marshal.PtrToStringAnsi(native.id) ?? string.Empty;
+            return new Panel { Id = pid, Background = background };
         }
         finally
         {
-            runtime_free_string(ptr);
+            runtime_free_panel(ptr);
         }
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    private struct NativePanel
+    {
+        public IntPtr id;
+        public IntPtr background;
     }
 
 
