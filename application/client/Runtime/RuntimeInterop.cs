@@ -48,7 +48,13 @@ public static class RuntimeInterop
             string background = null;
             if (native.background != IntPtr.Zero) background = Marshal.PtrToStringAnsi(native.background);
             var pid = Marshal.PtrToStringAnsi(native.id) ?? string.Empty;
-            return new Panel { Id = pid, Background = background };
+            var panel = new Panel { Id = pid, Background = background };
+            // Populate numeric/layout fields
+            panel.Anchor = new Vector2 { X = native.anchor.x, Y = native.anchor.y };
+            panel.Pivot = new Vector2 { X = native.pivot.x, Y = native.pivot.y };
+            panel.Offset = new Vector2 { X = native.offset.x, Y = native.offset.y };
+            panel.Size = new Size { Height = native.size.height, Width = native.size.width };
+            return panel;
         }
         finally
         {
@@ -56,11 +62,20 @@ public static class RuntimeInterop
         }
     }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    [StructLayout(LayoutKind.Sequential)]
+    private struct AnchorFfi { public float x; public float y; }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SizeFfi { public float height; public float width; }
+
     private struct NativePanel
     {
         public IntPtr id;
         public IntPtr background;
+        public AnchorFfi anchor;
+        public AnchorFfi pivot;
+        public AnchorFfi offset;
+        public SizeFfi size;
+        public IntPtr children_callback;
     }
 
 

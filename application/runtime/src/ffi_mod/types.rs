@@ -175,7 +175,25 @@ pub fn entity_subscriptions() -> &'static std::sync::Mutex<Vec<*mut Subscription
 
 // FFI Panel struct exposed to managed clients
 #[repr(C)]
+pub struct AnchorFfi {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[repr(C)]
+pub struct SizeFfi {
+    pub height: f32,
+    pub width: f32,
+}
+
+#[repr(C)]
 pub struct PanelFfi {
     pub id: *mut c_char,
     pub background: *mut c_char,
+    pub anchor: AnchorFfi,
+    pub pivot: AnchorFfi,
+    pub offset: AnchorFfi,
+    pub size: SizeFfi,
+    // children callback placeholder
+    pub children_callback: *mut c_void,
 }
