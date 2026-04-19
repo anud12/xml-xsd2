@@ -1,5 +1,3 @@
-/**
- */
 /** @type {ModuleEntrypoint} */
 export default ({string, ...hostApi}) => {
   let a = 1;

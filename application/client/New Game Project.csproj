@@ -22,10 +22,13 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Features\step1\view_panel_data\first\index.js" />
-    <Content Include="Features\step1\view_panel_data\first\manifest.json" />
-    <Content Include="Features\step1\view_panel_data\second\index.js" />
-    <Content Include="Features\step1\view_panel_data\second\manifest.json" />
+    <Content Include="Features\**\*.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Features\**\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="package.json" />
     <Content Include="RiderTestRunner\NetCoreRunner.tscn" />
   </ItemGroup>
   <ItemGroup>
@@ -41,5 +44,13 @@
       <RustBuiltDll Include="$(RustDllPath)" />
     </ItemGroup>
     <Copy SourceFiles="@(RustBuiltDll)" DestinationFolder="$(MSBuildProjectDirectory)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Validate JavaScript files under Features against TypeScript declarations before build -->
+  <Target Name="ValidateJsTypes" BeforeTargets="BeforeBuild">
+    <Message Text="Ensuring TypeScript is installed (local)..." Importance="high" />
+    <Exec Command="npm install typescript@5 --no-audit --no-fund --no-progress" ContinueOnError="false" />
+    <Message Text="Validating JS files with tsc (tsconfig.json)..." Importance="high" />
+    <Exec Command="npx tsc --noEmit --project &quot;$(MSBuildProjectDirectory)\\tsconfig.json&quot;" />
   </Target>
 </Project>
