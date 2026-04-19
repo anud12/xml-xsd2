@@ -6,6 +6,18 @@ public static class RuntimeInterop
     // Adjust LIB_NAME if the produced DLL name differs (e.g., xml-xsd2 or xml_xsd2)
     private const string LIB_NAME = "libxml_xsd2";
 
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr get_panel_names();
+
+    public static string[] GetPanelNames()
+    {
+        var ptr = get_panel_names();
+        if (ptr == IntPtr.Zero) return null;
+        return Marshal.PtrToStructure<string[]>(ptr);
+    }
+
+
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr runtime_process_archive([MarshalAs(UnmanagedType.LPStr)] string path);
 
@@ -19,9 +31,12 @@ public static class RuntimeInterop
     {
         IntPtr ptr = runtime_process_archive(zipPath);
         if (ptr == IntPtr.Zero) return null;
-        try {
+        try
+        {
             return Marshal.PtrToStringAnsi(ptr);
-        } finally {
+        }
+        finally
+        {
             runtime_free_string(ptr);
         }
     }

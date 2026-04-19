@@ -1,10 +1,7 @@
-﻿Feature: AddTwoNumbers
-	In order to learn Math
-	As a regular human
-	I want to add two numbers using Calculator
+﻿Feature: Test
 
 Scenario: Add two numbers
-	Given I chose 12 as first number
-	And I chose 15 as second number
-	When I press add
-	Then the result should be 27 on the screen
+	Given I load the runtime
+	And I have added "./<directory>/manifest.json" file as "./manifest.json" to archive
+	When I load current archive
+	Then assert that \"GetPanelNames\" returns "first,second"
