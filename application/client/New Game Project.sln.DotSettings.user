@@ -2,5 +2,7 @@
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=bef72f02_002D5f42_002D4623_002D8e19_002D77f26fd83111/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="AddTwoNumbersFeature" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
   &lt;TestAncestor&gt;&#xD;
     &lt;TestId&gt;xUnit::1F957B00-582A-48A8-A5CC-04625C954C00::net8.0::NewGameProject.InteropFeatures&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::1F957B00-582A-48A8-A5CC-04625C954C00::net8.0::NewGameProject.Tests.XUnit.ModuleScenarios.Given_I_create_module_from_first_folder_When_load_it_Then_two_panels_registered&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::1F957B00-582A-48A8-A5CC-04625C954C00::net8.0::NewGameProject.Tests.XUnit.ModuleScenarios.Given_I_create_module_from_first_folder_When_load_it_Then_two_panels_registered2&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

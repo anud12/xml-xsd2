@@ -10,7 +10,7 @@
     "typeRoots": ["./types"]
   },
   "include": [
-    "Features/**/*.js",
+    "/**/*.js",
     "types/**/*.d.ts"
   ]
 }
