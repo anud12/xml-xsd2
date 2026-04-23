@@ -4,5 +4,7 @@
     &lt;TestId&gt;xUnit::1F957B00-582A-48A8-A5CC-04625C954C00::net8.0::NewGameProject.InteropFeatures&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;xUnit::1F957B00-582A-48A8-A5CC-04625C954C00::net8.0::NewGameProject.Tests.XUnit.ModuleScenarios.Given_I_create_module_from_first_folder_When_load_it_Then_two_panels_registered&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;xUnit::1F957B00-582A-48A8-A5CC-04625C954C00::net8.0::NewGameProject.Tests.XUnit.ModuleScenarios.Given_I_create_module_from_first_folder_When_load_it_Then_two_panels_registered2&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::1F957B00-582A-48A8-A5CC-04625C954C00::net8.0::Test.Given_I_create_module_from_first_folder_When_load_it_Then_two_panels_registered2&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::1F957B00-582A-48A8-A5CC-04625C954C00::net8.0::Test.Given_panel_it_should_load_the_panel_into_the_scene&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

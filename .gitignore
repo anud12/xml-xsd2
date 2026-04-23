@@ -1,7 +1,42 @@
-**/target/**
-application/runtime/target/*
-application/tests/target/*
-**/.idea/**
-**/node_modules/**
-**/package-lock.json
-.github/agents/**.agent.md
+# Bin directories for tests
+Tests/bin/
+Tests/obj/
+
+# NuGet packages
+bin/
+obj/
+**/*.suo
+**/*.user
+**/*.useros
+**/*.userprefs
+**/*.sln.docstates
+**/*.*proj.user
+
+# Visual Studio 2015+
+.vs/
+*.csproj.sln.cache
+
+# Build results
+[Dd]eo[Dd]/
+[Dd]i[Rr][Ee][Cc]/
+*.dll
+*.exe
+*.pdb
+
+# VS Code
+.vscode/
+
+# Node
+node_modules/
+yarn-error.log
+npm-debug.log*
+
+# Logs
+logs/
+*.log
+
+# IDE
+.idea/
+**.swp
+**.swo
+*~
