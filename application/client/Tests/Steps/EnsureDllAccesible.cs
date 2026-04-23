@@ -12,10 +12,10 @@ public partial class Steps
         if (_dllDest != null && File.Exists(_dllDest))
             return this;
 
-        var repoRoot = typeof(ModuleScenarios).Assembly.Location;
+        var repoRoot = typeof(Steps).Assembly.Location;
         var dllSource = Path.Combine(repoRoot, "libxml_xsd2.dll");
         _dllDest = Path.Combine(
-            Path.GetDirectoryName(typeof(ModuleScenarios).Assembly.Location) ?? Directory.GetCurrentDirectory(),
+            Path.GetDirectoryName(typeof(Steps).Assembly.Location) ?? Directory.GetCurrentDirectory(),
             "libxml_xsd2.dll");
 
         if (File.Exists(dllSource))
