@@ -1,0 +1,72 @@
+<Project Sdk="Godot.NET.Sdk/4.6.2">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>NewGameProject</RootNamespace>
+  </PropertyGroup>
+
+
+  <!--GdUnit4-->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
+    <PackageReference Include="gdUnit4.api" Version="5.1.0-rc3"/>
+    <PackageReference Include="gdUnit4.test.adapter" Version="3.0.0"/>
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>GdUnit4.Examples.Basics.Setup</RootNamespace>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <TestFramework>GdUnit4</TestFramework>
+  </PropertyGroup>
+
+
+  <PropertyGroup>
+    <!-- Rust integration properties -->
+    <RuntimeDllName>libxml_xsd2.dll</RuntimeDllName>
+    <RustManifest>$(MSBuildProjectDirectory)\..\..\runtime\Cargo.toml</RustManifest>
+    <RustBuildProfile>release</RustBuildProfile>
+    <RustDllPath>$(MSBuildProjectDirectory)\..\..\runtime\target\$(RustBuildProfile)\$(RuntimeDllName)</RustDllPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Features\**\*.feature">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Tests\Cases\**\*.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Tests\Cases\**\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="package.json" />
+    <Content Include="Test\PanelToPanelNode\modules\index.js" />
+    <Content Include="Test\PanelToPanelNode\modules\manifest.json" />
+    <Content Include="Test\PanelToPanelNode\TestClass.cs.uid" />
+    <Content Include="Test\Steps\AddFileToArchive.cs.uid" />
+    <Content Include="Test\Steps\CreateArchiveFromFolder.cs.uid" />
+    <Content Include="Test\Steps\EnsureDllAccesible.cs.uid" />
+    <Content Include="Test\Steps\FindRepoRoot.cs.uid" />
+    <Content Include="Test\Steps\LoadCurrentArchive.cs.uid" />
+  </ItemGroup>
+  <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">
+    <Message Text="Building Rust runtime (cargo)..." Importance="high" />
+    <Exec Command="cargo build --manifest-path &quot;$(RustManifest)&quot; --$(RustBuildProfile)" />
+    <Message Text="Copying Rust runtime DLL to client folder..." Importance="high" />
+    <ItemGroup>
+      <RustBuiltDll Include="$(RustDllPath)" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RustBuiltDll)" DestinationFolder="$(MSBuildProjectDirectory)" SkipUnchangedFiles="true" />
+  </Target>
+  <!-- Validate JavaScript files under Features against TypeScript declarations before build -->
+  <Target Name="ValidateJsTypes" BeforeTargets="BeforeBuild">
+    <Message Text="Ensuring TypeScript is installed (local)..." Importance="high" />
+    <Exec Command="npm install typescript@5 --no-audit --no-fund --no-progress" ContinueOnError="false" />
+    <Message Text="Validating JS files with tsc (tsconfig.json)..." Importance="high" />
+    <Exec Command="npx tsc --noEmit --project &quot;$(MSBuildProjectDirectory)\\tsconfig.json&quot;" />
+  </Target>
+
+</Project>

@@ -22,13 +22,10 @@ fn main() {
     // Define the arguments as a vector or just chain them
     let status = Command::new("dotnet")
         .arg("test")
-        .arg("--configuration")
-        .arg("Release")
-        .arg("--no-restore")
-        // Filter by specific project or solution if needed
-        .arg("../client/New Game Project.csproj")
+        .arg("--settings:")
+        .arg(".runsettings")
         // Set the working directory to where your solution/project lives
-        .current_dir("../suite")
+        .current_dir("../client/solution")
         .status()
         .expect("Failed to execute 'dotnet'. Ensure the .NET SDK is installed and in your PATH.");
 
