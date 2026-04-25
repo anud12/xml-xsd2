@@ -10,10 +10,6 @@ namespace GdUnit4.Examples.Basics.Setup.Test;
 [TestSuite]
 public partial class TestClass : Steps
 {
-    // ReSharper disable once NullableWarningSuppressionIsUsed
-    private ISceneRunner runner = null!;
-
-
     [TestCase]
     [RequireGodotRuntime]
     public async Task Given_panel_it_should_load_the_panel_into_the_scene()
@@ -26,20 +22,15 @@ public partial class TestClass : Steps
             .ProcessArchive();
 
 
-        // Load scene once for the entire test suite with automatic cleanup
-        runner = ISceneRunner.Load("res://Scenes/Test.tscn", true);
-        var scene = runner.Scene();
-        // We maximize the view to bring the window to foreground to see what actually happened in the scene.
-
-        // Verify successful scene loading and runner initialization
-        AssertThat(runner).IsNotNull();
-        AssertThat(scene).IsNotNull();
-
+        var scene = LoadTestScene();
         var rootNode = new Root();
         var idList = RuntimeInterop.GetPanelIds();
         foreach (var id in idList)
         {
-            rootNode.AddChild(new Panel(RuntimeInterop.GetPanelById(id)));
+            rootNode.AddChild(new Panel(RuntimeInterop.GetPanelById(id))
+            {
+                Name = id
+            });
         }
 
         scene.AddChild(rootNode);
@@ -50,13 +41,12 @@ public partial class TestClass : Steps
         });
         rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
         await runner.SimulateFrames(1);
-
-        foreach (var panel in rootNode.GetChildren().Cast<Panel>())
-        {
-            AssertPanelThat(panel).IsPositionEqual(
-                500 - (panel.Size.X / 2),
-                500 - (panel.Size.Y / 2)
+        AssertScreenshot("expected.png");
+        
+        AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
+            .IsPositionEqual(
+                500 - (rootNode.GetNode<Panel>(idList[0]).Size.X / 2),
+                500 - (rootNode.GetNode<Panel>(idList[0]).Size.Y / 2)
             );
-        }
     }
 }

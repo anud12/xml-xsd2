@@ -4,9 +4,9 @@ namespace NewGameProject.Tests.XUnit;
 
 public partial class Steps
 {
-    public async Task DebugView(ISceneRunner runner)
+    public async Task DebugView()
     {
-        runner.MaximizeView();
-        await runner.SimulateFrames(Int32.MaxValue);
+        this.runner.MaximizeView();
+        await this.runner.SimulateFrames(Int32.MaxValue);
     }
 }
