@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5v7s4ld7s7j3"
-path="res://.godot/imported/expected.png-d50633626a49d0efe726bd52f71f49bf.ctex"
+uid="uid://dl8kw0bp2xqxy"
+path="res://.godot/imported/texture.exr-3b7472703d359c5ecdd1eea778c6ae47.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Test/PanelToPanelNode/Size/expected.png"
-dest_files=["res://.godot/imported/expected.png-d50633626a49d0efe726bd52f71f49bf.ctex"]
+source_file="res://Test/PanelToPanelNode/Offset/module/texture.exr"
+dest_files=["res://.godot/imported/texture.exr-3b7472703d359c5ecdd1eea778c6ae47.ctex"]
 
 [params]
 
