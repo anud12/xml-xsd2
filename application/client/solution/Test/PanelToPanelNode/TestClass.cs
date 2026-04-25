@@ -41,18 +41,22 @@ public partial class TestClass : Steps
         {
             rootNode.AddChild(new Panel(RuntimeInterop.GetPanelById(id)));
         }
+
         scene.AddChild(rootNode);
         rootNode.SetSize(new Vector2()
         {
-            X = 300,
-            Y = 300
+            X = 1000,
+            Y = 1000
         });
         rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
         await runner.SimulateFrames(1);
+
         foreach (var panel in rootNode.GetChildren().Cast<Panel>())
         {
-            AssertPanelThat(panel).IsPositionEqual((panel.Size.X / 2) - 150,(panel.Size.Y / 2) - 150);
+            AssertPanelThat(panel).IsPositionEqual(
+                500 - (panel.Size.X / 2),
+                500 - (panel.Size.Y / 2)
+            );
         }
-
     }
 }

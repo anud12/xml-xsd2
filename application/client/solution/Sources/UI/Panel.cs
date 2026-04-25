@@ -53,14 +53,14 @@ public partial class Panel : Godot.Panel
     public override void _Process(double delta)
     {
         // Defer positioning until the parent has been sized. Once applied, stop processing.
-        var parent = GetParent() as Control;
-        if (parent == null) { return; }
-        var parentSize = parent.Size;
-        if (parentSize.X > 0 && parentSize.Y > 0)
-        {
-            // Position the panel at the anchor point within the parent (no pivot offset)
-            Position = new Vector2(panel.Anchor.X * parentSize.X, panel.Anchor.Y * parentSize.Y);
-            SetProcess(false);
-        }
+        // var parent = GetParent() as Control;
+        // if (parent == null) { return; }
+        // var parentSize = parent.Size;
+        // if (parentSize.X > 0 && parentSize.Y > 0)
+        // {
+        //     // Position the panel at the anchor point within the parent (no pivot offset)
+        //     // Position = new Vector2(panel.Anchor.X * parentSize.X, panel.Anchor.Y * parentSize.Y);
+        //     SetProcess(false);
+        // }
     }
 }
