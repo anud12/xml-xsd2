@@ -12,7 +12,7 @@ public struct Panel
 
     public Vector2 Anchor;
     public Vector2 Pivot;
-    public Vector2 Offset;
+    public Offset Offset;
     public Size Size;
 
 
@@ -24,6 +24,15 @@ public struct Vector2
 {
     public float X;
     public float Y;
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+public struct Offset
+{
+    public float top;
+    public float bottom;
+    public float left;
+    public float right;
 }
 
 [StructLayout(LayoutKind.Sequential)]

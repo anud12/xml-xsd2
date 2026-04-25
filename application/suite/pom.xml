@@ -13,41 +13,6 @@
         <cucumber.version>7.16.1</cucumber.version>
         <junit.jupiter.version>5.10.2</junit.jupiter.version>
     </properties>
-    <profiles>
-        <profile>
-            <id>stage1</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <includes>
-                                <include>**/Stage1Runner.java</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>stage2</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <includes>
-                                <include>**/Stage2Runner.java</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
     <dependencies>
         <dependency>
             <groupId>io.cucumber</groupId>
@@ -144,6 +109,8 @@
                     <argLine>-Djava.library.path=${project.build.directory}/test-classes -Djna.library.path=${project.build.directory}/test-classes</argLine>
                     <includes>
                         <include>**/*Test.java</include>
+                      <include>**/Stage1Runner.java</include>
+                      <include>**/Stage2Runner.java</include>
                     </includes>
                     <properties>
                         <configurationParameters>

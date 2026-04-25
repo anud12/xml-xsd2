@@ -25,7 +25,12 @@ export type PanelOptions = {
   /**
    * Displacement in logical units after anchor/pivot alignment.
    */
-  offset: { x: NumberExpression; y: NumberExpression };
+  offset: {
+    top: NumberExpression;
+    bottom: NumberExpression;
+    left:NumberExpression;
+    right:NumberExpression;
+  };
   size: { width: NumberExpression; height: NumberExpression };
   /**
    * Panel scale per real pixel ratio
@@ -33,5 +38,5 @@ export type PanelOptions = {
   scale?: NumberExpression;
   background: TextureResource;
 
-  children: (panelApi:PanelApi) => void
+  children: (panelApi: PanelApi) => void
 };

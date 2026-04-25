@@ -7,10 +7,11 @@
     "noEmit": true,
     "strict": false,
     "moduleResolution": "Node",
-    "typeRoots": ["./types"]
+//    "typeRoots": ["./types"]
   },
   "include": [
     "src/test/resources/**/*.js",
-    "types/**/*.d.ts"
+    "types/**/*.d.ts",
+    "../client/solution/**/*.js"
   ]
 }

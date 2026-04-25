@@ -25,8 +25,8 @@
   </PropertyGroup>
 
 
+  <!-- Rust integration properties -->
   <PropertyGroup>
-    <!-- Rust integration properties -->
     <RuntimeDllName>libxml_xsd2.dll</RuntimeDllName>
     <RustManifest>$(MSBuildProjectDirectory)\..\..\runtime\Cargo.toml</RustManifest>
     <RustBuildProfile>release</RustBuildProfile>
@@ -45,12 +45,45 @@
     <Content Include="package.json" />
     <Content Include="Test\PanelToPanelNode\modules\index.js" />
     <Content Include="Test\PanelToPanelNode\modules\manifest.json" />
+    <Content Include="Test\PanelToPanelNode\modules\texture.exr" />
     <Content Include="Test\PanelToPanelNode\TestClass.cs.uid" />
     <Content Include="Test\Steps\AddFileToArchive.cs.uid" />
     <Content Include="Test\Steps\CreateArchiveFromFolder.cs.uid" />
     <Content Include="Test\Steps\EnsureDllAccesible.cs.uid" />
     <Content Include="Test\Steps\FindRepoRoot.cs.uid" />
     <Content Include="Test\Steps\LoadCurrentArchive.cs.uid" />
+  </ItemGroup>
+  <ItemGroup>
+    <TypeScriptCompile Include="node_modules\suite\types\action\common.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\action\container-action.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\action\entity-action.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\action\index.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\action\no-input-action.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\action\point-action.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\Contaier.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\Effect.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\Entity.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\EntityFilter.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\global.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\HostApi.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\manifest.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\ModuleEntrypoint.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\numberMap.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\primitives\conditionExpression.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\primitives\expression.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\primitives\index.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\primitives\ListExpression.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\primitives\maybeExpression.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\primitives\numberExpression.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\primitives\stringExpression.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\primitives\temporalExpression.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\textMap.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\texture\index.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\texture\TextureApi.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\texture\TextureResource.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\ui\Box.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\ui\index.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\ui\Panel.d.ts" />
   </ItemGroup>
   <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">
     <Message Text="Building Rust runtime (cargo)..." Importance="high" />

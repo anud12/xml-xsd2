@@ -137,11 +137,18 @@ public class StateAssertions {
                 case "panel": {
                     int len = es.panels.len == null ? 0 : es.panels.len.intValue();
                     if (len > 0 && es.panels.data != null) {
-                        com.sun.jna.Pointer[] ptrs = es.panels.data.getPointerArray(0, len);
-                        for (com.sun.jna.Pointer q : ptrs) {
-                            String v = q == null ? "" : q.getString(0);
+                        com.example.interop.exportedState.PanelFfi template = new com.example.interop.exportedState.PanelFfi();
+                        int structSize = template.size();
+                        for (int i = 0; i < len; i++) {
+                            com.example.interop.exportedState.PanelFfi panel =
+                                new com.example.interop.exportedState.PanelFfi(es.panels.data.share((long) i * structSize));
+                            String id = panel.id == null ? "" : panel.id.getString(0);
                             java.util.Map<String, String> m = new java.util.HashMap<>();
-                            m.put("id", v);
+                            m.put("id", id);
+                            m.put("offset__top", String.valueOf(panel.offset.top));
+                            m.put("offset__left", String.valueOf(panel.offset.left));
+                            m.put("offset__right", String.valueOf(panel.offset.right));
+                            m.put("offset__bottom", String.valueOf(panel.offset.bottom));
                             actualRows.add(m);
                         }
                     }

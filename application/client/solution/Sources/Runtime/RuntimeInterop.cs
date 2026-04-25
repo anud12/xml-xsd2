@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Runtime.InteropServices;
 
 namespace NewGameProject.Runtime;
@@ -6,7 +7,7 @@ public static class RuntimeInterop
 {
     // Adjust LIB_NAME if the produced DLL name differs (e.g., xml-xsd2 or xml_xsd2)
     private const string LIB_NAME = "libxml_xsd2";
-
+    private static string ZIP_PATH = ""; 
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr get_panel_ids();
@@ -50,7 +51,13 @@ public static class RuntimeInterop
             // Populate numeric/layout fields
             panel.Anchor = new Vector2 { X = native.anchor.x, Y = native.anchor.y };
             panel.Pivot = new Vector2 { X = native.pivot.x, Y = native.pivot.y };
-            panel.Offset = new Vector2 { X = native.offset.x, Y = native.offset.y };
+            panel.Offset = new Offset
+            {
+                top = native.offset.top,
+                bottom = native.offset.bottom,
+                left = native.offset.left,
+                right = native.offset.right
+            };
             panel.Size = new Size { Height = native.size.height, Width = native.size.width };
             return panel;
         }
@@ -62,6 +69,15 @@ public static class RuntimeInterop
 
     [StructLayout(LayoutKind.Sequential)]
     private struct AnchorFfi { public float x; public float y; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct OffsetFfi
+    {
+        public float top;
+        public float bottom;
+        public float left;
+        public float right;
+    }
     [StructLayout(LayoutKind.Sequential)]
     private struct SizeFfi { public float height; public float width; }
 
@@ -71,7 +87,7 @@ public static class RuntimeInterop
         public IntPtr background;
         public AnchorFfi anchor;
         public AnchorFfi pivot;
-        public AnchorFfi offset;
+        public OffsetFfi offset;
         public SizeFfi size;
         public IntPtr children_callback;
     }
@@ -88,6 +104,7 @@ public static class RuntimeInterop
 
     public static string ProcessArchive(string zipPath)
     {
+        ZIP_PATH = zipPath;
         IntPtr ptr = runtime_process_archive(zipPath);
         if (ptr == IntPtr.Zero) return null;
         try
@@ -99,6 +116,30 @@ public static class RuntimeInterop
             runtime_free_string(ptr);
         }
     }
+
+    public static Dictionary<string, byte[]> GetFileFromArchive()
+    {
+        var fileData = new Dictionary<string, byte[]>();
+
+        // Open the zip file for reading
+        using (ZipArchive archive = ZipFile.OpenRead(ZIP_PATH))
+        {
+            foreach (ZipArchiveEntry entry in archive.Entries)
+            {
+                // Ignore directories, only grab files
+                if (string.IsNullOrEmpty(entry.Name)) continue;
+
+                using (Stream entryStream = entry.Open())
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    entryStream.CopyTo(ms);
+                    fileData.Add(entry.FullName, ms.ToArray());
+                }
+            }
+        }
+
+        return fileData;
+    } 
 
     public static bool ExportState(string path) => runtime_export_state(path);
 }
