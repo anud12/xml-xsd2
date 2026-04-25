@@ -43,9 +43,13 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="package.json" />
-    <Content Include="Test\PanelToPanelNode\modules\index.js" />
-    <Content Include="Test\PanelToPanelNode\modules\manifest.json" />
-    <Content Include="Test\PanelToPanelNode\modules\texture.exr" />
+    <Content Include="Test\PanelToPanelNode\Offset\expected.png" />
+    <Content Include="Test\PanelToPanelNode\Offset\module\index.js" />
+    <Content Include="Test\PanelToPanelNode\Offset\module\manifest.json" />
+    <Content Include="Test\PanelToPanelNode\Offset\module\texture.exr" />
+    <Content Include="Test\PanelToPanelNode\Size\module\index.js" />
+    <Content Include="Test\PanelToPanelNode\Size\module\manifest.json" />
+    <Content Include="Test\PanelToPanelNode\Size\module\texture.exr" />
     <Content Include="Test\PanelToPanelNode\TestClass.cs.uid" />
     <Content Include="Test\Steps\AddFileToArchive.cs.uid" />
     <Content Include="Test\Steps\CreateArchiveFromFolder.cs.uid" />

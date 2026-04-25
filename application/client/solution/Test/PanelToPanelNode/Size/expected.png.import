@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7mgu4gmboay6"
-path="res://.godot/imported/texture.exr-f6cfa03f05175436bf45cb5336fe36cd.ctex"
+uid="uid://csu508a6vdl3h"
+path="res://.godot/imported/expected.png-d50633626a49d0efe726bd52f71f49bf.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Test/PanelToPanelNode/modules/texture.exr"
-dest_files=["res://.godot/imported/texture.exr-f6cfa03f05175436bf45cb5336fe36cd.ctex"]
+source_file="res://Test/PanelToPanelNode/Size/expected.png"
+dest_files=["res://.godot/imported/expected.png-d50633626a49d0efe726bd52f71f49bf.ctex"]
 
 [params]
 

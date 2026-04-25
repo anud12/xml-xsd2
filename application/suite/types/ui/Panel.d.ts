@@ -1,12 +1,7 @@
 import {NumberExpression} from "../primitives/numberExpression";
-import {BoxApi, BoxOptions} from "./Box";
 import {TextureResource} from "../texture/TextureResource";
 
 export type RegisterPanelFunction = (panelOptions: PanelOptions) => {}
-
-export type PanelApi = {
-  createBox: (boxOptions: BoxOptions) => BoxApi
-}
 
 export type PanelOptions = {
   id: string,
@@ -17,26 +12,48 @@ export type PanelOptions = {
    * - **0.5 (center)**: Anchors to center; content grows symmetrically
    * - **1 (edge)**: Anchors to end/bottom; content grows leftward/upward
    */
-  anchor: { x: NumberExpression; y: NumberExpression };
+  anchor?: { x: NumberExpression; y: NumberExpression };
   /**
-   * Normalised panel point that aligns to anchor (0,0 = panel top-left; 1,1 = panel bottom-right).
+   * Displacement in logical units from the aligned anchor/pivot point.
+   * Used for fine-tuning panel position after anchor/pivot positioning.
    */
-  pivot: { x: NumberExpression; y: NumberExpression };
-  /**
-   * Displacement in logical units after anchor/pivot alignment.
-   */
-  offset: {
-    top: NumberExpression;
-    bottom: NumberExpression;
-    left:NumberExpression;
-    right:NumberExpression;
+  offset?: {
+    top: NumberExpression;      // Vertical offset from pivot Y (positive moves down)
+    bottom: NumberExpression;   // Vertical offset from anchor Y (positive moves up)
+    left: NumberExpression;     // Horizontal offset from pivot X (positive moves right)
+    right: NumberExpression;    // Horizontal offset from anchor X (positive moves left)
   };
   size: { width: NumberExpression; height: NumberExpression };
-  /**
-   * Panel scale per real pixel ratio
-   */
-  scale?: NumberExpression;
+
   background: TextureResource;
 
-  children: (panelApi: PanelApi) => void
+  layout?:GridLayout,
+  children?: PanelOptions[]
+};
+
+
+export type GridLayout = {
+  columns: TrackDefinition[];          // Column definitions; count = num columns
+  rowFirst?: boolean;                  // true (default): left→right, wrap; false: top→bottom
+  reverse?: boolean;                   // false (default): reverse child placement order
+  gap?: { row?: NumberExpression; column?: NumberExpression };  // Cell spacing
+};
+
+export type TrackDefinition = SizeConstraint & {
+  align?: "start" | "end";             // default: "start" — content alignment within track
+};
+
+export type SizeConstraint = {
+  /**
+   * Never sized below this
+   */
+  min?: NumberExpression;
+  /**
+   * Never sized above this (logical units)
+   */
+  max?: NumberExpression;
+  /**
+   * weight; claims remaining space after min
+   */
+  weight?: NumberExpression;
 };
