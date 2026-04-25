@@ -51,7 +51,7 @@ pub struct ExportedState {
     pub entities: CStringArray,
     pub actions: CStringArray,
     pub events: CStringArray,
-    pub panels: CStringArray,
+    pub panels: PanelArray,
     pub modules: ModuleArray,
     pub files: FileArray,
     pub entity_patterns: CStringArray,
@@ -176,8 +176,10 @@ pub fn entity_subscriptions() -> &'static std::sync::Mutex<Vec<*mut Subscription
 // FFI Panel struct exposed to managed clients
 #[repr(C)]
 pub struct AnchorFfi {
-    pub x: f32,
-    pub y: f32,
+    pub top: f32,
+    pub bottom: f32,
+    pub left: f32,
+    pub right: f32,
 }
 
 #[repr(C)]
@@ -196,4 +198,83 @@ pub struct PanelFfi {
     pub size: SizeFfi,
     // children callback placeholder
     pub children_callback: *mut c_void,
+}
+
+#[repr(C)]
+pub struct PanelArray {
+    pub len: usize,
+    pub data: *mut PanelFfi,
+}
+
+pub unsafe fn panels_to_c_array(panels: Vec<String>) -> (*mut PanelFfi, usize) {
+    if panels.is_empty() { return (std::ptr::null_mut(), 0); }
+    let mut out: Vec<PanelFfi> = Vec::with_capacity(panels.len());
+    for p in panels.into_iter() {
+        let ffi = if p.trim_start().starts_with('{') {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&p) {
+                let id = v["id"].as_str().unwrap_or("").to_string();
+                let bg = v["background"].as_str().unwrap_or("").to_string();
+                PanelFfi {
+                    id: CString::new(id).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
+                    background: CString::new(bg).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
+                    anchor: AnchorFfi {
+                        top: v["anchor"]["y"].as_f64().unwrap_or(0.0) as f32,
+                        bottom: 0.0,
+                        left: v["anchor"]["x"].as_f64().unwrap_or(0.0) as f32,
+                        right: 0.0,
+                    },
+                    pivot: AnchorFfi {
+                        top: v["pivot"]["y"].as_f64().unwrap_or(0.0) as f32,
+                        bottom: 0.0,
+                        left: v["pivot"]["x"].as_f64().unwrap_or(0.0) as f32,
+                        right: 0.0,
+                    },
+                    offset: AnchorFfi {
+                        top: v["offset"]["top"].as_f64().unwrap_or(0.0) as f32,
+                        bottom: v["offset"]["bottom"].as_f64().unwrap_or(0.0) as f32,
+                        left: v["offset"]["left"].as_f64().unwrap_or(0.0) as f32,
+                        right: v["offset"]["right"].as_f64().unwrap_or(0.0) as f32,
+                    },
+                    size: SizeFfi {
+                        height: v["size"]["height"].as_f64().unwrap_or(0.0) as f32,
+                        width: v["size"]["width"].as_f64().unwrap_or(0.0) as f32,
+                    },
+                    children_callback: std::ptr::null_mut(),
+                }
+            } else {
+                PanelFfi {
+                    id: CString::new(p).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
+                    background: CString::new("").unwrap().into_raw(),
+                    anchor: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
+                    pivot: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
+                    offset: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
+                    size: SizeFfi { height: 0.0, width: 0.0 },
+                    children_callback: std::ptr::null_mut(),
+                }
+            }
+        } else {
+            PanelFfi {
+                id: CString::new(p).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
+                background: CString::new("").unwrap().into_raw(),
+                anchor: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
+                pivot: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
+                offset: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
+                size: SizeFfi { height: 0.0, width: 0.0 },
+                children_callback: std::ptr::null_mut(),
+            }
+        };
+        out.push(ffi);
+    }
+    let len = out.len();
+    let ptr = Box::into_raw(out.into_boxed_slice()) as *mut PanelFfi;
+    (ptr, len)
+}
+
+pub unsafe fn free_panel_array(ptr: *mut PanelFfi, len: usize) {
+    if ptr.is_null() || len == 0 { return; }
+    let boxed: Box<[PanelFfi]> = Box::from_raw(std::ptr::slice_from_raw_parts_mut(ptr, len));
+    for p in boxed.iter() {
+        if !p.id.is_null() { let _ = CString::from_raw(p.id); }
+        if !p.background.is_null() { let _ = CString::from_raw(p.background); }
+    }
 }

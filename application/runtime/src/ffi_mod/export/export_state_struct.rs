@@ -122,7 +122,7 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
         let norm_events: Vec<String> = events_cached.into_iter().map(|r| r.get(0).cloned().unwrap_or_default().replace("effect", "event")).collect();
         let (events_ptr, events_len) = string_vec_to_c_array(norm_events);
         let (patterns_ptr, patterns_len) = string_vec_to_c_array(patterns_cached);
-        let (panels_ptr, panels_len) = string_vec_to_c_array(panels_cached);
+        let (panels_ptr, panels_len) = panels_to_c_array(panels_cached);
 
         // Modules (id,name,version) and files (filename,contents)
         let (modules_ptr, modules_len) = module_rows_to_c_array(modules_cached);
@@ -144,7 +144,7 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
             entities: CStringArray { len: entities_len, data: entities_ptr },
             actions: CStringArray { len: actions_len, data: actions_ptr },
             events: CStringArray { len: events_len, data: events_ptr },
-            panels: CStringArray { len: panels_len, data: panels_ptr },
+            panels: PanelArray { len: panels_len, data: panels_ptr },
             modules: ModuleArray { len: modules_len, data: modules_ptr },
             files: FileArray { len: files_len, data: files_ptr },
             entity_patterns: CStringArray { len: patterns_len, data: patterns_ptr },

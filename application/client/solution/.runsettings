@@ -16,17 +16,17 @@
     <!-- Test result loggers -->
     <LoggerRunSettings>
         <Loggers>
-            <Logger friendlyName="console" enabled="True">
+            <Logger friendlyName="console" enabled="false">
                 <Configuration>
                     <Verbosity>normal</Verbosity>
                 </Configuration>
             </Logger>
-            <Logger friendlyName="html" enabled="True">
+            <Logger friendlyName="html" enabled="false">
                 <Configuration>
                     <LogFileName>test-result.html</LogFileName>
                 </Configuration>
             </Logger>
-            <Logger friendlyName="trx" enabled="True">
+            <Logger friendlyName="trx" enabled="false">
                 <Configuration>
                     <LogFileName>test-result.trx</LogFileName>
                 </Configuration>
@@ -37,13 +37,13 @@
     <!-- GdUnit4-specific configuration -->
     <GdUnit4>
         <!-- Additional Godot runtime parameters -->
-        <Parameters>--verbose</Parameters>
+        <Parameters>--quiet</Parameters>
         
         <!-- Test display name format: SimpleName or FullyQualifiedName -->
         <DisplayName>FullyQualifiedName</DisplayName>
         
         <!-- Capture stdout from test cases -->
-        <CaptureStdOut>true</CaptureStdOut>
+        <CaptureStdOut>false</CaptureStdOut>
         
         <!-- Compilation timeout for large projects (milliseconds) -->
         <CompileProcessTimeout>20000</CompileProcessTimeout>

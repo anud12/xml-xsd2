@@ -2,6 +2,9 @@ package com.example.utils;
 
 import com.example.interop.RuntimeInteropJava;
 
+// Strong reference to a native callback so it isn't GC'd while native code may call back
+import com.example.interop.RuntimeInteropJava.MyCallback;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +19,8 @@ public class ArchiveState {
     public Thread runThread;
     public volatile boolean shouldStop = false;
     public Optional<RuntimeInteropJava> runtimeInteropJava = Optional.empty();
+    // Keep a strong reference to the callback to prevent it being GC'd while native code holds its pointer
+    public MyCallback loggerCallback = null;
     public List<String> logMessages = new ArrayList<>();
 
     public ArchiveState() {

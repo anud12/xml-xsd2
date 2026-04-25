@@ -7,10 +7,11 @@
     "noEmit": true,
     "strict": false,
     "moduleResolution": "Node",
-    "typeRoots": ["./types"]
+    "typeRoots": ["./types"],
   },
   "include": [
-    "/**/*.js",
-    "types/**/*.d.ts"
+    "../../suite/types/**/*.d.ts",
+    "./**/*.js",
+
   ]
 }

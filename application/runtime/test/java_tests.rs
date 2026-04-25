@@ -8,7 +8,6 @@ fn main() {
         .arg("compile")
         .arg("test")
         .arg("-ntp")
-        .arg("-P stage1,stage2")
 
         .current_dir("../suite") // Point to your Java root
         .status()

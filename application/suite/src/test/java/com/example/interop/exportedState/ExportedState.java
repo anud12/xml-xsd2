@@ -7,7 +7,7 @@ public class ExportedState extends Structure {
     public CStringArray entities;
     public CStringArray actions;
     public CStringArray events;
-    public CStringArray panels;
+    public PanelArray panels;
     public ModuleArray modules;
     public FileArray files;
     public CStringArray entity_patterns;

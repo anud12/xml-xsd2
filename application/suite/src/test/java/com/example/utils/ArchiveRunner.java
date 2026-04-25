@@ -19,7 +19,12 @@ public class ArchiveRunner {
 //        String zipPath = state.archive.file().getAbsolutePath();
         var runtimeInteropJava = RuntimeInteropJava.newRuntimeInteropJava();
         state.runtimeInteropJava = Optional.of(runtimeInteropJava);
-        runtimeInteropJava.register_logger(state.logMessages::add);
+        // Create an explicit callback object and keep a strong reference to it in state so JNA doesn't GC it
+        RuntimeInteropJava.MyCallback cb = new RuntimeInteropJava.MyCallback() {
+            public void invoke(String s) { state.logMessages.add(s); }
+        };
+        state.loggerCallback = cb;
+        runtimeInteropJava.register_logger(cb);
         runtimeInteropJava.runtime_clear_state();
     }
 
@@ -27,10 +32,12 @@ public class ArchiveRunner {
         try {
             state.runtimeInteropJava.ifPresent(runtimeInteropJava -> {
                 runtimeInteropJava.runtime_debug_shutdown();
-                runtimeInteropJava.register_logger(s -> {
-                });
+                // Clear native callback by registering a no-op callback
+                runtimeInteropJava.register_logger(s -> { });
             });
 
+            // Drop strong reference to callback so it can be GC'd
+            state.loggerCallback = null;
             state.runtimeInteropJava = Optional.empty();
             state.logMessages = new ArrayList<>();
         } catch (Throwable ignored) {
