@@ -20,6 +20,9 @@ public partial class Panel : Godot.Panel
         GrowHorizontal = GrowDirection.Both;
         GrowVertical = GrowDirection.Both;
 
+        // Debug: print incoming native panel values to help diagnose anchor/size mapping issues
+        GD.Print($"DEBUG Panel: id={panel.Id} anchor=({panel.Anchor.X},{panel.Anchor.Y}) pivot=({panel.Pivot.X},{panel.Pivot.Y}) offset=({panel.Offset.top},{panel.Offset.bottom},{panel.Offset.left},{panel.Offset.right}) size=({panel.Size.Width},{panel.Size.Height}) background={(panel.Background ?? "null")}");
+
         // OffsetTop = panel.Offset.top;
         // OffsetBottom = panel.Offset.bottom;
         // OffsetLeft = panel.Offset.left;
@@ -49,5 +52,15 @@ public partial class Panel : Godot.Panel
     // Called every frame. 'delta' is the elapsed time since the previous frame.
     public override void _Process(double delta)
     {
+        // Defer positioning until the parent has been sized. Once applied, stop processing.
+        var parent = GetParent() as Control;
+        if (parent == null) { return; }
+        var parentSize = parent.Size;
+        if (parentSize.X > 0 && parentSize.Y > 0)
+        {
+            // Position the panel at the anchor point within the parent (no pivot offset)
+            Position = new Vector2(panel.Anchor.X * parentSize.X, panel.Anchor.Y * parentSize.Y);
+            SetProcess(false);
+        }
     }
 }
