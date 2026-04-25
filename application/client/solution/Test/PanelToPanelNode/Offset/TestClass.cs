@@ -4,19 +4,19 @@ using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
 using Vector2 = Godot.Vector2;
 
-namespace GdUnit4.Examples.Basics.Setup.Test.PanelToPanelNode.Anchor;
+namespace GdUnit4.Examples.Basics.Setup.Test.PanelToPanelNode.Offset;
 
 [TestSuite]
-public partial class Anchor : Steps
+public partial class Offset : Steps
 {
     [TestCase]
     [RequireGodotRuntime]
-    public async Task Given_panel_it_should_apply_anchors()
+    public async Task Given_panel_it_should_apply_offset_in_a_diamond_shape()
     {
         // I create a module from the first folder
-        AddFileToArchive("Test/PanelToPanelNode/Anchor/module/index.js", "index.js")
-            .AddFileToArchive("Test/PanelToPanelNode/Anchor/module/manifest.json", "manifest.json")
-            .AddFileToArchive("Test/PanelToPanelNode/Anchor/module/texture.exr", "texture.exr")
+        AddFileToArchive("Test/PanelToPanelNode/Offset/module/index.js", "index.js")
+            .AddFileToArchive("Test/PanelToPanelNode/Offset/module/manifest.json", "manifest.json")
+            .AddFileToArchive("Test/PanelToPanelNode/Offset/module/texture.exr", "texture.exr")
             .EnsureDllAccessible()
             .ProcessArchive();
 
@@ -42,7 +42,16 @@ public partial class Anchor : Steps
         await runner.SimulateFrames(1);
         
         AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
-            .IsPositionEqual( 450, 450 );
+            .IsPositionEqual(495, 395);
+        
+        AssertPanelThat(rootNode.GetNode<Panel>(idList[1]))
+            .IsPositionEqual(395, 495);
+        
+        AssertPanelThat(rootNode.GetNode<Panel>(idList[2]))
+            .IsPositionEqual(495, 595);
+        
+        AssertPanelThat(rootNode.GetNode<Panel>(idList[3]))
+            .IsPositionEqual(595, 495);
 
             
         AssertScreenshot("expected.png");

@@ -14,9 +14,9 @@ public partial class TestClass : Steps
     public async Task Given_panel_it_should_load_the_panel_into_the_scene()
     {
         // I create a module from the first folder
-        AddFileToArchive("modules/index.js", "index.js")
-            .AddFileToArchive("modules/manifest.json", "manifest.json")
-            .AddFileToArchive("modules/texture.exr", "texture.exr")
+        AddFileToArchive("Test/PanelToPanelNode/Size/module/index.js", "index.js")
+            .AddFileToArchive("Test/PanelToPanelNode/Size/module/manifest.json", "manifest.json")
+            .AddFileToArchive("Test/PanelToPanelNode/Size/module/texture.exr", "texture.exr")
             .EnsureDllAccessible()
             .ProcessArchive();
 

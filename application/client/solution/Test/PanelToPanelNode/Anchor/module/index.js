@@ -11,6 +11,6 @@ export default (hostApi) => {
       x: number.of(0.5),
       y: number.of(0.5),
     },
-    background: hostApi.texture.of("modules/texture.exr"),
+    background: hostApi.texture.of("texture.exr"),
   })
 }
