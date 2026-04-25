@@ -49,7 +49,6 @@ public partial class TestClass : Steps
         });
         rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
         await runner.SimulateFrames(1);
-        runner.MaximizeView();
         foreach (var panel in rootNode.GetChildren().Cast<Panel>())
         {
             AssertPanelThat(panel).IsPositionEqual(150,150);
