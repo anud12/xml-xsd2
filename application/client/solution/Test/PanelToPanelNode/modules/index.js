@@ -27,5 +27,29 @@ export default (hostApi) => {
     }
   })
 
-
+  hostApi.registerPanel({
+    id: "bottom-right",
+    anchor: {
+      x: number.of(1),
+      y: number.of(1)
+    },
+    pivot: {
+      x: number.of(0),
+      y: number.of(0)
+    },
+    offset: {
+      top: number.of(-100),
+      bottom: number.of(0),
+      left: number.of(-100),
+      right: number.of(0),
+    },
+    size: {
+      height: number.of(100),
+      width: number.of(100)
+    },
+    background: hostApi.texture.of("modules/texture.exr"),
+    children: panelApi => {
+      hostApi.log("register panel")
+    }
+  })
 }
