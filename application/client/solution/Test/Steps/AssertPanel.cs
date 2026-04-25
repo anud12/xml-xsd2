@@ -5,6 +5,10 @@ namespace NewGameProject.Tests.XUnit;
 
 public partial class Steps
 {
+    public AssertPanel AssertPanelThat(Panel panel)
+    {
+        return new AssertPanel(panel);
+    }
     public class AssertPanel
     {
         private Panel panel;
@@ -20,9 +24,5 @@ public partial class Steps
             
             return this;
         }
-    }
-    public AssertPanel AssertPanelThat(Panel panel)
-    {
-        return new AssertPanel(panel);
     }
 }

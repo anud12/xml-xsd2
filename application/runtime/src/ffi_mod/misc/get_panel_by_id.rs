@@ -196,18 +196,37 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                             let pivot_raw = parsed_panel.pivot.unwrap_or(Anchor { x: None, y: None, top: None, bottom: None, left: None, right: None });
                             let offset_raw = parsed_panel.offset.unwrap_or(Anchor { x: None, y: None, top: None, bottom: None, left: None, right: None });
                             let size = parsed_panel.size.unwrap_or(Size { height:100.0, width:100.0 });
+                            let ax = anchor_raw.x.unwrap_or(0.0);
+                            let ay = anchor_raw.y.unwrap_or(0.0);
+                            let px = pivot_raw.x.unwrap_or(0.0);
+                            let py = pivot_raw.y.unwrap_or(0.0);
+                            let ot = offset_raw.top.unwrap_or(offset_raw.y.unwrap_or(0.0));
+                            let ob = offset_raw.bottom.unwrap_or(0.0);
+                            let ol = offset_raw.left.unwrap_or(offset_raw.x.unwrap_or(0.0));
+                            let or = offset_raw.right.unwrap_or(0.0);
+                            let sh = size.height;
+                            let sw = size.width;
+                            eprintln!("get_panel_by_id_struct: id='{}' anchor=({},{}), pivot=({},{}), offset=({}, {}, {}, {}), size=({},{}), json='{}'", id_str, ax, ay, px, py, ot, ob, ol, or, sh, sw, p);
                             let panel = Box::new(crate::ffi_mod::types::PanelFfi {
                                 id: id_ptr,
                                 background: bg_ptr,
-                                anchor: crate::ffi_mod::types::AnchorFfi { top: anchor_raw.y.unwrap_or(0.0), bottom: 0.0, left: anchor_raw.x.unwrap_or(0.0), right: 0.0 },
-                                pivot: crate::ffi_mod::types::AnchorFfi { top: pivot_raw.y.unwrap_or(0.0), bottom: 0.0, left: pivot_raw.x.unwrap_or(0.0), right: 0.0 },
-                                offset: crate::ffi_mod::types::AnchorFfi { top: offset_raw.top.unwrap_or(offset_raw.y.unwrap_or(0.0)), bottom: offset_raw.bottom.unwrap_or(0.0), left: offset_raw.left.unwrap_or(offset_raw.x.unwrap_or(0.0)), right: offset_raw.right.unwrap_or(0.0) },
-                                size: crate::ffi_mod::types::SizeFfi { height: size.height, width: size.width },
+                                anchor: crate::ffi_mod::types::AnchorFfi { x: ax, y: ay },
+                                pivot: crate::ffi_mod::types::AnchorFfi { x: px, y: py },
+                                offset: crate::ffi_mod::types::OffsetFfi { top: ot, bottom: ob, left: ol, right: or },
+                                size: crate::ffi_mod::types::SizeFfi { height: sh, width: sw },
                                 children_callback: std::ptr::null_mut(),
                             });
                             return Box::into_raw(panel);
                         } else {
-                            let panel = Box::new(crate::ffi_mod::types::PanelFfi { id: id_ptr, background: bg_ptr, anchor: crate::ffi_mod::types::AnchorFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 }, pivot: crate::ffi_mod::types::AnchorFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 }, offset: crate::ffi_mod::types::AnchorFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 }, size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 }, children_callback: std::ptr::null_mut() });
+                            let panel = Box::new(crate::ffi_mod::types::PanelFfi {
+                                id: id_ptr,
+                                background: bg_ptr,
+                                anchor: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
+                                pivot: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
+                                offset: crate::ffi_mod::types::OffsetFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 },
+                                size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 },
+                                children_callback: std::ptr::null_mut(),
+                            });
                             return Box::into_raw(panel);
                         }
                     }
@@ -216,7 +235,15 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
         } else {
             if p == &id_str {
                 let id_ptr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
-                let panel = Box::new(crate::ffi_mod::types::PanelFfi { id: id_ptr, background: std::ptr::null_mut(), anchor: crate::ffi_mod::types::AnchorFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 }, pivot: crate::ffi_mod::types::AnchorFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 }, offset: crate::ffi_mod::types::AnchorFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 }, size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 }, children_callback: std::ptr::null_mut() });
+                let panel = Box::new(crate::ffi_mod::types::PanelFfi {
+                    id: id_ptr,
+                    background: std::ptr::null_mut(),
+                    anchor: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
+                    pivot: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
+                    offset: crate::ffi_mod::types::OffsetFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 },
+                    size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 },
+                    children_callback: std::ptr::null_mut(),
+                });
                 return Box::into_raw(panel);
             }
         }
@@ -224,6 +251,14 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
 
     // Not found: return minimal panel with id and null background
     let id_ptr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
-    let panel = Box::new(crate::ffi_mod::types::PanelFfi { id: id_ptr, background: std::ptr::null_mut(), anchor: crate::ffi_mod::types::AnchorFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 }, pivot: crate::ffi_mod::types::AnchorFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 }, offset: crate::ffi_mod::types::AnchorFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 }, size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 }, children_callback: std::ptr::null_mut() });
+    let panel = Box::new(crate::ffi_mod::types::PanelFfi {
+        id: id_ptr,
+        background: std::ptr::null_mut(),
+        anchor: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
+        pivot: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
+        offset: crate::ffi_mod::types::OffsetFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 },
+        size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 },
+        children_callback: std::ptr::null_mut(),
+    });
     Box::into_raw(panel)
 }

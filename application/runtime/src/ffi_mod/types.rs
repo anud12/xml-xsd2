@@ -176,6 +176,12 @@ pub fn entity_subscriptions() -> &'static std::sync::Mutex<Vec<*mut Subscription
 // FFI Panel struct exposed to managed clients
 #[repr(C)]
 pub struct AnchorFfi {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[repr(C)]
+pub struct OffsetFfi {
     pub top: f32,
     pub bottom: f32,
     pub left: f32,
@@ -194,9 +200,8 @@ pub struct PanelFfi {
     pub background: *mut c_char,
     pub anchor: AnchorFfi,
     pub pivot: AnchorFfi,
-    pub offset: AnchorFfi,
+    pub offset: OffsetFfi,
     pub size: SizeFfi,
-    // children callback placeholder
     pub children_callback: *mut c_void,
 }
 
@@ -218,18 +223,14 @@ pub unsafe fn panels_to_c_array(panels: Vec<String>) -> (*mut PanelFfi, usize) {
                     id: CString::new(id).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
                     background: CString::new(bg).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
                     anchor: AnchorFfi {
-                        top: v["anchor"]["y"].as_f64().unwrap_or(0.0) as f32,
-                        bottom: 0.0,
-                        left: v["anchor"]["x"].as_f64().unwrap_or(0.0) as f32,
-                        right: 0.0,
+                        x: v["anchor"]["x"].as_f64().unwrap_or(0.0) as f32,
+                        y: v["anchor"]["y"].as_f64().unwrap_or(0.0) as f32,
                     },
                     pivot: AnchorFfi {
-                        top: v["pivot"]["y"].as_f64().unwrap_or(0.0) as f32,
-                        bottom: 0.0,
-                        left: v["pivot"]["x"].as_f64().unwrap_or(0.0) as f32,
-                        right: 0.0,
+                        x: v["pivot"]["x"].as_f64().unwrap_or(0.0) as f32,
+                        y: v["pivot"]["y"].as_f64().unwrap_or(0.0) as f32,
                     },
-                    offset: AnchorFfi {
+                    offset: OffsetFfi {
                         top: v["offset"]["top"].as_f64().unwrap_or(0.0) as f32,
                         bottom: v["offset"]["bottom"].as_f64().unwrap_or(0.0) as f32,
                         left: v["offset"]["left"].as_f64().unwrap_or(0.0) as f32,
@@ -245,9 +246,9 @@ pub unsafe fn panels_to_c_array(panels: Vec<String>) -> (*mut PanelFfi, usize) {
                 PanelFfi {
                     id: CString::new(p).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
                     background: CString::new("").unwrap().into_raw(),
-                    anchor: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
-                    pivot: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
-                    offset: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
+                    anchor: AnchorFfi { x: 0.0, y: 0.0 },
+                    pivot: AnchorFfi { x: 0.0, y: 0.0 },
+                    offset: OffsetFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
                     size: SizeFfi { height: 0.0, width: 0.0 },
                     children_callback: std::ptr::null_mut(),
                 }
@@ -256,9 +257,9 @@ pub unsafe fn panels_to_c_array(panels: Vec<String>) -> (*mut PanelFfi, usize) {
             PanelFfi {
                 id: CString::new(p).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
                 background: CString::new("").unwrap().into_raw(),
-                anchor: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
-                pivot: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
-                offset: AnchorFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
+                anchor: AnchorFfi { x: 0.0, y: 0.0 },
+                pivot: AnchorFfi { x: 0.0, y: 0.0 },
+                offset: OffsetFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
                 size: SizeFfi { height: 0.0, width: 0.0 },
                 children_callback: std::ptr::null_mut(),
             }

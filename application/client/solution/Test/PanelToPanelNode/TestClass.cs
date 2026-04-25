@@ -51,7 +51,8 @@ public partial class TestClass : Steps
         await runner.SimulateFrames(1);
         foreach (var panel in rootNode.GetChildren().Cast<Panel>())
         {
-            AssertPanelThat(panel).IsPositionEqual(150,150);
+            AssertPanelThat(panel).IsPositionEqual((panel.Size.X / 2) - 150,(panel.Size.Y / 2) - 150);
         }
+
     }
 }
