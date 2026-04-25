@@ -2,17 +2,15 @@ using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
 using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
-using static GdUnit4.Assertions;
 using Vector2 = Godot.Vector2;
 
-namespace GdUnit4.Examples.Basics.Setup.Test;
+namespace GdUnit4.Examples.Basics.Setup.Test.PanelToPanelNode.Anchor;
 
-[TestSuite]
 public partial class TestClass : Steps
 {
     [TestCase]
     [RequireGodotRuntime]
-    public async Task Given_panel_it_should_load_the_panel_into_the_scene()
+    public async Task Given_panel_it_should_apply_anchors()
     {
         // I create a module from the first folder
         AddFileToArchive("modules/index.js", "index.js")
@@ -41,12 +39,11 @@ public partial class TestClass : Steps
         });
         rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
         await runner.SimulateFrames(1);
-        AssertScreenshot("expected.png");
         
         AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
-            .IsPositionEqual(
-                500 - (rootNode.GetNode<Panel>(idList[0]).Size.X / 2),
-                500 - (rootNode.GetNode<Panel>(idList[0]).Size.Y / 2)
-            );
+            .IsPositionEqual( 450, 450 );
+
+            
+        AssertScreenshot("expected.png");
     }
 }
