@@ -202,7 +202,7 @@ pub struct PanelFfi {
     pub pivot: AnchorFfi,
     pub offset: OffsetFfi,
     pub size: SizeFfi,
-    pub children_callback: *mut c_void,
+    pub children_json: *mut c_char,
 }
 
 #[repr(C)]
@@ -240,7 +240,7 @@ pub unsafe fn panels_to_c_array(panels: Vec<String>) -> (*mut PanelFfi, usize) {
                         height: v["size"]["height"].as_f64().unwrap_or(0.0) as f32,
                         width: v["size"]["width"].as_f64().unwrap_or(0.0) as f32,
                     },
-                    children_callback: std::ptr::null_mut(),
+                    children_json: std::ptr::null_mut(),
                 }
             } else {
                 PanelFfi {
@@ -250,7 +250,7 @@ pub unsafe fn panels_to_c_array(panels: Vec<String>) -> (*mut PanelFfi, usize) {
                     pivot: AnchorFfi { x: 0.0, y: 0.0 },
                     offset: OffsetFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
                     size: SizeFfi { height: 0.0, width: 0.0 },
-                    children_callback: std::ptr::null_mut(),
+                    children_json: std::ptr::null_mut(),
                 }
             }
         } else {
@@ -261,7 +261,7 @@ pub unsafe fn panels_to_c_array(panels: Vec<String>) -> (*mut PanelFfi, usize) {
                 pivot: AnchorFfi { x: 0.0, y: 0.0 },
                 offset: OffsetFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
                 size: SizeFfi { height: 0.0, width: 0.0 },
-                children_callback: std::ptr::null_mut(),
+                children_json: std::ptr::null_mut(),
             }
         };
         out.push(ffi);
@@ -277,5 +277,6 @@ pub unsafe fn free_panel_array(ptr: *mut PanelFfi, len: usize) {
     for p in boxed.iter() {
         if !p.id.is_null() { let _ = CString::from_raw(p.id); }
         if !p.background.is_null() { let _ = CString::from_raw(p.background); }
+        if !p.children_json.is_null() { let _ = CString::from_raw(p.children_json); }
     }
 }

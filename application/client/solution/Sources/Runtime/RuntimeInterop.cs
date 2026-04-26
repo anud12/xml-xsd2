@@ -59,6 +59,47 @@ public static class RuntimeInterop
                 right = native.offset.right
             };
             panel.Size = new Size { Height = native.size.height, Width = native.size.width };
+            if (native.children_json != IntPtr.Zero)
+            {
+                var childrenJson = Marshal.PtrToStringAnsi(native.children_json);
+                if (!string.IsNullOrEmpty(childrenJson))
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(childrenJson);
+                    var childList = new List<Panel>();
+                    foreach (var elem in doc.RootElement.EnumerateArray())
+                    {
+                        var child = new Panel
+                        {
+                            Id = elem.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "",
+                            Background = elem.TryGetProperty("background", out var bgProp) && bgProp.ValueKind != System.Text.Json.JsonValueKind.Null ? bgProp.GetString() : null,
+                            Anchor = new Vector2
+                            {
+                                X = elem.TryGetProperty("anchor", out var anc) && anc.TryGetProperty("x", out var ax) ? ax.GetSingle() : 0f,
+                                Y = elem.TryGetProperty("anchor", out var anc2) && anc2.TryGetProperty("y", out var ay) ? ay.GetSingle() : 0f,
+                            },
+                            Pivot = new Vector2
+                            {
+                                X = elem.TryGetProperty("pivot", out var piv) && piv.TryGetProperty("x", out var px) ? px.GetSingle() : 0f,
+                                Y = elem.TryGetProperty("pivot", out var piv2) && piv2.TryGetProperty("y", out var py) ? py.GetSingle() : 0f,
+                            },
+                            Offset = new Offset
+                            {
+                                top = elem.TryGetProperty("offset", out var off) && off.TryGetProperty("top", out var ot) ? ot.GetSingle() : 0f,
+                                bottom = elem.TryGetProperty("offset", out var off2) && off2.TryGetProperty("bottom", out var ob) ? ob.GetSingle() : 0f,
+                                left = elem.TryGetProperty("offset", out var off3) && off3.TryGetProperty("left", out var ol) ? ol.GetSingle() : 0f,
+                                right = elem.TryGetProperty("offset", out var off4) && off4.TryGetProperty("right", out var or) ? or.GetSingle() : 0f,
+                            },
+                            Size = new Size
+                            {
+                                Height = elem.TryGetProperty("size", out var sz) && sz.TryGetProperty("height", out var sh) ? sh.GetSingle() : 0f,
+                                Width = elem.TryGetProperty("size", out var sz2) && sz2.TryGetProperty("width", out var sw) ? sw.GetSingle() : 0f,
+                            },
+                        };
+                        childList.Add(child);
+                    }
+                    panel.Children = childList.ToArray();
+                }
+            }
             return panel;
         }
         finally
@@ -81,6 +122,7 @@ public static class RuntimeInterop
     [StructLayout(LayoutKind.Sequential)]
     private struct SizeFfi { public float height; public float width; }
 
+    [StructLayout(LayoutKind.Sequential)]
     private struct NativePanel
     {
         public IntPtr id;
@@ -89,7 +131,7 @@ public static class RuntimeInterop
         public AnchorFfi pivot;
         public OffsetFfi offset;
         public SizeFfi size;
-        public IntPtr children_callback;
+        public IntPtr children_json;
     }
 
 

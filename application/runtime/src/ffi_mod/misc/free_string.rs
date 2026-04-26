@@ -23,11 +23,13 @@ pub extern "C" fn runtime_free_panel(p: *mut crate::ffi_mod::types::PanelFfi) {
         // Convert back to owned Box to drop it; strings were allocated with CString::into_raw (CoTaskMemAlloc not used for struct fields)
         let panel = Box::from_raw(p);
         if !panel.id.is_null() {
-            // id was allocated via CString::into_raw
             let _ = CString::from_raw(panel.id);
         }
         if !panel.background.is_null() {
             let _ = CString::from_raw(panel.background);
+        }
+        if !panel.children_json.is_null() {
+            let _ = CString::from_raw(panel.children_json);
         }
         // Box dropped here
     }

@@ -207,6 +207,13 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                             let sh = size.height;
                             let sw = size.width;
                             eprintln!("get_panel_by_id_struct: id='{}' anchor=({},{}), pivot=({},{}), offset=({}, {}, {}, {}), size=({},{}), json='{}'", id_str, ax, ay, px, py, ot, ob, ol, or, sh, sw, p);
+                            let children_json_ptr = {
+                                let v2: serde_json::Value = serde_json::from_str(p).unwrap_or(serde_json::Value::Null);
+                                match v2.get("children") {
+                                    Some(c) => CString::new(c.to_string()).unwrap_or_else(|_| CString::new("[]").unwrap()).into_raw(),
+                                    None => std::ptr::null_mut(),
+                                }
+                            };
                             let panel = Box::new(crate::ffi_mod::types::PanelFfi {
                                 id: id_ptr,
                                 background: bg_ptr,
@@ -214,7 +221,7 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                                 pivot: crate::ffi_mod::types::AnchorFfi { x: px, y: py },
                                 offset: crate::ffi_mod::types::OffsetFfi { top: ot, bottom: ob, left: ol, right: or },
                                 size: crate::ffi_mod::types::SizeFfi { height: sh, width: sw },
-                                children_callback: std::ptr::null_mut(),
+                                children_json: children_json_ptr,
                             });
                             return Box::into_raw(panel);
                         } else {
@@ -225,7 +232,7 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                                 pivot: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
                                 offset: crate::ffi_mod::types::OffsetFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 },
                                 size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 },
-                                children_callback: std::ptr::null_mut(),
+                                children_json: std::ptr::null_mut(),
                             });
                             return Box::into_raw(panel);
                         }
@@ -242,7 +249,7 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                     pivot: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
                     offset: crate::ffi_mod::types::OffsetFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 },
                     size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 },
-                    children_callback: std::ptr::null_mut(),
+                    children_json: std::ptr::null_mut(),
                 });
                 return Box::into_raw(panel);
             }
@@ -258,7 +265,7 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
         pivot: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
         offset: crate::ffi_mod::types::OffsetFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 },
         size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 },
-        children_callback: std::ptr::null_mut(),
+        children_json: std::ptr::null_mut(),
     });
     Box::into_raw(panel)
 }
