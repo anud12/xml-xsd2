@@ -33,7 +33,7 @@ export type PanelOptions = {
 
 
 export type GridLayout = {
-  columns: TrackDefinition[];          // Column definitions; count = num columns
+  columns?: TrackDefinition[];          // Column definitions; count = num columns
   rowFirst?: boolean;                  // true (default): left→right, wrap; false: top→bottom
   reverse?: boolean;                   // false (default): reverse child placement order
   gap?: { row?: NumberExpression; column?: NumberExpression };  // Cell spacing

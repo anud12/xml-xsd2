@@ -8,6 +8,7 @@ namespace NewGameProject.Runtime;
 public struct Panel
 {
     public string Id;
+
     // Only fields required by tests are kept in layout parity with native PanelFfi
     public string Background;
 
@@ -15,10 +16,38 @@ public struct Panel
     public Vector2 Pivot;
     public Offset Offset;
     public Size Size;
+    public Layout? Layout;
     public Panel[]? Children;
 }
 
-    
+public struct Layout
+{
+    public TrackDefinition[]? Columns;
+    public bool? RowFirst;
+    public bool? ReverseOrder;
+    public Gap? gap;
+}
+
+public struct TrackDefinition
+{
+    public Align? align;
+    public int? min;
+    public int? max;
+    public int? weight;
+}
+
+public enum Align : int
+{
+    Start = 0,
+    End = 1
+}
+
+public struct Gap
+{
+    public int Row;
+    public int Column;
+}
+
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
 public struct Vector2
 {
@@ -40,5 +69,4 @@ public struct Size
 {
     public float Height;
     public float Width;
-    
 }

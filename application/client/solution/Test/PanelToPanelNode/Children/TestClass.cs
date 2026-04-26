@@ -1,3 +1,4 @@
+using CommandLine;
 using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
 using NewGameProject.Runtime;
@@ -14,9 +15,10 @@ public class Children : Steps
     public async Task Given_panel_it_should_apply_children()
     {
         // I create a module from the first folder
-        AddFileToArchive("Test/PanelToPanelNode/Anchor/module/index.js", "index.js")
-            .AddFileToArchive("Test/PanelToPanelNode/Anchor/module/manifest.json", "manifest.json")
-            .AddFileToArchive("Test/PanelToPanelNode/Anchor/module/texture.exr", "texture.exr")
+        AddFileToArchive("Test/PanelToPanelNode/Children/module/index.js", "index.js")
+            .AddFileToArchive("Test/PanelToPanelNode/Children/module/manifest.json", "manifest.json")
+            .AddFileToArchive("Test/PanelToPanelNode/Children/module/texture.exr", "texture.exr")
+            .AddFileToArchive("Test/PanelToPanelNode/Children/module/texture_2.exr", "texture_2.exr")
             .EnsureDllAccessible()
             .ProcessArchive();
 
@@ -26,10 +28,7 @@ public class Children : Steps
         var idList = RuntimeInterop.GetPanelIds();
         foreach (var id in idList)
         {
-            rootNode.AddChild(new Panel(RuntimeInterop.GetPanelById(id))
-            {
-                Name = id
-            });
+            rootNode.AddChild(new Panel(RuntimeInterop.GetPanelById(id)));
         }
 
         scene.AddChild(rootNode);
@@ -40,12 +39,12 @@ public class Children : Steps
         });
         rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
         await runner.SimulateFrames(1);
-
+        
         AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
             .IsNonNull()
             .IsPositionEqual(450, 450)
-            .HasChildNamed("child");
-
-        // AssertScreenshot("expected.png");
+            .HasChildPanelNamed("child", child => child.IsPositionEqual(0, 0))
+            .HasChildPanelNamed("child_2", child => child.IsPositionEqual(0, 10));
+        AssertScreenshot("expected.png");
     }
 }

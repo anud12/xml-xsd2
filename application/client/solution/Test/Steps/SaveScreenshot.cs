@@ -5,7 +5,7 @@ namespace NewGameProject.Tests.XUnit;
 
 public partial class Steps
 {
-    public string SaveScreenshot(string fileName, [CallerFilePath] string callerPath = "")
+    public string DebugSaveScreenshot(string fileName, [CallerFilePath] string callerPath = "")
     {
         using Image img = runner.Scene().GetViewport().GetTexture().GetImage();
 

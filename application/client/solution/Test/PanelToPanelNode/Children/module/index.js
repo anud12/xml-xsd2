@@ -20,7 +20,15 @@ export default (hostApi) => {
           width: number.of(10),
         },
         background: hostApi.texture.of("texture_2.exr")
-      }
+      },
+      {
+        id: "child_2",
+        size: {
+          height: number.of(10),
+          width: number.of(10),
+        },
+        background: hostApi.texture.of("texture_2.exr")
+      },
     ]
   })
 }

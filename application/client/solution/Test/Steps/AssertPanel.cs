@@ -30,21 +30,29 @@ public partial class Steps
             return this;
         }
 
-        public AssertPanel HasChildNamed(string name)
+        public AssertPanel HasChildPanelNamed(string name)
         {
-            if (panel.GetNode(name) is null)
+            HasChildPanelNamed(name, _ => { });
+            return this;
+        }
+        
+        public AssertPanel HasChildPanelNamed(string name, Action<AssertPanel> action) {
+            var childPanel = panel.GetNode<Panel>($"%{name}");
+            if (childPanel is null)
             {
                 Assertions.AssertThat(true)
                     .OverrideFailureMessage($"Panel {panel.Name} does not have child named {name}")
                     .IsFalse();
             }
-
+            action.Invoke(new AssertPanel(childPanel));
             return this;
         }
 
         public AssertPanel IsPositionEqual(float x, float y)
         {
-            Assertions.AssertThat(panel.Position).IsEqual(new Vector2(x, y));
+            Assertions.AssertThat(panel.Position)
+                .OverrideFailureMessage($"Panel \"{panel.Name}\" position is not equal to ({x}, {y}) but is ({panel.Position.X}, {panel.Position.Y})")
+                .IsEqual(new Vector2(x, y));
 
             return this;
         }
