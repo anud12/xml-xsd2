@@ -18,6 +18,7 @@ public struct Panel
     public Size Size;
     public Layout? Layout;
     public Panel[]? Children;
+    public PanelOnClickHandler? OnClick;
 }
 
 public struct Layout
@@ -27,6 +28,8 @@ public struct Layout
     public bool? ReverseOrder;
     public Gap? gap;
 }
+
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
 
 public struct TrackDefinition
 {
@@ -41,7 +44,7 @@ public enum Align : int
     Start = 0,
     End = 1
 }
-
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
 public struct Gap
 {
     public int Row;
@@ -69,4 +72,9 @@ public struct Size
 {
     public float Height;
     public float Width;
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+public struct PanelOnClickHandler {
+    public string ActionName;
 }

@@ -44,6 +44,11 @@
     </Content>
     <Content Include="package.json" />
     <Content Include="Test\PanelToPanelNode\Anchor\module\texture.exr" />
+    <Content Include="Test\PanelToPanelNode\EmitActionOnClick\expected.png" />
+    <Content Include="Test\PanelToPanelNode\EmitActionOnClick\module\index.js" />
+    <Content Include="Test\PanelToPanelNode\EmitActionOnClick\module\manifest.json" />
+    <Content Include="Test\PanelToPanelNode\EmitActionOnClick\module\texture.exr" />
+    <Content Include="Test\PanelToPanelNode\EmitActionOnClick\module\texture_2.exr" />
     <Content Include="Test\PanelToPanelNode\Offset\expected.png.import" />
     <Content Include="Test\PanelToPanelNode\Offset\module\index.js" />
     <Content Include="Test\PanelToPanelNode\Offset\module\manifest.json" />

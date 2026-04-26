@@ -1,5 +1,6 @@
 import {NumberExpression} from "../primitives/numberExpression";
 import {TextureResource} from "../texture/TextureResource";
+import {StringExpression} from "../primitives/stringExpression";
 
 export type RegisterPanelFunction = (panelOptions: PanelOptions) => {}
 
@@ -27,10 +28,16 @@ export type PanelOptions = {
 
   background: TextureResource;
 
+  onClick?: PanelOnClickHandler;
+
   layout?:GridLayout,
   children?: PanelOptions[]
 };
 
+export type PanelOnClickHandler = {
+  type: "emitAction",
+  actionName: StringExpression
+}
 
 export type GridLayout = {
   columns?: TrackDefinition[];          // Column definitions; count = num columns
