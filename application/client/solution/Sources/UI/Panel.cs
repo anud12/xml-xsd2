@@ -80,8 +80,10 @@ public partial class Panel : Godot.Panel {
         if (@event is InputEventMouseButton mouseEvent) {
             // .Pressed ensures we trigger on 'down', and Mask checks for Left Click
             if (mouseEvent.Pressed && mouseEvent.ButtonIndex == MouseButton.Left) {
-                GD.Print($"Panel {this.panel.Id} clicked!");
-                AddChild(new Label() { Text = $"Panel {this.panel.Id} clicked!" });
+                var actionName = panel.OnClick?.ActionName;
+                if (actionName != null) {
+                    RuntimeInterop.emitAction(actionName);
+                }
                 // Optional: Stop the event from bubbling up to parent nodes
                 GetViewport().SetInputAsHandled();
             }
