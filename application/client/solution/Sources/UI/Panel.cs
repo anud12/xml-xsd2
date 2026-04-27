@@ -1,3 +1,4 @@
+using Castle.Components.DictionaryAdapter.Xml;
 using Godot;
 using NewGameProject.Runtime;
 using Vector2 = Godot.Vector2;
@@ -39,7 +40,18 @@ public partial class Panel : Godot.Panel {
         } else {
             GD.Print($"DEBUG Panel OnClick: id={panel.Id} NONE");
         }
-
+        //if panel.Content is instance of ConstantTextContent, add a RichTextLabel
+        if (panel.Content is ConstantTextContent constantTextContent) {
+            var richTextLabel = new RichTextLabel() {
+                Name = "content",
+                FitContent = true,
+                Text = constantTextContent.Value,
+            };
+            richTextLabel.SetJustificationFlags(TextServer.JustificationFlag.None);
+            richTextLabel.SetAutowrapMode(TextServer.AutowrapMode.WordSmart);
+            richTextLabel.SetAnchorsPreset(LayoutPreset.FullRect);
+            AddChild(richTextLabel);
+        }
 
         if (panel.Background != null) {
             var Files = RuntimeInterop.GetFileFromArchive();
