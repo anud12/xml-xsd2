@@ -36,8 +36,17 @@ export type PanelOptions = {
   children?: PanelOptions[]
 };
 
-export type PanelContent = EntityStringValueComponent
+export type PanelContent = (EntityStringValueComponent
   | ConstantTextComponent
+  ) & {
+  align: "center"
+    | "top-left"
+    | "top-right"
+    | "center-left"
+    | "center-right"
+    | "bottom-left"
+    | "bottom-right"
+}
 
 export type EntityStringValueComponent = {
   type: "entityStringValue"
