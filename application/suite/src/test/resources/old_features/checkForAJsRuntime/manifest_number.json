@@ -1,6 +1,0 @@
-{
-  "id": "com.example.rules.weather",
-  "version": "1.2.0",
-  "name": "Weather Name Rules",
-  "entry": "index_number.js"
-}
