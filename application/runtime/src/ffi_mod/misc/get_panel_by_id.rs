@@ -185,11 +185,13 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                                     sb = sb.trim();
                                 }
                                 if !sb.is_empty() {
-                                    bg_ptr = CString::new(sb.to_string()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
+                                    let bg_cstr = CString::new(sb.to_string()).unwrap_or_else(|_| CString::new("").unwrap());
+                                    bg_ptr = bg_cstr.into_raw();
                                 }
                             }
                         }
-                        let id_ptr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
+                        let id_cstr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap());
+                        let id_ptr = id_cstr.into_raw();
                         // parse numeric fields via serde
                         if let Ok(parsed_panel) = serde_json::from_str::<JsPanel>(p) {
                             let anchor_raw = parsed_panel.anchor.unwrap_or(Anchor { x: None, y: None, top: None, bottom: None, left: None, right: None });
@@ -210,10 +212,14 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                             let children_json_ptr = {
                                 let v2: serde_json::Value = serde_json::from_str(p).unwrap_or(serde_json::Value::Null);
                                 match v2.get("children") {
-                                    Some(c) => CString::new(c.to_string()).unwrap_or_else(|_| CString::new("[]").unwrap()).into_raw(),
+                                    Some(c) => {
+                                        let children_cstr = CString::new(c.to_string()).unwrap_or_else(|_| CString::new("[]").unwrap());
+                                        children_cstr.into_raw()
+                                    },
                                     None => std::ptr::null_mut(),
                                 }
                             };
+                            let panel_json_cstr = CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap());
                             let panel = Box::new(crate::ffi_mod::types::PanelFfi {
                                 id: id_ptr,
                                 background: bg_ptr,
@@ -222,10 +228,11 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                                 offset: crate::ffi_mod::types::OffsetFfi { top: ot, bottom: ob, left: ol, right: or },
                                 size: crate::ffi_mod::types::SizeFfi { height: sh, width: sw },
                                 children_json: children_json_ptr,
-                                panel_json: CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
+                                panel_json: panel_json_cstr.into_raw(),
                             });
                             return Box::into_raw(panel);
                         } else {
+                            let panel_json_cstr = CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap());
                             let panel = Box::new(crate::ffi_mod::types::PanelFfi {
                                 id: id_ptr,
                                 background: bg_ptr,
@@ -234,7 +241,7 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                                 offset: crate::ffi_mod::types::OffsetFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 },
                                 size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 },
                                 children_json: std::ptr::null_mut(),
-                                panel_json: CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
+                                panel_json: panel_json_cstr.into_raw(),
                             });
                             return Box::into_raw(panel);
                         }
@@ -243,16 +250,17 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
             }
         } else {
             if p == &id_str {
-                let id_ptr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
+                let id_cstr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap());
+                let panel_json_cstr = CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap());
                 let panel = Box::new(crate::ffi_mod::types::PanelFfi {
-                    id: id_ptr,
+                    id: id_cstr.into_raw(),
                     background: std::ptr::null_mut(),
                     anchor: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
                     pivot: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
                     offset: crate::ffi_mod::types::OffsetFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 },
                     size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 },
                     children_json: std::ptr::null_mut(),
-                    panel_json: CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
+                    panel_json: panel_json_cstr.into_raw(),
                 });
                 return Box::into_raw(panel);
             }
@@ -260,17 +268,18 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
     }
 
     // Not found: return minimal panel with id and null background
-    let id_ptr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
+    let id_cstr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap());
     let panel_json = format!("{{\"id\":\"{}\"}}", id_str);
+    let panel_json_cstr = CString::new(panel_json).unwrap_or_else(|_| CString::new("").unwrap());
     let panel = Box::new(crate::ffi_mod::types::PanelFfi {
-        id: id_ptr,
+        id: id_cstr.into_raw(),
         background: std::ptr::null_mut(),
         anchor: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
         pivot: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
         offset: crate::ffi_mod::types::OffsetFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 },
         size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 },
         children_json: std::ptr::null_mut(),
-        panel_json: CString::new(panel_json).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
+        panel_json: panel_json_cstr.into_raw(),
     });
     Box::into_raw(panel)
 }
