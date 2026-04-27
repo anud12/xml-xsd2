@@ -10,11 +10,12 @@ public class PanelFfi extends Structure {
     public AnchorFfi pivot;
     public OffsetFfi offset;
     public SizeFfi size;
-    public Pointer children_callback;
+    public Pointer children_json;
+    public Pointer panel_json;
 
     @Override
     protected List<String> getFieldOrder() {
-        return Arrays.asList("id", "background", "anchor", "pivot", "offset", "size", "children_callback");
+        return Arrays.asList("id", "background", "anchor", "pivot", "offset", "size", "children_json", "panel_json");
     }
 
     public PanelFfi() { super(); }
