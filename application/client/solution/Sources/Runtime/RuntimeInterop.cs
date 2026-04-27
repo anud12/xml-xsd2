@@ -43,25 +43,43 @@ public static class RuntimeInterop
         try
         {
             // Marshal native PanelFfi struct into managed Panel
-            var native = Marshal.PtrToStructure<NativePanel>(ptr);
+            // Safer manual marshaling: read only the fields needed and validate pointers before converting
+            int offId = (int)Marshal.OffsetOf(typeof(NativePanel), "id");
+            int offBackground = (int)Marshal.OffsetOf(typeof(NativePanel), "background");
+            int offAnchor = (int)Marshal.OffsetOf(typeof(NativePanel), "anchor");
+            int offPivot = (int)Marshal.OffsetOf(typeof(NativePanel), "pivot");
+            int offOffset = (int)Marshal.OffsetOf(typeof(NativePanel), "offset");
+            int offSize = (int)Marshal.OffsetOf(typeof(NativePanel), "size");
+            int offChildren = (int)Marshal.OffsetOf(typeof(NativePanel), "children_json");
+
+            IntPtr idPtr = Marshal.ReadIntPtr(ptr, offId);
+            IntPtr backgroundPtr = Marshal.ReadIntPtr(ptr, offBackground);
+
             string background = null;
-            if (native.background != IntPtr.Zero) background = Marshal.PtrToStringAnsi(native.background);
-            var pid = Marshal.PtrToStringAnsi(native.id) ?? string.Empty;
+            if (backgroundPtr != IntPtr.Zero) background = Marshal.PtrToStringAnsi(backgroundPtr);
+            var pid = idPtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(idPtr) ?? string.Empty : string.Empty;
+
             var panel = new Panel { Id = pid, Background = background };
             // Populate numeric/layout fields
-            panel.Anchor = new Vector2 { X = native.anchor.x, Y = native.anchor.y };
-            panel.Pivot = new Vector2 { X = native.pivot.x, Y = native.pivot.y };
+            var anchor = Marshal.PtrToStructure<AnchorFfi>(IntPtr.Add(ptr, offAnchor));
+            var pivot = Marshal.PtrToStructure<AnchorFfi>(IntPtr.Add(ptr, offPivot));
+            var offsetFfi = Marshal.PtrToStructure<OffsetFfi>(IntPtr.Add(ptr, offOffset));
+            var sizeFfi = Marshal.PtrToStructure<SizeFfi>(IntPtr.Add(ptr, offSize));
+
+            panel.Anchor = new Vector2 { X = anchor.x, Y = anchor.y };
+            panel.Pivot = new Vector2 { X = pivot.x, Y = pivot.y };
             panel.Offset = new Offset
             {
-                top = native.offset.top,
-                bottom = native.offset.bottom,
-                left = native.offset.left,
-                right = native.offset.right
+                top = offsetFfi.top,
+                bottom = offsetFfi.bottom,
+                left = offsetFfi.left,
+                right = offsetFfi.right
             };
-            panel.Size = new Size { Height = native.size.height, Width = native.size.width };
-            if (native.children_json != IntPtr.Zero)
+            panel.Size = new Size { Height = sizeFfi.height, Width = sizeFfi.width };
+            IntPtr childrenJsonPtr = Marshal.ReadIntPtr(ptr, offChildren);
+            if (childrenJsonPtr != IntPtr.Zero)
             {
-                var childrenJson = Marshal.PtrToStringAnsi(native.children_json);
+                var childrenJson = Marshal.PtrToStringAnsi(childrenJsonPtr);
                 if (!string.IsNullOrEmpty(childrenJson))
                 {
                     using var doc = System.Text.Json.JsonDocument.Parse(childrenJson);
@@ -95,6 +113,16 @@ public static class RuntimeInterop
                                 Width = elem.TryGetProperty("size", out var sz2) && sz2.TryGetProperty("width", out var sw) ? sw.GetSingle() : 0f,
                             },
                         };
+
+                        // parse onClick if present
+                        if (elem.TryGetProperty("onClick", out var onClickProp) && onClickProp.ValueKind == System.Text.Json.JsonValueKind.Object)
+                        {
+                            if (onClickProp.TryGetProperty("type", out var t) && t.GetString() == "emitAction")
+                            {
+                                var actionName = onClickProp.TryGetProperty("actionName", out var an) ? an.GetString() ?? "" : "";
+                                child.OnClick = new PanelOnClickHandler { ActionName = actionName };
+                            }
+                        }
                         childList.Add(child);
                     }
                     panel.Children = childList.ToArray();
@@ -184,4 +212,9 @@ public static class RuntimeInterop
     } 
 
     public static bool ExportState(string path) => runtime_export_state(path);
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_emit_action([MarshalAs(UnmanagedType.LPStr)] string action);
+
+    public static void emitAction(string action) => runtime_emit_action(action);
 }

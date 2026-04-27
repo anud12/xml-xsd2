@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using GdUnit4;
 using Godot;
 
 namespace NewGameProject.Tests.XUnit;
@@ -8,7 +9,11 @@ public partial class Steps
     public string DebugSaveScreenshot(string fileName, [CallerFilePath] string callerPath = "")
     {
         using Image img = runner.Scene().GetViewport().GetTexture().GetImage();
-
+        
+        Assertions.AssertThat(img)
+            .OverrideFailureMessage("Failed to capture screenshot, Viewport texture image is null")
+            .IsNotNull();
+        
         // 1. Get the directory of the .cs file calling this method
         string baseDir = Path.GetDirectoryName(callerPath);
         string absolutePath = Path.Combine(baseDir, fileName);
