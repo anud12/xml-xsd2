@@ -9,7 +9,8 @@ export default (hostApi) => {
     },
     content: {
       type: "entityStringValue",
-      name: string.of("playerName")
+      name: string.of("playerName"),
+      align: "center"
     },
     background: hostApi.texture.of("texture.exr"),
   })

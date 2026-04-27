@@ -101,12 +101,13 @@ public static class RuntimeInterop
                         if (doc.RootElement.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == System.Text.Json.JsonValueKind.Object)
                         {
                             var contentType = contentProp.TryGetProperty("type", out var ct) ? ct.GetString() : null;
+                            var contentAlign = contentProp.TryGetProperty("align", out var ca) ? ca.GetString() ?? "center" : "center";
                             if (contentType == "constant")
                             {
                                 var contentValue = contentProp.TryGetProperty("value", out var cv) ? cv.GetString() : null;
                                 if (contentValue != null)
                                 {
-                                    panel.Content = new ConstantTextContent(contentValue);
+                                    panel.Content = new ConstantTextContent(contentValue, contentAlign);
                                 }
                             }
                             else if (contentType == "entityStringValue")
@@ -114,7 +115,7 @@ public static class RuntimeInterop
                                 var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
                                 if (contentName != null)
                                 {
-                                    panel.Content = new EntityStringValueContent(contentName);
+                                    panel.Content = new EntityStringValueContent(contentName, contentAlign);
                                 }
                             }
                         }
@@ -178,12 +179,13 @@ public static class RuntimeInterop
                         if (elem.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == System.Text.Json.JsonValueKind.Object)
                         {
                             var contentType = contentProp.TryGetProperty("type", out var ct) ? ct.GetString() : null;
+                            var contentAlign = contentProp.TryGetProperty("align", out var ca) ? ca.GetString() ?? "center" : "center";
                             if (contentType == "constant")
                             {
                                 var contentValue = contentProp.TryGetProperty("value", out var cv) ? cv.GetString() : null;
                                 if (contentValue != null)
                                 {
-                                    child.Content = new ConstantTextContent(contentValue);
+                                    child.Content = new ConstantTextContent(contentValue, contentAlign);
                                 }
                             }
                             else if (contentType == "entityStringValue")
@@ -191,7 +193,7 @@ public static class RuntimeInterop
                                 var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
                                 if (contentName != null)
                                 {
-                                    child.Content = new EntityStringValueContent(contentName);
+                                    child.Content = new EntityStringValueContent(contentName, contentAlign);
                                 }
                             }
                         }

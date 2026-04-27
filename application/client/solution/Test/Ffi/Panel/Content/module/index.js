@@ -9,7 +9,8 @@ export default (hostApi) => {
     },
     content: {
       type: "constant",
-      value: string.of("Content")
+      value: string.of("Content"),
+      align: "center"
     },
     background: hostApi.texture.of("texture.exr"),
   })

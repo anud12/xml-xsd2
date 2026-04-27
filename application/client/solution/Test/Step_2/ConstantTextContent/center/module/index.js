@@ -15,7 +15,7 @@ export default (hostApi) => {
       content: {
       type: "constant",
       align: "center",
-      value: string.of("Constant Text Content")
+      value: string.of("center")
       }
   })
 }

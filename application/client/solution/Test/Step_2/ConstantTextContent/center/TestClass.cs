@@ -6,15 +6,15 @@ using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
 using Vector2 = Godot.Vector2;
 
-namespace GdUnit4.Examples.Basics.Setup.Test.Step_2.ConstantTextContent;
+namespace GdUnit4.Examples.Basics.Setup.Test.Step_2.ConstantTextContent.Center;
 
 [TestSuite]
-public class Children : Steps {
+public class TestClass : Steps {
     [TestCategory("Step_2")]
     [TestCase(Timeout = 1_000)]
     [RequireGodotRuntime]
     [GodotExceptionMonitor]
-    public async Task Given_panel_it_should_apply_children() {
+    public async Task Given_panel_it_should_have_content_with_full_align() {
         // I create a module from the first folder
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
@@ -40,6 +40,7 @@ public class Children : Steps {
 
         AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
             .IsNonNull()
+            .HasContentText("center")
             .IsPositionEqual(450, 450);
         AssertScreenshot("expected.png");
     }
