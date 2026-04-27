@@ -28,11 +28,26 @@ export type PanelOptions = {
 
   background: TextureResource;
 
+  content?: PanelContent
+
   onClick?: PanelOnClickHandler;
 
-  layout?:GridLayout,
+  layout?: GridLayout,
   children?: PanelOptions[]
 };
+
+export type PanelContent = EntityStringValueComponent
+  | ConstantTextComponent
+
+export type EntityStringValueComponent = {
+  type: "entityStringValue"
+  name: StringExpression
+}
+
+export type ConstantTextComponent = {
+  type: "constant",
+  value: StringExpression
+}
 
 export type PanelOnClickHandler = {
   type: "emitAction",

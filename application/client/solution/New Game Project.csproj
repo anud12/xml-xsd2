@@ -43,6 +43,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="package.json" />
+    <Content Include="Test\Ffi\Panel\Content\module\index.js" />
+    <Content Include="Test\Ffi\Panel\Content\module\manifest.json" />
+    <Content Include="Test\Ffi\Panel\Content\module\texture.exr" />
+    <Content Include="Test\Ffi\Panel\Content\module\texture.exr.import" />
     <Content Include="Test\Step_2\EmitActionOnClick\AndTriggerEffect\expected.png" />
     <Content Include="Test\Step_2\EmitActionOnClick\AndTriggerEffect\module\index.js" />
     <Content Include="Test\Step_2\EmitActionOnClick\AndTriggerEffect\module\manifest.json" />
@@ -100,7 +104,6 @@
     <TypeScriptCompile Include="node_modules\suite\types\ui\Panel.d.ts" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Test\Ffi\Panel\" />
     <Folder Include="Test\Step_1\" />
   </ItemGroup>
   <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">

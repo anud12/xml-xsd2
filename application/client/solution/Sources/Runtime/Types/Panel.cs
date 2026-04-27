@@ -18,6 +18,7 @@ public struct Panel
     public Layout? Layout;
     public Panel[]? Children;
     public PanelOnClickHandler? OnClick;
+    public PanelContent? Content;
 }
 
 public struct Layout
@@ -76,4 +77,28 @@ public struct Size
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
 public struct PanelOnClickHandler {
     public string ActionName;
+}
+
+public abstract class PanelContent
+{
+}
+
+public class ConstantTextContent : PanelContent
+{
+    public string Value { get; set; }
+
+    public ConstantTextContent(string value)
+    {
+        Value = value;
+    }
+}
+
+public class EntityStringValueContent : PanelContent
+{
+    public string Name { get; set; }
+
+    public EntityStringValueContent(string name)
+    {
+        Name = name;
+    }
 }
