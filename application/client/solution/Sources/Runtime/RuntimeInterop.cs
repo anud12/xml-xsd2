@@ -51,6 +51,7 @@ public static class RuntimeInterop
             int offOffset = (int)Marshal.OffsetOf(typeof(NativePanel), "offset");
             int offSize = (int)Marshal.OffsetOf(typeof(NativePanel), "size");
             int offChildren = (int)Marshal.OffsetOf(typeof(NativePanel), "children_json");
+            int offPanelJson = (int)Marshal.OffsetOf(typeof(NativePanel), "panel_json");
 
             IntPtr idPtr = Marshal.ReadIntPtr(ptr, offId);
             IntPtr backgroundPtr = Marshal.ReadIntPtr(ptr, offBackground);
@@ -76,6 +77,33 @@ public static class RuntimeInterop
                 right = offsetFfi.right
             };
             panel.Size = new Size { Height = sizeFfi.height, Width = sizeFfi.width };
+            
+            // Parse onClick from panel_json if present
+            IntPtr panelJsonPtr = Marshal.ReadIntPtr(ptr, offPanelJson);
+            if (panelJsonPtr != IntPtr.Zero)
+            {
+                var panelJson = Marshal.PtrToStringAnsi(panelJsonPtr);
+                if (!string.IsNullOrEmpty(panelJson))
+                {
+                    try
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(panelJson);
+                        if (doc.RootElement.TryGetProperty("onClick", out var onClickProp) && onClickProp.ValueKind == System.Text.Json.JsonValueKind.Object)
+                        {
+                            if (onClickProp.TryGetProperty("type", out var t) && t.GetString() == "emitAction")
+                            {
+                                var actionName = onClickProp.TryGetProperty("actionName", out var an) ? an.GetString() ?? "" : "";
+                                panel.OnClick = new PanelOnClickHandler { ActionName = actionName };
+                            }
+                        }
+                    }
+                    catch (System.Text.Json.JsonException)
+                    {
+                        // Invalid JSON in panel_json, skip onClick parsing
+                    }
+                }
+            }
+            
             IntPtr childrenJsonPtr = Marshal.ReadIntPtr(ptr, offChildren);
             if (childrenJsonPtr != IntPtr.Zero)
             {
@@ -160,6 +188,7 @@ public static class RuntimeInterop
         public OffsetFfi offset;
         public SizeFfi size;
         public IntPtr children_json;
+        public IntPtr panel_json;
     }
 
 
@@ -217,4 +246,25 @@ public static class RuntimeInterop
     private static extern void runtime_emit_action([MarshalAs(UnmanagedType.LPStr)] string action);
 
     public static void emitAction(string action) => runtime_emit_action(action);
+
+    // Logger callback support
+    private delegate void LogCallback([MarshalAs(UnmanagedType.LPStr)] string message);
+    private static Action<string>? userLogCallback;
+    private static LogCallback? nativeLogCallback;
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void register_logger(IntPtr callback);
+
+    public static void RegisterLogger(Action<string> callback)
+    {
+        userLogCallback = callback;
+        // Create a delegate that will be called from native code
+        nativeLogCallback = (message) =>
+        {
+            userLogCallback?.Invoke(message);
+        };
+        // Register with native runtime - need to marshal the delegate as a function pointer
+        IntPtr funcPtr = Marshal.GetFunctionPointerForDelegate(nativeLogCallback);
+        register_logger(funcPtr);
+    }
 }

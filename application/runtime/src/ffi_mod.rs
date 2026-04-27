@@ -16,3 +16,8 @@ pub use debug::runtime_debug_shutdown;
 
 pub use misc::runtime_free_string;
 pub use misc::runtime_clear_state;
+pub use misc::runtime_emit_action;
+
+// Re-export from native_stdio
+pub use crate::native_stdio::register_logger;
+pub use crate::native_stdio::runtime_set_log_callback;
