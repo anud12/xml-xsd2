@@ -39,11 +39,13 @@ export type PanelOptions = {
 export type PanelContent = (EntityStringValueComponent
   | ConstantTextComponent
   ) & {
-  align: "center"
+  align: "top"
     | "top-left"
     | "top-right"
+    | "center"
     | "center-left"
     | "center-right"
+    | "bottom"
     | "bottom-left"
     | "bottom-right"
 }

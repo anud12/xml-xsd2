@@ -86,19 +86,23 @@ public abstract class PanelContent
 public class ConstantTextContent : PanelContent
 {
     public string Value { get; set; }
+    public string Align { get; set; }
 
-    public ConstantTextContent(string value)
+    public ConstantTextContent(string value, string align = "center")
     {
         Value = value;
+        Align = align;
     }
 }
 
 public class EntityStringValueContent : PanelContent
 {
     public string Name { get; set; }
+    public string Align { get; set; }
 
-    public EntityStringValueContent(string name)
+    public EntityStringValueContent(string name, string align = "center")
     {
         Name = name;
+        Align = align;
     }
 }

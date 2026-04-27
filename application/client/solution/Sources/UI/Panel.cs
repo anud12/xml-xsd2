@@ -45,11 +45,58 @@ public partial class Panel : Godot.Panel {
             var richTextLabel = new RichTextLabel() {
                 Name = "content",
                 FitContent = true,
-                Text = constantTextContent.Value,
             };
-            richTextLabel.SetJustificationFlags(TextServer.JustificationFlag.None);
             richTextLabel.SetAutowrapMode(TextServer.AutowrapMode.WordSmart);
+            richTextLabel.SetJustificationFlags(TextServer.JustificationFlag.None);
             richTextLabel.SetAnchorsPreset(LayoutPreset.FullRect);
+            switch (constantTextContent.Align) {
+                case "top": {
+                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
+                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
+                    break;
+                }
+                case "top-left": {
+                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
+                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
+                    break;
+                }
+                case "top-right": {
+                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
+                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
+                    break;
+                }
+                case "center": {
+                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
+                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
+                    break;
+                }
+                case "center-left": {
+                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
+                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
+                    break;
+                }
+                case "center-right": {
+                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
+                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
+                    break;
+                }
+                case "bottom": {
+                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
+                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
+                    break;
+                }
+                case "bottom-left": {
+                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
+                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
+                    break;
+                }
+                case "bottom-right": {
+                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
+                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
+                    break;
+                }
+            }
+            richTextLabel.Text = constantTextContent.Value;
             AddChild(richTextLabel);
         }
 
