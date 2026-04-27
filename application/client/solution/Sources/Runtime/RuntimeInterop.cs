@@ -96,6 +96,28 @@ public static class RuntimeInterop
                                 panel.OnClick = new PanelOnClickHandler { ActionName = actionName };
                             }
                         }
+
+                        // Parse content if present
+                        if (doc.RootElement.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == System.Text.Json.JsonValueKind.Object)
+                        {
+                            var contentType = contentProp.TryGetProperty("type", out var ct) ? ct.GetString() : null;
+                            if (contentType == "constant")
+                            {
+                                var contentValue = contentProp.TryGetProperty("value", out var cv) ? cv.GetString() : null;
+                                if (contentValue != null)
+                                {
+                                    panel.Content = new ConstantTextContent(contentValue);
+                                }
+                            }
+                            else if (contentType == "entityStringValue")
+                            {
+                                var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
+                                if (contentName != null)
+                                {
+                                    panel.Content = new EntityStringValueContent(contentName);
+                                }
+                            }
+                        }
                     }
                     catch (System.Text.Json.JsonException)
                     {
@@ -151,6 +173,29 @@ public static class RuntimeInterop
                                 child.OnClick = new PanelOnClickHandler { ActionName = actionName };
                             }
                         }
+
+                        // parse content if present
+                        if (elem.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == System.Text.Json.JsonValueKind.Object)
+                        {
+                            var contentType = contentProp.TryGetProperty("type", out var ct) ? ct.GetString() : null;
+                            if (contentType == "constant")
+                            {
+                                var contentValue = contentProp.TryGetProperty("value", out var cv) ? cv.GetString() : null;
+                                if (contentValue != null)
+                                {
+                                    child.Content = new ConstantTextContent(contentValue);
+                                }
+                            }
+                            else if (contentType == "entityStringValue")
+                            {
+                                var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
+                                if (contentName != null)
+                                {
+                                    child.Content = new EntityStringValueContent(contentName);
+                                }
+                            }
+                        }
+
                         childList.Add(child);
                     }
                     panel.Children = childList.ToArray();

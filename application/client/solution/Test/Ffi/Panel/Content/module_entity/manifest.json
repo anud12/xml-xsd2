@@ -1,0 +1,6 @@
+{
+  "id": "id",
+  "version": "1.0.0",
+  "name": "Entity Module",
+  "entry": "index.js"
+}
