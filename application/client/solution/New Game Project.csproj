@@ -43,26 +43,25 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="package.json" />
-    <Content Include="Test\PanelToPanelNode\Anchor\module\texture.exr" />
-    <Content Include="Test\PanelToPanelNode\EmitActionOnClick\expected.png" />
-    <Content Include="Test\PanelToPanelNode\EmitActionOnClick\module\index.js" />
-    <Content Include="Test\PanelToPanelNode\EmitActionOnClick\module\manifest.json" />
-    <Content Include="Test\PanelToPanelNode\EmitActionOnClick\module\texture.exr" />
-    <Content Include="Test\PanelToPanelNode\EmitActionOnClick\module\texture_2.exr" />
-    <Content Include="Test\PanelToPanelNode\Offset\expected.png.import" />
-    <Content Include="Test\PanelToPanelNode\Offset\module\index.js" />
-    <Content Include="Test\PanelToPanelNode\Offset\module\manifest.json" />
-    <Content Include="Test\PanelToPanelNode\Offset\module\texture.exr" />
-    <Content Include="Test\PanelToPanelNode\Offset\module\texture.exr.import" />
-    <Content Include="Test\PanelToPanelNode\Size\module\index.js" />
-    <Content Include="Test\PanelToPanelNode\Size\module\manifest.json" />
-    <Content Include="Test\PanelToPanelNode\Size\module\texture.exr" />
-    <Content Include="Test\PanelToPanelNode\TestClass.cs.uid" />
+    <Content Include="Test\Step_2\EmitActionOnClick\module\index.js" />
+    <Content Include="Test\Step_2\EmitActionOnClick\module\manifest.json" />
+    <Content Include="Test\Step_2\EmitActionOnClick\module\texture.exr" />
+    <Content Include="Test\Step_2\EmitActionOnClick\module\texture_2.exr" />
+    <Content Include="Test\Step_2\TestClass.cs.uid" />
     <Content Include="Test\Steps\AddFileToArchive.cs.uid" />
     <Content Include="Test\Steps\CreateArchiveFromFolder.cs.uid" />
     <Content Include="Test\Steps\EnsureDllAccesible.cs.uid" />
     <Content Include="Test\Steps\FindRepoRoot.cs.uid" />
     <Content Include="Test\Steps\LoadCurrentArchive.cs.uid" />
+    <Content Include="Test\Step_1\Anchor\module\texture.exr" />
+    <Content Include="Test\Step_1\Offset\expected.png.import" />
+    <Content Include="Test\Step_1\Offset\module\index.js" />
+    <Content Include="Test\Step_1\Offset\module\manifest.json" />
+    <Content Include="Test\Step_1\Offset\module\texture.exr" />
+    <Content Include="Test\Step_1\Offset\module\texture.exr.import" />
+    <Content Include="Test\Step_1\Size\module\index.js" />
+    <Content Include="Test\Step_1\Size\module\manifest.json" />
+    <Content Include="Test\Step_1\Size\module\texture.exr" />
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="node_modules\suite\types\action\common.d.ts" />
@@ -95,6 +94,10 @@
     <TypeScriptCompile Include="node_modules\suite\types\ui\Box.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\ui\index.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\ui\Panel.d.ts" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Test\Ffi\Panel\" />
+    <Folder Include="Test\Step_1\" />
   </ItemGroup>
   <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">
     <Message Text="Building Rust runtime (cargo)..." Importance="high" />

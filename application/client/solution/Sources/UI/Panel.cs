@@ -4,7 +4,13 @@ using Vector2 = Godot.Vector2;
 
 public partial class Panel : Godot.Panel {
     private NewGameProject.Runtime.Panel panel;
-
+    public NewGameProject.Runtime.Panel ChildPanel {
+        get {
+            if (panel.Children != null && panel.Children.Length > 0) return panel.Children[0];
+            return panel;
+        }
+    }
+    
     public Panel(NewGameProject.Runtime.Panel panel) {
         Name = panel.Id;
         UniqueNameInOwner = true;
@@ -26,6 +32,13 @@ public partial class Panel : Godot.Panel {
         // Debug: print incoming native panel values to help diagnose anchor/size mapping issues
         GD.Print(
             $"DEBUG Panel: id={panel.Id} anchor=({panel.Anchor.X},{panel.Anchor.Y}) pivot=({panel.Pivot.X},{panel.Pivot.Y}) offset=({panel.Offset.top},{panel.Offset.bottom},{panel.Offset.left},{panel.Offset.right}) size=({panel.Size.Width},{panel.Size.Height}) background={(panel.Background ?? "null")}");
+        
+        // Debug: print OnClick handler info
+        if (panel.OnClick.HasValue) {
+            GD.Print($"DEBUG Panel OnClick: id={panel.Id} actionName={panel.OnClick.Value.ActionName}");
+        } else {
+            GD.Print($"DEBUG Panel OnClick: id={panel.Id} NONE");
+        }
 
 
         if (panel.Background != null) {
@@ -75,6 +88,8 @@ public partial class Panel : Godot.Panel {
         }
     }
 
+    
+
     public override void _GuiInput(InputEvent @event) {
         // Check if the event is a mouse button click
         if (@event is InputEventMouseButton mouseEvent) {
@@ -82,6 +97,7 @@ public partial class Panel : Godot.Panel {
             if (mouseEvent.Pressed && mouseEvent.ButtonIndex == MouseButton.Left) {
                 var actionName = panel.OnClick?.ActionName;
                 if (actionName != null) {
+                    GD.Print($"{panel.Id}: Emitting action: {actionName}");
                     RuntimeInterop.emitAction(actionName);
                 }
                 // Optional: Stop the event from bubbling up to parent nodes

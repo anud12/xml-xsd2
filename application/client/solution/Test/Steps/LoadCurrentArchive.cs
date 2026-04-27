@@ -7,10 +7,16 @@ using NewGameProject.Runtime;
 
 namespace NewGameProject.Tests.XUnit;
 
-public partial class Steps
-{
+public partial class Steps {
+    private List<string>? LogLines;
     public Steps ProcessArchive()
     {
+        if (LogLines is null) {
+            LogLines = new List<string>();
+            // RuntimeInterop.RegisterLogger(message => LogLines.Add(message));            
+        }
+        
+        
         if (string.IsNullOrEmpty(_currentArchivePath) || !File.Exists(_currentArchivePath))
             throw new InvalidOperationException("No files have been added to archive yet. Use AddFileToArchive() first.");
 
