@@ -16,5 +16,5 @@ export type ContainerPoint =
  */
 export type ActionContext = {
   actor: EntityExpression;
-  emitEvent: (eventName: string, input: Record<string, any>) => any;
+  emitEffect: (eventName: string, input: Record<string, any>) => any;
 };
