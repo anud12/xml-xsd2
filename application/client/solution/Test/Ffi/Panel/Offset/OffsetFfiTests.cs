@@ -4,17 +4,13 @@ using NewGameProject.Tests.XUnit;
 namespace GdUnit4.Examples.Basics.Setup.Test.Ffi.Panel.Offset;
 
 [TestSuite]
-public class OffsetFfiTests : Steps
-{
-    [AfterTest]
-    public void TearDown() => CleanupArchive();
-
+public class OffsetFfiTests : Steps {
     [TestCase]
-    public void Given_panel_it_should_apply_offset_in_a_diamond_shape()
-    {
-        AddFileToArchive("module/index.js",      "index.js")
+    public void Given_panel_it_should_apply_offset_in_a_diamond_shape() {
+        CleanupArchive();
+        AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
-            .AddFileToArchive("module/texture.exr",   "texture.exr")
+            .AddFileToArchive("module/texture.exr", "texture.exr")
             .ProcessArchive();
 
         var top = RuntimeInterop.GetPanelById("top");

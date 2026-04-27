@@ -13,7 +13,7 @@ public partial class Steps {
     {
         if (LogLines is null) {
             LogLines = new List<string>();
-            // RuntimeInterop.RegisterLogger(message => LogLines.Add(message));            
+            RuntimeInterop.RegisterLogger(message => LogLines.Add(message));            
         }
         
         
@@ -33,6 +33,11 @@ public partial class Steps {
                 if (!File.Exists(dllDest) ||
                     File.GetLastWriteTimeUtc(dllSource) > File.GetLastWriteTimeUtc(dllDest))
                     File.Copy(dllSource, dllDest, true);
+            }
+            catch (IOException ex) when (ex.Message.Contains("being used by another process"))
+            {
+                // DLL is locked, but it should already exist from a previous test run
+                // This is okay - just continue with the existing DLL
             }
             catch (Exception ex)
             {

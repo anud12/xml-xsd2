@@ -203,6 +203,7 @@ pub struct PanelFfi {
     pub offset: OffsetFfi,
     pub size: SizeFfi,
     pub children_json: *mut c_char,
+    pub panel_json: *mut c_char,
 }
 
 #[repr(C)]
@@ -215,6 +216,7 @@ pub unsafe fn panels_to_c_array(panels: Vec<String>) -> (*mut PanelFfi, usize) {
     if panels.is_empty() { return (std::ptr::null_mut(), 0); }
     let mut out: Vec<PanelFfi> = Vec::with_capacity(panels.len());
     for p in panels.into_iter() {
+        let panel_json_ptr = CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
         let ffi = if p.trim_start().starts_with('{') {
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(&p) {
                 let id = v["id"].as_str().unwrap_or("").to_string();
@@ -241,27 +243,30 @@ pub unsafe fn panels_to_c_array(panels: Vec<String>) -> (*mut PanelFfi, usize) {
                         width: v["size"]["width"].as_f64().unwrap_or(0.0) as f32,
                     },
                     children_json: std::ptr::null_mut(),
+                    panel_json: panel_json_ptr,
                 }
             } else {
                 PanelFfi {
-                    id: CString::new(p).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
+                    id: CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
                     background: CString::new("").unwrap().into_raw(),
                     anchor: AnchorFfi { x: 0.0, y: 0.0 },
                     pivot: AnchorFfi { x: 0.0, y: 0.0 },
                     offset: OffsetFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
                     size: SizeFfi { height: 0.0, width: 0.0 },
                     children_json: std::ptr::null_mut(),
+                    panel_json: panel_json_ptr,
                 }
             }
         } else {
             PanelFfi {
-                id: CString::new(p).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
+                id: CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw(),
                 background: CString::new("").unwrap().into_raw(),
                 anchor: AnchorFfi { x: 0.0, y: 0.0 },
                 pivot: AnchorFfi { x: 0.0, y: 0.0 },
                 offset: OffsetFfi { top: 0.0, bottom: 0.0, left: 0.0, right: 0.0 },
                 size: SizeFfi { height: 0.0, width: 0.0 },
                 children_json: std::ptr::null_mut(),
+                panel_json: panel_json_ptr,
             }
         };
         out.push(ffi);
@@ -278,5 +283,6 @@ pub unsafe fn free_panel_array(ptr: *mut PanelFfi, len: usize) {
         if !p.id.is_null() { let _ = CString::from_raw(p.id); }
         if !p.background.is_null() { let _ = CString::from_raw(p.background); }
         if !p.children_json.is_null() { let _ = CString::from_raw(p.children_json); }
+        if !p.panel_json.is_null() { let _ = CString::from_raw(p.panel_json); }
     }
 }

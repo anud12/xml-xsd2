@@ -31,6 +31,9 @@ pub extern "C" fn runtime_free_panel(p: *mut crate::ffi_mod::types::PanelFfi) {
         if !panel.children_json.is_null() {
             let _ = CString::from_raw(panel.children_json);
         }
+        if !panel.panel_json.is_null() {
+            let _ = CString::from_raw(panel.panel_json);
+        }
         // Box dropped here
     }
 }
