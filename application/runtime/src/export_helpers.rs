@@ -97,7 +97,18 @@ pub fn insert_panels(mem_conn: &mut Connection, panels: &Vec<String>) {
     if panels.is_empty() { return; }
     let txp = mem_conn.transaction().expect("tx_panels");
     for p in panels.iter() {
-        txp.execute("INSERT INTO panel (id) VALUES (?1)", &[&p]).ok();
+        // Extract ID from panel string (either plain ID or JSON object)
+        let panel_id = if p.trim_start().starts_with('{') {
+            // Parse JSON to extract id field
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(p) {
+                v.get("id").and_then(|x| x.as_str()).unwrap_or(p).to_string()
+            } else {
+                p.clone()
+            }
+        } else {
+            p.clone()
+        };
+        txp.execute("INSERT INTO panel (id) VALUES (?1)", &[&panel_id]).ok();
     }
     txp.commit().ok();
 }
