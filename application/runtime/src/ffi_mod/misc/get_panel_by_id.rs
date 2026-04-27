@@ -208,7 +208,7 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                             let or = offset_raw.right.unwrap_or(0.0);
                             let sh = size.height;
                             let sw = size.width;
-                            eprintln!("get_panel_by_id_struct: id='{}' anchor=({},{}), pivot=({},{}), offset=({}, {}, {}, {}), size=({},{}), json='{}'", id_str, ax, ay, px, py, ot, ob, ol, or, sh, sw, p);
+                            // REMOVED OLD LOG LINE FOR DEBUGGING
                             let children_json_ptr = {
                                 let v2: serde_json::Value = serde_json::from_str(p).unwrap_or(serde_json::Value::Null);
                                 match v2.get("children") {
@@ -219,7 +219,14 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                                     None => std::ptr::null_mut(),
                                 }
                             };
-                            let panel_json_cstr = CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap());
+                            let panel_json_cstr = match CString::new(p.as_str()) {
+                                Ok(s) => s,
+                                Err(e) => {
+                                    // If there's a null byte in the JSON, use a sanitized version
+                                    let sanitized = p.chars().filter(|&c| c != '\0').collect::<String>();
+                                    CString::new(sanitized).unwrap_or_else(|_| CString::new("{}").unwrap())
+                                }
+                            };
                             let panel = Box::new(crate::ffi_mod::types::PanelFfi {
                                 id: id_ptr,
                                 background: bg_ptr,
@@ -232,7 +239,10 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                             });
                             return Box::into_raw(panel);
                         } else {
-                            let panel_json_cstr = CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap());
+                            let panel_json_cstr = match CString::new(p.clone()) {
+                                Ok(s) => s,
+                                Err(_) => CString::new("{}").expect("Failed to create fallback JSON CString")
+                            };
                             let panel = Box::new(crate::ffi_mod::types::PanelFfi {
                                 id: id_ptr,
                                 background: bg_ptr,
@@ -251,7 +261,10 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
         } else {
             if p == &id_str {
                 let id_cstr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap());
-                let panel_json_cstr = CString::new(p.clone()).unwrap_or_else(|_| CString::new("").unwrap());
+                let panel_json_cstr = match CString::new(p.clone()) {
+                    Ok(s) => s,
+                    Err(_) => CString::new("{}").expect("Failed to create fallback panel_json CString")
+                };
                 let panel = Box::new(crate::ffi_mod::types::PanelFfi {
                     id: id_cstr.into_raw(),
                     background: std::ptr::null_mut(),

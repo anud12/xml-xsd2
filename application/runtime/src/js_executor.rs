@@ -218,7 +218,7 @@ fn sim_template_js() -> &'static str {
     }
   }
   if (actionObj) {
-    const ctx = { emitEvent: emitEvent, createEntity: recordCreated, entity: { create: ()=>({ withTextMap: tm => tm }) }, textMap: { create: ()=>({ put: (k,v)=>{ const o={}; o[k]=v; return o; } }) }, string: { of: s => s } };
+    const ctx = { emitEffect: emitEvent, emitEvent: emitEvent, createEntity: recordCreated, entity: { create: ()=>({ withTextMap: tm => tm }) }, textMap: { create: ()=>({ put: (k,v)=>{ const o={}; o[k]=v; return o; } }) }, string: { of: s => s } };
     try {
       if (typeof actionObj === 'object' && typeof actionObj.apply === 'function') { actionObj.apply(ctx); }
       else if (typeof actionObj === 'function') { try { actionObj(ctx); } catch(e) {} }
