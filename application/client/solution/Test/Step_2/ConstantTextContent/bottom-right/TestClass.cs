@@ -6,7 +6,7 @@ using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
 using Vector2 = Godot.Vector2;
 
-namespace GdUnit4.Examples.Basics.Setup.Test.Step_2.ConstantTextContent.Center;
+namespace GdUnit4.Examples.Basics.Setup.Test.Step_2.ConstantTextContent.BottomRight;
 
 [TestSuite]
 public class TestClass : Steps {
@@ -40,7 +40,7 @@ public class TestClass : Steps {
 
         AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
             .IsNonNull()
-            .HasContentText("center");
+            .HasContentText("bottom-right");
         AssertScreenshot("expected.png");
     }
 }

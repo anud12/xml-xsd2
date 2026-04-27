@@ -47,7 +47,6 @@
     <Content Include="Test\Ffi\Panel\Content\module\manifest.json" />
     <Content Include="Test\Ffi\Panel\Content\module\texture.exr" />
     <Content Include="Test\Ffi\Panel\Content\module\texture.exr.import" />
-    <Content Include="Test\Step_2\ConstantTextContent\center\expected.png" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\index.js" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\manifest.json" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\texture.exr" />

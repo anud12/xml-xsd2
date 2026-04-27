@@ -2,7 +2,7 @@
 export default (hostApi) => {
   const { number,string } = hostApi;
   hostApi.registerPanel({
-    id: "center",
+    id: "top",
     size: {
       height: number.of(300),
       width: number.of(300)
@@ -14,8 +14,8 @@ export default (hostApi) => {
     background: hostApi.texture.of("texture.exr"),
       content: {
       type: "constant",
-      align: "center",
-      value: string.of("center")
+      align: "top",
+      value: string.of("top")
       }
   })
 }
