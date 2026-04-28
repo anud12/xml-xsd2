@@ -118,6 +118,8 @@
       <RustBuiltDll Include="$(RustDllPath)" />
     </ItemGroup>
     <Copy SourceFiles="@(RustBuiltDll)" DestinationFolder="$(MSBuildProjectDirectory)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(RustBuiltDll)" DestinationFolder="$(MSBuildProjectDirectory)\.godot\mono\temp\bin\Debug" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="@(RustBuiltDll)" DestinationFolder="$(MSBuildProjectDirectory)\.godot\mono\temp\bin\Release" SkipUnchangedFiles="false" />
   </Target>
   <!-- Validate JavaScript files under Features against TypeScript declarations before build -->
   <Target Name="ValidateJsTypes" BeforeTargets="BeforeBuild">
