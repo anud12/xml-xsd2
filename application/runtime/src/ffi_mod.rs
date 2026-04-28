@@ -17,6 +17,9 @@ pub use debug::runtime_debug_shutdown;
 pub use misc::runtime_free_string;
 pub use misc::runtime_clear_state;
 pub use misc::runtime_emit_action;
+pub use misc::get_panel_by_id_struct;
+pub use misc::runtime_free_panel;
+pub use misc::get_test_panel_fixed;
 
 // Re-export from native_stdio
 pub use crate::native_stdio::register_logger;

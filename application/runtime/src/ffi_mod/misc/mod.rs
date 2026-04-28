@@ -6,7 +6,10 @@ pub mod get_panel_names;
 pub mod get_panel_by_id;
 
 pub use free_string::runtime_free_string;
+pub use free_string::runtime_free_panel;
 pub use clear_state::runtime_clear_state;
 pub use trigger_action::trigger_action;
 pub use emit_action::runtime_emit_action;
 pub use get_panel_names::get_panel_names;
+pub use get_panel_by_id::get_panel_by_id_struct;
+pub use get_panel_by_id::get_test_panel_fixed;

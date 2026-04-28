@@ -36,6 +36,55 @@ public static class RuntimeInterop
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern void runtime_free_panel(IntPtr p);
 
+    // Diagnostic method to test struct marshaling with fixed values
+    public static void TestFixedStructMarshaling()
+    {
+        var logPath = "E:\\workspace\\test_fixed_struct_log.txt";
+        try
+        {
+            System.IO.File.AppendAllText(logPath, "[START] TestFixedStructMarshaling called\n");
+            
+            IntPtr ptr = get_panel_by_id_struct("TEST_FIXED");
+            System.IO.File.AppendAllText(logPath, $"[GOT_PTR] ptr={ptr.ToInt64():X}\n");
+            
+            if (ptr == IntPtr.Zero)
+            {
+                System.IO.File.AppendAllText(logPath, "[ERROR] Rust returned NULL\n");
+                return;
+            }
+            
+            // Read the full 72 bytes
+            byte[] allBytes = new byte[72];
+            Marshal.Copy(ptr, allBytes, 0, 72);
+            var hexStr = string.Join(" ", allBytes.Select(b => $"{b:X2}"));
+            System.IO.File.AppendAllText(logPath, $"[BYTES] 72 bytes: {hexStr}\n");
+            
+            // Try manual unmarshaling
+            IntPtr id = Marshal.ReadIntPtr(ptr, 0);
+            IntPtr bg = Marshal.ReadIntPtr(ptr, 8);
+            IntPtr children = Marshal.ReadIntPtr(ptr, 56);
+            IntPtr panelJson = Marshal.ReadIntPtr(ptr, 64);
+            
+            System.IO.File.AppendAllText(logPath, $"[POINTERS] id={id.ToInt64():X}, bg={bg.ToInt64():X}, children={children.ToInt64():X}, panelJson={panelJson.ToInt64():X}\n");
+            
+            // Try to read the strings
+            string idStr = SafePtrToStringAnsi(id) ?? "NULL";
+            string bgStr = SafePtrToStringAnsi(bg) ?? "NULL";
+            string childrenStr = SafePtrToStringAnsi(children) ?? "NULL";
+            string panelStr = SafePtrToStringAnsi(panelJson) ?? "NULL";
+            
+            System.IO.File.AppendAllText(logPath, $"[STRINGS] id='{idStr}', bg='{bgStr}', children='{childrenStr}', panel='{panelStr}'\n");
+            System.IO.File.AppendAllText(logPath, "[END] TestFixedStructMarshaling completed successfully\n");
+            
+            runtime_free_panel(ptr);
+        }
+        catch (Exception ex)
+        {
+            System.IO.File.AppendAllText(logPath, $"[EXCEPTION] {ex.GetType().Name}: {ex.Message}\n");
+            System.IO.File.AppendAllText(logPath, $"[STACK] {ex.StackTrace}\n");
+        }
+    }
+
     public static Panel GetPanelById(string id)
     {
         try { System.IO.File.WriteAllText("E:\\workspace\\test_log.txt", $"GetPanelById called with id={id}\nStruct size: {Marshal.SizeOf<NativePanel>()}\n"); } catch { }
@@ -43,64 +92,89 @@ public static class RuntimeInterop
         var ffiReturnMsg = $"FFI returned ptr={ptr.ToInt64():X}";
         try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", ffiReturnMsg + "\n"); } catch { }
         if (ptr == IntPtr.Zero) return default(Panel);
-        
+            
         try
         {
-            // Try marshaling the entire struct at once
-            var nativePanel = Marshal.PtrToStructure<NativePanel>(ptr);
-            System.Diagnostics.Debug.WriteLine($"[GetPanelById] Marshaled struct successfully");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[GetPanelById] Exception during marshaling: {ex.Message}");
-            return default(Panel);
-        }
-        
-        try
-        {
-            // Calculate offsets
-            int offId = (int)Marshal.OffsetOf(typeof(NativePanel), "id");
-            int offBackground = (int)Marshal.OffsetOf(typeof(NativePanel), "background");
-            int offPanelJson = (int)Marshal.OffsetOf(typeof(NativePanel), "panel_json");
-            int offChildren = (int)Marshal.OffsetOf(typeof(NativePanel), "children_json");
+            // Manually read struct fields from the raw pointer to avoid Marshal.PtrToStructure alignment issues
+            System.Diagnostics.Debug.WriteLine($"[GetPanelById] Reading struct fields manually from ptr={ptr.ToInt64():X}");
             
-            try { 
-                System.IO.File.WriteAllText("E:\\workspace\\offsets_check.txt", 
-                    $"offId={offId}, offBackground={offBackground}, offPanelJson={offPanelJson}, offChildren={offChildren}");
-            } catch { }
+            // Read all IntPtr and float fields manually at their known offsets
+            // NativePanel struct layout:
+            // offset 0: IntPtr id (8 bytes)
+            // offset 8: IntPtr background (8 bytes)
+            // offset 16: float anchor.x (4 bytes)
+            // offset 20: float anchor.y (4 bytes)
+            // offset 24: float pivot.x (4 bytes)
+            // offset 28: float pivot.y (4 bytes)
+            // offset 32: float offset.top (4 bytes)
+            // offset 36: float offset.bottom (4 bytes)
+            // offset 40: float offset.left (4 bytes)
+            // offset 44: float offset.right (4 bytes)
+            // offset 48: float size.height (4 bytes)
+            // offset 52: float size.width (4 bytes)
+            // offset 56: IntPtr children_json (8 bytes)
+            // offset 64: IntPtr panel_json (8 bytes)
             
-            // Try marshaling the entire struct at once to compare
-            NativePanel nativePanel = Marshal.PtrToStructure<NativePanel>(ptr);
+            IntPtr id_ptr = Marshal.ReadIntPtr(ptr, 0);
+            IntPtr bg_ptr = Marshal.ReadIntPtr(ptr, 8);
             
-            // Also read raw bytes from the struct to see what's really there
-            int structSize = Marshal.SizeOf<NativePanel>();
-            byte[] rawBytes = new byte[structSize];
-            Marshal.Copy(ptr, rawBytes, 0, structSize);
+            // Read floats using byte buffer and BitConverter
+            byte[] floatBuffer = new byte[4];
             
-            var sizeMsg = $"Struct size: {structSize} bytes";
-            try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", sizeMsg + "\n"); } catch { }
+            Marshal.Copy(new IntPtr(ptr.ToInt64() + 16), floatBuffer, 0, 4);
+            float anchor_x = BitConverter.ToSingle(floatBuffer, 0);
             
-            var ptrMsg = $"Reading struct from ptr={ptr.ToInt64():X}";
-            try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", ptrMsg + "\n"); } catch { }
+            Marshal.Copy(new IntPtr(ptr.ToInt64() + 20), floatBuffer, 0, 4);
+            float anchor_y = BitConverter.ToSingle(floatBuffer, 0);
             
-            // Extract IntPtr values manually from the raw bytes at correct offsets
-            IntPtr id_manual = Marshal.ReadIntPtr(ptr, 0);
-            IntPtr bg_manual = Marshal.ReadIntPtr(ptr, 8);
-            IntPtr children_manual = Marshal.ReadIntPtr(ptr, 56);
-            IntPtr panelJson_manual = Marshal.ReadIntPtr(ptr, 64);
+            Marshal.Copy(new IntPtr(ptr.ToInt64() + 24), floatBuffer, 0, 4);
+            float pivot_x = BitConverter.ToSingle(floatBuffer, 0);
             
-            // Convert hex bytes to readable format
-            string hexBytes = "";
-            for (int i = 0; i < Math.Min(80, rawBytes.Length); i += 8) {
-                if (i + 8 <= rawBytes.Length) {
-                    long value = BitConverter.ToInt64(rawBytes, i);
-                    hexBytes += $"@{i:D2}:0x{value:X016}  ";
-                }
-            }
+            Marshal.Copy(new IntPtr(ptr.ToInt64() + 28), floatBuffer, 0, 4);
+            float pivot_y = BitConverter.ToSingle(floatBuffer, 0);
             
-            var log_str = $"Unmarshaled struct via PtrToStructure: id={nativePanel.id.ToInt64()}, bg={nativePanel.background.ToInt64()}, panelJson={nativePanel.panel_json.ToInt64()}, children={nativePanel.children_json.ToInt64()}\n" +
-                          $"Manual reads from offsets: id={id_manual.ToInt64()}, bg={bg_manual.ToInt64()}, children={children_manual.ToInt64()}, panelJson={panelJson_manual.ToInt64()}\n" +
-                          $"Hex bytes: {hexBytes}";
+            Marshal.Copy(new IntPtr(ptr.ToInt64() + 32), floatBuffer, 0, 4);
+            float offset_top = BitConverter.ToSingle(floatBuffer, 0);
+            
+            Marshal.Copy(new IntPtr(ptr.ToInt64() + 36), floatBuffer, 0, 4);
+            float offset_bottom = BitConverter.ToSingle(floatBuffer, 0);
+            
+            Marshal.Copy(new IntPtr(ptr.ToInt64() + 40), floatBuffer, 0, 4);
+            float offset_left = BitConverter.ToSingle(floatBuffer, 0);
+            
+            Marshal.Copy(new IntPtr(ptr.ToInt64() + 44), floatBuffer, 0, 4);
+            float offset_right = BitConverter.ToSingle(floatBuffer, 0);
+            
+            Marshal.Copy(new IntPtr(ptr.ToInt64() + 48), floatBuffer, 0, 4);
+            float size_height = BitConverter.ToSingle(floatBuffer, 0);
+            
+            Marshal.Copy(new IntPtr(ptr.ToInt64() + 52), floatBuffer, 0, 4);
+            float size_width = BitConverter.ToSingle(floatBuffer, 0);
+
+            // Debug: dump ALL raw bytes from offset 0 to see full struct
+            byte[] allBytes = new byte[72];
+            Marshal.Copy(ptr, allBytes, 0, 72);
+            try { System.IO.File.WriteAllBytes("E:\\workspace\\struct_dump.bin", allBytes); } catch { }
+            var allHex = string.Join(" ", allBytes.Select(b => $"{b:X2}"));
+            try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", $"ALL 72 bytes (hex): {allHex}\n"); } catch { }
+
+            IntPtr children_json = Marshal.ReadIntPtr(ptr, 56);
+            IntPtr panel_json = Marshal.ReadIntPtr(ptr, 64);
+            
+            // Construct the NativePanel from manually read fields
+            var nativePanel = new NativePanel
+            {
+                id = id_ptr,
+                background = bg_ptr,
+                anchor = new AnchorFfi { x = anchor_x, y = anchor_y },
+                pivot = new AnchorFfi { x = pivot_x, y = pivot_y },
+                offset = new OffsetFfi { top = offset_top, bottom = offset_bottom, left = offset_left, right = offset_right },
+                size = new SizeFfi { height = size_height, width = size_width },
+                children_json = children_json,
+                panel_json = panel_json
+            };
+            
+            var log_str = $"Manually read struct: id={id_ptr.ToInt64():X}, bg={bg_ptr.ToInt64():X}, children={children_json.ToInt64():X}, panelJson={panel_json.ToInt64():X}";
             try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", log_str + "\n"); } catch { }
             
             // Now read the pointer fields
@@ -121,6 +195,9 @@ public static class RuntimeInterop
             
             string bgFinal = SafePtrToStringAnsi(nativePanel.background);
             string pid = SafePtrToStringAnsi(nativePanel.id) ?? string.Empty;
+            
+            var panel_info = $"Panel ID='{pid}', Background='{bgFinal}'";
+            try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", panel_info + "\n"); } catch { }
 
             var panel = new Panel { Id = pid, Background = bgFinal };
             // Populate numeric/layout fields
@@ -290,6 +367,11 @@ public static class RuntimeInterop
             }
             return panel;
         }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GetPanelById] Exception processing panel: {ex.Message}");
+            return default(Panel);
+        }
         finally
         {
             runtime_free_panel(ptr);
@@ -348,10 +430,10 @@ public static class RuntimeInterop
         }
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
     private struct AnchorFfi { public float x; public float y; }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
     private struct OffsetFfi
     {
         public float top;
@@ -359,10 +441,10 @@ public static class RuntimeInterop
         public float left;
         public float right;
     }
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
     private struct SizeFfi { public float height; public float width; }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
     private struct NativePanel
     {
         public IntPtr id;
