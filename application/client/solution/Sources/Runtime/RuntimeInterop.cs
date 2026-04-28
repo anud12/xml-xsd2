@@ -38,169 +38,254 @@ public static class RuntimeInterop
 
     public static Panel GetPanelById(string id)
     {
+        try { System.IO.File.WriteAllText("E:\\workspace\\test_log.txt", $"GetPanelById called with id={id}\nStruct size: {Marshal.SizeOf<NativePanel>()}\n"); } catch { }
         IntPtr ptr = get_panel_by_id_struct(id);
+        var ffiReturnMsg = $"FFI returned ptr={ptr.ToInt64():X}";
+        try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", ffiReturnMsg + "\n"); } catch { }
         if (ptr == IntPtr.Zero) return default(Panel);
+        
         try
         {
-            // Marshal native PanelFfi struct into managed Panel
-            // Safer manual marshaling: read only the fields needed and validate pointers before converting
+            // Try marshaling the entire struct at once
+            var nativePanel = Marshal.PtrToStructure<NativePanel>(ptr);
+            System.Diagnostics.Debug.WriteLine($"[GetPanelById] Marshaled struct successfully");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GetPanelById] Exception during marshaling: {ex.Message}");
+            return default(Panel);
+        }
+        
+        try
+        {
+            // Calculate offsets
             int offId = (int)Marshal.OffsetOf(typeof(NativePanel), "id");
             int offBackground = (int)Marshal.OffsetOf(typeof(NativePanel), "background");
-            int offAnchor = (int)Marshal.OffsetOf(typeof(NativePanel), "anchor");
-            int offPivot = (int)Marshal.OffsetOf(typeof(NativePanel), "pivot");
-            int offOffset = (int)Marshal.OffsetOf(typeof(NativePanel), "offset");
-            int offSize = (int)Marshal.OffsetOf(typeof(NativePanel), "size");
-            int offChildren = (int)Marshal.OffsetOf(typeof(NativePanel), "children_json");
             int offPanelJson = (int)Marshal.OffsetOf(typeof(NativePanel), "panel_json");
-
-            IntPtr idPtr = Marshal.ReadIntPtr(ptr, offId);
-            IntPtr backgroundPtr = Marshal.ReadIntPtr(ptr, offBackground);
-
-            string background = null;
-            if (backgroundPtr != IntPtr.Zero) background = Marshal.PtrToStringAnsi(backgroundPtr);
-            var pid = idPtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(idPtr) ?? string.Empty : string.Empty;
-
-            var panel = new Panel { Id = pid, Background = background };
-            // Populate numeric/layout fields
-            var anchor = Marshal.PtrToStructure<AnchorFfi>(IntPtr.Add(ptr, offAnchor));
-            var pivot = Marshal.PtrToStructure<AnchorFfi>(IntPtr.Add(ptr, offPivot));
-            var offsetFfi = Marshal.PtrToStructure<OffsetFfi>(IntPtr.Add(ptr, offOffset));
-            var sizeFfi = Marshal.PtrToStructure<SizeFfi>(IntPtr.Add(ptr, offSize));
-
-            panel.Anchor = new Vector2 { X = anchor.x, Y = anchor.y };
-            panel.Pivot = new Vector2 { X = pivot.x, Y = pivot.y };
-            panel.Offset = new Offset
-            {
-                top = offsetFfi.top,
-                bottom = offsetFfi.bottom,
-                left = offsetFfi.left,
-                right = offsetFfi.right
-            };
-            panel.Size = new Size { Height = sizeFfi.height, Width = sizeFfi.width };
+            int offChildren = (int)Marshal.OffsetOf(typeof(NativePanel), "children_json");
             
-            // Parse onClick from panel_json if present
-            IntPtr panelJsonPtr = Marshal.ReadIntPtr(ptr, offPanelJson);
-            if (panelJsonPtr != IntPtr.Zero)
-            {
-                var panelJson = Marshal.PtrToStringAnsi(panelJsonPtr);
-                if (!string.IsNullOrEmpty(panelJson))
-                {
-                    try
-                    {
-                        using var doc = System.Text.Json.JsonDocument.Parse(panelJson);
-                        if (doc.RootElement.TryGetProperty("onClick", out var onClickProp) && onClickProp.ValueKind == System.Text.Json.JsonValueKind.Object)
-                        {
-                            if (onClickProp.TryGetProperty("type", out var t) && t.GetString() == "emitAction")
-                            {
-                                var actionName = onClickProp.TryGetProperty("actionName", out var an) ? an.GetString() ?? "" : "";
-                                panel.OnClick = new PanelOnClickHandler { ActionName = actionName };
-                            }
-                        }
-
-                        // Parse content if present
-                        if (doc.RootElement.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == System.Text.Json.JsonValueKind.Object)
-                        {
-                            var contentType = contentProp.TryGetProperty("type", out var ct) ? ct.GetString() : null;
-                            var contentAlign = contentProp.TryGetProperty("align", out var ca) ? ca.GetString() ?? "center" : "center";
-                            if (contentType == "constant")
-                            {
-                                var contentValue = contentProp.TryGetProperty("value", out var cv) ? cv.GetString() : null;
-                                if (contentValue != null)
-                                {
-                                    panel.Content = new ConstantTextContent(contentValue, contentAlign);
-                                }
-                            }
-                            else if (contentType == "entityStringValue")
-                            {
-                                var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
-                                if (contentName != null)
-                                {
-                                    panel.Content = new EntityStringValueContent(contentName, contentAlign);
-                                }
-                            }
-                        }
-                    }
-                    catch (System.Text.Json.JsonException)
-                    {
-                        // Invalid JSON in panel_json, skip onClick parsing
-                    }
+            try { 
+                System.IO.File.WriteAllText("E:\\workspace\\offsets_check.txt", 
+                    $"offId={offId}, offBackground={offBackground}, offPanelJson={offPanelJson}, offChildren={offChildren}");
+            } catch { }
+            
+            // Try marshaling the entire struct at once to compare
+            NativePanel nativePanel = Marshal.PtrToStructure<NativePanel>(ptr);
+            
+            // Also read raw bytes from the struct to see what's really there
+            int structSize = Marshal.SizeOf<NativePanel>();
+            byte[] rawBytes = new byte[structSize];
+            Marshal.Copy(ptr, rawBytes, 0, structSize);
+            
+            var sizeMsg = $"Struct size: {structSize} bytes";
+            try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", sizeMsg + "\n"); } catch { }
+            
+            var ptrMsg = $"Reading struct from ptr={ptr.ToInt64():X}";
+            try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", ptrMsg + "\n"); } catch { }
+            
+            // Extract IntPtr values manually from the raw bytes at correct offsets
+            IntPtr id_manual = Marshal.ReadIntPtr(ptr, 0);
+            IntPtr bg_manual = Marshal.ReadIntPtr(ptr, 8);
+            IntPtr children_manual = Marshal.ReadIntPtr(ptr, 56);
+            IntPtr panelJson_manual = Marshal.ReadIntPtr(ptr, 64);
+            
+            // Convert hex bytes to readable format
+            string hexBytes = "";
+            for (int i = 0; i < Math.Min(80, rawBytes.Length); i += 8) {
+                if (i + 8 <= rawBytes.Length) {
+                    long value = BitConverter.ToInt64(rawBytes, i);
+                    hexBytes += $"@{i:D2}:0x{value:X016}  ";
                 }
             }
             
-            IntPtr childrenJsonPtr = Marshal.ReadIntPtr(ptr, offChildren);
-            if (childrenJsonPtr != IntPtr.Zero)
+            var log_str = $"Unmarshaled struct via PtrToStructure: id={nativePanel.id.ToInt64()}, bg={nativePanel.background.ToInt64()}, panelJson={nativePanel.panel_json.ToInt64()}, children={nativePanel.children_json.ToInt64()}\n" +
+                          $"Manual reads from offsets: id={id_manual.ToInt64()}, bg={bg_manual.ToInt64()}, children={children_manual.ToInt64()}, panelJson={panelJson_manual.ToInt64()}\n" +
+                          $"Hex bytes: {hexBytes}";
+            try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", log_str + "\n"); } catch { }
+            
+            // Now read the pointer fields
+            try
             {
-                var childrenJson = Marshal.PtrToStringAnsi(childrenJsonPtr);
+                var beforeBg = $"About to read background from ptr={nativePanel.background.ToInt64()}";
+                try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", beforeBg + "\n"); } catch { }
+                string background = SafePtrToStringAnsi(nativePanel.background);
+                var afterBg = $"Successfully read background";
+                try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", afterBg + "\n"); } catch { }
+            }
+            catch (Exception exBg)
+            {
+                var errBg = $"Error reading background: {exBg.Message}";
+                try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", errBg + "\n"); } catch { }
+                // Continue anyway
+            }
+            
+            string bgFinal = SafePtrToStringAnsi(nativePanel.background);
+            string pid = SafePtrToStringAnsi(nativePanel.id) ?? string.Empty;
+
+            var panel = new Panel { Id = pid, Background = bgFinal };
+            // Populate numeric/layout fields
+            panel.Anchor = new Vector2 { X = nativePanel.anchor.x, Y = nativePanel.anchor.y };
+            panel.Pivot = new Vector2 { X = nativePanel.pivot.x, Y = nativePanel.pivot.y };
+            panel.Offset = new Offset
+            {
+                top = nativePanel.offset.top,
+                bottom = nativePanel.offset.bottom,
+                left = nativePanel.offset.left,
+                right = nativePanel.offset.right
+            };
+            panel.Size = new Size { Height = nativePanel.size.height, Width = nativePanel.size.width };
+            
+            // Parse onClick from panel_json if present
+            if (nativePanel.panel_json != IntPtr.Zero)
+            {
+                var before_read = $"Attempting to read panelJson from ptr={nativePanel.panel_json.ToInt64()}";
+                try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", before_read + "\n"); } catch { }
+                try
+                {
+                    var panelJson = SafePtrToStringAnsi(nativePanel.panel_json);
+                    var after_read = $"Read panelJson: {panelJson}";
+                    try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", after_read + "\n"); } catch { }
+                    System.Diagnostics.Debug.WriteLine($"[GetPanelById] Successfully read panelJson for id '{pid}': {panelJson}");
+                    if (!string.IsNullOrEmpty(panelJson))
+                    {
+                        try
+                        {
+                            using var doc = System.Text.Json.JsonDocument.Parse(panelJson);
+                            if (doc.RootElement.TryGetProperty("onClick", out var onClickProp) && onClickProp.ValueKind == System.Text.Json.JsonValueKind.Object)
+                            {
+                                if (onClickProp.TryGetProperty("type", out var t) && t.GetString() == "emitAction")
+                                {
+                                    var actionName = onClickProp.TryGetProperty("actionName", out var an) ? an.GetString() ?? "" : "";
+                                    panel.OnClick = new PanelOnClickHandler { ActionName = actionName };
+                                }
+                            }
+
+                            // Parse content if present
+                            if (doc.RootElement.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == System.Text.Json.JsonValueKind.Object)
+                            {
+                                var contentType = contentProp.TryGetProperty("type", out var ct) ? ct.GetString() : null;
+                                var contentAlign = contentProp.TryGetProperty("align", out var ca) ? ca.GetString() ?? "center" : "center";
+                                if (contentType == "constant")
+                                {
+                                    var contentValue = contentProp.TryGetProperty("value", out var cv) ? cv.GetString() : null;
+                                    if (contentValue != null)
+                                    {
+                                        panel.Content = new ConstantTextContent(contentValue, contentAlign);
+                                    }
+                                }
+                                else if (contentType == "entityStringValue")
+                                {
+                                    var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
+                                    if (contentName != null)
+                                    {
+                                        panel.Content = new EntityStringValueContent(contentName, contentAlign);
+                                    }
+                                }
+                            }
+                        }
+                        catch (System.Text.Json.JsonException ex)
+                        {
+                            // Invalid JSON in panel_json, skip onClick/content parsing
+                            System.Diagnostics.Debug.WriteLine($"JSON parse error: {ex.Message}");
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Unexpected error parsing panel_json: {ex.Message}");
+                        }
+                    }
+                }
+                catch (AccessViolationException ex)
+                {
+                    // panel_json pointer is invalid; log and skip
+                    System.Diagnostics.Debug.WriteLine($"AccessViolationException reading panel_json: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    // Other errors reading panel_json
+                    System.Diagnostics.Debug.WriteLine($"Error reading panel_json: {ex.Message}");
+                }
+            }
+            
+            if (nativePanel.children_json != IntPtr.Zero)
+            {
+                string childrenJson = SafePtrToStringAnsi(nativePanel.children_json);
                 if (!string.IsNullOrEmpty(childrenJson))
                 {
-                    using var doc = System.Text.Json.JsonDocument.Parse(childrenJson);
-                    var childList = new List<Panel>();
-                    foreach (var elem in doc.RootElement.EnumerateArray())
+                    try
                     {
-                        var child = new Panel
+                        using var doc = System.Text.Json.JsonDocument.Parse(childrenJson);
+                        var childList = new List<Panel>();
+                        foreach (var elem in doc.RootElement.EnumerateArray())
                         {
-                            Id = elem.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "",
-                            Background = elem.TryGetProperty("background", out var bgProp) && bgProp.ValueKind != System.Text.Json.JsonValueKind.Null ? bgProp.GetString() : null,
-                            Anchor = new Vector2
+                            var child = new Panel
                             {
-                                X = elem.TryGetProperty("anchor", out var anc) && anc.TryGetProperty("x", out var ax) ? ax.GetSingle() : 0f,
-                                Y = elem.TryGetProperty("anchor", out var anc2) && anc2.TryGetProperty("y", out var ay) ? ay.GetSingle() : 0f,
-                            },
-                            Pivot = new Vector2
-                            {
-                                X = elem.TryGetProperty("pivot", out var piv) && piv.TryGetProperty("x", out var px) ? px.GetSingle() : 0f,
-                                Y = elem.TryGetProperty("pivot", out var piv2) && piv2.TryGetProperty("y", out var py) ? py.GetSingle() : 0f,
-                            },
-                            Offset = new Offset
-                            {
-                                top = elem.TryGetProperty("offset", out var off) && off.TryGetProperty("top", out var ot) ? ot.GetSingle() : 0f,
-                                bottom = elem.TryGetProperty("offset", out var off2) && off2.TryGetProperty("bottom", out var ob) ? ob.GetSingle() : 0f,
-                                left = elem.TryGetProperty("offset", out var off3) && off3.TryGetProperty("left", out var ol) ? ol.GetSingle() : 0f,
-                                right = elem.TryGetProperty("offset", out var off4) && off4.TryGetProperty("right", out var or) ? or.GetSingle() : 0f,
-                            },
-                            Size = new Size
-                            {
-                                Height = elem.TryGetProperty("size", out var sz) && sz.TryGetProperty("height", out var sh) ? sh.GetSingle() : 0f,
-                                Width = elem.TryGetProperty("size", out var sz2) && sz2.TryGetProperty("width", out var sw) ? sw.GetSingle() : 0f,
-                            },
-                        };
-
-                        // parse onClick if present
-                        if (elem.TryGetProperty("onClick", out var onClickProp) && onClickProp.ValueKind == System.Text.Json.JsonValueKind.Object)
-                        {
-                            if (onClickProp.TryGetProperty("type", out var t) && t.GetString() == "emitAction")
-                            {
-                                var actionName = onClickProp.TryGetProperty("actionName", out var an) ? an.GetString() ?? "" : "";
-                                child.OnClick = new PanelOnClickHandler { ActionName = actionName };
-                            }
-                        }
-
-                        // parse content if present
-                        if (elem.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == System.Text.Json.JsonValueKind.Object)
-                        {
-                            var contentType = contentProp.TryGetProperty("type", out var ct) ? ct.GetString() : null;
-                            var contentAlign = contentProp.TryGetProperty("align", out var ca) ? ca.GetString() ?? "center" : "center";
-                            if (contentType == "constant")
-                            {
-                                var contentValue = contentProp.TryGetProperty("value", out var cv) ? cv.GetString() : null;
-                                if (contentValue != null)
+                                Id = elem.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "",
+                                Background = elem.TryGetProperty("background", out var bgProp) && bgProp.ValueKind != System.Text.Json.JsonValueKind.Null ? bgProp.GetString() : null,
+                                Anchor = new Vector2
                                 {
-                                    child.Content = new ConstantTextContent(contentValue, contentAlign);
+                                    X = elem.TryGetProperty("anchor", out var anc) && anc.TryGetProperty("x", out var ax) ? ax.GetSingle() : 0f,
+                                    Y = elem.TryGetProperty("anchor", out var anc2) && anc2.TryGetProperty("y", out var ay) ? ay.GetSingle() : 0f,
+                                },
+                                Pivot = new Vector2
+                                {
+                                    X = elem.TryGetProperty("pivot", out var piv) && piv.TryGetProperty("x", out var px) ? px.GetSingle() : 0f,
+                                    Y = elem.TryGetProperty("pivot", out var piv2) && piv2.TryGetProperty("y", out var py) ? py.GetSingle() : 0f,
+                                },
+                                Offset = new Offset
+                                {
+                                    top = elem.TryGetProperty("offset", out var off) && off.TryGetProperty("top", out var ot) ? ot.GetSingle() : 0f,
+                                    bottom = elem.TryGetProperty("offset", out var off2) && off2.TryGetProperty("bottom", out var ob) ? ob.GetSingle() : 0f,
+                                    left = elem.TryGetProperty("offset", out var off3) && off3.TryGetProperty("left", out var ol) ? ol.GetSingle() : 0f,
+                                    right = elem.TryGetProperty("offset", out var off4) && off4.TryGetProperty("right", out var or) ? or.GetSingle() : 0f,
+                                },
+                                Size = new Size
+                                {
+                                    Height = elem.TryGetProperty("size", out var sz) && sz.TryGetProperty("height", out var sh) ? sh.GetSingle() : 0f,
+                                    Width = elem.TryGetProperty("size", out var sz2) && sz2.TryGetProperty("width", out var sw) ? sw.GetSingle() : 0f,
+                                },
+                            };
+
+                            // parse onClick if present
+                            if (elem.TryGetProperty("onClick", out var onClickProp) && onClickProp.ValueKind == System.Text.Json.JsonValueKind.Object)
+                            {
+                                if (onClickProp.TryGetProperty("type", out var t) && t.GetString() == "emitAction")
+                                {
+                                    var actionName = onClickProp.TryGetProperty("actionName", out var an) ? an.GetString() ?? "" : "";
+                                    child.OnClick = new PanelOnClickHandler { ActionName = actionName };
                                 }
                             }
-                            else if (contentType == "entityStringValue")
+
+                            // parse content if present
+                            if (elem.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == System.Text.Json.JsonValueKind.Object)
                             {
-                                var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
-                                if (contentName != null)
+                                var contentType = contentProp.TryGetProperty("type", out var ct) ? ct.GetString() : null;
+                                var contentAlign = contentProp.TryGetProperty("align", out var ca) ? ca.GetString() ?? "center" : "center";
+                                if (contentType == "constant")
                                 {
-                                    child.Content = new EntityStringValueContent(contentName, contentAlign);
+                                    var contentValue = contentProp.TryGetProperty("value", out var cv) ? cv.GetString() : null;
+                                    if (contentValue != null)
+                                    {
+                                        child.Content = new ConstantTextContent(contentValue, contentAlign);
+                                    }
+                                }
+                                else if (contentType == "entityStringValue")
+                                {
+                                    var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
+                                    if (contentName != null)
+                                    {
+                                        child.Content = new EntityStringValueContent(contentName, contentAlign);
+                                    }
                                 }
                             }
-                        }
 
-                        childList.Add(child);
+                            childList.Add(child);
+                        }
+                        panel.Children = childList.ToArray();
                     }
-                    panel.Children = childList.ToArray();
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error parsing children_json: {ex.Message}");
+                    }
                 }
             }
             return panel;
@@ -208,6 +293,58 @@ public static class RuntimeInterop
         finally
         {
             runtime_free_panel(ptr);
+        }
+    }
+    
+    private static IntPtr SafeReadIntPtr(IntPtr basePtr, int offset)
+    {
+        try
+        {
+            return Marshal.ReadIntPtr(basePtr, offset);
+        }
+        catch (AccessViolationException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AccessViolationException reading IntPtr at offset {offset}: {ex.Message}");
+            return IntPtr.Zero;
+        }
+    }
+    
+    private static string SafePtrToStringAnsi(IntPtr ptr)
+    {
+        if (ptr == IntPtr.Zero) {
+            System.Diagnostics.Debug.WriteLine($"SafePtrToStringAnsi: ptr is null");
+            return null;
+        }
+        
+        // Try to read a single byte to verify the pointer is valid
+        try
+        {
+            byte b = Marshal.ReadByte(ptr);
+            var readMsg = $"SafePtrToStringAnsi: successfully read first byte (0x{b:X2}) from ptr={ptr.ToInt64()}";
+            try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", readMsg + "\n"); } catch { }
+        }
+        catch (AccessViolationException ex)
+        {
+            var errMsg = $"SafePtrToStringAnsi: Cannot even read first byte! AccessViolationException: {ex.Message}";
+            try { System.IO.File.AppendAllText("E:\\workspace\\test_log.txt", errMsg + "\n"); } catch { }
+            return null;
+        }
+        
+        try
+        {
+            var result = Marshal.PtrToStringAnsi(ptr);
+            System.Diagnostics.Debug.WriteLine($"SafePtrToStringAnsi: successfully converted ptr={ptr} to string");
+            return result;
+        }
+        catch (AccessViolationException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AccessViolationException converting pointer to ANSI string: {ex.Message}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error converting pointer to ANSI string: {ex.Message}");
+            return null;
         }
     }
 

@@ -12,6 +12,7 @@ public class TestClass : Steps {
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .AddFileToArchive("module/texture.exr", "texture.exr")
+            .EnsureDllAccessible()
             .ProcessArchive();
 
         var constantPanel = RuntimeInterop.GetPanelById("panel");
@@ -22,6 +23,7 @@ public class TestClass : Steps {
         var constantContent = constantPanel.Content as ConstantTextContent;
         Assertions.AssertThat(constantContent).IsNotNull();
         Assertions.AssertThat(constantContent.Value).IsEqual("Content");
+        Assertions.AssertThat(constantContent.Align).IsEqual("center");
 
 
     }
@@ -33,6 +35,7 @@ public class TestClass : Steps {
         AddFileToArchive("module_entity/index.js", "index.js")
             .AddFileToArchive("module_entity/manifest.json", "manifest.json")
             .AddFileToArchive("module_entity/texture.exr", "texture.exr")
+            .EnsureDllAccessible()
             .ProcessArchive();
 
         var entityPanel = RuntimeInterop.GetPanelById("panel_entity");
@@ -43,5 +46,6 @@ public class TestClass : Steps {
         var entityContent = entityPanel.Content as EntityStringValueContent;
         Assertions.AssertThat(entityContent).IsNotNull();
         Assertions.AssertThat(entityContent.Name).IsEqual("playerName");
+        Assertions.AssertThat(entityContent.Align).IsEqual("center");
     }
 }

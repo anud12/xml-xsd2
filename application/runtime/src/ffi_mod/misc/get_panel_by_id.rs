@@ -150,9 +150,33 @@ pub extern "system" fn get_panel_by_id(id: *const libc::c_char) -> *mut libc::c_
 // New API: return a pointer to a PanelFfi struct. Caller must free with runtime_free_panel.
 #[no_mangle]
 pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate::ffi_mod::types::PanelFfi {
+    eprintln!("DEBUG: get_panel_by_id_struct called, PanelFfi struct size = {} bytes", std::mem::size_of::<crate::ffi_mod::types::PanelFfi>());
     if id.is_null() { return std::ptr::null_mut(); }
     let id_str = unsafe { CStr::from_ptr(id).to_string_lossy().to_string() };
     let panels = crate::state::last_panels().lock().unwrap().clone();
+    let debug_msg = format!("Looking for id='{}' in {} panels\n", id_str, panels.len());
+    // Append to debug file
+    std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("E:\\workspace\\rust_debug_complete.txt")
+        .ok()
+        .and_then(|mut f| {
+            use std::io::Write;
+            f.write_all(debug_msg.as_bytes()).ok()
+        });
+    for (i, p) in panels.iter().enumerate() {
+        let panel_debug = format!("  Panel {}: {} bytes\n", i, p.len());
+        std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("E:\\workspace\\rust_debug_complete.txt")
+            .ok()
+            .and_then(|mut f| {
+                use std::io::Write;
+                f.write_all(panel_debug.as_bytes()).ok()
+            });
+    }
 
     // Try to find matching JSON panel
     for p in panels.iter() {
@@ -193,7 +217,9 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                         let id_cstr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap());
                         let id_ptr = id_cstr.into_raw();
                         // parse numeric fields via serde
-                        if let Ok(parsed_panel) = serde_json::from_str::<JsPanel>(p) {
+                        let serde_result = serde_json::from_str::<JsPanel>(p);
+                        if let Ok(parsed_panel) = serde_result {
+                            let _ = std::fs::write("E:\\workspace\\rust_debug_detail.txt", "Serde parsing succeeded\n");
                             let anchor_raw = parsed_panel.anchor.unwrap_or(Anchor { x: None, y: None, top: None, bottom: None, left: None, right: None });
                             let pivot_raw = parsed_panel.pivot.unwrap_or(Anchor { x: None, y: None, top: None, bottom: None, left: None, right: None });
                             let offset_raw = parsed_panel.offset.unwrap_or(Anchor { x: None, y: None, top: None, bottom: None, left: None, right: None });
@@ -221,12 +247,14 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                             };
                             let panel_json_cstr = match CString::new(p.as_str()) {
                                 Ok(s) => s,
-                                Err(e) => {
+                                Err(_e) => {
                                     // If there's a null byte in the JSON, use a sanitized version
                                     let sanitized = p.chars().filter(|&c| c != '\0').collect::<String>();
                                     CString::new(sanitized).unwrap_or_else(|_| CString::new("{}").unwrap())
                                 }
                             };
+                            let panel_json_raw = panel_json_cstr.into_raw();
+                            let children_json_raw = children_json_ptr;
                             let panel = Box::new(crate::ffi_mod::types::PanelFfi {
                                 id: id_ptr,
                                 background: bg_ptr,
@@ -234,10 +262,25 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                                 pivot: crate::ffi_mod::types::AnchorFfi { x: px, y: py },
                                 offset: crate::ffi_mod::types::OffsetFfi { top: ot, bottom: ob, left: ol, right: or },
                                 size: crate::ffi_mod::types::SizeFfi { height: sh, width: sw },
-                                children_json: children_json_ptr,
-                                panel_json: panel_json_cstr.into_raw(),
+                                children_json: children_json_raw,
+                                panel_json: panel_json_raw,
                             });
-                            return Box::into_raw(panel);
+                            let raw_ptr = Box::into_raw(panel);
+                            eprintln!("DEBUG: Returning struct at ptr={:p}, size={}", raw_ptr, std::mem::size_of::<crate::ffi_mod::types::PanelFfi>());
+                            let debug_msg = format!("Returning JSON panel id={}: ptr={:p}, panel_json={:p}, children_json={:p}, ax={}, ay={}\n", 
+                                    id_str, raw_ptr, panel_json_raw, children_json_raw, ax, ay);
+                            // Append instead of overwrite
+                            std::fs::OpenOptions::new()
+                                .create(true)
+                                .append(true)
+                                .open("E:\\workspace\\rust_debug.txt")
+                                .ok()
+                                .and_then(|mut f| {
+                                    use std::io::Write;
+                                    f.write_all(debug_msg.as_bytes()).ok()
+                                });
+                            eprintln!("get_panel_by_id returning panel_json={:p}", panel_json_raw);
+                            return raw_ptr;
                         } else {
                             let panel_json_cstr = match CString::new(p.clone()) {
                                 Ok(s) => s,
