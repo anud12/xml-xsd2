@@ -109,6 +109,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Test\Step_1\" />
+    <Folder Include="Test\Step_2\Content\" />
   </ItemGroup>
   <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">
     <Message Text="Building Rust runtime (cargo)..." Importance="high" />
