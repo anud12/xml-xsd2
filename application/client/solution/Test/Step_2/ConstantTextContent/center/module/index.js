@@ -1,6 +1,6 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const { number,string } = hostApi;
+  const {number, string} = hostApi;
   hostApi.registerPanel({
     id: "center",
     size: {
@@ -12,10 +12,10 @@ export default (hostApi) => {
       y: number.of(0.5),
     },
     background: hostApi.texture.of("texture.exr"),
-      content: {
+    content: {
       type: "constant",
       align: "center",
       value: string.of("center")
-      }
+    }
   })
 }

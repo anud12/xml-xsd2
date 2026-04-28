@@ -110,7 +110,7 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
         // panels_cached fallback diagnostic disabled
         // Debug list filenames available in files_cached to understand why fallback failed
         let files_cached = crate::state::last_file_rows().lock().unwrap().clone();
-        let names: Vec<String> = files_cached.iter().filter_map(|r| r.get(0).cloned()).collect();
+        let _names: Vec<String> = files_cached.iter().filter_map(|r| r.get(0).cloned()).collect();
         // files_cached names diagnostic disabled
     }
 

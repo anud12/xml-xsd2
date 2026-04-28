@@ -57,7 +57,7 @@ fn host_api_script_create_entity() -> &'static str {
 }
 
 fn host_api_script_log() -> &'static str {
-    r#"log(msg) { try { globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push(String(msg)); } catch(e) { } }"#
+    r#"log(msg) { try { globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push(String(msg)); } catch(e) { } }, number: { of: function(n) { return n; } }, string: { of: function(s) { return s; } }, texture: { of: function(t) { return t; } }"#
 }
 
 fn host_api_script_rest() -> String {
