@@ -56,10 +56,6 @@
     <Content Include="Test\Step_2\Content\EntityTextValueContent\module\texture.exr" />
     <Content Include="Test\Step_2\Content\EntityTextValueContent\module\texture.exr.import" />
     <Content Include="Test\Step_2\Content\EntityTextValueContent\TestClass.cs.uid" />
-    <Content Include="Test\Step_2\EmitActionOnClick\AndTriggerEffect\expected.png" />
-    <Content Include="Test\Step_2\EmitActionOnClick\AndTriggerEffect\module\index.js" />
-    <Content Include="Test\Step_2\EmitActionOnClick\AndTriggerEffect\module\manifest.json" />
-    <Content Include="Test\Step_2\EmitActionOnClick\AndTriggerEffect\module\texture.exr" />
     <Content Include="Test\Step_2\EmitActionOnClick\module\index.js" />
     <Content Include="Test\Step_2\EmitActionOnClick\module\manifest.json" />
     <Content Include="Test\Step_2\EmitActionOnClick\module\texture.exr" />
@@ -85,6 +81,7 @@
     <Content Include="Test\Step_3\EmitActionAndTriggerOnClick\module\manifest.json" />
     <Content Include="Test\Step_3\EmitActionAndTriggerOnClick\module\texture.exr" />
     <Content Include="Test\Step_3\EmitActionAndTriggerOnClick\TestClass.cs.uid" />
+    <Content Include="Test\Step_4\readme.md" />
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="node_modules\suite\types\action\common.d.ts" />
