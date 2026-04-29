@@ -513,6 +513,15 @@ public static class RuntimeInterop
 
     public static void emitAction(string action) => runtime_emit_action(action);
 
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_debug_iterate(uint times);
+
+    public static void SimulateIterations(uint times) {
+        userLogCallback?.Invoke("DEBUG: SimulateIterations called with times=" + times);
+        runtime_debug_iterate(times);
+        userLogCallback?.Invoke("DEBUG: SimulateIterations completed");
+    }
+
     // Logger callback support
     private delegate void LogCallback([MarshalAs(UnmanagedType.LPStr)] string message);
     private static Action<string>? userLogCallback;

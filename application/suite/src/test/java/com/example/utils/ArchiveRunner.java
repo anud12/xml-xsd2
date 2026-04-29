@@ -21,7 +21,12 @@ public class ArchiveRunner {
         state.runtimeInteropJava = Optional.of(runtimeInteropJava);
         // Create an explicit callback object and keep a strong reference to it in state so JNA doesn't GC it
         RuntimeInteropJava.MyCallback cb = new RuntimeInteropJava.MyCallback() {
-            public void invoke(String s) { state.logMessages.add(s); }
+            public void invoke(String s) {
+                if (s.contains("action called")) {
+                    System.out.println("JAVA CALLBACK: Adding to logMessages: " + s);
+                }
+                state.logMessages.add(s);
+            }
         };
         state.loggerCallback = cb;
         runtimeInteropJava.register_logger(cb);

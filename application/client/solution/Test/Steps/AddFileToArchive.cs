@@ -20,10 +20,13 @@ public partial class Steps {
 
         var sourcePath = Path.IsPathRooted(normalized) ? normalized : Path.Combine(repoRoot, normalized);
 
+        Console.WriteLine($"DEBUG AddFileToArchive: callerPath={callerPath}");
+        Console.WriteLine($"DEBUG AddFileToArchive: argFilePathToBeAdded={argFilePathToBeAdded}");
+        Console.WriteLine($"DEBUG AddFileToArchive: sourcePath={sourcePath}");
+        Console.WriteLine($"DEBUG AddFileToArchive: File.Exists={File.Exists(sourcePath)}");
+        
         if (!File.Exists(sourcePath))
-
             throw new FileNotFoundException("File to add not found: " + sourcePath);
-
 
         // Prepare entry name inside the zip (use forward slashes)
 
