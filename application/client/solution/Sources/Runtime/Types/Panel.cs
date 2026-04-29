@@ -95,13 +95,13 @@ public class ConstantTextContent : PanelContent
     }
 }
 
-public class EntityStringValueContent : PanelContent
+public class EntityTextValueContent : PanelContent
 {
     public string Name { get; set; }
     public string Align { get; set; }
     public string? EntityId { get; set; }
 
-    public EntityStringValueContent(string name, string align = "center", string? entityId = null)
+    public EntityTextValueContent(string name, string align = "center", string? entityId = null)
     {
         Name = name;
         Align = align;

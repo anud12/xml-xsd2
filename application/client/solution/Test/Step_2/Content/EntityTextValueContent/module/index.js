@@ -23,7 +23,7 @@ export default (hostApi) => {
       align: "center",
       entityId: string.of("entity_id"),
       name: string.of("textKey"),
-      type: "entityStringValue",
+      type: "entityTextValue",
     }
   })
 }

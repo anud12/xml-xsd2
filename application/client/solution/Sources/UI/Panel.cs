@@ -48,8 +48,8 @@ public partial class Panel : Godot.Panel {
             AddContent(constantTextContent);
         }
 
-        if (panel.Content is EntityStringValueContent entityStringValueContent) {
-            AddContent(entityStringValueContent);
+        if (panel.Content is EntityTextValueContent entityTextValueContent) {
+            AddContent(entityTextValueContent);
         }
 
         if (panel.Background != null) {
@@ -98,7 +98,7 @@ public partial class Panel : Godot.Panel {
         }
     }
 
-    private void AddContent(EntityStringValueContent entityStringValueContent) {
+    private void AddContent(EntityTextValueContent entityStringValueContent) {
         var richTextLabel = new RichTextLabel() {
             Name = "content",
             FitContent = true,
