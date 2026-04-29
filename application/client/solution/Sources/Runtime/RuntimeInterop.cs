@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using System.Linq;
 
 namespace NewGameProject.Runtime;
 
@@ -250,7 +251,7 @@ public static class RuntimeInterop
                                         panel.Content = new ConstantTextContent(contentValue, contentAlign);
                                     }
                                 }
-                                else if (contentType == "entityStringValue")
+                                else if (contentType == "entityStringValue" || contentType == "entityTextValue")
                                 {
                                     var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
                                     var contentEntityId = contentProp.TryGetProperty("entityId", out var ei) ? ei.GetString() : null;
@@ -346,7 +347,7 @@ public static class RuntimeInterop
                                         child.Content = new ConstantTextContent(contentValue, contentAlign);
                                     }
                                 }
-                                else if (contentType == "entityStringValue")
+                                else if (contentType == "entityStringValue" || contentType == "entityTextValue")
                                 {
                                     var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
                                     var contentEntityId = contentProp.TryGetProperty("entityId", out var ei) ? ei.GetString() : null;
@@ -520,7 +521,13 @@ public static class RuntimeInterop
         if (entityId == null) return string.Empty;
         var ptr = get_entity_text_map_value(entityId, name);
         if (ptr == IntPtr.Zero) return string.Empty;
-        try { return Marshal.PtrToStringAnsi(ptr) ?? string.Empty; }
+        try
+        {
+            var s = Marshal.PtrToStringAnsi(ptr) ?? string.Empty;
+            // Strip control characters (e.g. ANSI escape 0x1B) but keep common whitespace like CR/LF/TAB.
+            var sanitized = new string(s.Where(c => !char.IsControl(c) || c == '\r' || c == '\n' || c == '\t').ToArray());
+            return sanitized;
+        }
         finally { runtime_free_string(ptr); }
     }
 
