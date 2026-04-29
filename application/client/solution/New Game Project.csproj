@@ -79,6 +79,12 @@
     <Content Include="Test\Step_1\Size\module\index.js" />
     <Content Include="Test\Step_1\Size\module\manifest.json" />
     <Content Include="Test\Step_1\Size\module\texture.exr" />
+    <Content Include="Test\Step_3\EmitActionAndTriggerOnClick\expected.png" />
+    <Content Include="Test\Step_3\EmitActionAndTriggerOnClick\expected.png.import" />
+    <Content Include="Test\Step_3\EmitActionAndTriggerOnClick\module\index.js" />
+    <Content Include="Test\Step_3\EmitActionAndTriggerOnClick\module\manifest.json" />
+    <Content Include="Test\Step_3\EmitActionAndTriggerOnClick\module\texture.exr" />
+    <Content Include="Test\Step_3\EmitActionAndTriggerOnClick\TestClass.cs.uid" />
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="node_modules\suite\types\action\common.d.ts" />
