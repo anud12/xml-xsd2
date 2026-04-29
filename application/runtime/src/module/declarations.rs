@@ -34,6 +34,22 @@ pub fn apply_declarations(dec: &Declarations) {
     crate::state::set_last_event_rows(dec.events.iter().map(|e| vec![e.clone()]).collect());
     let action_map = build_action_to_created(dec);
     crate::state::set_last_created_by(action_map);
+    // Store entity textMap data from setEntity calls
+    if let serde_json::Value::Object(entities) = &dec.entity_data {
+        let mut data: std::collections::HashMap<String, std::collections::HashMap<String, String>> = std::collections::HashMap::new();
+        for (entity_id, entity_val) in entities {
+            if let Some(text_map) = entity_val.get("textMap").and_then(|v| v.as_object()) {
+                let mut tm: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+                for (k, v) in text_map {
+                    if let Some(s) = v.as_str() {
+                        tm.insert(k.clone(), s.to_string());
+                    }
+                }
+                data.insert(entity_id.clone(), tm);
+            }
+        }
+        crate::state::set_last_entity_data(data);
+    }
 }
 
 pub fn collect_patterns(dec: &Declarations) -> Vec<String> {

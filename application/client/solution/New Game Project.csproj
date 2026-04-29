@@ -51,8 +51,6 @@
     <Content Include="Test\Step_2\ConstantTextContent\center\module\manifest.json" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\texture.exr" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\texture.exr.import" />
-    <Content Include="Test\Step_2\Content\EntityStringValueContent\expected.png" />
-    <Content Include="Test\Step_2\Content\EntityStringValueContent\expected.png.import" />
     <Content Include="Test\Step_2\Content\EntityStringValueContent\module\index.js" />
     <Content Include="Test\Step_2\Content\EntityStringValueContent\module\manifest.json" />
     <Content Include="Test\Step_2\Content\EntityStringValueContent\module\texture.exr" />

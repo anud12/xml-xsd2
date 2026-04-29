@@ -253,9 +253,10 @@ public static class RuntimeInterop
                                 else if (contentType == "entityStringValue")
                                 {
                                     var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
+                                    var contentEntityId = contentProp.TryGetProperty("entityId", out var ei) ? ei.GetString() : null;
                                     if (contentName != null)
                                     {
-                                        panel.Content = new EntityStringValueContent(contentName, contentAlign);
+                                        panel.Content = new EntityStringValueContent(contentName, contentAlign, contentEntityId);
                                     }
                                 }
                             }
@@ -348,9 +349,10 @@ public static class RuntimeInterop
                                 else if (contentType == "entityStringValue")
                                 {
                                     var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
+                                    var contentEntityId = contentProp.TryGetProperty("entityId", out var ei) ? ei.GetString() : null;
                                     if (contentName != null)
                                     {
-                                        child.Content = new EntityStringValueContent(contentName, contentAlign);
+                                        child.Content = new EntityStringValueContent(contentName, contentAlign, contentEntityId);
                                     }
                                 }
                             }
@@ -507,6 +509,20 @@ public static class RuntimeInterop
     } 
 
     public static bool ExportState(string path) => runtime_export_state(path);
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr get_entity_text_map_value(
+        [MarshalAs(UnmanagedType.LPStr)] string entityId,
+        [MarshalAs(UnmanagedType.LPStr)] string key);
+
+    public static string GetEntityTextMapValue(string? entityId, string name)
+    {
+        if (entityId == null) return string.Empty;
+        var ptr = get_entity_text_map_value(entityId, name);
+        if (ptr == IntPtr.Zero) return string.Empty;
+        try { return Marshal.PtrToStringAnsi(ptr) ?? string.Empty; }
+        finally { runtime_free_string(ptr); }
+    }
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern void runtime_emit_action([MarshalAs(UnmanagedType.LPStr)] string action);

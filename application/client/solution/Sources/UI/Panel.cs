@@ -157,7 +157,7 @@ public partial class Panel : Godot.Panel {
         }
 
         string value =
-            RuntimeInterop.GetEntityTextMapValue(entityStringValueContent.entityId, entityStringValueContent.Name);
+            RuntimeInterop.GetEntityTextMapValue(entityStringValueContent.EntityId, entityStringValueContent.Name);
         richTextLabel.Text = value;
         AddChild(richTextLabel);
     }
