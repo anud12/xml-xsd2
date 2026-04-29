@@ -36,7 +36,7 @@ export type PanelOptions = {
   children?: PanelOptions[]
 };
 
-export type PanelContent = (EntityStringValueComponent
+export type PanelContent = (EntityTextValueComponent
   | ConstantTextComponent
   ) & {
   align: "top"
@@ -50,8 +50,8 @@ export type PanelContent = (EntityStringValueComponent
     | "bottom-right"
 }
 
-export type EntityStringValueComponent = {
-  type: "entityStringValue"
+export type EntityTextValueComponent = {
+  type: "entityTextValue"
   name: StringExpression,
   entityId?: StringExpression,
 }

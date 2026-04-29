@@ -8,7 +8,8 @@ export default (hostApi) => {
       width: number.of(100)
     },
     content: {
-      type: "entityStringValue",
+      type: "entityTextValue",
+      entityId: hostApi.string.of("entityId"),
       name: string.of("playerName"),
       align: "center"
     },

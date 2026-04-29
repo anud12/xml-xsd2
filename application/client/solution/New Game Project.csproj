@@ -51,11 +51,11 @@
     <Content Include="Test\Step_2\ConstantTextContent\center\module\manifest.json" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\texture.exr" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\texture.exr.import" />
-    <Content Include="Test\Step_2\Content\EntityStringValueContent\module\index.js" />
-    <Content Include="Test\Step_2\Content\EntityStringValueContent\module\manifest.json" />
-    <Content Include="Test\Step_2\Content\EntityStringValueContent\module\texture.exr" />
-    <Content Include="Test\Step_2\Content\EntityStringValueContent\module\texture.exr.import" />
-    <Content Include="Test\Step_2\Content\EntityStringValueContent\TestClass.cs.uid" />
+    <Content Include="Test\Step_2\Content\EntityTextValueContent\module\index.js" />
+    <Content Include="Test\Step_2\Content\EntityTextValueContent\module\manifest.json" />
+    <Content Include="Test\Step_2\Content\EntityTextValueContent\module\texture.exr" />
+    <Content Include="Test\Step_2\Content\EntityTextValueContent\module\texture.exr.import" />
+    <Content Include="Test\Step_2\Content\EntityTextValueContent\TestClass.cs.uid" />
     <Content Include="Test\Step_2\EmitActionOnClick\AndTriggerEffect\expected.png" />
     <Content Include="Test\Step_2\EmitActionOnClick\AndTriggerEffect\module\index.js" />
     <Content Include="Test\Step_2\EmitActionOnClick\AndTriggerEffect\module\manifest.json" />

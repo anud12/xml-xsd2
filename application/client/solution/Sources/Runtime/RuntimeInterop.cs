@@ -256,7 +256,7 @@ public static class RuntimeInterop
                                     var contentEntityId = contentProp.TryGetProperty("entityId", out var ei) ? ei.GetString() : null;
                                     if (contentName != null)
                                     {
-                                        panel.Content = new EntityStringValueContent(contentName, contentAlign, contentEntityId);
+                                        panel.Content = new EntityTextValueContent(contentName, contentAlign, contentEntityId);
                                     }
                                 }
                             }
@@ -352,7 +352,7 @@ public static class RuntimeInterop
                                     var contentEntityId = contentProp.TryGetProperty("entityId", out var ei) ? ei.GetString() : null;
                                     if (contentName != null)
                                     {
-                                        child.Content = new EntityStringValueContent(contentName, contentAlign, contentEntityId);
+                                        child.Content = new EntityTextValueContent(contentName, contentAlign, contentEntityId);
                                     }
                                 }
                             }

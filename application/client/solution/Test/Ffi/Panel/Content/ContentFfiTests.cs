@@ -20,7 +20,7 @@ public class TestClass : Steps {
 
         var constantPanel = RuntimeInterop.GetPanelById("panel");
         Assertions.AssertThat(constantPanel.Content).IsInstanceOf<ConstantTextContent>();
-        Assertions.AssertThat(constantPanel.Content is EntityStringValueContent).IsEqual(false);
+        Assertions.AssertThat(constantPanel.Content is EntityTextValueContent).IsEqual(false);
         
         var constantContent = constantPanel.Content as ConstantTextContent;
         Assertions.AssertThat(constantContent).IsNotNull();
