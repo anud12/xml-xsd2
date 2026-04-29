@@ -14,6 +14,8 @@ pub struct Declarations {
     pub entities: Vec<String>,
     pub logs: Vec<String>,
     pub panels: Vec<String>,
+    #[serde(default)]
+    pub entity_data: serde_json::Value,
 }
 
 /// Install a minimal, explicit host API into the provided QuickJS Context.
@@ -56,6 +58,10 @@ fn host_api_script_create_entity() -> &'static str {
     r#"createEntity(obj) { globalThis.__createdEntities = globalThis.__createdEntities || []; try { if (obj && typeof obj === 'object' && typeof obj.firstName === 'string') { globalThis.__createdEntities.push({ firstName: obj.firstName }); globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push(`entity created: ${obj.firstName}`); } else { globalThis.__createdEntities.push(obj); globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push(`entity created: ${String(obj)}`); } } catch(e) { globalThis.__createdEntities.push(String(obj)); globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push(`entity created: ${String(obj)}`); } },"#
 }
 
+fn host_api_script_set_entity() -> &'static str {
+    r#"setEntity(id, data) { globalThis.__entityData = globalThis.__entityData || {}; if (typeof id === 'string' && data && typeof data === 'object') { globalThis.__entityData[id] = data; } },"#
+}
+
 fn host_api_script_log() -> &'static str {
     r#"log(msg) { try { globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push(String(msg)); } catch(e) { } }, number: { of: function(n) { return n; } }, string: { of: function(s) { return s; } }, texture: { of: function(t) { return t; } }"#
 }
@@ -67,6 +73,7 @@ fn host_api_script_rest() -> String {
     parts.push(host_api_script_register_block("registerEffect"));
     parts.push(host_api_script_panel().to_string());
     parts.push(host_api_script_create_entity().to_string());
+    parts.push(host_api_script_set_entity().to_string());
     parts.push(host_api_script_log().to_string());
     let mut s = parts.join("");
     s.push_str(" }"); // close globalThis.host object
@@ -94,7 +101,7 @@ pub fn install_host_api(ctx: &Context) -> Result<()> {
 /// __registeredEvents and __createdEntities and top-level functions, returning
 /// a JSON string which is deserialized into `Declarations`.
 fn extract_declarations_script() -> &'static str {
-    r#"(function(){ const out = { events: [], actions: [], functions: [], entities: [], creators: {}, emits: {}, panels: [] }; const re = globalThis.__registeredEvents || []; out.events = re.map(ev => { if (typeof ev === 'string') return ev; if (ev && typeof ev === 'object') { if (typeof ev.name === 'string') return ev.name; if (ev.apply && typeof ev.apply === 'function' && ev.apply.name) return ev.apply.name; try { return JSON.stringify(ev); } catch(e) { return String(ev); } } return String(ev); }); const ra = globalThis.__registeredActions || []; out.actions = ra.map(ev => { if (typeof ev === 'string') return ev; if (ev && typeof ev === 'object') { if (typeof ev.name === 'string') return ev.name; if (ev.apply && typeof ev.apply === 'function' && ev.apply.name) return ev.apply.name; try { return JSON.stringify(ev); } catch(e) { return String(ev); } } return String(ev); }); const ce = globalThis.__createdEntities || []; out.entities = ce.map(en => { if (typeof en === 'string') return en; if (en && typeof en === 'object') { if (typeof en.firstName === 'string') return en.firstName; try { return JSON.stringify(en); } catch(e) { return String(en); } } return String(en); }); out.logs = globalThis.__logs || []; out.functions = Object.getOwnPropertyNames(globalThis).filter(k => { try { return typeof globalThis[k] === 'function' && !k.startsWith('_') && k !== 'host'; } catch(e) { return false; } }).sort(); out.creators = globalThis.__createdEntitiesFor || {}; out.emits = globalThis.__emitsMap || {}; out.panels = globalThis.__registeredPanels || []; return JSON.stringify(out); })()"#
+    r#"(function(){ const out = { events: [], actions: [], functions: [], entities: [], creators: {}, emits: {}, panels: [], entity_data: {} }; const re = globalThis.__registeredEvents || []; out.events = re.map(ev => { if (typeof ev === 'string') return ev; if (ev && typeof ev === 'object') { if (typeof ev.name === 'string') return ev.name; if (ev.apply && typeof ev.apply === 'function' && ev.apply.name) return ev.apply.name; try { return JSON.stringify(ev); } catch(e) { return String(ev); } } return String(ev); }); const ra = globalThis.__registeredActions || []; out.actions = ra.map(ev => { if (typeof ev === 'string') return ev; if (ev && typeof ev === 'object') { if (typeof ev.name === 'string') return ev.name; if (ev.apply && typeof ev.apply === 'function' && ev.apply.name) return ev.apply.name; try { return JSON.stringify(ev); } catch(e) { return String(ev); } } return String(ev); }); const ce = globalThis.__createdEntities || []; out.entities = ce.map(en => { if (typeof en === 'string') return en; if (en && typeof en === 'object') { if (typeof en.firstName === 'string') return en.firstName; try { return JSON.stringify(en); } catch(e) { return String(en); } } return String(en); }); out.logs = globalThis.__logs || []; out.functions = Object.getOwnPropertyNames(globalThis).filter(k => { try { return typeof globalThis[k] === 'function' && !k.startsWith('_') && k !== 'host'; } catch(e) { return false; } }).sort(); out.creators = globalThis.__createdEntitiesFor || {}; out.emits = globalThis.__emitsMap || {}; out.panels = globalThis.__registeredPanels || []; out.entity_data = globalThis.__entityData || {}; return JSON.stringify(out); })()"#
 }
 
 pub fn extract_declarations(ctx: &Context) -> Result<Declarations> {

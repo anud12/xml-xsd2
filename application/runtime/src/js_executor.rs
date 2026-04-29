@@ -48,6 +48,7 @@ fn call_module_default_if_present(ctx: &Context, transformed: &str) {
                     registerAction: host.registerAction,
                     registerEffect: host.registerEffect,
                     registerPanel: host.registerPanel,
+                    setEntity: host.setEntity,
                     log: host.log
                 });
             }
@@ -120,6 +121,7 @@ fn eval_entry_in_ctx(ctx: &Context, source: &str) -> Result<String> {
                     registerAction: host.registerAction,
                     registerEffect: host.registerEffect,
                     registerPanel: host.registerPanel,
+                    setEntity: host.setEntity,
                     log: host.log
                 });
             }

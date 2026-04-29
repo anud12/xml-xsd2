@@ -99,10 +99,12 @@ public class EntityStringValueContent : PanelContent
 {
     public string Name { get; set; }
     public string Align { get; set; }
+    public string? EntityId { get; set; }
 
-    public EntityStringValueContent(string name, string align = "center")
+    public EntityStringValueContent(string name, string align = "center", string? entityId = null)
     {
         Name = name;
         Align = align;
+        EntityId = entityId;
     }
 }

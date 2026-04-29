@@ -53,7 +53,7 @@ export type PanelContent = (EntityStringValueComponent
 export type EntityStringValueComponent = {
   type: "entityStringValue"
   name: StringExpression,
-  entityId: StringExpression,
+  entityId?: StringExpression,
 }
 
 export type ConstantTextComponent = {
