@@ -10,6 +10,7 @@ import {TextMapExpressionApi} from "./textMap";
 import {RegisterActionFunction} from "./action";
 import {RegisterPanelFunction} from "./ui/Panel";
 import {TextureApi} from "./texture/TextureApi";
+import {EntityCreationArguments} from "./Entity";
 
 export type HostApi = {
   condition: ConditionExpressionApi,
@@ -23,6 +24,8 @@ export type HostApi = {
 
   entity: EntityExpressionApi,
   container: ConditionExpressionApi,
+
+  setEntity: (entityId: StringExpression, arguments: EntityCreationArguments) => void;
 
   registerEffect: RegisterEffectFunction,
   registerAction: RegisterActionFunction,

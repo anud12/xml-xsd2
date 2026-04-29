@@ -19,6 +19,11 @@ export type EntityExpressionApi = {
   filter: EntityFilterApi,
 }
 
+export type EntityCreationArguments = {
+  textMap?: Record<string, StringExpression>
+  numberMap?: Record<string, NumberExpression>
+}
+
 export type EntityExpressionType = {
   // marker for dynamic HostApi typing
 }

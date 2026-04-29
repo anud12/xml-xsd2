@@ -5,13 +5,14 @@ using Vector2 = Godot.Vector2;
 
 public partial class Panel : Godot.Panel {
     private NewGameProject.Runtime.Panel panel;
+
     public NewGameProject.Runtime.Panel ChildPanel {
         get {
             if (panel.Children != null && panel.Children.Length > 0) return panel.Children[0];
             return panel;
         }
     }
-    
+
     public Panel(NewGameProject.Runtime.Panel panel) {
         Name = panel.Id;
         UniqueNameInOwner = true;
@@ -33,71 +34,22 @@ public partial class Panel : Godot.Panel {
         // Debug: print incoming native panel values to help diagnose anchor/size mapping issues
         GD.Print(
             $"DEBUG Panel: id={panel.Id} anchor=({panel.Anchor.X},{panel.Anchor.Y}) pivot=({panel.Pivot.X},{panel.Pivot.Y}) offset=({panel.Offset.top},{panel.Offset.bottom},{panel.Offset.left},{panel.Offset.right}) size=({panel.Size.Width},{panel.Size.Height}) background={(panel.Background ?? "null")}");
-        
+
         // Debug: print OnClick handler info
         if (panel.OnClick.HasValue) {
             GD.Print($"DEBUG Panel OnClick: id={panel.Id} actionName={panel.OnClick.Value.ActionName}");
-        } else {
+        }
+        else {
             GD.Print($"DEBUG Panel OnClick: id={panel.Id} NONE");
         }
+
         //if panel.Content is instance of ConstantTextContent, add a RichTextLabel
         if (panel.Content is ConstantTextContent constantTextContent) {
-            var richTextLabel = new RichTextLabel() {
-                Name = "content",
-                FitContent = true,
-            };
-            richTextLabel.SetAutowrapMode(TextServer.AutowrapMode.WordSmart);
-            richTextLabel.SetJustificationFlags(TextServer.JustificationFlag.None);
-            richTextLabel.SetAnchorsPreset(LayoutPreset.FullRect);
-            switch (constantTextContent.Align) {
-                case "top": {
-                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
-                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
-                    break;
-                }
-                case "top-left": {
-                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
-                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
-                    break;
-                }
-                case "top-right": {
-                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
-                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
-                    break;
-                }
-                case "center": {
-                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
-                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
-                    break;
-                }
-                case "center-left": {
-                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
-                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
-                    break;
-                }
-                case "center-right": {
-                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
-                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
-                    break;
-                }
-                case "bottom": {
-                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
-                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
-                    break;
-                }
-                case "bottom-left": {
-                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
-                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
-                    break;
-                }
-                case "bottom-right": {
-                    richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
-                    richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
-                    break;
-                }
-            }
-            richTextLabel.Text = constantTextContent.Value;
-            AddChild(richTextLabel);
+            AddContent(constantTextContent);
+        }
+
+        if (panel.Content is EntityStringValueContent entityStringValueContent) {
+            AddContent(entityStringValueContent);
         }
 
         if (panel.Background != null) {
@@ -128,7 +80,6 @@ public partial class Panel : Godot.Panel {
                 var trackElement = new BoxContainer {
                     Name = "track_" + i,
                     Vertical = true,
-                    
                 };
                 trackElement.AddThemeConstantOverride("separation", 0);
                 tracks.Add(trackElement);
@@ -147,7 +98,130 @@ public partial class Panel : Godot.Panel {
         }
     }
 
-    
+    private void AddContent(EntityStringValueContent entityStringValueContent) {
+        var richTextLabel = new RichTextLabel() {
+            Name = "content",
+            FitContent = true,
+        };
+
+        richTextLabel.SetAutowrapMode(TextServer.AutowrapMode.WordSmart);
+        richTextLabel.SetJustificationFlags(TextServer.JustificationFlag.None);
+        richTextLabel.SetAnchorsPreset(LayoutPreset.FullRect);
+
+        switch (entityStringValueContent.Align) {
+            case "top": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
+                break;
+            }
+            case "top-left": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
+                break;
+            }
+            case "top-right": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
+                break;
+            }
+            case "center": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
+                break;
+            }
+            case "center-left": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
+                break;
+            }
+            case "center-right": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
+                break;
+            }
+            case "bottom": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
+                break;
+            }
+            case "bottom-left": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
+                break;
+            }
+            case "bottom-right": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
+                break;
+            }
+        }
+
+        string value =
+            RuntimeInterop.GetEntityTextMapValue(entityStringValueContent.entityId, entityStringValueContent.Name);
+        richTextLabel.Text = value;
+        AddChild(richTextLabel);
+    }
+
+    private void AddContent(ConstantTextContent constantTextContent) {
+        var richTextLabel = new RichTextLabel() {
+            Name = "content",
+            FitContent = true,
+        };
+        richTextLabel.SetAutowrapMode(TextServer.AutowrapMode.WordSmart);
+        richTextLabel.SetJustificationFlags(TextServer.JustificationFlag.None);
+        richTextLabel.SetAnchorsPreset(LayoutPreset.FullRect);
+        switch (constantTextContent.Align) {
+            case "top": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
+                break;
+            }
+            case "top-left": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
+                break;
+            }
+            case "top-right": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
+                break;
+            }
+            case "center": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
+                break;
+            }
+            case "center-left": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
+                break;
+            }
+            case "center-right": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
+                break;
+            }
+            case "bottom": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
+                break;
+            }
+            case "bottom-left": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
+                break;
+            }
+            case "bottom-right": {
+                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
+                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
+                break;
+            }
+        }
+
+        richTextLabel.Text = constantTextContent.Value;
+        AddChild(richTextLabel);
+    }
+
 
     public override void _GuiInput(InputEvent @event) {
         // Check if the event is a mouse button click
@@ -159,6 +233,7 @@ public partial class Panel : Godot.Panel {
                     GD.Print($"{panel.Id}: Emitting action: {actionName}");
                     RuntimeInterop.emitAction(actionName);
                 }
+
                 // Optional: Stop the event from bubbling up to parent nodes
                 GetViewport().SetInputAsHandled();
             }
