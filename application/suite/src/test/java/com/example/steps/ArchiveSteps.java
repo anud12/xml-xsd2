@@ -21,6 +21,8 @@ public class ArchiveSteps {
 
     @Before()
     public void before(Scenario scenario) throws IOException {
+        System.out.println("BEFORE HOOK CALLED: clearing logMessages");
+        state.logMessages.clear();
         ArchiveSetup.before(state, scenario);
     }
 

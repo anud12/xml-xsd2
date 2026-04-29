@@ -26,7 +26,7 @@ fn host_api_script_part1() -> &'static str {
 }
 
 fn host_api_script_emit() -> &'static str {
-    r#"emitEvent(name) { if (name && typeof name === 'object' && typeof name.name === 'string') { globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push(`event: ${name.name}`); } else { globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push(`event: ${String(name)}`); } },"#
+    r#"emitEvent(name) { globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push('DEBUG: emitEvent called'); globalThis.__pendingEffects = globalThis.__pendingEffects || []; globalThis.__pendingEffects.push({ name: (name && typeof name === 'object' && typeof name.name === 'string') ? name.name : String(name), payload: {} }); if (name && typeof name === 'object' && typeof name.name === 'string') { globalThis.__logs.push(`event: ${name.name}`); } else { globalThis.__logs.push(`event: ${String(name)}`); } },"#
 }
 
 fn host_api_script_scan_fn() -> &'static str {

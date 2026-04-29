@@ -57,6 +57,12 @@ public partial class TestClass : Steps {
         await runner.SimulateFrames(1);
 
         AssertRuntimeOutputContains("___From module action fired line___");
+        AssertRuntimeOutputContainsNot("___From module effect prepare fired line___");
+        AssertRuntimeOutputContainsNot("___From module effect fired line___");
+        
+        
+        RuntimeInterop.SimulateIterations(1);
+        
         AssertRuntimeOutputContains("___From module effect prepare fired line___");
         AssertRuntimeOutputContains("___From module effect fired line___");
     }
