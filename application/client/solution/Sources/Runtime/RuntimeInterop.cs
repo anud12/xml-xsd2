@@ -532,6 +532,17 @@ public static class RuntimeInterop
     }
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_set_entity_text_map_value(
+        [MarshalAs(UnmanagedType.LPStr)] string entityId,
+        [MarshalAs(UnmanagedType.LPStr)] string key,
+        [MarshalAs(UnmanagedType.LPStr)] string value);
+
+    public static void SetEntityTextMapValue(string? entityId, string key, string? value)
+    {
+        runtime_set_entity_text_map_value(entityId, key, value ?? string.Empty);
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern void runtime_emit_action([MarshalAs(UnmanagedType.LPStr)] string action);
 
     public static void emitAction(string action) => runtime_emit_action(action);
