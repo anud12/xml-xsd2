@@ -40,3 +40,8 @@ logs/
 **.swp
 **.swo
 *~
+
+*.
+
+state.db-*
+
