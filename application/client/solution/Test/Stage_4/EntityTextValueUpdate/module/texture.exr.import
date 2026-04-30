@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://djeo41sybqs3l"
-path="res://.godot/imported/expected.png-aefda20a029b3501439882cf2eda008f.ctex"
+uid="uid://ds0klni7023cs"
+path="res://.godot/imported/texture.exr-750865a9be5ea912987814417a7d066f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Test/Stage_3/EmitActionAndTriggerOnClick/expected.png"
-dest_files=["res://.godot/imported/expected.png-aefda20a029b3501439882cf2eda008f.ctex"]
+source_file="res://Test/Stage_3/EmitActionAndTriggerOnClick/module/texture.exr"
+dest_files=["res://.godot/imported/texture.exr-750865a9be5ea912987814417a7d066f.ctex"]
 
 [params]
 

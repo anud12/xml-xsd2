@@ -41,8 +41,6 @@ public partial class TestClass : Steps {
         AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
             .IsPositionEqual(0, 0);
 
-        DebugSaveScreenshot("expected.png");
-
         var mouseEvent = new InputEventMouseButton() {
             Position = new Vector2(51, 51),
             GlobalPosition = new Vector2(51, 51),
