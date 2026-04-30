@@ -1,6 +1,18 @@
-ive updated tests in "client" c# project with the intent and now the implementation needs improving, the way to verify that everything is passing is to run "cargo test" in "E:\workspace\xml-xsd2\application\runtime" because it is already wired to run all tests, 
-you are not allowed 
+I've updated tests in "client" c# project with the intent and now the implementation needs improving.
+
+To verify that everything is passing is to run "cargo test" in "E:\workspace\xml-xsd2\application\runtime" because it is already wired to run all tests, 
+
+You are not allowed 
 - to edit the "Test" folder under "client" c# project.
 - to edit the "E:\workspace\xml-xsd2\application\suite\src\test\resources\features" folder under "suite" java project.
+
+Create a new git branch.
+When files are needed to be moved, to easily keep track of what changed please:
+    - first create directory then commit
+    - move file then commit
+    - update file then commit
+    - delete old file then commit
+
+
 Keep working until tests are all passing.
 Good luck!
