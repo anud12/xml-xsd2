@@ -37,6 +37,7 @@ pub fn apply_declarations(dec: &Declarations) {
     // Store entity textMap data from setEntity calls
     if let serde_json::Value::Object(entities) = &dec.entity_data {
         let mut data: std::collections::HashMap<String, std::collections::HashMap<String, String>> = std::collections::HashMap::new();
+        let mut number_data: std::collections::HashMap<String, std::collections::HashMap<String, f64>> = std::collections::HashMap::new();
         for (entity_id, entity_val) in entities {
             if let Some(text_map) = entity_val.get("textMap").and_then(|v| v.as_object()) {
                 let mut tm: std::collections::HashMap<String, String> = std::collections::HashMap::new();
@@ -47,8 +48,18 @@ pub fn apply_declarations(dec: &Declarations) {
                 }
                 data.insert(entity_id.clone(), tm);
             }
+            if let Some(number_map) = entity_val.get("numberMap").and_then(|v| v.as_object()) {
+                let mut nm: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+                for (k, v) in number_map {
+                    if let Some(n) = v.as_f64() {
+                        nm.insert(k.clone(), n);
+                    }
+                }
+                number_data.insert(entity_id.clone(), nm);
+            }
         }
         crate::state::set_last_entity_data(data);
+        crate::state::set_last_entity_number_data(number_data);
     }
 }
 

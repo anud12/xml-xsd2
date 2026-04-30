@@ -21,6 +21,7 @@ static mut LAST_PANELS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_CREATED_BY: Option<&'static Mutex<HashMap<String, Vec<String>>>> = None;
 static mut PENDING_EFFECTS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
+static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, f64>>>> = None;
 
 fn persisted_flag() -> &'static AtomicBool {
     INIT.call_once(|| {
@@ -48,6 +49,8 @@ fn persisted_flag() -> &'static AtomicBool {
         unsafe { PENDING_EFFECTS = Some(pe); }
         let ed = Box::leak(Box::new(Mutex::new(HashMap::new())));
         unsafe { LAST_ENTITY_DATA = Some(ed); }
+        let en = Box::leak(Box::new(Mutex::new(HashMap::new())));
+        unsafe { LAST_ENTITY_NUMBER_DATA = Some(en); }
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }
 }
@@ -135,6 +138,15 @@ pub fn set_last_entity_data(data: HashMap<String, HashMap<String, String>>) {
     *last_entity_data().lock().unwrap() = data;
 }
 
+pub fn last_entity_number_data() -> &'static Mutex<HashMap<String, HashMap<String, f64>>> {
+    persisted_flag();
+    unsafe { LAST_ENTITY_NUMBER_DATA.expect("entity number data initialized") }
+}
+
+pub fn set_last_entity_number_data(data: HashMap<String, HashMap<String, f64>>) {
+    *last_entity_number_data().lock().unwrap() = data;
+}
+
 pub fn set_pending_effects(effects: Vec<String>) {
     *pending_effects().lock().unwrap() = effects;
 }
@@ -157,6 +169,7 @@ pub fn clear_state() {
     *last_created_by().lock().unwrap() = HashMap::new();
     *last_archive_path().lock().unwrap() = String::new();
     *last_entity_data().lock().unwrap() = HashMap::new();
+    *last_entity_number_data().lock().unwrap() = HashMap::new();
     persisted_flag().store(false, Ordering::SeqCst);
 }
 
