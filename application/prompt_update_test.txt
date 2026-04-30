@@ -1,5 +1,3 @@
-I've updated tests in "client" c# project with the intent and now the implementation needs improving.
-
 To verify that everything is passing is to run "cargo test" in "E:\workspace\xml-xsd2\application\runtime" because it is already wired to run all tests, 
 
 You are not allowed 

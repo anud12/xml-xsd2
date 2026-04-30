@@ -39,5 +39,7 @@ public class TestClass : Steps {
         AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
             .IsNonNull()
             .HasContentText("42");
+
+        DebugSaveScreenshot("expected.png");
     }
 }
