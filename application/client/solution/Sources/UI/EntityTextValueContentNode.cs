@@ -2,9 +2,13 @@ using Godot;
 using NewGameProject.Runtime;
 
 public partial class EntityTextValueContentNode : RichTextLabel {
+    
+    private EntityTextValueContent content;
+    
     public EntityTextValueContentNode(EntityTextValueContent content) {
         Name = "content";
         FitContent = true;
+        this.content = content;
         SetAutowrapMode(TextServer.AutowrapMode.WordSmart);
         SetJustificationFlags(TextServer.JustificationFlag.None);
         SetAnchorsPreset(LayoutPreset.FullRect);
@@ -51,5 +55,9 @@ public partial class EntityTextValueContentNode : RichTextLabel {
                 SetVerticalAlignment(VerticalAlignment.Bottom);
                 break;
         }
+    }
+
+    public override void _Process(double delta) {
+        Text = RuntimeInterop.ReadEntityTextValue(content.EntityId, content.Name);
     }
 }

@@ -50,6 +50,10 @@
     <Content Include="Test\Stage_1\readme.md" />
     <Content Include="Test\Stage_2\readme.md" />
     <Content Include="Test\Stage_3\readme.md" />
+    <Content Include="Test\Stage_4\EntityTextValueUpdate\module\index.js" />
+    <Content Include="Test\Stage_4\EntityTextValueUpdate\module\manifest.json" />
+    <Content Include="Test\Stage_4\EntityTextValueUpdate\module\texture.exr" />
+    <Content Include="Test\Stage_4\EntityTextValueUpdate\module\texture.exr.import" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\index.js" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\manifest.json" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\texture.exr" />
@@ -119,7 +123,6 @@
     <TypeScriptCompile Include="node_modules\suite\types\ui\Panel.d.ts" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Test\Stage_4\" />
     <Folder Include="Test\Step_1\" />
   </ItemGroup>
   <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">
