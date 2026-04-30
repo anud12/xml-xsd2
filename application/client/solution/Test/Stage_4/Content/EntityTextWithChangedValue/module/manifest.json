@@ -1,7 +1,0 @@
-{
-  "entrypoint": "index.js",
-  "files": [
-    {"name": "index.js"},
-    {"name": "texture.exr"}
-  ]
-}
