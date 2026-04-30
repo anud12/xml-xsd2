@@ -52,6 +52,14 @@ public partial class Panel : Godot.Panel {
             AddChild(new EntityTextValueContentNode(entityTextValueContent));
         }
 
+        if (panel.Content is ConstantNumberContent constantNumberContent) {
+            AddChild(new ConstantNumberContentNode(constantNumberContent));
+        }
+
+        if (panel.Content is EntityNumberValueContent entityNumberValueContent) {
+            AddChild(new EntityNumberValueContentNode(entityNumberValueContent));
+        }
+
         if (panel.Background != null) {
             var Files = RuntimeInterop.GetFileFromArchive();
             if (Files.TryGetValue(panel.Background, out var imageData)) {

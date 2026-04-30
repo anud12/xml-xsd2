@@ -260,6 +260,20 @@ public static class RuntimeInterop
                                         panel.Content = new EntityTextValueContent(contentName, contentAlign, contentEntityId);
                                     }
                                 }
+                                else if (contentType == "constantNumber")
+                                {
+                                    var contentValue = contentProp.TryGetProperty("value", out var cv) ? cv.GetDouble() : 0.0;
+                                    panel.Content = new ConstantNumberContent(contentValue, contentAlign);
+                                }
+                                else if (contentType == "entityNumberValue")
+                                {
+                                    var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
+                                    var contentEntityId = contentProp.TryGetProperty("entityId", out var ei) ? ei.GetString() : null;
+                                    if (contentName != null)
+                                    {
+                                        panel.Content = new EntityNumberValueContent(contentName, contentAlign, contentEntityId);
+                                    }
+                                }
                             }
                         }
                         catch (System.Text.Json.JsonException ex)
@@ -354,6 +368,20 @@ public static class RuntimeInterop
                                     if (contentName != null)
                                     {
                                         child.Content = new EntityTextValueContent(contentName, contentAlign, contentEntityId);
+                                    }
+                                }
+                                else if (contentType == "constantNumber")
+                                {
+                                    var contentValue = contentProp.TryGetProperty("value", out var cv) ? cv.GetDouble() : 0.0;
+                                    child.Content = new ConstantNumberContent(contentValue, contentAlign);
+                                }
+                                else if (contentType == "entityNumberValue")
+                                {
+                                    var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
+                                    var contentEntityId = contentProp.TryGetProperty("entityId", out var ei) ? ei.GetString() : null;
+                                    if (contentName != null)
+                                    {
+                                        child.Content = new EntityNumberValueContent(contentName, contentAlign, contentEntityId);
                                     }
                                 }
                             }
@@ -525,6 +553,25 @@ public static class RuntimeInterop
         {
             var s = Marshal.PtrToStringAnsi(ptr) ?? string.Empty;
             // Strip control characters (e.g. ANSI escape 0x1B) but keep common whitespace like CR/LF/TAB.
+            var sanitized = new string(s.Where(c => !char.IsControl(c) || c == '\r' || c == '\n' || c == '\t').ToArray());
+            return sanitized;
+        }
+        finally { runtime_free_string(ptr); }
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr get_entity_number_map_value(
+        [MarshalAs(UnmanagedType.LPStr)] string entityId,
+        [MarshalAs(UnmanagedType.LPStr)] string key);
+
+    public static string GetEntityNumberMapValue(string? entityId, string name)
+    {
+        if (entityId == null) return string.Empty;
+        var ptr = get_entity_number_map_value(entityId, name);
+        if (ptr == IntPtr.Zero) return string.Empty;
+        try
+        {
+            var s = Marshal.PtrToStringAnsi(ptr) ?? string.Empty;
             var sanitized = new string(s.Where(c => !char.IsControl(c) || c == '\r' || c == '\n' || c == '\t').ToArray());
             return sanitized;
         }
