@@ -108,3 +108,29 @@ public class EntityTextValueContent : PanelContent
         EntityId = entityId;
     }
 }
+
+public class ConstantNumberContent : PanelContent
+{
+    public double Value { get; set; }
+    public string Align { get; set; }
+
+    public ConstantNumberContent(double value, string align = "center")
+    {
+        Value = value;
+        Align = align;
+    }
+}
+
+public class EntityNumberValueContent : PanelContent
+{
+    public string Name { get; set; }
+    public string Align { get; set; }
+    public string? EntityId { get; set; }
+
+    public EntityNumberValueContent(string name, string align = "center", string? entityId = null)
+    {
+        Name = name;
+        Align = align;
+        EntityId = entityId;
+    }
+}
