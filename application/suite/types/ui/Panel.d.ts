@@ -38,6 +38,8 @@ export type PanelOptions = {
 
 export type PanelContent = (EntityTextValueComponent
   | ConstantTextComponent
+  | EntityNumberValueComponent
+  | ConstantNumberComponent
   ) & {
   align: "top"
     | "top-left"
@@ -59,6 +61,17 @@ export type EntityTextValueComponent = {
 export type ConstantTextComponent = {
   type: "constant",
   value: StringExpression
+}
+
+export type EntityNumberValueComponent = {
+  type: "entityNumberValue"
+  name: StringExpression,
+  entityId?: StringExpression,
+}
+
+export type ConstantNumberComponent = {
+  type: "constantNumber",
+  value: NumberExpression
 }
 
 export type PanelOnClickHandler = {
