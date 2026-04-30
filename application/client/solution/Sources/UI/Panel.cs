@@ -45,11 +45,11 @@ public partial class Panel : Godot.Panel {
 
         //if panel.Content is instance of ConstantTextContent, add a RichTextLabel
         if (panel.Content is ConstantTextContent constantTextContent) {
-            AddContent(constantTextContent);
+            AddChild(new ConstantTextContentNode(constantTextContent));
         }
 
         if (panel.Content is EntityTextValueContent entityTextValueContent) {
-            AddContent(entityTextValueContent);
+            AddChild(new EntityTextValueContentNode(entityTextValueContent));
         }
 
         if (panel.Background != null) {
@@ -96,130 +96,6 @@ public partial class Panel : Godot.Panel {
                 p.SetOwner(this);
             }
         }
-    }
-
-    private void AddContent(EntityTextValueContent entityStringValueContent) {
-        var richTextLabel = new RichTextLabel() {
-            Name = "content",
-            FitContent = true,
-        };
-
-        richTextLabel.SetAutowrapMode(TextServer.AutowrapMode.WordSmart);
-        richTextLabel.SetJustificationFlags(TextServer.JustificationFlag.None);
-        richTextLabel.SetAnchorsPreset(LayoutPreset.FullRect);
-
-        switch (entityStringValueContent.Align) {
-            case "top": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
-                break;
-            }
-            case "top-left": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
-                break;
-            }
-            case "top-right": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
-                break;
-            }
-            case "center": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
-                break;
-            }
-            case "center-left": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
-                break;
-            }
-            case "center-right": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
-                break;
-            }
-            case "bottom": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
-                break;
-            }
-            case "bottom-left": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
-                break;
-            }
-            case "bottom-right": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
-                break;
-            }
-        }
-
-        string value =
-            RuntimeInterop.GetEntityTextMapValue(entityStringValueContent.EntityId, entityStringValueContent.Name);
-        richTextLabel.Text = value;
-        AddChild(richTextLabel);
-    }
-
-    private void AddContent(ConstantTextContent constantTextContent) {
-        var richTextLabel = new RichTextLabel() {
-            Name = "content",
-            FitContent = true,
-        };
-        richTextLabel.SetAutowrapMode(TextServer.AutowrapMode.WordSmart);
-        richTextLabel.SetJustificationFlags(TextServer.JustificationFlag.None);
-        richTextLabel.SetAnchorsPreset(LayoutPreset.FullRect);
-        switch (constantTextContent.Align) {
-            case "top": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
-                break;
-            }
-            case "top-left": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
-                break;
-            }
-            case "top-right": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Top);
-                break;
-            }
-            case "center": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
-                break;
-            }
-            case "center-left": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
-                break;
-            }
-            case "center-right": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Center);
-                break;
-            }
-            case "bottom": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Center);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
-                break;
-            }
-            case "bottom-left": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Left);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
-                break;
-            }
-            case "bottom-right": {
-                richTextLabel.SetHorizontalAlignment(HorizontalAlignment.Right);
-                richTextLabel.SetVerticalAlignment(VerticalAlignment.Bottom);
-                break;
-            }
-        }
-
-        richTextLabel.Text = constantTextContent.Value;
-        AddChild(richTextLabel);
     }
 
 
