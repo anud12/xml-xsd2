@@ -119,6 +119,7 @@
     <TypeScriptCompile Include="node_modules\suite\types\ui\Panel.d.ts" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Test\Stage_4\" />
     <Folder Include="Test\Step_1\" />
   </ItemGroup>
   <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">
