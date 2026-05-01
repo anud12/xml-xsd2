@@ -22,6 +22,7 @@ pub use misc::runtime_free_panel;
 pub use misc::get_test_panel_fixed;
 pub use misc::get_entity_text_map_value;
 pub use misc::get_entity_number_map_value;
+pub use misc::runtime_set_entity_text_map_value;
 
 // Re-export from native_stdio
 pub use crate::native_stdio::register_logger;

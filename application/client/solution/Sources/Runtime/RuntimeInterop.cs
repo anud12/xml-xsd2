@@ -559,6 +559,20 @@ public static class RuntimeInterop
         finally { runtime_free_string(ptr); }
     }
 
+    public static string ReadEntityTextValue(string? entityId, string name)
+    {
+        if (entityId == null) return string.Empty;
+        var ptr = get_entity_text_map_value(entityId, name);
+        if (ptr == IntPtr.Zero) return string.Empty;
+        try
+        {
+            var s = Marshal.PtrToStringAnsi(ptr) ?? string.Empty;
+            var sanitized = new string(s.Where(c => !char.IsControl(c) || c == '\r' || c == '\n' || c == '\t').ToArray());
+            return sanitized;
+        }
+        finally { runtime_free_string(ptr); }
+    }
+
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr get_entity_number_map_value(
         [MarshalAs(UnmanagedType.LPStr)] string entityId,
