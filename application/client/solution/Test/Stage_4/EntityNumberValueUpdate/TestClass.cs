@@ -41,7 +41,7 @@ public partial class TestClass : Steps {
         await runner.SimulateFrames(1);
         RuntimeInterop.SetEntityNumberMapValue("entity_id", "numberKey", 99);
         assertions.HasContentText("42");
-        RuntimeInterop.SimulateIterations(1);
+        RuntimeInterop.RunIteration();
         await runner.SimulateFrames(1);
 
         assertions.HasContentText("99");

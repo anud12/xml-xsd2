@@ -633,13 +633,11 @@ public static class RuntimeInterop
 
     public static void emitAction(string action) => runtime_emit_action(action);
 
-    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
-    private static extern void runtime_debug_iterate(uint times);
 
-    public static void SimulateIterations(uint times) {
-        userLogCallback?.Invoke("DEBUG: SimulateIterations called with times=" + times);
-        runtime_debug_iterate(times);
-        userLogCallback?.Invoke("DEBUG: SimulateIterations completed");
+    public static double RunIteration(double tickRateInSec = 0) {
+        userLogCallback?.Invoke("DEBUG: RunIteration called with tickRateInSec=" + tickRateInSec);
+        var elapsedTime = runtime_run_iteration(tickRateInSec);
+        return elapsedTime;
     }
 
     // Logger callback support

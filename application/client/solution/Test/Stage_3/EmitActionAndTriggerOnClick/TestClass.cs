@@ -59,14 +59,14 @@ public partial class TestClass : Steps {
         AssertRuntimeOutputContainsNot("___From module effect fired line___");
         
         
-        RuntimeInterop.SimulateIterations(1);
+        RuntimeInterop.RunIteration();
         
         AssertRuntimeOutputContains("___From module effect prepare fired line___");
         AssertRuntimeOutputContains("___From module effect fired line___");
 
         ClearOutput();
         
-        RuntimeInterop.SimulateIterations(1);
+        RuntimeInterop.RunIteration();
         
         
         AssertRuntimeOutputContainsNot("___From module effect prepare fired line___");

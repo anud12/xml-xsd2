@@ -42,7 +42,7 @@ public partial class TestClass : Steps {
         await runner.SimulateFrames(1);
         RuntimeInterop.SetEntityTextMapValue("entity_id", "textKey", "newTextValue");
         assertions.HasContentText("textValue");
-        RuntimeInterop.SimulateIterations(1);
+        RuntimeInterop.RunIteration();
         await runner.SimulateFrames(1);
 
         assertions.HasContentText("newTextValue");
