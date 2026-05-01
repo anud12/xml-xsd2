@@ -7,6 +7,7 @@ pub mod get_panel_by_id;
 pub mod get_entity_text_map_value;
 pub mod get_entity_number_map_value;
 pub mod set_entity_text_map_value;
+pub mod set_entity_number_map_value;
 
 pub use free_string::runtime_free_string;
 pub use free_string::runtime_free_panel;
@@ -19,3 +20,4 @@ pub use get_panel_by_id::get_test_panel_fixed;
 pub use get_entity_text_map_value::get_entity_text_map_value;
 pub use get_entity_number_map_value::get_entity_number_map_value;
 pub use set_entity_text_map_value::runtime_set_entity_text_map_value;
+pub use set_entity_number_map_value::runtime_set_entity_number_map_value;
