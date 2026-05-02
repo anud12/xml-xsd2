@@ -8,14 +8,14 @@ public class RuntimeRunIterationTest : Steps {
     [TestCase]
     public void Given_run_iteration_with_zero_tickrate_should_return_elapsed_time() {
         double elapsedTime = RuntimeInterop.RunIteration(0);
-        Assertions.AssertThat(elapsedTime).IsGreaterThanOrEqualTo(0.0);
+        Assertions.AssertThat(elapsedTime >= 0.0).IsTrue();
     }
 
     [TestCase]
     public void Given_run_iteration_with_positive_tickrate_should_wait_and_return_elapsed_time() {
         double tickRate = 0.01; // 10ms tick rate
         double elapsedTime = RuntimeInterop.RunIteration(tickRate);
-        Assertions.AssertThat(elapsedTime).IsGreaterThanOrEqualTo(0.0);
+        Assertions.AssertThat(elapsedTime >= 0.0).IsTrue();
     }
 
     [TestCase]
