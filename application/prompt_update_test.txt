@@ -4,12 +4,18 @@ You are not allowed
 - to edit the "Test" folder under "client" c# project.
 - to edit the "E:\workspace\xml-xsd2\application\suite\src\test\resources\features" folder under "suite" java project.
 
-Create a new git branch.
-When files are needed to be moved, to easily keep track of what changed please:
-    - first create directory then commit
-    - move file then commit
-    - update file then commit
-    - delete old file then commit
+Workflow:
+    - create a TODO list so that it can be delegated to sub-agents
+    - Create a new git branch.
+    - Dispatch a sub-agent one at a time for each todo point
+    - In the end commit all changes.
+
+    - when files are needed to be moved, to easily keep track of what changed please:
+        - first create directory then commit
+        - move file then commit
+        - update file then commit
+        - delete old file then commit
+
 
 
 Keep working until tests are all passing.
