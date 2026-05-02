@@ -11,7 +11,7 @@ namespace GdUnit4.Examples.Basics.Setup.Sources.UI {
         }
 
         public RootNode() {
-            SetAnchorsPreset(Control.LayoutPreset.Center);
+            SetAnchorsPreset(LayoutPreset.FullRect);
             var idList = RuntimeInterop.GetPanelIds();
             foreach (var id in idList) {
                 var p = new UIPanel(RuntimeInterop.GetPanelById(id)) {
