@@ -23,20 +23,14 @@ public partial class TestClass : Steps {
 
 
             var scene = LoadTestScene();
-            var rootNode = new Root();
+            var rootNode = new RootNode();
             var idList = RuntimeInterop.GetPanelIds();
-            foreach (var id in idList) {
-                rootNode.AddChild(new Panel(RuntimeInterop.GetPanelById(id)) {
-                    Name = id
-                });
-            }
 
             scene.AddChild(rootNode);
             rootNode.SetSize(new Vector2() {
                 X = 1000,
                 Y = 1000
             });
-            rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
             await runner.SimulateFrames(1);
 
             AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
