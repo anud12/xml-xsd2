@@ -31,6 +31,7 @@ public partial class TestClass : Steps {
                 X = 1000,
                 Y = 1000
             });
+            rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
             await runner.SimulateFrames(1);
 
             AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
