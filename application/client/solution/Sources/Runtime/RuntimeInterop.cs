@@ -633,6 +633,9 @@ public static class RuntimeInterop
 
     public static void emitAction(string action) => runtime_emit_action(action);
 
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern double runtime_run_iteration(double tickRateInSec);
+
 
     public static double RunIteration(double tickRateInSec = 0) {
         userLogCallback?.Invoke("DEBUG: RunIteration called with tickRateInSec=" + tickRateInSec);
