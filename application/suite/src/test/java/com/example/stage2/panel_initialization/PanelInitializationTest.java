@@ -19,7 +19,7 @@ public class PanelInitializationTest {
     @ParameterizedTest
     @MethodSource("panelDirectories")
     void panelInitialization(String directory) throws Exception {
-        builder = ArchiveTestBuilder.create("features/stage2");
+        builder = ArchiveTestBuilder.create("stage2/panel_initialization");
 
         String csvFile = "./" + directory + "/panel.csv";
 
@@ -32,7 +32,7 @@ public class PanelInitializationTest {
 
     static Stream<String> panelDirectories() {
         return Stream.of(
-                "panel_initialization/offset"
+                "offset"
         );
     }
 }
