@@ -6,7 +6,7 @@ uid="uid://bui1xc2gk23n5"
 
 [deps]
 
-source_file="res://node_modules/suite/src/test/resources/features/stage1/action/first/action.csv"
+source_file="res://node_modules/suite/src/test/java/com/example/stage1/action/first/action.csv"
 
 [params]
 
