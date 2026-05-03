@@ -19,7 +19,7 @@ public class PanelInitializationTest {
     @ParameterizedTest
     @MethodSource("panelDirectories")
     void panelInitialization(String directory) throws Exception {
-        builder = ArchiveTestBuilder.create("stage2/panel_initialization");
+        builder = ArchiveTestBuilder.create();
 
         String csvFile = "./" + directory + "/panel.csv";
 
