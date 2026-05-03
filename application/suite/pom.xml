@@ -60,6 +60,12 @@
             <version>5.13.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.26.0</version>
+            <scope>test</scope>
+        </dependency>
 </dependencies>
     <build>
         <plugins>
@@ -109,7 +115,6 @@
                     <argLine>-Djava.library.path=${project.build.directory}/test-classes -Djna.library.path=${project.build.directory}/test-classes</argLine>
                     <includes>
                         <include>**/*Test.java</include>
-                      <include>**/Stage1Runner.java</include>
                       <include>**/Stage2Runner.java</include>
                     </includes>
                     <properties>
