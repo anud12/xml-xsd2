@@ -8,8 +8,10 @@ public interface ArchiveTestBuilder extends
     ArchiveTestBuilderActions,
     ArchiveTestBuilderAssertions {
 
-    static ArchiveTestBuilder create() {
-        return new ArchiveTestBuilderImpl();
+    static ArchiveTestBuilder create() throws IOException {
+        var impl = new ArchiveTestBuilderImpl();
+        impl.loadFeatureFilesFromCaller();
+        return impl;
     }
 
     static ArchiveTestBuilder create(String resourcePath) throws IOException {
