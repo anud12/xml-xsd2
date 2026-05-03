@@ -2,7 +2,6 @@ package com.example.utils;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 
 public class ArchiveTestBuilderImpl implements ArchiveTestBuilder {
 
@@ -41,22 +40,16 @@ public class ArchiveTestBuilderImpl implements ArchiveTestBuilder {
         if (callerClass == null)
             throw new IOException("Could not detect calling test class");
 
-        // Find directory containing compiled .class via ProtectionDomain
-        java.security.ProtectionDomain pd = callerClass.getProtectionDomain();
-        Object csLoc = pd.getCodeSourceLocation();
+        // Get URL of caller's package directory (e.g., target/test-classes/com/example/stage1/module/)
+        java.net.URL pkgUrl = callerClass.getResource("");
+        if (pkgUrl == null || !"file".equals(pkgUrl.getProtocol()))
+            throw new IOException("Cannot resolve resource path for class: " + callerClass.getName());
+
         java.nio.file.Path baseDir;
-        if (csLoc != null) {
-            try {
-                var url = new java.net.URL("file:" + csLoc);
-                baseDir = java.nio.file.Path.of(url.toURI());
-            } catch (Exception e) {
-                throw new IOException("Invalid code source location: " + csLoc, e);
-            }
-        } else {
-            // Fallback: derive from caller class's package name
-            var pkgName = callerClass.getPackage().getName();
-            var relPath = pkgName.replace('.', java.io.File.separatorChar);
-            baseDir = java.nio.file.Paths.get("target/test-classes").resolve(relPath);
+        try {
+            baseDir = java.nio.file.Path.of(pkgUrl.toURI());
+        } catch (java.net.URISyntaxException e) {
+            throw new IOException("Invalid URI for package URL: " + pkgUrl, e);
         }
 
         try (var stream = java.nio.file.Files.walk(baseDir)) {
