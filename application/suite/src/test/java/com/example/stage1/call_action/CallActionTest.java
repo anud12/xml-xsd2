@@ -19,7 +19,7 @@ public class CallActionTest {
     @ParameterizedTest
     @MethodSource("callActionData")
     void callRegisteredAction(Example example) throws Exception {
-        builder = ArchiveTestBuilder.create("stage1/call_action");
+        builder = ArchiveTestBuilder.create();
 
         builder.runApplication()
                 .addFile("./" + example.directory() + "/manifest.json", "./manifest.json")
