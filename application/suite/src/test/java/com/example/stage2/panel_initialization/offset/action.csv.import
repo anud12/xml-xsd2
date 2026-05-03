@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dba5o4w48xqma"
+
+[deps]
+
+files=["res://node_modules/suite/target/test-classes/features/stage2/panel_initialization/offset/action. offset.translation", "res://node_modules/suite/target/test-classes/features/stage2/panel_initialization/offset/action. offset.translation", "res://node_modules/suite/target/test-classes/features/stage2/panel_initialization/offset/action. offset.translation", "res://node_modules/suite/target/test-classes/features/stage2/panel_initialization/offset/action. offset.translation"]
+
+source_file="res://node_modules/suite/src/test/resources/features/stage2/panel_initialization/offset/action.csv"
+dest_files=["res://node_modules/suite/target/test-classes/features/stage2/panel_initialization/offset/action. offset.translation", "res://node_modules/suite/target/test-classes/features/stage2/panel_initialization/offset/action. offset.translation", "res://node_modules/suite/target/test-classes/features/stage2/panel_initialization/offset/action. offset.translation", "res://node_modules/suite/target/test-classes/features/stage2/panel_initialization/offset/action. offset.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
