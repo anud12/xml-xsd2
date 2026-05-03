@@ -19,7 +19,7 @@ public class CallActionTest {
     @ParameterizedTest
     @MethodSource("callActionData")
     void callRegisteredAction(Example example) throws Exception {
-        builder = ArchiveTestBuilder.create("features/stage1");
+        builder = ArchiveTestBuilder.create("stage1/call_action");
 
         builder.runApplication()
                 .addFile("./" + example.directory() + "/manifest.json", "./manifest.json")
@@ -34,8 +34,8 @@ public class CallActionTest {
 
     static Stream<Example> callActionData() {
         return Stream.of(
-                new Example("call_action/first", "action", "action called"),
-                new Example("call_action/second", "second action", "second action called")
+                new Example("first", "action", "action called"),
+                new Example("second", "second action", "second action called")
         );
     }
 }
