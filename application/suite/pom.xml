@@ -150,6 +150,35 @@
             </executions>
         </plugin>
         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <version>3.3.1</version>
+            <executions>
+                <execution>
+                    <id>copy-test-java-resources</id>
+                    <phase>process-test-resources</phase>
+                    <goals>
+                        <goal>copy-resources</goal>
+                    </goals>
+                    <configuration>
+                        <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
+                        <resources>
+                            <resource>
+                                <directory>${project.basedir}/src/test/java</directory>
+                                <includes>
+                                    <include>**/*.js</include>
+                                    <include>**/*.json</include>
+                                    <include>**/*.csv</include>
+                                    <include>**/*.import</include>
+                                    <include>**/*.translation</include>
+                                </includes>
+                            </resource>
+                        </resources>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+        <plugin>
             <artifactId>maven-antrun-plugin</artifactId>
             <version>3.0.0</version>
             <executions>
