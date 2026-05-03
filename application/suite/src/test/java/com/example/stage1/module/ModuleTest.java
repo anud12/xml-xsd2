@@ -19,7 +19,7 @@ public class ModuleTest {
     @ParameterizedTest
     @MethodSource("moduleLoadData")
     void moduleLoadingWithScript(Example example) throws Exception {
-        builder = ArchiveTestBuilder.create("stage1/module");
+        builder = ArchiveTestBuilder.create();
 
         builder.runApplication()
                 .addFile("./" + example.directory() + "/manifest.json", "./manifest.json")
@@ -31,7 +31,7 @@ public class ModuleTest {
     @ParameterizedTest
     @MethodSource("missingEntrypointData")
     void missingEntrypoint(Example example) throws Exception {
-        builder = ArchiveTestBuilder.create("stage1/module");
+        builder = ArchiveTestBuilder.create();
 
         builder.runApplication()
                 .addFile("./" + example.directory() + "/manifest.json", "./manifest.json")
