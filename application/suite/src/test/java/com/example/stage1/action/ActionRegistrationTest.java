@@ -19,7 +19,7 @@ public class ActionRegistrationTest {
     @ParameterizedTest
     @MethodSource("actionDirectories")
     void registerAction(String directory) throws Exception {
-        builder = ArchiveTestBuilder.create("stage1/action");
+        builder = ArchiveTestBuilder.create();
 
         String csvFile = "./" + directory + "/action.csv";
 
