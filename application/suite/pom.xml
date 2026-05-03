@@ -115,7 +115,6 @@
                     <argLine>-Djava.library.path=${project.build.directory}/test-classes -Djna.library.path=${project.build.directory}/test-classes</argLine>
                     <includes>
                         <include>**/*Test.java</include>
-                      <include>**/Stage2Runner.java</include>
                     </includes>
                     <properties>
                         <configurationParameters>
