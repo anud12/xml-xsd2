@@ -19,7 +19,7 @@ public class ActionRegistrationTest {
     @ParameterizedTest
     @MethodSource("actionDirectories")
     void registerAction(String directory) throws Exception {
-        builder = ArchiveTestBuilder.create("features/stage1");
+        builder = ArchiveTestBuilder.create("stage1/action");
 
         String csvFile = "./" + directory + "/action.csv";
 
@@ -32,8 +32,8 @@ public class ActionRegistrationTest {
 
     static Stream<String> actionDirectories() {
         return Stream.of(
-                "action/first",
-                "action/second"
+                "first",
+                "second"
         );
     }
 }
