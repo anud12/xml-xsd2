@@ -1,69 +1,46 @@
 package com.example.stage1.module;
 
-import com.example.utils.JunitTestHelper;
+import com.example.utils.ArchiveTestBuilder;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class ModuleTest {
 
-    private JunitTestHelper helper;
-
-    @BeforeEach
-    void setUp() throws Exception {
-        helper = new JunitTestHelper();
-        helper.setup();
-    }
+    private ArchiveTestBuilder builder;
 
     @AfterEach
     void tearDown() {
-        if (helper != null) helper.teardown();
+        if (builder != null) builder.cleanup();
     }
 
     @ParameterizedTest
     @MethodSource("moduleLoadData")
     void moduleLoadingWithScript(Example example) throws Exception {
-        helper.runApplication();
-        helper.addFileToArchive("./" + example.directory() + "/manifest.json", "./manifest.json");
-        helper.addFileToArchive("./" + example.directory() + "/index.js", "./index.js");
-        helper.loadArchive();
+        builder = ArchiveTestBuilder.create("features/stage1");
 
-        var state = helper.getState();
-        Pattern pattern = Pattern.compile(example.log());
-        long actualMatches = state.logMessages.stream()
-                .filter(line -> pattern.matcher(line).find())
-                .count();
-
-        assertThat(actualMatches)
-                .as("Log line count for directory %s matching '%s'", example.directory(), example.log())
-                .isEqualTo(example.expectedCount());
+        builder.runApplication()
+                .addFile("./" + example.directory() + "/manifest.json", "./manifest.json")
+                .addFile("./" + example.directory() + "/index.js", "./index.js")
+                .loadArchive()
+                .assertLogLines(example.expectedCount(), example.log());
     }
 
     @ParameterizedTest
     @MethodSource("missingEntrypointData")
     void missingEntrypoint(Example example) throws Exception {
-        helper.runApplication();
-        helper.addFileToArchive("./" + example.directory() + "/manifest.json", "./manifest.json");
-        helper.loadArchive();
+        builder = ArchiveTestBuilder.create("features/stage1");
 
-        var state = helper.getState();
-        Pattern pattern = Pattern.compile(example.log());
-        long actualMatches = state.logMessages.stream()
-                .filter(line -> pattern.matcher(line).find())
-                .count();
-
-        assertThat(actualMatches)
-                .as("Log line count for directory %s matching '%s'", example.directory(), example.log())
-                .isEqualTo(1L);
+        builder.runApplication()
+                .addFile("./" + example.directory() + "/manifest.json", "./manifest.json")
+                .loadArchive()
+                .assertLogLines(1L, example.log());
     }
 
-    record Example(String directory, String log, long expectedCount) {}
+    record Example(String directory, String log, long expectedCount) {
+    }
 
     static Stream<Example> moduleLoadData() {
         return Stream.of(
@@ -75,7 +52,7 @@ public class ModuleTest {
 
     static Stream<Example> missingEntrypointData() {
         return Stream.of(
-                                new Example("module/missing_entrypoint", "Error: entrypoint.*not found in archive", 1L)
+                new Example("module/missing_entrypoint", "Error: entrypoint.*not found in archive", 1L)
         );
     }
 }

@@ -1,44 +1,33 @@
 package com.example.stage1.action;
 
-import com.example.utils.JunitTestHelper;
-import com.example.utils.StateAssertions;
+import com.example.utils.ArchiveTestBuilder;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-
 public class ActionRegistrationTest {
 
-    private JunitTestHelper helper;
-
-    @BeforeEach
-    void setUp() throws Exception {
-        helper = new JunitTestHelper();
-        helper.setup();
-    }
+    private ArchiveTestBuilder builder;
 
     @AfterEach
     void tearDown() {
-        if (helper != null) helper.teardown();
+        if (builder != null) builder.cleanup();
     }
 
-    @ParameterizedTest(name = "[{index}] directory={0}")
+    @ParameterizedTest
     @MethodSource("actionDirectories")
     void registerAction(String directory) throws Exception {
-        helper.runApplication();
-        helper.addFileToArchive("./" + directory + "/manifest.json", "./manifest.json");
-        helper.addFileToArchive("./" + directory + "/index.js", "./index.js");
-        helper.loadArchive();
+        builder = ArchiveTestBuilder.create("features/stage1");
 
         String csvFile = "./" + directory + "/action.csv";
 
-        assertThatCode(() -> StateAssertions.assertExportedStateTableColumnsMatchesCsv(helper.getState(), "action", csvFile))
-                .as("Exported state action should match CSV patterns from %s", csvFile)
-                .doesNotThrowAnyException();
+        builder.runApplication()
+                .addFile("./" + directory + "/manifest.json", "./manifest.json")
+                .addFile("./" + directory + "/index.js", "./index.js")
+                .loadArchive()
+                .assertExportedActions(csvFile);
     }
 
     static Stream<String> actionDirectories() {
