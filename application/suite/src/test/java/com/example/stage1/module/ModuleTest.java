@@ -19,7 +19,7 @@ public class ModuleTest {
     @ParameterizedTest
     @MethodSource("moduleLoadData")
     void moduleLoadingWithScript(Example example) throws Exception {
-        builder = ArchiveTestBuilder.create("features/stage1");
+        builder = ArchiveTestBuilder.create("stage1/module");
 
         builder.runApplication()
                 .addFile("./" + example.directory() + "/manifest.json", "./manifest.json")
@@ -31,7 +31,7 @@ public class ModuleTest {
     @ParameterizedTest
     @MethodSource("missingEntrypointData")
     void missingEntrypoint(Example example) throws Exception {
-        builder = ArchiveTestBuilder.create("features/stage1");
+        builder = ArchiveTestBuilder.create("stage1/module");
 
         builder.runApplication()
                 .addFile("./" + example.directory() + "/manifest.json", "./manifest.json")
@@ -44,15 +44,15 @@ public class ModuleTest {
 
     static Stream<Example> moduleLoadData() {
         return Stream.of(
-                new Example("module/first", "First module loaded", 1L),
-                new Example("module/second", "Second module loaded", 1L),
-                new Example("module/if-guard", "if guard loaded", 0L)
+                new Example("first", "First module loaded", 1L),
+                new Example("second", "Second module loaded", 1L),
+                new Example("if-guard", "if guard loaded", 0L)
         );
     }
 
     static Stream<Example> missingEntrypointData() {
         return Stream.of(
-                new Example("module/missing_entrypoint", "Error: entrypoint.*not found in archive", 1L)
+                new Example("missing_entrypoint", "Error: entrypoint.*not found in archive", 1L)
         );
     }
 }
