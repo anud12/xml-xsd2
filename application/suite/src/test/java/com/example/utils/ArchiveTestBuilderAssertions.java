@@ -42,30 +42,30 @@ public interface ArchiveTestBuilderAssertions extends ArchiveTestBuilderCommon {
         return (ArchiveTestBuilder) this;
     }
 
-    default ArchiveTestBuilder assertExportedStateTable(String tableName, String csvFile) throws Exception {
-        StateAssertions.assertExportedStateTableColumnsMatchesCsv(this.getState(), tableName, csvFile);
+    // Convenience shortcuts for common table names
+    default ArchiveTestBuilder assertExportedActions(String csvFile) throws Exception {
+        StateAssertions.assertExportedStateActionColumnsMatchesCsv(this.getState(), csvFile);
         return (ArchiveTestBuilder) this;
     }
 
-    // Convenience shortcuts for common table names
-    default ArchiveTestBuilder assertExportedActions(String csvFile) throws Exception {
-        return this.assertExportedStateTable("action", csvFile);
-    }
-
     default ArchiveTestBuilder assertExportedModules(String csvFile) throws Exception {
-        return this.assertExportedStateTable("module", csvFile);
+        StateAssertions.assertExportedStateModuleColumnsMatchesCsv(this.getState(), csvFile);
+        return (ArchiveTestBuilder) this;
     }
 
     default ArchiveTestBuilder assertExportedEntities(String csvFile) throws Exception {
-        return this.assertExportedStateTable("entity", csvFile);
+        StateAssertions.assertExportedStateEntityColumnsMatchesCsv(this.getState(), csvFile);
+        return (ArchiveTestBuilder) this;
     }
 
     default ArchiveTestBuilder assertExportedEvents(String csvFile) throws Exception {
-        return this.assertExportedStateTable("events", csvFile);
+        StateAssertions.assertExportedStateEventsColumnsMatchesCsv(this.getState(), csvFile);
+        return (ArchiveTestBuilder) this;
     }
 
     default ArchiveTestBuilder assertExportedPanels(String csvFile) throws Exception {
-        return this.assertExportedStateTable("panel", csvFile);
+        StateAssertions.assertExportedStatePanelColumnsMatchesCsv(this.getState(), csvFile);
+        return (ArchiveTestBuilder) this;
     }
 
     default ArchiveTestBuilder assertPanelNames(String json) {

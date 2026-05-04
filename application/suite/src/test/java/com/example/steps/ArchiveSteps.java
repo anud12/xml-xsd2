@@ -113,24 +113,24 @@ public class ArchiveSteps {
 
     @Then("assert exported state entities includes regexes from {string}")
     public void exportedEntitiesShouldIncludeRegexes(String csvFile) throws Exception {
-        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "entity", csvFile);
+        StateAssertions.assertExportedStateEntityColumnsMatchesCsv(state, csvFile);
     }
     @Then("assert exported state module includes regexes from {string} file")
     public void exportedModuleShouldIncludeRegexes(String csvFile) throws Exception {
-        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "module", csvFile);
+        StateAssertions.assertExportedStateModuleColumnsMatchesCsv(state, csvFile);
     }
     @Then("assert exported state action includes regexes from {string} file")
     public void exportedActionShouldIncludeRegexes(String csvFile) throws Exception {
-        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "action", csvFile);
+        StateAssertions.assertExportedStateActionColumnsMatchesCsv(state, csvFile);
     }
     @Then("assert exported state events includes regexes from {string}  file")
     public void exportedEventsShouldIncludeRegexes(String csvFile) throws Exception {
-        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "events", csvFile);
+        StateAssertions.assertExportedStateEventsColumnsMatchesCsv(state, csvFile);
     }
 
     @Then("assert exported state panel includes regexes from {string} file")
     public void exportedPanelShouldIncludeRegexes(String csvFile) throws Exception {
-        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "panel", csvFile);
+        StateAssertions.assertExportedStatePanelColumnsMatchesCsv(state, csvFile);
     }
 
 

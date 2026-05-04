@@ -34,133 +34,7 @@ public class StateAssertions {
         }
     }
 
-    public static void assertExportedStateTableColumnsMatchesCsv(ArchiveState state, String tableName, String csvFile) throws Exception {
-        // Read expected CSV
-        File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
-        String content = java.nio.file.Files.readString(expected.toPath()).replaceAll("\\R", "\n");
-        String[] lines = content.split("\n", -1);
-        if (lines.length <= 1) {
-            throw new AssertionError("Expected CSV '" + csvFile + "' to contain header and at least one pattern row; path=" + expected.getAbsolutePath() + "; content='" + content + "'");
-        }
-        String headerLine = lines[0];
-        java.util.List<String> expectedColumns = new java.util.ArrayList<>(java.util.Arrays.asList(headerLine.split(",", -1)));
-        expectedColumns.removeIf(s -> s == null || s.isEmpty());
-
-        // Build pattern rows (list of maps column->Pattern)
-        java.util.List<java.util.Map<String, Pattern>> patternRows = java.util.stream.IntStream
-                .range(1, lines.length)
-                .filter(r -> !lines[r].trim().isEmpty())
-                .mapToObj(r -> {
-                    String ln = lines[r];
-                    String[] cells = ln.split(",", -1);
-                    java.util.List<String> cellList = new java.util.ArrayList<>(java.util.Arrays.asList(cells));
-                    while (cellList.size() > expectedColumns.size() && cellList.get(cellList.size() - 1).isEmpty()) {
-                        cellList.remove(cellList.size() - 1);
-                    }
-                    if (cellList.size() != expectedColumns.size()) {
-                        throw new AssertionError("CSV pattern row " + r + " has wrong number of columns (expected " + expectedColumns.size() + ", got " + cellList.size() + ")");
-                    }
-                    return java.util.stream.IntStream.range(0, expectedColumns.size())
-                            .boxed()
-                            .collect(java.util.stream.Collectors.toMap(i -> expectedColumns.get(i), i -> Pattern.compile(cellList.get(i), Pattern.DOTALL), (a, b) -> a, java.util.LinkedHashMap::new));
-                })
-                .collect(java.util.stream.Collectors.toList());
-
-        // Get actual rows from ExportedState
-        java.util.List<java.util.Map<String, String>> actualRows = new java.util.ArrayList<>();
-        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::newRuntimeInteropJava);
-        com.sun.jna.Pointer p = lib.runtime_export_state_struct();
-        if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
-        try {
-            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
-            es.read();
-            String t = tableName.toLowerCase();
-            switch (t) {
-                case "entity": {
-                    int len = es.entities.len == null ? 0 : es.entities.len.intValue();
-                    if (len > 0 && es.entities.data != null) {
-                        com.sun.jna.Pointer[] ptrs = es.entities.data.getPointerArray(0, len);
-                        for (com.sun.jna.Pointer q : ptrs) {
-                            String v = q == null ? "" : q.getString(0);
-                            java.util.Map<String, String> m = new java.util.HashMap<>();
-                            m.put("textMap_name", v);
-                            actualRows.add(m);
-                        }
-                    }
-                    break;
-                }
-                case "action": {
-                    int len = es.actions.len == null ? 0 : es.actions.len.intValue();
-                    if (len > 0 && es.actions.data != null) {
-                        com.sun.jna.Pointer[] ptrs = es.actions.data.getPointerArray(0, len);
-                        for (com.sun.jna.Pointer q : ptrs) {
-                            String v = q == null ? "" : q.getString(0);
-                            java.util.Map<String, String> m = new java.util.HashMap<>();
-                            m.put("name", v);
-                            actualRows.add(m);
-                        }
-                    }
-                    break;
-                }
-                case "events": {
-                    int len = es.events.len == null ? 0 : es.events.len.intValue();
-                    if (len > 0 && es.events.data != null) {
-                        com.sun.jna.Pointer[] ptrs = es.events.data.getPointerArray(0, len);
-                        for (com.sun.jna.Pointer q : ptrs) {
-                            String v = q == null ? "" : q.getString(0);
-                            java.util.Map<String, String> m = new java.util.HashMap<>();
-                            m.put("name", v);
-                            actualRows.add(m);
-                        }
-                    }
-                    break;
-                }
-                case "module": {
-                    int len = es.modules.len == null ? 0 : es.modules.len.intValue();
-                    if (len > 0 && es.modules.data != null) {
-                        long structSize = new com.example.interop.exportedState.ModuleRow().size();
-                        for (int i = 0; i < len; i++) {
-                            com.example.interop.exportedState.ModuleRow mr = new com.example.interop.exportedState.ModuleRow(es.modules.data.share(i * structSize));
-                            mr.read();
-                            String id = mr.id == null ? "" : mr.id.getString(0);
-                            String name = mr.name == null ? "" : mr.name.getString(0);
-                            String version = mr.version == null ? "" : mr.version.getString(0);
-                            java.util.Map<String, String> m = new java.util.HashMap<>();
-                            m.put("id", id);
-                            m.put("name", name);
-                            m.put("version", version);
-                            actualRows.add(m);
-                        }
-                    }
-                    break;
-                }
-                case "panel": {
-                    int len = es.panels.len == null ? 0 : es.panels.len.intValue();
-                    if (len > 0 && es.panels.data != null) {
-                        com.example.interop.exportedState.PanelFfi template = new com.example.interop.exportedState.PanelFfi();
-                        int structSize = template.size();
-                        for (int i = 0; i < len; i++) {
-                            com.example.interop.exportedState.PanelFfi panel =
-                                new com.example.interop.exportedState.PanelFfi(es.panels.data.share((long) i * structSize));
-                            String id = panel.id == null ? "" : panel.id.getString(0);
-                            java.util.Map<String, String> m = new java.util.HashMap<>();
-                            m.put("id", id);
-                            m.put("offset__top", String.valueOf(panel.offset.top));
-                            m.put("offset__left", String.valueOf(panel.offset.left));
-                            m.put("offset__right", String.valueOf(panel.offset.right));
-                            m.put("offset__bottom", String.valueOf(panel.offset.bottom));
-                            actualRows.add(m);
-                        }
-                    }
-                    break;
-                }
-                default:
-                    throw new AssertionError("Unsupported table for exported-state validation: " + tableName);
-            }
-        } finally {
-            lib.runtime_free_exported_state(p);
-        }
-
+    private static void assertTableColumnsMatchesCsvImpl(ArchiveState state, String tableName, String csvFile, java.util.List<String> expectedColumns, java.util.List<java.util.Map<String, Pattern>> patternRows, java.util.List<java.util.Map<String, String>> actualRows) throws Exception {
         // Require exact count
         int expectedCount = patternRows.size();
         int actualCount = actualRows.size();
@@ -238,6 +112,229 @@ public class StateAssertions {
                 }
                 throw new AssertionError(msg.toString());
             }
+        }
+    }
+
+    private static java.util.List<java.util.Map<String, Pattern>> buildPatternRows(ArchiveState state, String csvFile) throws Exception {
+        // Read expected CSV
+        File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
+        String content = java.nio.file.Files.readString(expected.toPath()).replaceAll("\\R", "\n");
+        String[] lines = content.split("\n", -1);
+        if (lines.length <= 1) {
+            throw new AssertionError("Expected CSV '" + csvFile + "' to contain header and at least one pattern row; path=" + expected.getAbsolutePath() + "; content='" + content + "'");
+        }
+        String headerLine = lines[0];
+        java.util.List<String> expectedColumns = new java.util.ArrayList<>(java.util.Arrays.asList(headerLine.split(",", -1)));
+        expectedColumns.removeIf(s -> s == null || s.isEmpty());
+
+        // Build pattern rows (list of maps column->Pattern)
+        java.util.List<java.util.Map<String, Pattern>> patternRows = java.util.stream.IntStream
+                .range(1, lines.length)
+                .filter(r -> !lines[r].trim().isEmpty())
+                .mapToObj(r -> {
+                    String ln = lines[r];
+                    String[] cells = ln.split(",", -1);
+                    java.util.List<String> cellList = new java.util.ArrayList<>(java.util.Arrays.asList(cells));
+                    while (cellList.size() > expectedColumns.size() && cellList.get(cellList.size() - 1).isEmpty()) {
+                        cellList.remove(cellList.size() - 1);
+                    }
+                    if (cellList.size() != expectedColumns.size()) {
+                        throw new AssertionError("CSV pattern row " + r + " has wrong number of columns (expected " + expectedColumns.size() + ", got " + cellList.size() + ")");
+                    }
+                    return java.util.stream.IntStream.range(0, expectedColumns.size())
+                            .boxed()
+                            .collect(java.util.stream.Collectors.toMap(i -> expectedColumns.get(i), i -> Pattern.compile(cellList.get(i), Pattern.DOTALL), (a, b) -> a, java.util.LinkedHashMap::new));
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        return patternRows;
+    }
+
+    private static java.util.List<String> readCsvColumns(ArchiveState state, String csvFile) throws Exception {
+        File expected = Objects.requireNonNull(state.featureFiles.get(csvFile.replaceFirst("./", "")));
+        String content = java.nio.file.Files.readString(expected.toPath()).replaceAll("\\R", "\n");
+        String[] lines = content.split("\n", -1);
+        if (lines.length <= 1) {
+            throw new AssertionError("Expected CSV '" + csvFile + "' to contain header and at least one pattern row; path=" + expected.getAbsolutePath() + "; content='" + content + "'");
+        }
+        String headerLine = lines[0];
+        java.util.List<String> expectedColumns = new java.util.ArrayList<>(java.util.Arrays.asList(headerLine.split(",", -1)));
+        expectedColumns.removeIf(s -> s == null || s.isEmpty());
+        return expectedColumns;
+    }
+
+    public static void assertExportedStateEntityColumnsMatchesCsv(ArchiveState state, String csvFile) throws Exception {
+        java.util.List<String> expectedColumns = readCsvColumns(state, csvFile);
+        java.util.List<java.util.Map<String, Pattern>> patternRows = buildPatternRows(state, csvFile);
+
+        java.util.List<java.util.Map<String, String>> actualRows = new java.util.ArrayList<>();
+        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::newRuntimeInteropJava);
+        com.sun.jna.Pointer p = lib.runtime_export_state_struct();
+        if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
+        try {
+            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            es.read();
+            int len = es.entities.len == null ? 0 : es.entities.len.intValue();
+            if (len > 0 && es.entities.data != null) {
+                com.sun.jna.Pointer[] ptrs = es.entities.data.getPointerArray(0, len);
+                for (com.sun.jna.Pointer q : ptrs) {
+                    String v = q == null ? "" : q.getString(0);
+                    java.util.Map<String, String> m = new java.util.HashMap<>();
+                    m.put("textMap_name", v);
+                    actualRows.add(m);
+                }
+            }
+        } finally {
+            lib.runtime_free_exported_state(p);
+        }
+
+        assertTableColumnsMatchesCsvImpl(state, "entity", csvFile, expectedColumns, patternRows, actualRows);
+    }
+
+    public static void assertExportedStateActionColumnsMatchesCsv(ArchiveState state, String csvFile) throws Exception {
+        java.util.List<String> expectedColumns = readCsvColumns(state, csvFile);
+        java.util.List<java.util.Map<String, Pattern>> patternRows = buildPatternRows(state, csvFile);
+
+        java.util.List<java.util.Map<String, String>> actualRows = new java.util.ArrayList<>();
+        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::newRuntimeInteropJava);
+        com.sun.jna.Pointer p = lib.runtime_export_state_struct();
+        if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
+        try {
+            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            es.read();
+            int len = es.actions.len == null ? 0 : es.actions.len.intValue();
+            if (len > 0 && es.actions.data != null) {
+                com.sun.jna.Pointer[] ptrs = es.actions.data.getPointerArray(0, len);
+                for (com.sun.jna.Pointer q : ptrs) {
+                    String v = q == null ? "" : q.getString(0);
+                    java.util.Map<String, String> m = new java.util.HashMap<>();
+                    m.put("name", v);
+                    actualRows.add(m);
+                }
+            }
+        } finally {
+            lib.runtime_free_exported_state(p);
+        }
+
+        assertTableColumnsMatchesCsvImpl(state, "action", csvFile, expectedColumns, patternRows, actualRows);
+    }
+
+    public static void assertExportedStateEventsColumnsMatchesCsv(ArchiveState state, String csvFile) throws Exception {
+        java.util.List<String> expectedColumns = readCsvColumns(state, csvFile);
+        java.util.List<java.util.Map<String, Pattern>> patternRows = buildPatternRows(state, csvFile);
+
+        java.util.List<java.util.Map<String, String>> actualRows = new java.util.ArrayList<>();
+        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::newRuntimeInteropJava);
+        com.sun.jna.Pointer p = lib.runtime_export_state_struct();
+        if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
+        try {
+            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            es.read();
+            int len = es.events.len == null ? 0 : es.events.len.intValue();
+            if (len > 0 && es.events.data != null) {
+                com.sun.jna.Pointer[] ptrs = es.events.data.getPointerArray(0, len);
+                for (com.sun.jna.Pointer q : ptrs) {
+                    String v = q == null ? "" : q.getString(0);
+                    java.util.Map<String, String> m = new java.util.HashMap<>();
+                    m.put("name", v);
+                    actualRows.add(m);
+                }
+            }
+        } finally {
+            lib.runtime_free_exported_state(p);
+        }
+
+        assertTableColumnsMatchesCsvImpl(state, "events", csvFile, expectedColumns, patternRows, actualRows);
+    }
+
+    public static void assertExportedStateModuleColumnsMatchesCsv(ArchiveState state, String csvFile) throws Exception {
+        java.util.List<String> expectedColumns = readCsvColumns(state, csvFile);
+        java.util.List<java.util.Map<String, Pattern>> patternRows = buildPatternRows(state, csvFile);
+
+        java.util.List<java.util.Map<String, String>> actualRows = new java.util.ArrayList<>();
+        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::newRuntimeInteropJava);
+        com.sun.jna.Pointer p = lib.runtime_export_state_struct();
+        if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
+        try {
+            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            es.read();
+            int len = es.modules.len == null ? 0 : es.modules.len.intValue();
+            if (len > 0 && es.modules.data != null) {
+                long structSize = new com.example.interop.exportedState.ModuleRow().size();
+                for (int i = 0; i < len; i++) {
+                    com.example.interop.exportedState.ModuleRow mr = new com.example.interop.exportedState.ModuleRow(es.modules.data.share(i * structSize));
+                    mr.read();
+                    String id = mr.id == null ? "" : mr.id.getString(0);
+                    String name = mr.name == null ? "" : mr.name.getString(0);
+                    String version = mr.version == null ? "" : mr.version.getString(0);
+                    java.util.Map<String, String> m = new java.util.HashMap<>();
+                    m.put("id", id);
+                    m.put("name", name);
+                    m.put("version", version);
+                    actualRows.add(m);
+                }
+            }
+        } finally {
+            lib.runtime_free_exported_state(p);
+        }
+
+        assertTableColumnsMatchesCsvImpl(state, "module", csvFile, expectedColumns, patternRows, actualRows);
+    }
+
+    public static void assertExportedStatePanelColumnsMatchesCsv(ArchiveState state, String csvFile) throws Exception {
+        java.util.List<String> expectedColumns = readCsvColumns(state, csvFile);
+        java.util.List<java.util.Map<String, Pattern>> patternRows = buildPatternRows(state, csvFile);
+
+        java.util.List<java.util.Map<String, String>> actualRows = new java.util.ArrayList<>();
+        RuntimeInteropJava lib = state.runtimeInteropJava.orElseGet(RuntimeInteropJava::newRuntimeInteropJava);
+        com.sun.jna.Pointer p = lib.runtime_export_state_struct();
+        if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
+        try {
+            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            es.read();
+            int len = es.panels.len == null ? 0 : es.panels.len.intValue();
+            if (len > 0 && es.panels.data != null) {
+                com.example.interop.exportedState.PanelFfi template = new com.example.interop.exportedState.PanelFfi();
+                int structSize = template.size();
+                for (int i = 0; i < len; i++) {
+                    com.example.interop.exportedState.PanelFfi panel =
+                        new com.example.interop.exportedState.PanelFfi(es.panels.data.share((long) i * structSize));
+                    String id = panel.id == null ? "" : panel.id.getString(0);
+                    java.util.Map<String, String> m = new java.util.HashMap<>();
+                    m.put("id", id);
+                    m.put("offset__top", String.valueOf(panel.offset.top));
+                    m.put("offset__left", String.valueOf(panel.offset.left));
+                    m.put("offset__right", String.valueOf(panel.offset.right));
+                    m.put("offset__bottom", String.valueOf(panel.offset.bottom));
+                    actualRows.add(m);
+                }
+            }
+        } finally {
+            lib.runtime_free_exported_state(p);
+        }
+
+        assertTableColumnsMatchesCsvImpl(state, "panel", csvFile, expectedColumns, patternRows, actualRows);
+    }
+
+    public static void assertExportedStateTableColumnsMatchesCsv(ArchiveState state, String tableName, String csvFile) throws Exception {
+        switch (tableName.toLowerCase()) {
+            case "entity":
+                assertExportedStateEntityColumnsMatchesCsv(state, csvFile);
+                break;
+            case "action":
+                assertExportedStateActionColumnsMatchesCsv(state, csvFile);
+                break;
+            case "events":
+                assertExportedStateEventsColumnsMatchesCsv(state, csvFile);
+                break;
+            case "module":
+                assertExportedStateModuleColumnsMatchesCsv(state, csvFile);
+                break;
+            case "panel":
+                assertExportedStatePanelColumnsMatchesCsv(state, csvFile);
+                break;
+            default:
+                throw new AssertionError("Unsupported table for exported-state validation: " + tableName);
         }
     }
 
