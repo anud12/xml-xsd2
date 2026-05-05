@@ -16,7 +16,7 @@ public class EntityMutationTest {
     static Stream<TestData> data() {
         return Stream.of(new TestData(
                 "numberModule",
-                new Entity().setNumberMap("value", 2L))
+                new Entity().withNumberMapValue("value", 2L))
         );
     }
 

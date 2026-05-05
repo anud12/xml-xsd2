@@ -14,12 +14,19 @@ public interface AssertExportedEntities extends ArchiveTestBuilderCommon {
         private Optional<HashMap<String, Long>> numberMap = Optional.empty();
         private Optional<HashMap<String, String>> textMap = Optional.empty();
 
-        public Entity setTextMapName(String string) {
+        public Entity withTextMapName(String string) {
             textMap_name = Optional.of(string);
             return this;
         }
 
-        public Entity setTextMap(String key, String value) {
+        public Entity withEmptyTextMap() {
+            if (textMap.isEmpty()) {
+                textMap = Optional.of(new HashMap<>());
+            }
+            return this;
+        }
+
+        public Entity withTextMapValue(String key, String value) {
             if (textMap.isEmpty()) {
                 textMap = Optional.of(new HashMap<>());
             }
@@ -29,7 +36,14 @@ public interface AssertExportedEntities extends ArchiveTestBuilderCommon {
             return this;
         }
 
-        public Entity setNumberMap(String key, Long value) {
+        public Entity withEmptyNumberMap() {
+            if (numberMap.isEmpty()) {
+                numberMap = Optional.of(new HashMap<>());
+            }
+            return this;
+        }
+
+        public Entity withNumberMapValue(String key, Long value) {
             if (numberMap.isEmpty()) {
                 numberMap = Optional.of(new HashMap<>());
             }
