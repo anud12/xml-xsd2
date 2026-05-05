@@ -1,6 +1,6 @@
 package com.example.stage1.module;
 
-import com.example.utils.ArchiveTestBuilder;
+import com.example.utils.archiveTestBuilder.ArchiveTestBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;

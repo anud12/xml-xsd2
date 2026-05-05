@@ -1,39 +1,43 @@
 package com.example.stage1.action;
 
-import com.example.utils.ArchiveTestBuilder;
-import org.junit.jupiter.api.AfterEach;
+import com.example.utils.archiveTestBuilder.ArchiveTestBuilder;
+import com.example.utils.archiveTestBuilder.assertions.AssertExportedActions.Action;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 public class ActionRegistrationTest {
 
-    private ArchiveTestBuilder builder;
+    record TestCase(String directory, List<Action> expectedActions) {
+    }
 
-    @AfterEach
-    void tearDown() {
-        if (builder != null) builder.cleanup();
+    static Stream<TestCase> actionTests() {
+        return Stream.of(
+                new TestCase("first", List.of(
+                        new Action().setName("action"),
+                        new Action().setName("second action")
+                )),
+                new TestCase("second", List.of(
+                        new Action().setName("second action"),
+                        new Action().setName("second second action")
+                ))
+        );
     }
 
     @ParameterizedTest
-    @MethodSource("actionDirectories")
-    void registerAction(String directory) throws Exception {
-        builder = ArchiveTestBuilder.create();
-
-        String csvFile = "./" + directory + "/action.csv";
+    @MethodSource("actionTests")
+    void registerAction(TestCase tc) throws Exception {
+        var builder = ArchiveTestBuilder.create();
 
         builder.runApplication()
-                .addFile("./" + directory + "/manifest.json", "./manifest.json")
-                .addFile("./" + directory + "/index.js", "./index.js")
+                .addFile("./" + tc.directory() + "/manifest.json", "./manifest.json")
+                .addFile("./" + tc.directory() + "/index.js", "./index.js")
                 .loadArchive()
-                .assertExportedActions(csvFile);
+                .assertExportedActions(tc.expectedActions());
+        builder.cleanup();
     }
 
-    static Stream<String> actionDirectories() {
-        return Stream.of(
-                "first",
-                "second"
-        );
-    }
+
 }

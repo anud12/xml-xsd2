@@ -1,4 +1,7 @@
-package com.example.utils;
+package com.example.utils.archiveTestBuilder;
+
+import com.example.utils.ArchiveRunner;
+import com.example.utils.ZipArchive;
 
 import java.io.IOException;
 

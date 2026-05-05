@@ -1,6 +1,7 @@
-package com.example.utils;
+package com.example.utils.archiveTestBuilder;
 
-import java.io.File;
+import com.example.utils.ArchiveState;
+
 import java.io.IOException;
 
 public class ArchiveTestBuilderImpl implements ArchiveTestBuilder {
@@ -74,10 +75,5 @@ public class ArchiveTestBuilderImpl implements ArchiveTestBuilder {
             }
         }
         return null;
-    }
-
-    public void debugPrintStdout(int ms) throws InterruptedException {
-        Thread.sleep(ms);
-        System.out.println(new String(state.lastOutput));
     }
 }

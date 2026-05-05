@@ -7,8 +7,8 @@ You are not allowed
 Workflow:
     - create a TODO list so that it can be delegated to sub-agents
     - Create a new git branch.
-    - Dispatch a sub-agent one at a time for each todo point
-    - In the end commit all changes.
+    - Commit all changes.
+    - Amend all in-between commits.
 
     - when files are needed to be moved, to easily keep track of what changed please:
         - first create directory then commit
