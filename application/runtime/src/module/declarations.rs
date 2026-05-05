@@ -60,7 +60,45 @@ pub fn apply_declarations(dec: &Declarations) {
         }
         crate::state::set_last_entity_data(data);
         crate::state::set_last_entity_number_data(number_data);
+        // Collect entity IDs from setEntity calls (keys of entity_data) to add as entity rows
+        let entity_ids_from_set: Vec<String> = entities.keys().cloned().collect();
+
+        // Append entities from both createEntity() and setEntity() to last_entity_rows
+        append_entity_rows(dec, &entity_ids_from_set);
+    } else {
+        // Even when there's no entity_data, still add entities created via createEntity()
+        append_entity_rows(dec, &[]);
     }
+}
+
+/// Append entity rows to the cached last_entity_rows.
+/// Collects entities from both dec.entities (createEntity calls) and set_entity_ids (setEntity keys).
+fn append_entity_rows(dec: &Declarations, set_entity_ids: &[String]) {
+    let mut existing = crate::state::last_entity_rows().lock().unwrap();
+
+    // Add entities from createEntity() calls
+    for en in dec.entities.iter() {
+        if !row_exists(&existing, en) {
+            existing.push(vec![en.clone()]);
+        }
+    }
+
+    // Add entity IDs from setEntity() calls (these may not appear in dec.entities)
+    for eid in set_entity_ids {
+        if !row_exists(&existing, eid) {
+            existing.push(vec![eid.clone()]);
+        }
+    }
+}
+
+/// Check if an entity row with the given name already exists.
+fn row_exists(rows: &[Vec<String>], name: &str) -> bool {
+    for row in rows.iter() {
+        if let Some(first) = row.first() {
+            if first == name { return true; }
+        }
+    }
+    false
 }
 
 pub fn collect_patterns(dec: &Declarations) -> Vec<String> {

@@ -18,9 +18,8 @@ pub extern "C" fn runtime_debug_load_base64(payload_b64: *const c_char) -> *mut 
             let files = crate::archive::read_zip_files(tmp_path);
             let file_rows = crate::module::build_file_rows(&files);
             crate::state::set_last_file_rows(file_rows.clone());
-            let mut entity_rows: Vec<Vec<String>> = Vec::new();
-            crate::module::process_module(&files, &mut entity_rows);
-            crate::state::set_last_entity_rows(entity_rows.clone());
+            crate::module::process_module(&files, &mut Vec::new());
+            let entity_rows = crate::state::last_entity_rows().lock().unwrap().clone();
             let dest = crate::state::persist_state("state.db", &file_rows, &entity_rows);
             match CString::new(dest) { Ok(s) => s.into_raw(), Err(_) => std::ptr::null_mut(), }
         },

@@ -34,10 +34,9 @@ pub extern "C" fn runtime_process_archive(path: *const c_char) -> *mut c_char {
     
     let file_rows = crate::module::build_file_rows(&files);
     crate::state::set_last_file_rows(file_rows.clone());
-    let mut entity_rows: Vec<Vec<String>> = Vec::new();
-    crate::module::process_module(&files, &mut entity_rows);
+    crate::module::process_module(&files, &mut Vec::new());
     eprintln!("process_archive: panels after process_module = {:?}", crate::state::last_panels().lock().unwrap());
-    crate::state::set_last_entity_rows(entity_rows.clone());
+    let entity_rows = crate::state::last_entity_rows().lock().unwrap().clone();
 
     // Persist state to disk and return the destination path as a C string (caller must free)
     let dest = crate::state::persist_state("state.db", &file_rows, &entity_rows);

@@ -63,10 +63,8 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
         runtime_log!("debug: built file_rows length {}", file_rows.len());
         crate::state::set_last_file_rows(file_rows.clone());
         // Let the module processing populate action/event declarations and entity patterns.
-        let mut entity_rows: Vec<Vec<String>> = Vec::new();
-        crate::module::process_module(&files, &mut entity_rows);
-        // Persist the loaded state so exports from the test harness reflect the loaded module
-        crate::state::set_last_entity_rows(entity_rows.clone());
+        crate::module::process_module(&files, &mut Vec::new());
+        let entity_rows = crate::state::last_entity_rows().lock().unwrap().clone();
         let dest = crate::state::persist_state("state.db", &file_rows, &entity_rows);
         runtime_log!("debug: persist_state wrote {}", dest);
 

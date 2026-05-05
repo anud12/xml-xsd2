@@ -37,11 +37,9 @@ fn main() {
     let file_rows = module::build_file_rows(&files);
     // store file_rows for export
     crate::state::set_last_file_rows(file_rows.clone());
-    let mut entity_rows: Vec<Vec<String>> = Vec::new();
 
-    module::process_module(&files, &mut entity_rows);
-    // store entity rows after processing
-    crate::state::set_last_entity_rows(entity_rows.clone());
+    module::process_module(&files, &mut Vec::new());
+    let entity_rows = crate::state::last_entity_rows().lock().unwrap().clone();
 
     // Debug: print collected file rows
     runtime_log!("main: initial file_rows count {}", file_rows.len());
