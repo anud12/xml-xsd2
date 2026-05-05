@@ -3,6 +3,7 @@ To verify that everything is passing is to run "cargo test" in "E:\workspace\xml
 You are not allowed 
 - to edit the "Test" folder under "client" c# project.
 - to edit the "E:\workspace\xml-xsd2\application\suite\src\test\resources\features" folder under "suite" java project.
+- to edit the "E:\workspace\xml-xsd2\application\suite\src\test\java\com\example\tests" folder under "suite" java project.
 
 Workflow:
     - create a TODO list so that it can be delegated to sub-agents

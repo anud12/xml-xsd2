@@ -9,8 +9,10 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import com.example.interop.RuntimeInteropJava;
-import com.sun.jna.Pointer;
+import com.example.tests.interop.RuntimeInteropJava;
+import com.example.tests.interop.exportedState.ExportedState;
+import com.example.tests.interop.exportedState.ModuleRow;
+import com.example.tests.interop.exportedState.PanelFfi;
 import io.cucumber.core.internal.com.fasterxml.jackson.core.JsonProcessingException;
 import io.cucumber.core.internal.com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -24,7 +26,7 @@ public class StateAssertions {
             throw new AssertionError("exportStateStruct returned NULL pointer");
         }
         try {
-            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            ExportedState es = new ExportedState(p);
             es.read();
             if (es.has_data != 0) {
                 throw new AssertionError("Expected exported state to be empty");
@@ -172,7 +174,7 @@ public class StateAssertions {
         com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
         try {
-            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            ExportedState es = new ExportedState(p);
             es.read();
             int len = es.entities.len == null ? 0 : es.entities.len.intValue();
             if (len > 0 && es.entities.data != null) {
@@ -200,7 +202,7 @@ public class StateAssertions {
         com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
         try {
-            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            ExportedState es = new ExportedState(p);
             es.read();
             int len = es.actions.len == null ? 0 : es.actions.len.intValue();
             if (len > 0 && es.actions.data != null) {
@@ -228,7 +230,7 @@ public class StateAssertions {
         com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
         try {
-            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            ExportedState es = new ExportedState(p);
             es.read();
             int len = es.events.len == null ? 0 : es.events.len.intValue();
             if (len > 0 && es.events.data != null) {
@@ -256,13 +258,13 @@ public class StateAssertions {
         com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
         try {
-            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            ExportedState es = new ExportedState(p);
             es.read();
             int len = es.modules.len == null ? 0 : es.modules.len.intValue();
             if (len > 0 && es.modules.data != null) {
-                long structSize = new com.example.interop.exportedState.ModuleRow().size();
+                long structSize = new ModuleRow().size();
                 for (int i = 0; i < len; i++) {
-                    com.example.interop.exportedState.ModuleRow mr = new com.example.interop.exportedState.ModuleRow(es.modules.data.share(i * structSize));
+                    ModuleRow mr = new ModuleRow(es.modules.data.share(i * structSize));
                     mr.read();
                     String id = mr.id == null ? "" : mr.id.getString(0);
                     String name = mr.name == null ? "" : mr.name.getString(0);
@@ -290,15 +292,15 @@ public class StateAssertions {
         com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
         try {
-            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            ExportedState es = new ExportedState(p);
             es.read();
             int len = es.panels.len == null ? 0 : es.panels.len.intValue();
             if (len > 0 && es.panels.data != null) {
-                com.example.interop.exportedState.PanelFfi template = new com.example.interop.exportedState.PanelFfi();
+                PanelFfi template = new PanelFfi();
                 int structSize = template.size();
                 for (int i = 0; i < len; i++) {
-                    com.example.interop.exportedState.PanelFfi panel =
-                        new com.example.interop.exportedState.PanelFfi(es.panels.data.share((long) i * structSize));
+                    PanelFfi panel =
+                        new PanelFfi(es.panels.data.share((long) i * structSize));
                     String id = panel.id == null ? "" : panel.id.getString(0);
                     java.util.Map<String, String> m = new java.util.HashMap<>();
                     m.put("id", id);

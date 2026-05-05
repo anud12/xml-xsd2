@@ -1,6 +1,8 @@
 package com.example.utils.archiveTestBuilder.assertions;
 
-import com.example.interop.RuntimeInteropJava;
+import com.example.tests.interop.RuntimeInteropJava;
+import com.example.tests.interop.exportedState.ExportedState;
+import com.example.tests.interop.exportedState.PanelFfi;
 import com.example.utils.archiveTestBuilder.ArchiveTestBuilder;
 import com.example.utils.archiveTestBuilder.ArchiveTestBuilderCommon;
 
@@ -45,17 +47,17 @@ public interface AssertExportedPanels extends ArchiveTestBuilderCommon {
         com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
         try {
-            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            ExportedState es = new ExportedState(p);
             es.read();
             int len = es.panels.len == null ? 0 : es.panels.len.intValue();
 
             List<Map<String, String>> actualRows = new ArrayList<>();
             if (len > 0 && es.panels.data != null) {
-                com.example.interop.exportedState.PanelFfi template = new com.example.interop.exportedState.PanelFfi();
+                PanelFfi template = new PanelFfi();
                 int structSize = template.size();
                 for (int i = 0; i < len; i++) {
-                    com.example.interop.exportedState.PanelFfi panel =
-                            new com.example.interop.exportedState.PanelFfi(es.panels.data.share((long) i * structSize));
+                    PanelFfi panel =
+                            new PanelFfi(es.panels.data.share((long) i * structSize));
                     String id = panel.id == null ? "" : panel.id.getString(0);
                     Map<String, String> m = new java.util.HashMap<>();
                     m.put("id", id);

@@ -1,6 +1,7 @@
 package com.example.utils.archiveTestBuilder.assertions;
 
-import com.example.interop.RuntimeInteropJava;
+import com.example.tests.interop.RuntimeInteropJava;
+import com.example.tests.interop.exportedState.ExportedState;
 import com.example.utils.archiveTestBuilder.ArchiveTestBuilder;
 import com.example.utils.archiveTestBuilder.ArchiveTestBuilderCommon;
 
@@ -25,7 +26,7 @@ public interface AssertExportedActions extends ArchiveTestBuilderCommon {
         com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
         try {
-            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            ExportedState es = new ExportedState(p);
             es.read();
             int len = es.actions.len == null ? 0 : es.actions.len.intValue();
 

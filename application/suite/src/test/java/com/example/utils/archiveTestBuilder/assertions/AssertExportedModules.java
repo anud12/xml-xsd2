@@ -1,6 +1,8 @@
 package com.example.utils.archiveTestBuilder.assertions;
 
-import com.example.interop.RuntimeInteropJava;
+import com.example.tests.interop.RuntimeInteropJava;
+import com.example.tests.interop.exportedState.ExportedState;
+import com.example.tests.interop.exportedState.ModuleRow;
 import com.example.utils.archiveTestBuilder.ArchiveTestBuilder;
 import com.example.utils.archiveTestBuilder.ArchiveTestBuilderCommon;
 
@@ -35,15 +37,15 @@ public interface AssertExportedModules extends ArchiveTestBuilderCommon {
         com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
         try {
-            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            ExportedState es = new ExportedState(p);
             es.read();
             int len = es.modules.len == null ? 0 : es.modules.len.intValue();
 
             List<Map<String, String>> actualRows = new ArrayList<>();
             if (len > 0 && es.modules.data != null) {
-                long structSize = new com.example.interop.exportedState.ModuleRow().size();
+                long structSize = new ModuleRow().size();
                 for (int i = 0; i < len; i++) {
-                    com.example.interop.exportedState.ModuleRow mr = new com.example.interop.exportedState.ModuleRow(es.modules.data.share(i * structSize));
+                    ModuleRow mr = new ModuleRow(es.modules.data.share(i * structSize));
                     mr.read();
                     String idVal = mr.id == null ? "" : mr.id.getString(0);
                     String nameVal = mr.name == null ? "" : mr.name.getString(0);

@@ -1,21 +1,41 @@
 package com.example.utils.archiveTestBuilder.assertions;
 
-import com.example.interop.RuntimeInteropJava;
+import com.example.tests.interop.RuntimeInteropJava;
+import com.example.tests.interop.exportedState.ExportedState;
 import com.example.utils.archiveTestBuilder.ArchiveTestBuilder;
 import com.example.utils.archiveTestBuilder.ArchiveTestBuilderCommon;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public interface AssertExportedEntities extends ArchiveTestBuilderCommon {
 
     class Entity {
         private Optional<String> textMap_name = Optional.empty();
+        private Optional<HashMap<String, Long>> numberMap = Optional.empty();
+        private Optional<HashMap<String, String>> textMap = Optional.empty();
 
         public Entity setTextMapName(String string) {
             textMap_name = Optional.of(string);
+            return this;
+        }
+
+        public Entity setTextMap(String key, String value) {
+            if (textMap.isEmpty()) {
+                textMap = Optional.of(new HashMap<>());
+            }
+            textMap.ifPresent(stringLongHashMap -> {
+                stringLongHashMap.put(key, value);
+            });
+            return this;
+        }
+
+        public Entity setNumberMap(String key, Long value) {
+            if (numberMap.isEmpty()) {
+                numberMap = Optional.of(new HashMap<>());
+            }
+            numberMap.ifPresent(stringLongHashMap -> {
+                stringLongHashMap.put(key, value);
+            });
             return this;
         }
     }
@@ -25,7 +45,7 @@ public interface AssertExportedEntities extends ArchiveTestBuilderCommon {
         com.sun.jna.Pointer p = lib.runtime_export_state_struct();
         if (p == null) throw new AssertionError("exportStateStruct returned NULL pointer");
         try {
-            com.example.interop.exportedState.ExportedState es = new com.example.interop.exportedState.ExportedState(p);
+            ExportedState es = new ExportedState(p);
             es.read();
             int len = es.entities.len == null ? 0 : es.entities.len.intValue();
 
@@ -52,7 +72,8 @@ public interface AssertExportedEntities extends ArchiveTestBuilderCommon {
                     Map<String, String> row = actualRows.get(aidx);
                     boolean ok = true;
 
-                    if (ep.textMap_name.isPresent() && !row.getOrDefault("textMap_name", "").equals(ep.textMap_name.get())) ok = false;
+                    if (ep.textMap_name.isPresent() && !row.getOrDefault("textMap_name", "").equals(ep.textMap_name.get()))
+                        ok = false;
 
                     if (ok) {
                         actualUsed[aidx] = true;

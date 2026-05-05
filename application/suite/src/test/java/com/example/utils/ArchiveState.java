@@ -1,9 +1,9 @@
 package com.example.utils;
 
-import com.example.interop.RuntimeInteropJava;
+import com.example.tests.interop.RuntimeInteropJava;
 
 // Strong reference to a native callback so it isn't GC'd while native code may call back
-import com.example.interop.RuntimeInteropJava.MyCallback;
+import com.example.tests.interop.RuntimeInteropJava.MyCallback;
 
 import java.io.File;
 import java.util.ArrayList;

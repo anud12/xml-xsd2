@@ -1,16 +1,15 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "CommonJS",
+    // "target": "ES2020",
+    // "module": "CommonJS",
     "checkJs": true,
     "allowJs": true,
     "noEmit": true,
-    "strict": false,
-    "moduleResolution": "Node",
-//    "typeRoots": ["./types"]
+    "strict": true,
+    // "typeRoots": ["./types"]
   },
   "include": [
-    "src/test/resources/**/*.js",
+    "src/test/**/*.js",
     "types/**/*.d.ts",
     "../client/solution/**/*.js"
   ]

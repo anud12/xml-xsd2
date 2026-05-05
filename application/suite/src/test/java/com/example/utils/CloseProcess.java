@@ -1,6 +1,6 @@
 package com.example.utils;
 
-import com.example.interop.RuntimeInteropJava;
+import com.example.tests.interop.RuntimeInteropJava;
 
 public class CloseProcess {
     public static void closeProcess(ArchiveState state) {
