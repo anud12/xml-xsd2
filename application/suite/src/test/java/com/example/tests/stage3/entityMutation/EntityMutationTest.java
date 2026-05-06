@@ -35,6 +35,7 @@ public class EntityMutationTest {
                 .runIterations(1)
                 .assertExportedEntities(List.of(testData.before))
                 .triggerAction("action")
+                .runIterations(1)
                 .assertExportedEntities(List.of(testData.after));
         builder.cleanup();
     }
