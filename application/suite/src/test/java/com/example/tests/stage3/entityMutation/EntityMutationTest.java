@@ -10,13 +10,15 @@ import java.util.stream.Stream;
 
 public class EntityMutationTest {
 
-    record TestData(String directory, Entity entity) {
+    record TestData(String directory, Entity before, Entity after) {
     }
 
     static Stream<TestData> data() {
         return Stream.of(new TestData(
-                "numberModule",
-                new Entity().withNumberMapValue("value", 2L))
+                        "numberModule",
+                        new Entity().withNumberMapValue("value", 1L),
+                        new Entity().withNumberMapValue("value", 2L)
+                )
         );
     }
 
@@ -29,7 +31,9 @@ public class EntityMutationTest {
                 .addFile("./" + testData.directory() + "/manifest.json", "./manifest.json")
                 .addFile("./" + testData.directory() + "/index.js", "./index.js")
                 .loadArchive()
-                        .assertExportedEntities(List.of(testData.entity));
+                .assertExportedEntities(List.of(testData.before))
+                .runIterations(1)
+                .assertExportedEntities(List.of(testData.after));
         builder.cleanup();
     }
 
