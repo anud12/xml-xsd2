@@ -5,11 +5,16 @@ You are not allowed
 - to edit the "E:\workspace\xml-xsd2\application\suite\src\test\resources\features" folder under "suite" java project.
 - to edit the "E:\workspace\xml-xsd2\application\suite\src\test\java\com\example\tests" folder under "suite" java project.
 
+Note:
+    - when calling a tool add a new line before calling it to better define the start point of the tool
+
 Workflow:
-    - create a TODO list so that it can be delegated to sub-agents
     - Create a new git branch.
-    - Commit all changes.
-    - Amend all in-between commits.
+    - First create a todo so it can deleage to subagents
+        - each todo must be prefixed with the agent responsible.
+    - Add to the subagend resposibility that it also have to create a list of todo, similar to the parent.
+    - If an error appears, delegate a subagent to fix the issue. This approach can be used recursivelly by the subagent to spawn sub-subagents etc.
+    - commit all changes.
 
     - when files are needed to be moved, to easily keep track of what changed please:
         - first create directory then commit
@@ -18,6 +23,10 @@ Workflow:
         - delete old file then commit
 
 
+When replying
+    - keep it overly minimalistic
+    - as few words possible
+    - no multiple choices
 
 Keep working until tests are all passing.
 Good luck!

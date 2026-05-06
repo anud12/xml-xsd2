@@ -26,10 +26,13 @@ pub extern "C" fn runtime_load_archive(data_ptr: *const c_uchar, len: c_int) -> 
     let tmp_path = tmp.to_str().unwrap_or_default();
 
     let files = crate::archive::read_zip_files(tmp_path);
-    let file_rows = crate::module::build_file_rows(&files);
+    let file_rows = crate::module::build_file_rows(&files.clone());
     crate::state::set_last_file_rows(file_rows.clone());
-    // process_module calls apply_declarations which populates entity rows into state
+    // process_module calls apply_declarations which populates entity rows into state.
+    // Effects are executed within extract_from_source during module processing,
+    // so entity mutations from effects are reflected in the exported state.
     crate::module::process_module(&files, &mut Vec::new());
+
     // Read entity rows that were populated by process_module/apply_declarations
     let entity_rows = crate::state::last_entity_rows().lock().unwrap().clone();
     let _dest = crate::state::persist_state("state.db", &file_rows, &entity_rows);

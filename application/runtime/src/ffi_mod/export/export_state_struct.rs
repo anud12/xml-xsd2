@@ -12,6 +12,9 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
     let patterns_cached = crate::state::last_entity_patterns().lock().unwrap().clone();
     let mut panels_cached = crate::state::last_panels().lock().unwrap().clone();
     let created_by_cached = crate::state::last_created_by().lock().unwrap().clone();
+    // Collect entity map data (textMap and numberMap per entity)
+    let text_map_data = crate::state::last_entity_data().lock().unwrap().clone();
+    let number_map_data = crate::state::last_entity_number_data().lock().unwrap().clone();
     // Debug: print panels cache to stderr for troubleshooting
     // debug: panels_cached (disabled)
     // Fallback: if panels not registered by JS, try extracting from any panel.csv file in last_file_rows
@@ -140,6 +143,8 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
 
         let (created_by_ptr, created_by_len) = created_by_to_c_array(created_by_cached);
 
+        // Convert entity map data to C arrays (for ExportedState struct compatibility)
+        let (entity_data_ptr, entity_data_len) = entity_data_to_c_array(&text_map_data, &number_map_data);
         let es = ExportedState {
             entities: CStringArray { len: entities_len, data: entities_ptr },
             actions: CStringArray { len: actions_len, data: actions_ptr },
@@ -149,6 +154,7 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
             files: FileArray { len: files_len, data: files_ptr },
             entity_patterns: CStringArray { len: patterns_len, data: patterns_ptr },
             created_by: CreatedByArray { len: created_by_len, data: created_by_ptr },
+            entity_data: EntityDataArray { len: entity_data_len, data: entity_data_ptr },
             has_data: !files_cached.is_empty() || entities_len > 0 || actions_len > 0 || events_len > 0 || modules_len > 0,
         };
         Box::into_raw(Box::new(es))

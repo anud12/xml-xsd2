@@ -29,3 +29,6 @@ pub use misc::runtime_run_iteration;
 // Re-export from native_stdio
 pub use crate::native_stdio::register_logger;
 pub use crate::native_stdio::runtime_set_log_callback;
+
+// Entity map data export - these are exported via #[export_name] in types.rs
+// and don't need re-exports here since JNA loads them directly from the DLL.

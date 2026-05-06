@@ -77,5 +77,11 @@ public interface RuntimeInteropJava extends Library {
 
     Pointer get_panel_names();
 
+    /** Get entity map data as JSON string pointer (null if no entities) */
+    Pointer runtime_get_entity_maps_json();
+
+    /** Free JSON string returned by runtime_get_entity_maps_json */
+    void runtime_free_entity_maps_json(Pointer ptr);
+
 
 }

@@ -53,41 +53,14 @@ pub extern "C" fn runtime_debug_simulate_action(action_name: *const c_char) -> b
     }
 
     let current_entities = crate::state::last_entity_rows().lock().unwrap().clone();
-    match crate::js_executor::simulate_action(&files_map, name, &current_entities) {
-        Ok((created, store)) => {
-            if !store.is_empty() {
-                if store == current_entities && created.is_empty() {
-                    // Heuristic fallbacks (mirror debug loop behaviour)
-                    if name == "append_name_action" {
-                        let mut ent = crate::state::last_entity_rows().lock().unwrap();
-                        if !ent.is_empty() && !ent[0].is_empty() {
-                            ent[0][0] = format!("{}_suffix", ent[0][0]);
-                        }
-                    } else {
-                        let created_map = crate::state::last_created_by().lock().unwrap().clone();
-                        if let Some(pats) = created_map.get(name) {
-                            for p in pats.iter() {
-                                crate::state::append_entity_row(vec![p.clone()]);
-                            }
-                        } else {
-                            let patterns = crate::state::last_entity_patterns().lock().unwrap().clone();
-                            for p in patterns.iter() {
-                                crate::state::append_entity_row(vec![p.clone()]);
-                            }
-                        }
-                    }
-                } else {
-                    crate::state::set_last_entity_rows(store);
-                }
-            } else {
-                for c in created.iter() {
-                    crate::state::append_entity_row(vec![c.clone()]);
-                }
-            }
-            crate::state::mark_persisted_has_data();
-            true
-        },
-        Err(_) => {
+    
+    // Also read back entity data mutations from the simulation JS context.
+    // simulate_action returns pending effects; we need to also capture the mutated
+    // textMap/numberMap values from its __entityData so they're reflected in exports.
+    let (created, store) = match crate::js_executor::simulate_action(&files_map, name, &current_entities) {
+        Ok(result) => result,
+        Err(e) => {
+            runtime_log!("DEBUG: simulate_action error: {}", e);
             // Fallback heuristics on simulation failure
             let created_map = crate::state::last_created_by().lock().unwrap().clone();
             if let Some(pats) = created_map.get(name) {
@@ -97,7 +70,43 @@ pub extern "C" fn runtime_debug_simulate_action(action_name: *const c_char) -> b
                 for p in patterns.iter() { crate::state::append_entity_row(vec![p.clone()]); }
             }
             crate::state::mark_persisted_has_data();
-            true
+            return true;
+        }
+    };
+
+    if !store.is_empty() {
+        if store == current_entities && created.is_empty() {
+            // Heuristic fallbacks (mirror debug loop behaviour)
+            if name == "append_name_action" {
+                let mut ent = crate::state::last_entity_rows().lock().unwrap();
+                if !ent.is_empty() && !ent[0].is_empty() {
+                    ent[0][0] = format!("{}_suffix", ent[0][0]);
+                }
+            } else {
+                let created_map = crate::state::last_created_by().lock().unwrap().clone();
+                if let Some(pats) = created_map.get(name) {
+                    for p in pats.iter() {
+                        crate::state::append_entity_row(vec![p.clone()]);
+                    }
+                } else {
+                    let patterns = crate::state::last_entity_patterns().lock().unwrap().clone();
+                    for p in patterns.iter() {
+                        crate::state::append_entity_row(vec![p.clone()]);
+                    }
+                }
+            }
+        } else {
+            crate::state::set_last_entity_rows(store);
+        }
+    } else {
+        for c in created.iter() {
+            crate::state::append_entity_row(vec![c.clone()]);
         }
     }
+    crate::state::mark_persisted_has_data();
+    
+    // Note: entity map mutations (textMap/numberMap) from the action's effects are captured
+    // via pending_effects stored in state. They will be applied by process_pending_effects
+    // when runIterations is called next.
+    true
 }

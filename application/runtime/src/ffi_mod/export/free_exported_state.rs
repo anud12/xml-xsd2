@@ -36,6 +36,10 @@ pub extern "C" fn runtime_free_exported_state(ptr: *mut ExportedState) {
                 if !row.values.is_null() && row.values_len > 0 { free_c_string_array(row.values, row.values_len); }
             }
         }
+        // Free entity data (textMap and numberMap per entity)
+        if !boxed.entity_data.data.is_null() && boxed.entity_data.len > 0 {
+            free_entity_data_array(boxed.entity_data.data, boxed.entity_data.len);
+        }
         // boxed dropped here, freeing ExportedState struct memory
     }
 }

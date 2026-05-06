@@ -56,6 +56,7 @@ pub struct ExportedState {
     pub files: FileArray,
     pub entity_patterns: CStringArray,
     pub created_by: CreatedByArray,
+    pub entity_data: EntityDataArray,
     pub has_data: bool,
 }
 
@@ -139,6 +140,60 @@ pub struct EntityRow {
 }
 
 pub type EntityChangeCb = extern "C" fn(*const EntityRow, *mut c_void);
+
+// Per-entity map data for FFI export
+#[repr(C)]
+pub struct EntityDataRow {
+    pub id: *mut c_char,
+    // textMap: key-value pairs (both strings)
+    pub text_map_len: usize,
+    pub text_map_keys: *mut *mut c_char,
+    pub text_map_values: *mut *mut c_char,
+    // numberMap: keys are strings, values are f64
+    pub number_map_len: usize,
+    pub number_map_keys: *mut *mut c_char,
+    pub number_map_values: *mut libc::c_double,
+}
+
+#[repr(C)]
+pub struct EntityDataArray {
+    pub len: usize,
+    pub data: *mut EntityDataRow,
+}
+
+// Simple JSON export of entity map data - avoids complex nested pointer structures for FFI clients
+#[export_name = "runtime_get_entity_maps_json"]
+pub unsafe extern "C" fn runtime_get_entity_maps_json() -> *mut std::ffi::c_char {
+    let text_data = crate::state::last_entity_data().lock().unwrap().clone();
+    let number_data = crate::state::last_entity_number_data().lock().unwrap().clone();
+
+    // Build a simple JSON map: { entityId: { "textMap": {"key":"val"}, "numberMap": {"key":1.0} } }
+    let mut json_map = serde_json::Map::new();
+    for (id, tm) in &text_data {
+        let mut entity_obj = serde_json::Map::new();
+        let tm_vals: serde_json::Map<String, serde_json::Value> = tm.iter().map(|(k,v)| (k.clone(), serde_json::json!(v))).collect();
+        if !tm_vals.is_empty() { entity_obj.insert("textMap".to_string(), serde_json::json!(tm_vals)); }
+        json_map.insert(id.clone(), serde_json::Value::Object(entity_obj));
+    }
+    for (id, nm) in &number_data {
+        let entry = json_map.entry(id.clone()).or_insert(serde_json::Value::Object(serde_json::Map::new()));
+        if let Some(obj) = entry.as_object_mut() {
+            let nm_vals: serde_json::Map<String, serde_json::Value> = nm.iter().map(|(k,v)| (k.clone(), serde_json::json!(v))).collect();
+            if !nm_vals.is_empty() { obj.insert("numberMap".to_string(), serde_json::json!(nm_vals)); }
+        }
+    }
+
+    let json_str = serde_json::to_string(&serde_json::Value::Object(json_map)).unwrap_or_else(|_| String::from("{}"));
+    if json_str == "{}" { return std::ptr::null_mut(); }
+    let cstr = std::ffi::CString::new(json_str).unwrap();
+    cstr.into_raw()
+}
+
+#[export_name = "runtime_free_entity_maps_json"]
+pub unsafe extern "C" fn runtime_free_entity_maps_json(ptr: *mut std::ffi::c_char) {
+    if ptr.is_null() { return; }
+    let _ = std::ffi::CString::from_raw(ptr);
+}
 
 #[repr(C)]
 pub struct Subscription {
@@ -284,5 +339,89 @@ pub unsafe fn free_panel_array(ptr: *mut PanelFfi, len: usize) {
         if !p.background.is_null() { let _ = CString::from_raw(p.background); }
         if !p.children_json.is_null() { let _ = CString::from_raw(p.children_json); }
         if !p.panel_json.is_null() { let _ = CString::from_raw(p.panel_json); }
+    }
+}
+
+pub unsafe fn entity_data_to_c_array(
+    text_maps: &HashMap<String, HashMap<String, String>>,
+    number_maps: &HashMap<String, HashMap<String, f64>>,
+) -> (*mut EntityDataRow, usize) {
+    // Collect all entity ids (union of both maps)
+    let mut entity_ids: Vec<String> = Vec::new();
+    for id in text_maps.keys() {
+        if !entity_ids.contains(id) { entity_ids.push(id.clone()); }
+    }
+    for id in number_maps.keys() {
+        if !entity_ids.contains(id) { entity_ids.push(id.clone()); }
+    }
+    if entity_ids.is_empty() { return (std::ptr::null_mut(), 0); }
+
+    let mut out: Vec<EntityDataRow> = Vec::with_capacity(entity_ids.len());
+    for id in entity_ids.into_iter() {
+        let id_ptr = CString::new(id.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw();
+
+        // textMap data
+        let (tm_keys, tm_vals, tm_len) = if let Some(tm) = text_maps.get(&id) {
+            let keys: Vec<*mut c_char> = tm.keys().map(|k| {
+                CString::new(k.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw()
+            }).collect();
+            let vals: Vec<*mut c_char> = tm.values().map(|v| {
+                CString::new(v.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw()
+            }).collect();
+            let k_ptr = if keys.is_empty() { std::ptr::null_mut() } else {
+                Box::into_raw(keys.into_boxed_slice()) as *mut *mut c_char
+            };
+            let v_ptr = if vals.is_empty() { std::ptr::null_mut() } else {
+                Box::into_raw(vals.into_boxed_slice()) as *mut *mut c_char
+            };
+            (k_ptr, v_ptr, tm.len())
+        } else {
+            (std::ptr::null_mut(), std::ptr::null_mut(), 0)
+        };
+
+        // numberMap data
+        let (nm_keys, nm_vals, nm_len) = if let Some(nm) = number_maps.get(&id) {
+            let keys: Vec<*mut c_char> = nm.keys().map(|k| {
+                CString::new(k.clone()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw()
+            }).collect();
+            let vals: Vec<libc::c_double> = nm.values().cloned().collect();
+            let k_ptr = if keys.is_empty() { std::ptr::null_mut() } else {
+                Box::into_raw(keys.into_boxed_slice()) as *mut *mut c_char
+            };
+            let v_ptr = if vals.is_empty() { std::ptr::null_mut() } else {
+                Box::into_raw(vals.into_boxed_slice()) as *mut libc::c_double
+            };
+            (k_ptr, v_ptr, nm.len())
+        } else {
+            (std::ptr::null_mut(), std::ptr::null_mut(), 0)
+        };
+
+        out.push(EntityDataRow {
+            id: id_ptr,
+            text_map_len: tm_len as usize,
+            text_map_keys: tm_keys,
+            text_map_values: tm_vals,
+            number_map_len: nm_len as usize,
+            number_map_keys: nm_keys,
+            number_map_values: nm_vals,
+        });
+    }
+
+    let len = out.len();
+    let boxed = out.into_boxed_slice();
+    let ptr = Box::into_raw(boxed) as *mut EntityDataRow;
+    (ptr, len)
+}
+
+pub unsafe fn free_entity_data_array(ptr: *mut EntityDataRow, len: usize) {
+    if ptr.is_null() || len == 0 { return; }
+    let boxed: Box<[EntityDataRow]> = Box::from_raw(std::ptr::slice_from_raw_parts_mut(ptr, len));
+    for row in boxed.iter() {
+        if !row.id.is_null() { let _ = CString::from_raw(row.id); }
+        // Free textMap keys and values
+        free_c_string_array(row.text_map_keys, row.text_map_len);
+        free_c_string_array(row.text_map_values, row.text_map_len);
+        // Free numberMap keys (values are plain f64, no cleanup needed)
+        free_c_string_array(row.number_map_keys, row.number_map_len);
     }
 }

@@ -36,7 +36,7 @@ fn host_api_script_scan_fn() -> &'static str {
 }
 
 fn host_api_script_register_block(kind: &str) -> String {
-    let label = if kind == "registerEvent" { "Events" } else if kind == "registerAction" { "Actions" } else { "Events" };
+    let label = if kind == "registerEvent" { "Events" } else if kind == "registerAction" { "Actions" } else if kind == "registerEffect" { "Effects" } else { "Events" };
     let mut s = String::new();
     s.push_str(kind);
     s.push_str("(ev) { let n = 'unknown'; if (ev && typeof ev === 'object') { if (typeof ev.name === 'string') n = ev.name; else if (ev.apply && typeof ev.apply === 'function' && ev.apply.name) n = ev.apply.name; } else if (typeof ev === 'string') { n = ev; } globalThis.__logs = globalThis.__logs || []; ");
@@ -63,7 +63,11 @@ fn host_api_script_set_entity() -> &'static str {
 }
 
 fn host_api_script_log() -> &'static str {
-    r#"log(msg) { try { globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push(String(msg)); } catch(e) { } }, number: { of: function(n) { return n; } }, string: { of: function(s) { return s; } }, texture: { of: function(t) { return t; } }"#
+    r#"log(msg) { try { globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push(String(msg)); } catch(e) { } }, number: { of: function(n) { return n; } }, string: { of: function(s) { return s; } }, texture: { of: function(t) { return t; } },"#
+}
+
+fn host_api_script_entity_filter() -> &'static str {
+    r#"entity: { filter: { create: function() { return { byId: function(fn) { return fn; } }; } } }"#
 }
 
 fn host_api_script_rest() -> String {
@@ -75,6 +79,7 @@ fn host_api_script_rest() -> String {
     parts.push(host_api_script_create_entity().to_string());
     parts.push(host_api_script_set_entity().to_string());
     parts.push(host_api_script_log().to_string());
+    parts.push(host_api_script_entity_filter().to_string());
     let mut s = parts.join("");
     s.push_str(" }"); // close globalThis.host object
     s
