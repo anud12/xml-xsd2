@@ -33,6 +33,8 @@ public class EntityMutationTest {
                 .loadArchive()
                 .assertExportedEntities(List.of(testData.before))
                 .runIterations(1)
+                .assertExportedEntities(List.of(testData.before))
+                .triggerAction("action")
                 .assertExportedEntities(List.of(testData.after));
         builder.cleanup();
     }
