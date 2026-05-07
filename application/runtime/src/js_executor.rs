@@ -417,6 +417,7 @@ pub fn process_pending_effects(files: &std::collections::HashMap<String, String>
 
     // Sync entity store changes back to __entityData after effects ran, then read mutated data.
     let logs_json = ctx.with(|c| c.eval::<String, _>("JSON.stringify(globalThis.__logs||[])")).unwrap_or_else(|_| "[]".to_string());
+    if let Ok(logs_vec) = serde_json::from_str::<Vec<String>>(&logs_json) { for l in logs_vec.iter() { if !l.starts_with("DEBUG:") && !l.starts_with("DEBUG_") { runtime_log!("{}", l); } } }
     let entity_data_json = ctx.with(|c| c.eval::<String, _>(r#"
         (function(){var before=JSON.stringify(globalThis.__entityStore);if(globalThis.__entityData&&globalThis.__entityStore){for(var k in globalThis.__entityData){for(var i=0;i<globalThis.__entityStore.length;i++){var entry=globalThis.__entityStore[i];if(entry&&entry.textMap_name===k){globalThis.__entityData[k]=JSON.parse(JSON.stringify(entry));}}}}return JSON.stringify({before:before,after:globalThis.__entityData})})();"#)).unwrap_or_else(|_| "{}".to_string());
 
