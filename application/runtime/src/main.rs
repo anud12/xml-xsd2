@@ -6,7 +6,7 @@ mod js_runtime;
 mod js_host_api;
 mod js_executor;
 mod debug_loop;
-mod archive;
+mod archive_read;
 mod state;
 mod module;
 
@@ -31,8 +31,8 @@ fn main() {
     runtime_log!("Runtime launched");
     std::io::stdout().flush().ok();
 
-    archive::create_empty_zip_if_missing(&zip_path);
-    let files = archive::read_zip_files(&zip_path);
+    archive_read::create_empty_zip_if_missing(&zip_path);
+    let files = archive_read::read_zip_files(&zip_path);
     let file_rows = module::build_file_rows(&files);
     crate::state::set_last_file_rows(file_rows.clone());
 

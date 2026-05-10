@@ -38,7 +38,7 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
                     Err(e) => eprintln!("debug: failed to write tmp archive: {:?}", e),
                 }
                 let tmp_path = tmp.to_str().unwrap_or_default();
-                files = crate::archive::read_zip_files(tmp_path);
+                files = crate::archive_read::read_zip_files(tmp_path);
                 runtime_log!("debug: read_zip_files returned {} files", files.len());
             }
             Err(e) => {
@@ -49,7 +49,7 @@ fn dispatch(cmd: &str, delimiter: &str) -> bool {
             let archive_path = crate::state::last_archive_path().lock().unwrap().clone();
             if !archive_path.is_empty() && std::path::Path::new(&archive_path).exists() {
                 runtime_log!("debug: fallback reading archive from configured path {}", archive_path);
-                files = crate::archive::read_zip_files(&archive_path);
+                files = crate::archive_read::read_zip_files(&archive_path);
                 runtime_log!("debug: read_zip_files (fallback) returned {} files", files.len());
             }
         }

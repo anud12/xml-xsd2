@@ -14,8 +14,8 @@ pub extern "C" fn runtime_process_archive(path: *const c_char) -> *mut c_char {
     crate::state::set_archive_path(zip_path);
     
     runtime_log!("process_archive: zip_path='{}' exists={} ", zip_path, std::path::Path::new(zip_path).exists());
-    crate::archive::create_empty_zip_if_missing(zip_path);
-    let files = crate::archive::read_zip_files(zip_path);
+    crate::archive_read::create_empty_zip_if_missing(zip_path);
+    let files = crate::archive_read::read_zip_files(zip_path);
     runtime_log!("process_archive: read {} files", files.len());
     
     let file_rows = crate::module::build_file_rows(&files);

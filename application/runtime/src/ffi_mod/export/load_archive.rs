@@ -23,7 +23,7 @@ pub extern "C" fn runtime_load_archive(data_ptr: *const c_uchar, len: c_int) -> 
     }
     let tmp_path = tmp.to_str().unwrap_or_default();
 
-    let files = crate::archive::read_zip_files(tmp_path);
+    let files = crate::archive_read::read_zip_files(tmp_path);
     let file_rows = crate::module::build_file_rows(&files.clone());
     crate::state::set_last_file_rows(file_rows.clone());
     crate::module::process_module(&files, &mut Vec::new());

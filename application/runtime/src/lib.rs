@@ -6,7 +6,7 @@ pub mod js_runtime;
 pub mod js_host_api;
 pub mod js_executor;
 pub mod debug_loop;
-pub mod archive;
+pub mod archive_read;
 pub mod state;
 pub mod module;
 pub mod ffi_mod;
