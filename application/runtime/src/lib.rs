@@ -8,7 +8,6 @@ pub mod js_executor;
 pub mod debug_loop;
 pub mod archive;
 pub mod state;
-pub mod export_helpers;
 pub mod module;
 pub mod ffi_mod;
 pub use ffi_mod as ffi;

@@ -1,8 +1,4 @@
 #![allow(dead_code)]
-use std::fs::File;
-use std::io::Read;
-use std::path::Path;
-use rusqlite::Connection;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Once, Mutex};
 
@@ -157,7 +153,6 @@ pub fn clear_pending_effects() {
 
 #[allow(dead_code)]
 pub fn clear_state() {
-    // Clear cached rows and flags so embedding processes can reset runtime state between tests
     *last_file_rows().lock().unwrap() = Vec::new();
     *last_entity_rows().lock().unwrap() = Vec::new();
     *last_action_rows().lock().unwrap() = Vec::new();
@@ -180,143 +175,4 @@ pub fn last_archive_path() -> &'static Mutex<String> {
 
 pub fn set_archive_path(path: &str) {
     *last_archive_path().lock().unwrap() = path.to_string();
-}
-
-/// Persists file and entity rows into a SQLite file on disk and returns the path.
-pub fn persist_state(path: &str, file_rows: &[Vec<String>], entity_rows: &[Vec<String>]) -> String {
-    let mut conn = Connection::open_in_memory().expect("open db");
-    conn.execute_batch("CREATE TABLE IF NOT EXISTS files (file_name TEXT, contents TEXT);")
-        .expect("create files table");
-    // Ensure expected output tables exist with correct columns so CSV column checks succeed.
-    conn.execute_batch("CREATE TABLE IF NOT EXISTS module (id TEXT, name TEXT, version TEXT);")
-        .expect("create module table");
-    conn.execute_batch("CREATE TABLE IF NOT EXISTS events (name TEXT);")
-        .expect("create events table");
-    conn.execute_batch("CREATE TABLE IF NOT EXISTS action (name TEXT);")
-        .expect("create action table");
-    conn.execute_batch("CREATE TABLE IF NOT EXISTS entity (textMap_name TEXT);")
-        .expect("create entity table");
-    // Use helper to insert files and collect module rows from manifests
-    let module_rows_cache = crate::export_helpers::insert_files_and_collect_modules(&mut conn, file_rows);
-    // Insert entities and commit
-    crate::export_helpers::insert_entities(&mut conn, &entity_rows.to_vec());
-    // cache module rows for later exports
-    if !module_rows_cache.is_empty() { set_last_module_rows(module_rows_cache); }
-    let dest = format!("{}-{}.db", path, std::process::id());
-    // mark that a persisted DB with data exists
-    if !file_rows.is_empty() || !entity_rows.is_empty() {
-        persisted_flag().store(true, Ordering::SeqCst);
-    }
-    // update last rows cache
-    *last_file_rows().lock().unwrap() = file_rows.to_vec();
-    *last_entity_rows().lock().unwrap() = entity_rows.to_vec();
-    if Path::new(&dest).exists() {
-        let _ = std::fs::remove_file(&dest);
-    }
-    let mut dest_conn = Connection::open(&dest).expect("open dest db");
-    let backup = rusqlite::backup::Backup::new(&conn, &mut dest_conn).expect("backup");
-    backup.step(-1).expect("backup step");
-    dest
-}
-
-/// Creates a minimal SQLite database with a `module` VIEW and returns its raw bytes.
-///
-/// The VIEW (not a TABLE) satisfies two test constraints simultaneously:
-/// - `assertEmptySqlFile` queries `sqlite_master WHERE type='table'` → no tables found → passes.
-/// - `assertOutputTableColumnsMatchesCsv` runs `SELECT * FROM 'module' LIMIT 0` → works on views.
-pub fn create_startup_sqlite_bytes() -> Vec<u8> {
-    let path = format!("startup_state_{}.db", std::process::id());
-    {
-        let conn = Connection::open(&path).expect("create startup db");
-        conn.execute_batch(
-            "PRAGMA page_size = 512; \
-             CREATE VIEW IF NOT EXISTS module AS \
-               SELECT '' AS id, '' AS name, '' AS version WHERE 0; \
-             CREATE VIEW IF NOT EXISTS events AS \
-               SELECT '' AS name WHERE 0; \
-             CREATE VIEW IF NOT EXISTS action AS \
-               SELECT '' AS name WHERE 0; \
-             CREATE VIEW IF NOT EXISTS entity AS \
-               SELECT '' AS textMap_name WHERE 0; \
-             CREATE VIEW IF NOT EXISTS panel AS \
-               SELECT '' AS id WHERE 0; \
-             VACUUM;",
-        )
-        .expect("init startup db");
-    }
-    let mut buf = Vec::new();
-    {
-        let mut f = File::open(&path).expect("open startup db");
-        f.read_to_end(&mut buf).expect("read startup db");
-    }
-    let _ = std::fs::remove_file(&path);
-    buf
-}
-
-#[allow(dead_code)]
-fn try_copy_persisted_to(path: &str) -> bool {
-    let persisted = format!("state.db-{}.db", std::process::id());
-    if persisted_flag().load(Ordering::SeqCst) && Path::new(&persisted).exists() {
-        let _ = std::fs::copy(&persisted, path).expect("copy persisted db");
-        return true;
-    }
-    false
-}
-
-/// Exports the current state to a SQLite file at `path` with all required schema views."}
-/// Creates the file (overwriting if it exists) with views for module, events, action, and entity.
-pub fn export_to_file(path: &str) {
-    if Path::new(path).exists() { let _ = std::fs::remove_file(path); }
-
-    let persisted = format!("state.db-{}.db", std::process::id());
-    let files_cached = last_file_rows().lock().unwrap().clone();
-    let entities_cached = last_entity_rows().lock().unwrap().clone();
-    let actions_cached = last_action_rows().lock().unwrap().clone();
-    let events_cached = last_event_rows().lock().unwrap().clone();
-    let modules_cached = last_module_rows().lock().unwrap().clone();
-    let panels_cached = last_panels().lock().unwrap().clone();
-
-    let has_cached = !files_cached.is_empty() || !actions_cached.is_empty() || !events_cached.is_empty() || !entities_cached.is_empty() || !modules_cached.is_empty() || !panels_cached.is_empty();
-
-    if has_cached {
-        let mut mem_conn = crate::export_helpers::init_in_memory_export_db();
-        crate::export_helpers::insert_module_rows_from_cache_or_files(&mut mem_conn, &modules_cached, &files_cached);
-        crate::export_helpers::insert_actions(&mut mem_conn, &actions_cached);
-        crate::export_helpers::insert_events(&mut mem_conn, &events_cached);
-        crate::export_helpers::insert_panels(&mut mem_conn, &panels_cached);
-        crate::export_helpers::insert_entities(&mut mem_conn, &entities_cached);
-
-        let mut dest_conn = Connection::open(path).expect("open export db");
-        let backup = rusqlite::backup::Backup::new(&mem_conn, &mut dest_conn).expect("backup");
-        backup.step(-1).expect("backup step");
-        return;
-    } else {
-        if persisted_flag().load(Ordering::SeqCst) && Path::new(&persisted).exists() {
-            let _ = std::fs::copy(&persisted, path).expect("copy persisted db");
-            return;
-        }
-        let conn = Connection::open(path).expect("open export db");
-        conn.execute_batch(
-            "PRAGMA page_size = 512; \
-             CREATE VIEW IF NOT EXISTS module AS \
-               SELECT '' AS id, '' AS name, '' AS version WHERE 0; \
-             CREATE VIEW IF NOT EXISTS events AS \
-               SELECT '' AS name WHERE 0; \
-             CREATE VIEW IF NOT EXISTS action AS \
-               SELECT '' AS name WHERE 0; \
-             CREATE VIEW IF NOT EXISTS entity AS \
-               SELECT '' AS textMap_name WHERE 0; \
-             VACUUM;",
-        )
-        .expect("init export db");
-        return;
-    }
-}
-
-/// Reads the SQLite file at `path` into memory.
-pub fn read_sqlite_bytes(path: &str) -> Vec<u8> {
-    let mut f = File::open(path).expect("open state");
-    let mut buf = Vec::new();
-    f.read_to_end(&mut buf).expect("read state");
-    buf
 }

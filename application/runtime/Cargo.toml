@@ -14,7 +14,7 @@ harness = false
 
 [dependencies]
 anyhow = "1.0.102"
-rusqlite = { version = "0.39.0", features = ["bundled", "backup"] }
+
 thiserror = "2.0.18"
 walkdir = "2.5.0"
 zip = "8.4.0"
