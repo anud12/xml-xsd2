@@ -309,7 +309,7 @@ pub fn process_pending_effects(files: &std::collections::HashMap<String, String>
     // Build entity store
     let _ = ctx.with(|ctx| ctx.eval::<(), _>(entity_store_script()));
 
- for effect_name in effects.iter() {
+   for effect_name in effects.iter() {
         // Debug: test direct mutation without getEntityBy
         let debug_script = debug_effect_template()
             .replace("EFFECT_NAME_PLACEHOLDER", effect_name);
@@ -319,6 +319,15 @@ pub fn process_pending_effects(files: &std::collections::HashMap<String, String>
         let result = ctx.with(|c| c.eval::<(), _>(effect_script.as_str()));
         if let Err(e) = result {
             eprintln!("[DEBUG process_pending_effects] error executing effect '{}': {}", effect_name, e);
+        }
+    }
+
+    // Collect logs from effect execution and send to logger
+    let logs_json = ctx.with(|c| c.eval::<String, _>("JSON.stringify(globalThis.__logs||[])"))
+        .unwrap_or_default();
+    if let Ok(logs_vec) = serde_json::from_str::<Vec<String>>(&logs_json) {
+        for l in logs_vec.iter() {
+            runtime_log!("{}", l);
         }
     }
 

@@ -1,18 +1,3 @@
-// Execute all registered effects
-var regEffects = globalThis.__registeredEvents || [];
-for (var i = 0; i < regEffects.length; i++) {
-  if (regEffects[i] && typeof regEffects[i].apply === 'function') {
-    try {
-      var efCtx = buildEffectContext();
-      var prepared = null;
-      if (typeof regEffects[i].prepare === 'function') {
-        try { prepared = regEffects[i].prepare({}); } catch(ex) {}
-      }
-      regEffects[i].apply(efCtx, prepared);
-    } catch(e) {}
-  }
-}
-
 // Sync entity store back to __entityData
 if (globalThis.__entityData && globalThis.__entityStore) {
   for (var k in globalThis.__entityData) {
