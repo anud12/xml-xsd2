@@ -6,11 +6,15 @@
     "allowJs": true,
     "noEmit": true,
     "strict": true,
-    // "typeRoots": ["./types"]
+    "baseUrl": "..",
+    "paths": {
+      "module-public-api/*": ["module-public-api/*"]
+    }
   },
   "include": [
     "src/test/**/*.js",
-    "types/**/*.d.ts",
-    "../client/solution/**/*.js"
+    "../client/solution/**/*.js",
+    "../module-public-api/types/**/*.d.ts",
+    "../module-public-api/types/**/*.ts"
   ]
 }

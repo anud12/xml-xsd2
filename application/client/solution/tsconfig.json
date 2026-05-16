@@ -10,7 +10,7 @@
     "typeRoots": ["./types"],
   },
   "include": [
-    "../../suite/types/**/*.d.ts",
+    "../../module-public-api/types/**/*.d.ts",
     "./**/*.js",
 
   ]

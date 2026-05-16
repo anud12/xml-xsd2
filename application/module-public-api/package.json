@@ -1,0 +1,12 @@
+{
+  "name": "module-public-api",
+  "version": "1.0.0",
+  "description": "TypeScript type definitions for module API",
+  "license": "ISC",
+  "author": "",
+  "main": "",
+  "types": "types",
+  "dependencies": {
+    "typescript": "^5.9.3"
+  }
+}
