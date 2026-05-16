@@ -18,27 +18,32 @@ pub struct Declarations {
     pub entity_data: serde_json::Value,
 }
 
-/// Host API JavaScript loaded at compile time.
-fn host_api_script() -> &'static str {
-    include_str!("js/scripts/host_api.js")
+/// Bundled TypeScript bridge loaded at compile time.
+fn bridge_script() -> &'static str {
+    include_str!("js/scripts/bridge.js")
 }
 
-/// Extract declarations JavaScript loaded at compile time.
-fn extract_declarations_script() -> &'static str {
-    include_str!("js/scripts/extract_declarations.js")
+/// Wrapper that calls Bridge.install() to populate globals.
+fn bridge_host_install_script() -> &'static str {
+    include_str!("js/scripts/bridge_host_install.js")
+}
+
+/// Wrapper that calls Bridge.serializeDeclarations() and returns JSON.
+fn bridge_extract_script() -> &'static str {
+    include_str!("js/scripts/bridge_extract.js")
 }
 
 /// Install a minimal, explicit host API into the provided QuickJS Context.
 pub fn install_host_api(ctx: &Context) -> Result<()> {
-    let script = host_api_script();
-    ctx.with(|ctx| { ctx.eval::<(), _>(script) })?;
+    ctx.with(|c| c.eval::<(), _>(bridge_script()))?;
+    ctx.with(|c| c.eval::<(), _>(bridge_host_install_script()))?;
     Ok(())
 }
 
 /// Inspect the QuickJS global scope and return a JSON-deserializable
 /// representation of discovered declarations (events, actions, functions, entities).
 pub fn extract_declarations(ctx: &Context) -> Result<Declarations> {
-    let json = ctx.with(|ctx| ctx.eval::<String, _>(extract_declarations_script()))?;
+    let json = ctx.with(|c| c.eval::<String, _>(bridge_extract_script()))?;
     let dec: Declarations = serde_json::from_str(&json)?;
     Ok(dec)
 }

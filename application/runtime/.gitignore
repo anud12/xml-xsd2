@@ -1,1 +1,6 @@
 /target
+/js_bridge/dist
+/js_bridge/node_modules
+/src/js/scripts/bridge.js
+/src/js/scripts/bridge_host_install.js
+/src/js/scripts/bridge_extract.js
