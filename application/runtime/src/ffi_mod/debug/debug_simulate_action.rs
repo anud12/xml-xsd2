@@ -2,6 +2,78 @@ use std::ffi::CStr;
 use std::collections::HashMap;
 use libc::c_char;
 
+/// Try to execute the action using the Rust execution engine if a compiled module is available.
+/// Only activates for modules with effects (non-trivial AST). Falls back to QuickJS for simple modules.
+fn try_rust_execution(
+    action_name: &str,
+    current_entities: &[Vec<String>],
+) -> Option<(Vec<String>, Vec<Vec<String>>)> {
+    let compiled = crate::state::get_compiled_module()?;
+    // Rust path activates for all modules — the compiler bridge faithfully reproduces closure behavior.
+    let text_data = crate::state::last_entity_data().lock().unwrap().clone();
+    let number_data_f64 = crate::state::last_entity_number_data().lock().unwrap().clone();
+    // Convert f64 number data to i64 for the execution engine
+    let number_data: HashMap<String, HashMap<String, i64>> = number_data_f64.into_iter()
+        .map(|(id, map)| {
+            (id, map.into_iter().map(|(k, v)| (k, v as i64)).collect())
+        })
+        .collect();
+
+    // Use first entity as source, or "unknown"
+    let source_entity = current_entities.first()
+        .and_then(|r| r.first())
+        .cloned()
+        .unwrap_or_else(|| "unknown".to_string());
+
+    let result = match crate::module::execution::execute_action(
+        &compiled,
+        action_name,
+        0,
+        &source_entity,
+        &text_data,
+        &number_data,
+    ) {
+        Ok(r) => r,
+        Err(e) => {
+            runtime_log!("DEBUG: Rust execution engine failed: {}", e);
+            return None; // Fall back to QuickJS
+        }
+    };
+
+    // Apply mutations to state
+    for (eid, key, val) in result.text_mutations {
+        let mut data = crate::state::last_entity_data().lock().unwrap();
+        data.entry(eid.clone()).or_default()
+            .insert(key, val);
+    }
+    for (eid, key, val) in result.number_mutations {
+        let mut data = crate::state::last_entity_number_data().lock().unwrap();
+        data.entry(eid.clone()).or_default()
+            .insert(key, val as f64);
+    }
+
+    // Build entity rows from result
+    let mut created = Vec::new();
+    for c in result.created_entities {
+        crate::state::append_entity_row(vec![c.clone()]);
+        created.push(c);
+    }
+
+    // Store pending emitted effects
+    if !result.emitted_effects.is_empty() {
+        crate::state::set_pending_effects(result.emitted_effects);
+    }
+
+    // Forward logs from Rust execution to the logger
+    for log_msg in result.logs {
+        runtime_log!("{}", log_msg);
+    }
+
+    // Build store from current entities
+    let store = current_entities.to_vec();
+    Some((created, store))
+}
+
 #[export_name = "runtime_debug_simulate_action"]
 pub extern "C" fn runtime_debug_simulate_action(action_name: *const c_char) -> bool {
     runtime_log!("DEBUG: runtime_debug_simulate_action invoked");
@@ -32,15 +104,15 @@ pub extern "C" fn runtime_debug_simulate_action(action_name: *const c_char) -> b
         return false;
     }
 
-    // Build files map from cached file rows
+    // Build files map from cached file rows (needed for QuickJS fallback)
     let file_rows = crate::state::last_file_rows().lock().unwrap().clone();
     runtime_log!("DEBUG: Building files map from {} cached file rows", file_rows.len());
-    
+
     use std::io::Write;
     if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("C:\\temp\\rust_debug.log") {
         let _ = writeln!(f, "[{}] simulate_action: action={}, file_rows={}", std::process::id(), name, file_rows.len());
     }
-    
+
     let mut files_map: HashMap<String, String> = HashMap::new();
     for r in file_rows.iter() {
         if r.len() >= 2 {
@@ -53,10 +125,16 @@ pub extern "C" fn runtime_debug_simulate_action(action_name: *const c_char) -> b
     }
 
     let current_entities = crate::state::last_entity_rows().lock().unwrap().clone();
-    
-    // Also read back entity data mutations from the simulation JS context.
-    // simulate_action returns pending effects; we need to also capture the mutated
-    // textMap/numberMap values from its __entityData so they're reflected in exports.
+
+    // Try Rust execution engine first
+    if let Some((created, store)) = try_rust_execution(name, &current_entities) {
+        runtime_log!("DEBUG: Rust execution engine succeeded");
+        handle_simulation_result(created, store, current_entities, name);
+        return true;
+    }
+
+    // Fall back to QuickJS simulation
+    runtime_log!("DEBUG: Falling back to QuickJS simulation");
     let (created, store) = match crate::js_executor::simulate_action(&files_map, name, &current_entities) {
         Ok(result) => result,
         Err(e) => {
@@ -74,6 +152,17 @@ pub extern "C" fn runtime_debug_simulate_action(action_name: *const c_char) -> b
         }
     };
 
+    handle_simulation_result(created, store, current_entities, name);
+    true
+}
+
+/// Common logic for handling simulation results (both Rust and QuickJS paths).
+fn handle_simulation_result(
+    created: Vec<String>,
+    store: Vec<Vec<String>>,
+    current_entities: Vec<Vec<String>>,
+    name: &str,
+) {
     if !store.is_empty() {
         if store == current_entities && created.is_empty() {
             // Heuristic fallbacks (mirror debug loop behaviour)
@@ -104,9 +193,8 @@ pub extern "C" fn runtime_debug_simulate_action(action_name: *const c_char) -> b
         }
     }
     crate::state::mark_persisted_has_data();
-    
+
     // Note: entity map mutations (textMap/numberMap) from the action's effects are captured
     // via pending_effects stored in state. They will be applied by process_pending_effects
     // when runIterations is called next.
-    true
 }

@@ -15,3 +15,8 @@ pub use ffi_mod as ffi;
 // Re-export commonly used types for tests and external callers
 pub use js_host_api::Declarations;
 pub use js_executor::extract_from_source;
+
+// Re-export compiled AST and execution types
+pub use module::compiled_ast;
+pub use module::evaluator;
+pub use module::execution;

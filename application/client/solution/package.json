@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "module-public-api": "file:../../module-public-api",
     "suite": "file:../../suite",
     "typescript": "^5.9.3"
   }

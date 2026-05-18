@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Once, Mutex};
 
 use std::collections::HashMap;
+use crate::module::compiled_ast::module::CompiledModule;
 
 static INIT: Once = Once::new();
 static mut PERSISTED_HAS_DATA: Option<&'static AtomicBool> = None;
@@ -18,6 +19,7 @@ static mut LAST_CREATED_BY: Option<&'static Mutex<HashMap<String, Vec<String>>>>
 static mut PENDING_EFFECTS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, f64>>>> = None;
+static mut COMPILED_MODULE: Option<&'static Mutex<Option<CompiledModule>>> = None;
 
 fn persisted_flag() -> &'static AtomicBool {
     INIT.call_once(|| {
@@ -47,6 +49,8 @@ fn persisted_flag() -> &'static AtomicBool {
         unsafe { LAST_ENTITY_DATA = Some(ed); }
         let en = Box::leak(Box::new(Mutex::new(HashMap::new())));
         unsafe { LAST_ENTITY_NUMBER_DATA = Some(en); }
+        let cm = Box::leak(Box::new(Mutex::new(None)));
+        unsafe { COMPILED_MODULE = Some(cm); }
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }
 }
@@ -165,6 +169,7 @@ pub fn clear_state() {
     *last_archive_path().lock().unwrap() = String::new();
     *last_entity_data().lock().unwrap() = HashMap::new();
     *last_entity_number_data().lock().unwrap() = HashMap::new();
+    clear_compiled_module();
     persisted_flag().store(false, Ordering::SeqCst);
 }
 
@@ -175,4 +180,22 @@ pub fn last_archive_path() -> &'static Mutex<String> {
 
 pub fn set_archive_path(path: &str) {
     *last_archive_path().lock().unwrap() = path.to_string();
+}
+
+pub fn compiled_module() -> &'static Mutex<Option<CompiledModule>> {
+    persisted_flag();
+    unsafe { COMPILED_MODULE.expect("compiled module initialized") }
+}
+
+pub fn set_compiled_module(module: CompiledModule) {
+    *compiled_module().lock().unwrap() = Some(module);
+}
+
+pub fn get_compiled_module() -> Option<CompiledModule> {
+    compiled_module().lock().unwrap().clone()
+}
+
+#[allow(dead_code)]
+pub fn clear_compiled_module() {
+    *compiled_module().lock().unwrap() = None;
 }

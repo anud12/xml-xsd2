@@ -5,11 +5,10 @@ use crate::js_host_api::Declarations;
 
 pub mod manifest;
 pub mod declarations;
-
-/// Converts the zip file map into row tuples for SQLite insertion.
-pub fn build_file_rows(files: &HashMap<String, String>) -> Vec<Vec<String>> {
-    files.iter().map(|(n, c)| vec![n.clone(), c.clone()]).collect()
-}
+pub mod compiled_ast;
+pub mod evaluator;
+pub mod execution;
+pub mod compiler;
 
 /// Processes the loaded archive: extracts entities/events from the JS module entry point.
 /// Returns entity rows to be persisted.
@@ -64,9 +63,56 @@ fn handle_entry_point(manifest_name: &str, manifest_json: &serde_json::Value, fi
 
 fn process_module_source(module_src: &str) {
     match extract_from_source(module_src) {
-        Ok(dec) => declarations::apply_declarations(&dec),
+        Ok(dec) => {
+            // Compile module: execute closures with instrumented builder context to produce AST
+            match compiler::compile_module(module_src, &dec) {
+                Ok(compiled) => {
+                    eprintln!("=== AST DUMP (compiled module) ===");
+                    eprintln!("Actions ({}):", compiled.actions.len());
+                    for a in &compiled.actions {
+                        eprintln!("  Action '{}' apply mutations:", a.name);
+                        for m in &a.apply {
+                            eprintln!("    {:?}", m);
+                        }
+                    }
+                    eprintln!("Effects ({}):", compiled.effects.len());
+                    for e in &compiled.effects {
+                        eprintln!("  Effect '{}' apply mutations:", e.name);
+                        for m in &e.apply {
+                            eprintln!("    {:?}", m);
+                        }
+                    }
+                    eprintln!("Entities ({}):", compiled.entities.len());
+                    for e in &compiled.entities {
+                        eprintln!("  Entity '{}' textMap={:?} numberMap={:?}", e.id, e.text_map, e.number_map);
+                    }
+                    eprintln!("=== END AST DUMP ===\n");
+
+                    crate::state::set_compiled_module(compiled);
+                }
+                Err(e) => {
+                    eprintln!("Compilation failed: {}; falling back to empty compiled module", e);
+                    // Store a minimal compiled module so Rust path still activates
+                    let fallback = compiled_ast::module::CompiledModule {
+                        actions: Vec::new(),
+                        effects: Vec::new(),
+                        entities: Vec::new(),
+                        panels: Vec::new(),
+                        created_by: dec.creators.clone(),
+                        emits_map: dec.emits.clone(),
+                    };
+                    crate::state::set_compiled_module(fallback);
+                }
+            }
+            declarations::apply_declarations(&dec);
+        }
         Err(_) => eprintln!("js extraction failed; no fallback heuristics are used"),
     }
+}
+
+/// Converts the zip file map into row tuples for SQLite insertion.
+pub fn build_file_rows(files: &HashMap<String, String>) -> Vec<Vec<String>> {
+    files.iter().map(|(n, c)| vec![n.clone(), c.clone()]).collect()
 }
 
 #[allow(dead_code)]
