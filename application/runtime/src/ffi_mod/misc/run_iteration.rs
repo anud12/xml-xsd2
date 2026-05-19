@@ -1,5 +1,32 @@
 use std::time::Instant;
 
+/// Check scheduled effects and add due effects to pending queue.
+fn check_scheduled_effects() {
+    let game_time = *crate::state::game_time_ms().lock().unwrap();
+    let mut scheduled = crate::state::scheduled_effects().lock().unwrap();
+    let mut due_effects = Vec::new();
+    let mut remaining = Vec::new();
+    
+    for effect in scheduled.drain(..) {
+        if game_time >= effect.scheduled_at_ms {
+            due_effects.push(effect.name);
+        } else {
+            remaining.push(effect);
+        }
+    }
+    
+    // Update scheduled effects to only keep non-due ones
+    *scheduled = remaining;
+    
+    // Add due effects to pending queue
+    if !due_effects.is_empty() {
+        let mut pending = crate::state::pending_effects().lock().unwrap();
+        for name in due_effects {
+            pending.push(name);
+        }
+    }
+}
+
 /// Try to process pending effects via the Rust execution engine.
 /// Falls back to QuickJS if no compiled module is available.
 fn try_rust_effect_processing() -> bool {
@@ -64,20 +91,57 @@ fn try_rust_effect_processing() -> bool {
 #[no_mangle]
 pub extern "C" fn runtime_run_iteration(tick_rate_in_sec: f64) -> f64 {
     let start = Instant::now();
+    
+    // Check scheduled effects and add due effects to pending queue
+    check_scheduled_effects();
 
-    // Try Rust path first; fall back to QuickJS
-    if !try_rust_effect_processing() {
-        // Build files map from cached file rows
-        let file_rows = crate::state::last_file_rows().lock().unwrap().clone();
-        let mut files_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
-        for r in file_rows.iter() {
-            if r.len() >= 2 {
-                files_map.insert(r[0].clone(), r[1].clone());
+    // Auto-queue all effects on first iteration if nothing is pending or scheduled
+    {
+        let pending = crate::state::pending_effects().lock().unwrap();
+        let scheduled = crate::state::scheduled_effects().lock().unwrap();
+        if pending.is_empty() && scheduled.is_empty() {
+            if let Some(compiled) = crate::state::get_compiled_module() {
+                let effect_names: Vec<String> = compiled.effects.iter()
+                    .map(|e| e.name.clone())
+                    .collect();
+                if !effect_names.is_empty() {
+                    let mut pending = crate::state::pending_effects().lock().unwrap();
+                    for name in effect_names {
+                        pending.push(name);
+                    }
+                }
             }
         }
+    }
+
+    // Build files map for QuickJS
+    let file_rows = crate::state::last_file_rows().lock().unwrap().clone();
+    let mut files_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    for r in file_rows.iter() {
+        if r.len() >= 2 {
+            files_map.insert(r[0].clone(), r[1].clone());
+        }
+    }
+    
+    // Process effects via QuickJS (handles reoccurrence scheduling)
+    if let Err(e) = crate::js_executor::process_pending_effects(&files_map) {
+        eprintln!("Failed to process pending effects: {:?}", e);
+    }
+    
+    // Re-check scheduled effects - newly scheduled ones from above may also be due
+    check_scheduled_effects();
+    
+    // Process any newly queued effects, looping until no more pending
+    let mut max_iterations = 20;
+    while max_iterations > 0 {
+        let has_pending = !crate::state::pending_effects().lock().unwrap().is_empty();
+        if !has_pending { break; }
+        max_iterations -= 1;
+        
         if let Err(e) = crate::js_executor::process_pending_effects(&files_map) {
             eprintln!("Failed to process pending effects: {:?}", e);
         }
+        check_scheduled_effects();
     }
 
     let elapsed = start.elapsed();

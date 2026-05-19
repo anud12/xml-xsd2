@@ -54,10 +54,10 @@
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\manifest.json" />
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\texture.exr" />
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\texture.exr.import" />
-    <Content Include="Test\Stage_4\RecurentEvent\module\index.js" />
-    <Content Include="Test\Stage_4\RecurentEvent\module\manifest.json" />
-    <Content Include="Test\Stage_4\RecurentEvent\module\texture.exr" />
-    <Content Include="Test\Stage_4\RecurentEvent\module\texture.exr.import" />
+    <Content Include="Test\Stage_4\RecurrentEvent\module\index.js" />
+    <Content Include="Test\Stage_4\RecurrentEvent\module\manifest.json" />
+    <Content Include="Test\Stage_4\RecurrentEvent\module\texture.exr" />
+    <Content Include="Test\Stage_4\RecurrentEvent\module\texture.exr.import" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\index.js" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\manifest.json" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\texture.exr" />

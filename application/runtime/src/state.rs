@@ -20,6 +20,16 @@ static mut PENDING_EFFECTS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, f64>>>> = None;
 static mut COMPILED_MODULE: Option<&'static Mutex<Option<CompiledModule>>> = None;
+static mut GAME_TIME_MS: Option<&'static Mutex<u64>> = None;
+static mut SCHEDULED_EFFECTS: Option<&'static Mutex<Vec<ScheduledEffect>>> = None;
+static mut LAST_SCHEDULED_TIME: Option<&'static Mutex<HashMap<String, u64>>> = None;
+
+#[derive(Debug, Clone)]
+pub struct ScheduledEffect {
+    pub name: String,
+    pub scheduled_at_ms: u64,
+    pub reoccur_after_ms: u64,
+}
 
 fn persisted_flag() -> &'static AtomicBool {
     INIT.call_once(|| {
@@ -51,6 +61,12 @@ fn persisted_flag() -> &'static AtomicBool {
         unsafe { LAST_ENTITY_NUMBER_DATA = Some(en); }
         let cm = Box::leak(Box::new(Mutex::new(None)));
         unsafe { COMPILED_MODULE = Some(cm); }
+        let gt = Box::leak(Box::new(Mutex::new(0u64)));
+        unsafe { GAME_TIME_MS = Some(gt); }
+        let se = Box::leak(Box::new(Mutex::new(Vec::new())));
+        unsafe { SCHEDULED_EFFECTS = Some(se); }
+        let lst = Box::leak(Box::new(Mutex::new(HashMap::new())));
+        unsafe { LAST_SCHEDULED_TIME = Some(lst); }
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }
 }
@@ -170,6 +186,9 @@ pub fn clear_state() {
     *last_entity_data().lock().unwrap() = HashMap::new();
     *last_entity_number_data().lock().unwrap() = HashMap::new();
     clear_compiled_module();
+    *game_time_ms().lock().unwrap() = 0;
+    clear_scheduled_effects();
+    clear_last_scheduled_time();
     persisted_flag().store(false, Ordering::SeqCst);
 }
 
@@ -198,4 +217,48 @@ pub fn get_compiled_module() -> Option<CompiledModule> {
 #[allow(dead_code)]
 pub fn clear_compiled_module() {
     *compiled_module().lock().unwrap() = None;
+}
+
+pub fn game_time_ms() -> &'static Mutex<u64> {
+    persisted_flag();
+    unsafe { GAME_TIME_MS.expect("game time initialized") }
+}
+
+pub fn set_game_time_ms(ms: u64) {
+    *game_time_ms().lock().unwrap() = ms;
+}
+
+pub fn increment_game_time_ms(ms: u64) {
+    let mut gt = game_time_ms().lock().unwrap();
+    *gt += ms;
+}
+
+pub fn scheduled_effects() -> &'static Mutex<Vec<ScheduledEffect>> {
+    persisted_flag();
+    unsafe { SCHEDULED_EFFECTS.expect("scheduled effects initialized") }
+}
+
+pub fn push_scheduled_effect(effect: ScheduledEffect) {
+    scheduled_effects().lock().unwrap().push(effect);
+}
+
+pub fn clear_scheduled_effects() {
+    scheduled_effects().lock().unwrap().clear();
+}
+
+pub fn last_scheduled_time() -> &'static Mutex<HashMap<String, u64>> {
+    persisted_flag();
+    unsafe { LAST_SCHEDULED_TIME.expect("last scheduled time initialized") }
+}
+
+pub fn get_effect_next_scheduled(effect_name: &str, reoccur_ms: u64) -> u64 {
+    let mut lst = last_scheduled_time().lock().unwrap();
+    let current = lst.entry(effect_name.to_string()).or_insert(0);
+    let next_at = *current + reoccur_ms;
+    *current = next_at;
+    next_at
+}
+
+pub fn clear_last_scheduled_time() {
+    *last_scheduled_time().lock().unwrap() = HashMap::new();
 }

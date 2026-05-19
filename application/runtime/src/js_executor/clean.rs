@@ -320,6 +320,26 @@ pub fn process_pending_effects(files: &std::collections::HashMap<String, String>
         if let Err(e) = result {
             eprintln!("[DEBUG process_pending_effects] error executing effect '{}': {}", effect_name, e);
         }
+
+        // Capture reoccurAfterMs and schedule next execution
+        match ctx.with(|c| c.eval::<Option<f64>, _>("globalThis.__lastEffectReoccurAfterMs")) {
+            Ok(Some(reoccur_ms)) => {
+                let reoccur_ms = reoccur_ms as u64;
+                if reoccur_ms > 0 {
+                    let next_at = crate::state::get_effect_next_scheduled(effect_name, reoccur_ms);
+                    crate::state::push_scheduled_effect(crate::state::ScheduledEffect {
+                        name: effect_name.clone(),
+                        scheduled_at_ms: next_at,
+                        reoccur_after_ms: reoccur_ms,
+                    });
+                    eprintln!("[DEBUG process_pending_effects] scheduled effect '{}' at game_time={} (reoccurAfterMs={})", effect_name, next_at, reoccur_ms);
+                }
+            }
+            Ok(None) => {}
+            Err(e) => {
+                eprintln!("[DEBUG process_pending_effects] error reading reoccurAfterMs: {}", e);
+            }
+        }
     }
 
     // Collect logs from effect execution and send to logger

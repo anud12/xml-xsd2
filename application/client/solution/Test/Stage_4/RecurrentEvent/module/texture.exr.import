@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ds0klni7023cs"
-path="res://.godot/imported/texture.exr-7d90ebfaee798a1afe7b92168d54921d.ctex"
+path="res://.godot/imported/texture.exr-86ea4a534fd6af34cfdf2adfe9f4613e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Test/Stage_4/EntityTextValueUpdate/module/texture.exr"
-dest_files=["res://.godot/imported/texture.exr-7d90ebfaee798a1afe7b92168d54921d.ctex"]
+source_file="res://Test/Stage_4/RecurrentEvent/module/texture.exr"
+dest_files=["res://.godot/imported/texture.exr-86ea4a534fd6af34cfdf2adfe9f4613e.ctex"]
 
 [params]
 

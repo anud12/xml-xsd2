@@ -20,3 +20,6 @@ pub use js_executor::extract_from_source;
 pub use module::compiled_ast;
 pub use module::evaluator;
 pub use module::execution;
+
+// Re-export scheduled effect type
+pub use state::ScheduledEffect;

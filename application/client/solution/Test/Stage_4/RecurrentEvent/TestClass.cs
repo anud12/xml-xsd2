@@ -4,7 +4,7 @@ using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
 using Vector2 = Godot.Vector2;
 
-namespace GdUnit4.Examples.Basics.Setup.Test.Stage_4.RecurentEvent;
+namespace GdUnit4.Examples.Basics.Setup.Test.Stage_4.RecurrentEvent;
 
 [TestSuite]
 public partial class TestClass : Steps {
@@ -38,12 +38,17 @@ public partial class TestClass : Steps {
         RuntimeInterop.RunIteration();
         await runner.SimulateFrames(1);
         
-        assertions.HasContentText("1");
+        assertions.HasContentText("2");
         
-        RuntimeInterop.incrementGameTime(1000);
+        
+        RuntimeInterop.setGameTime(50);
         RuntimeInterop.RunIteration();
         await runner.SimulateFrames(1);
         
-        assertions.HasContentText("11");
+        RuntimeInterop.setGameTime(1000);
+        RuntimeInterop.RunIteration();
+        await runner.SimulateFrames(1);
+        
+        assertions.HasContentText("12");
     }
 }

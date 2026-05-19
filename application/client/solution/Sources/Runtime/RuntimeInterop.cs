@@ -643,6 +643,13 @@ public static class RuntimeInterop
         return elapsedTime;
     }
 
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_set_game_time(ulong ms);
+
+    public static void setGameTime(ulong ms) {
+        runtime_set_game_time(ms);
+    }
+
     // Logger callback support
     private delegate void LogCallback([MarshalAs(UnmanagedType.LPStr)] string message);
     private static Action<string>? userLogCallback;
