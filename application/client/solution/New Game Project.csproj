@@ -54,6 +54,7 @@
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\manifest.json" />
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\texture.exr" />
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\texture.exr.import" />
+    <Content Include="Test\Stage_4\readme.md" />
     <Content Include="Test\Stage_4\RecurrentEvent\module\index.js" />
     <Content Include="Test\Stage_4\RecurrentEvent\module\manifest.json" />
     <Content Include="Test\Stage_4\RecurrentEvent\module\texture.exr" />

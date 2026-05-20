@@ -1,6 +1,5 @@
-# Stage_4 - Interaction Assertions Suite
+# Stage_4 - Entity Update over multiple runtime iterations
 
 ## Purpose
 
-Stage 4 validates **UI updates correctness** in the rendering system when runtime executes an interaction.
-
+Stage 4 validates **entity values ui updates** in the rendering system over a runtime iteration.
