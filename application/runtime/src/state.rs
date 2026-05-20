@@ -23,6 +23,7 @@ static mut COMPILED_MODULE: Option<&'static Mutex<Option<CompiledModule>>> = Non
 static mut GAME_TIME_MS: Option<&'static Mutex<u64>> = None;
 static mut SCHEDULED_EFFECTS: Option<&'static Mutex<Vec<ScheduledEffect>>> = None;
 static mut LAST_SCHEDULED_TIME: Option<&'static Mutex<HashMap<String, u64>>> = None;
+static mut EFFECTS_AUTO_QUEUED: Option<&'static AtomicBool> = None;
 
 #[derive(Debug, Clone)]
 pub struct ScheduledEffect {
@@ -67,6 +68,8 @@ fn persisted_flag() -> &'static AtomicBool {
         unsafe { SCHEDULED_EFFECTS = Some(se); }
         let lst = Box::leak(Box::new(Mutex::new(HashMap::new())));
         unsafe { LAST_SCHEDULED_TIME = Some(lst); }
+        let eq = Box::leak(Box::new(AtomicBool::new(false)));
+        unsafe { EFFECTS_AUTO_QUEUED = Some(eq); }
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }
 }
@@ -189,6 +192,7 @@ pub fn clear_state() {
     *game_time_ms().lock().unwrap() = 0;
     clear_scheduled_effects();
     clear_last_scheduled_time();
+    reset_effects_auto_queued();
     persisted_flag().store(false, Ordering::SeqCst);
 }
 
@@ -261,4 +265,17 @@ pub fn get_effect_next_scheduled(effect_name: &str, reoccur_ms: u64) -> u64 {
 
 pub fn clear_last_scheduled_time() {
     *last_scheduled_time().lock().unwrap() = HashMap::new();
+}
+
+pub fn effects_auto_queued() -> &'static AtomicBool {
+    persisted_flag();
+    unsafe { EFFECTS_AUTO_QUEUED.expect("effects auto queued flag initialized") }
+}
+
+pub fn mark_effects_auto_queued() {
+    effects_auto_queued().store(true, Ordering::SeqCst);
+}
+
+pub fn reset_effects_auto_queued() {
+    effects_auto_queued().store(false, Ordering::SeqCst);
 }

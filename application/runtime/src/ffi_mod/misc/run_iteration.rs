@@ -1,4 +1,90 @@
 use std::time::Instant;
+use std::collections::HashMap;
+use std::sync::atomic::Ordering;
+
+/// Extract effect names from JS source by evaluating it in QuickJS.
+/// Returns registered effect names from __registeredEvents.
+fn extract_effect_names_from_js(files: &HashMap<String, String>) -> Vec<String> {
+    let source = select_entry_source(files);
+    if source.is_empty() {
+        return Vec::new();
+    }
+
+    let rt = match crate::js_runtime::create_runtime() {
+        Ok(r) => r,
+        Err(_) => return Vec::new(),
+    };
+    let ctx = match crate::js_runtime::create_context(&rt) {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+
+    if crate::js_host_api::install_host_api(&ctx).is_err() {
+        return Vec::new();
+    }
+
+    let patched = source
+        .replace("({string, number, ...hostApi})", "({...hostApi})")
+        .replace("({ string, number, ...hostApi })", "({...hostApi})")
+        .replace("({string, ...hostApi})", "({...hostApi})")
+        .replace("({number, ...hostApi})", "({...hostApi})");
+
+    let transformed = if patched.contains("export default") {
+        patched.replace("export default", "var __module_default =")
+    } else {
+        patched
+    };
+
+    if ctx.with(|c| c.eval::<(), _>(transformed)).is_err() {
+        return Vec::new();
+    }
+
+    let module_call = include_str!("../../js/scripts/module_call.js");
+    if ctx.with(|c| c.eval::<(), _>(module_call)).is_err() {
+        return Vec::new();
+    }
+
+    let extract_script = r#"
+        (function(){
+            var evs = globalThis.__registeredEvents || [];
+            var names = [];
+            for(var i=0; i<evs.length; i++){
+                var e = evs[i];
+                if(typeof e === "string") names.push(e);
+                else if(e && typeof e.name === "string") names.push(e.name);
+            }
+            return JSON.stringify(names);
+        })();
+    "#;
+
+    match ctx.with(|c| c.eval::<String, _>(extract_script)) {
+        Ok(json) => {
+            serde_json::from_str::<Vec<String>>(&json).unwrap_or_default()
+        }
+        Err(_) => Vec::new(),
+    }
+}
+
+/// Select the entry source file from the archive files map.
+fn select_entry_source(files: &HashMap<String, String>) -> String {
+    for (name, content) in files.iter() {
+        if name.ends_with("manifest.json") || (name.to_lowercase().contains("manifest") && name.ends_with(".json")) {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(content) {
+                if let Some(entry) = v.get("entry").and_then(|v| v.as_str()) {
+                    if let Some(src) = files.get(entry).or_else(|| {
+                        if let Some(pos) = name.rfind('/') {
+                            let dir = &name[..pos];
+                            files.get(&format!("{}/{}", dir, entry))
+                        } else { None }
+                    }) { return src.clone(); }
+                }
+            }
+        }
+    }
+    if let Some(src) = files.get("index.js") { return src.clone(); }
+    if let Some((_k, v)) = files.iter().next() { return v.clone(); }
+    "".to_string()
+}
 
 /// Check scheduled effects and add due effects to pending queue.
 fn check_scheduled_effects() {
@@ -90,29 +176,11 @@ fn try_rust_effect_processing() -> bool {
 
 #[no_mangle]
 pub extern "C" fn runtime_run_iteration(tick_rate_in_sec: f64) -> f64 {
+    runtime_log!("[Runtime] run_iteration start (tick_rate={}s)", tick_rate_in_sec);
     let start = Instant::now();
     
     // Check scheduled effects and add due effects to pending queue
     check_scheduled_effects();
-
-    // Auto-queue all effects on first iteration if nothing is pending or scheduled
-    {
-        let pending = crate::state::pending_effects().lock().unwrap();
-        let scheduled = crate::state::scheduled_effects().lock().unwrap();
-        if pending.is_empty() && scheduled.is_empty() {
-            if let Some(compiled) = crate::state::get_compiled_module() {
-                let effect_names: Vec<String> = compiled.effects.iter()
-                    .map(|e| e.name.clone())
-                    .collect();
-                if !effect_names.is_empty() {
-                    let mut pending = crate::state::pending_effects().lock().unwrap();
-                    for name in effect_names {
-                        pending.push(name);
-                    }
-                }
-            }
-        }
-    }
 
     // Build files map for QuickJS
     let file_rows = crate::state::last_file_rows().lock().unwrap().clone();
@@ -120,6 +188,34 @@ pub extern "C" fn runtime_run_iteration(tick_rate_in_sec: f64) -> f64 {
     for r in file_rows.iter() {
         if r.len() >= 2 {
             files_map.insert(r[0].clone(), r[1].clone());
+        }
+    }
+
+  // Auto-queue all effects on first iteration if nothing is pending or scheduled
+    {
+        // Only auto-queue once per archive processing cycle
+        if !crate::state::effects_auto_queued().load(Ordering::SeqCst) {
+            let mut pending = crate::state::pending_effects().lock().unwrap();
+            let scheduled = crate::state::scheduled_effects().lock().unwrap();
+            if pending.is_empty() && scheduled.is_empty() {
+                // Try compiled Rust effects first
+                let mut queued = false;
+                if let Some(compiled) = crate::state::get_compiled_module() {
+                    for e in compiled.effects.iter() {
+                        pending.push(e.name.clone());
+                        queued = true;
+                    }
+                }
+                // Fallback: extract effect names from JS source if compiled module has no effects
+                if !queued {
+                    let names = extract_effect_names_from_js(&files_map);
+                    for name in names {
+                        pending.push(name);
+                    }
+                }
+            }
+            // Mark that auto-queue has been attempted (regardless of whether effects were queued)
+            crate::state::mark_effects_auto_queued();
         }
     }
     
@@ -156,5 +252,7 @@ pub extern "C" fn runtime_run_iteration(tick_rate_in_sec: f64) -> f64 {
         }
     }
 
-    start.elapsed().as_secs_f64()
+    let total = start.elapsed();
+    runtime_log!("[Runtime] run_iteration end (elapsed={}ms)", total.as_secs_f64() * 1000.0);
+    total.as_secs_f64()
 }

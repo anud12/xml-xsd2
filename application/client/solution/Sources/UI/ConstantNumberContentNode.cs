@@ -1,6 +1,8 @@
 using Godot;
 
 public partial class ConstantNumberContentNode : RichTextLabel {
+
+    private NewGameProject.Runtime.ConstantNumberContent content;
     public ConstantNumberContentNode(NewGameProject.Runtime.ConstantNumberContent content) {
         Name = "content";
         FitContent = true;
@@ -9,6 +11,7 @@ public partial class ConstantNumberContentNode : RichTextLabel {
         SetAnchorsPreset(LayoutPreset.FullRect);
         ApplyAlignment(content.Align);
         Text = content.Value.ToString();
+        
     }
 
     private void ApplyAlignment(string align) {

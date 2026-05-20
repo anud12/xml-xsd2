@@ -13,9 +13,7 @@ public partial class EntityNumberValueContentNode : RichTextLabel {
         SetJustificationFlags(TextServer.JustificationFlag.None);
         SetAnchorsPreset(LayoutPreset.FullRect);
         ApplyAlignment(content.Align);
-        Text = RuntimeInterop.GetEntityNumberMapValue(content.EntityId, content.Name);
     }
-
     private void ApplyAlignment(string align) {
         switch (align) {
             case "top":
@@ -58,6 +56,7 @@ public partial class EntityNumberValueContentNode : RichTextLabel {
     }
 
     public override void _Process(double delta) {
-        Text = RuntimeInterop.ReadEntityNumberValue(content.EntityId, content.Name);
+        var text = RuntimeInterop.ReadEntityNumberValue(content.EntityId, content.Name);
+        Text = text;
     }
 }

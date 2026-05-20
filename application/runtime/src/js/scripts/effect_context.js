@@ -32,15 +32,23 @@ function buildEffectContext() {
     };
   }
 
-  function makeValueWrapper(v, entityRef, keyRef) {
-    return {
-      map: function(cb) { cb(v); },
-      sum: function(addend) {
-        var nv = (v || 0) + addend;
-        if (entityRef && entityRef.numberMap && keyRef) entityRef.numberMap[keyRef] = nv;
-        return makeValueWrapper(nv, entityRef, keyRef);
-      }
+  function makeValueWrapper(initialV, entityRef, keyRef) {
+    var current = { value: initialV };
+    function readValue() {
+      return current.value !== null && current.value !== undefined ? current.value : 0;
+    }
+    var self;
+    function sum(addend) {
+      var nv = readValue() + addend;
+      current.value = nv;
+      if (entityRef && entityRef.numberMap && keyRef) entityRef.numberMap[keyRef] = nv;
+      return self;
+    }
+    self = {
+      map: function(cb) { cb(self); },
+      sum: sum
     };
+    return self;
   }
 
   function makeEntityWrapper(entity) {

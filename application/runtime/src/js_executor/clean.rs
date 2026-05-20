@@ -409,3 +409,198 @@ fn build_effect_script(effect_name: &str) -> Result<String> {
     Ok(effect_script_template()
         .replace("EFFECT_NAME_PLACEHOLDER", &quoted_name))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state;
+    use std::collections::HashMap;
+
+    fn setup_test_environment() {
+        state::clear_state();
+    }
+
+    fn build_test_files_with_effect() -> HashMap<String, String> {
+        let mut files = HashMap::new();
+        files.insert(
+            "manifest.json".to_string(),
+            r#"{"id":"test","version":"1.0.0","name":"Test","entry":"index.js"}"#.to_string(),
+        );
+        files.insert(
+            "index.js".to_string(),
+            r#"
+export default (hostApi) => {
+    const {number, string} = hostApi;
+    hostApi.setEntity(string.of("entity_id"), {
+        numberMap: {
+            "counter": number.of(1)
+        }
+    });
+    hostApi.registerEffect({
+        name: "increment_counter",
+        reoccurAfterMs: (context, executionCount, input, output) => {
+            return hostApi.maybe.of(number.of(100));
+        },
+        apply: context => {
+            context.getEntityBy(hostApi.entity.filter.create()
+                .byId(id => id.isContainingExactly(string.of("entity_id"))))
+                .map(elementExpr => elementExpr.getNumber(string.of("counter")).map(v => v.sum(number.of(1))));
+        }
+    });
+};
+"#.to_string(),
+        );
+        files
+    }
+
+    #[test]
+    fn test_value_wrapper_sum_via_map() {
+        setup_test_environment();
+        let files = build_test_files_with_effect();
+
+        // Initialize entity data via extract_from_source
+        let source = files.get("index.js").unwrap();
+        let dec = extract_from_source(source).unwrap();
+
+        // Verify entity data was extracted
+        let entity_data = &dec.entity_data;
+        assert!(entity_data.get("entity_id").is_some(), "entity_id should exist in entity_data");
+
+        if let Some(entity_val) = entity_data.as_object() {
+            if let Some(entity_id_val) = entity_val.get("entity_id") {
+                if let Some(number_map) = entity_id_val.get("numberMap").and_then(|v| v.as_object()) {
+                    let counter = number_map.get("counter").and_then(|v| v.as_f64());
+                    assert_eq!(counter, Some(1.0), "counter should be 1 initially");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_process_pending_effects_increments_counter() {
+        setup_test_environment();
+        let files = build_test_files_with_effect();
+
+        // Initialize entity data
+        let source = files.get("index.js").unwrap();
+        let _dec = extract_from_source(source).unwrap();
+
+        // Set pending effects
+        state::set_pending_effects(vec!["increment_counter".to_string()]);
+
+        // Process pending effects
+        process_pending_effects(&files).unwrap();
+
+        // Verify counter was incremented
+        let number_data = state::last_entity_number_data().lock().unwrap();
+        let counter = number_data
+            .get("entity_id")
+            .and_then(|map| map.get("counter"));
+        assert_eq!(counter, Some(&2.0), "counter should be 2 after one effect execution");
+    }
+
+    #[test]
+    fn test_multiple_effect_executions_increment_counter() {
+        setup_test_environment();
+        let files = build_test_files_with_effect();
+
+        // Initialize entity data
+        let source = files.get("index.js").unwrap();
+        let _dec = extract_from_source(source).unwrap();
+
+        // Process effect multiple times
+        for _ in 0..5 {
+            state::set_pending_effects(vec!["increment_counter".to_string()]);
+            process_pending_effects(&files).unwrap();
+        }
+
+        // Verify counter was incremented 5 times
+        let number_data = state::last_entity_number_data().lock().unwrap();
+        let counter = number_data
+            .get("entity_id")
+            .and_then(|map| map.get("counter"));
+        assert_eq!(counter, Some(&6.0), "counter should be 6 after 5 effect executions (1 + 5)");
+    }
+
+    #[test]
+    fn test_effect_reoccurrence_scheduling() {
+        setup_test_environment();
+        let files = build_test_files_with_effect();
+
+        // Initialize entity data
+        let source = files.get("index.js").unwrap();
+        let _dec = extract_from_source(source).unwrap();
+
+        // Set initial game time
+        state::set_game_time_ms(0);
+
+        // Set pending effects
+        state::set_pending_effects(vec!["increment_counter".to_string()]);
+
+        // Process pending effects (should schedule next execution at game_time=100)
+        process_pending_effects(&files).unwrap();
+
+        // Verify scheduled effect was created
+        let scheduled = state::scheduled_effects().lock().unwrap();
+        assert!(!scheduled.is_empty(), "should have scheduled effect for reoccurrence");
+        assert_eq!(scheduled[0].name, "increment_counter");
+        assert_eq!(scheduled[0].scheduled_at_ms, 100);
+        assert_eq!(scheduled[0].reoccur_after_ms, 100);
+    }
+
+    #[test]
+    fn test_entity_number_data_persistence_across_effects() {
+        setup_test_environment();
+        let files = build_test_files_with_effect();
+
+        // Initialize entity data
+        let source = files.get("index.js").unwrap();
+        let _dec = extract_from_source(source).unwrap();
+
+        // First effect execution
+        state::set_pending_effects(vec!["increment_counter".to_string()]);
+        process_pending_effects(&files).unwrap();
+
+        let number_data = state::last_entity_number_data().lock().unwrap();
+        assert_eq!(
+            number_data.get("entity_id").and_then(|m| m.get("counter")),
+            Some(&2.0),
+            "counter should be 2 after first execution"
+        );
+
+        // Second effect execution - should read updated value and increment
+        drop(number_data);
+        state::set_pending_effects(vec!["increment_counter".to_string()]);
+        process_pending_effects(&files).unwrap();
+
+        let number_data = state::last_entity_number_data().lock().unwrap();
+        assert_eq!(
+            number_data.get("entity_id").and_then(|m| m.get("counter")),
+            Some(&3.0),
+            "counter should be 3 after second execution"
+        );
+    }
+
+    #[test]
+    fn test_get_entity_number_map_value_after_effect() {
+        setup_test_environment();
+        let files = build_test_files_with_effect();
+
+        // Initialize entity data
+        let source = files.get("index.js").unwrap();
+        let _dec = extract_from_source(source).unwrap();
+
+        // Process effect
+        state::set_pending_effects(vec!["increment_counter".to_string()]);
+        process_pending_effects(&files).unwrap();
+
+        // Read value via FFI-like access
+        let number_data = state::last_entity_number_data().lock().unwrap();
+        let value = number_data
+            .get("entity_id")
+            .and_then(|map| map.get("counter"))
+            .map(|n| n.to_string());
+
+        assert_eq!(value, Some("2".to_string()), "FFI read should return '2'");
+    }
+}

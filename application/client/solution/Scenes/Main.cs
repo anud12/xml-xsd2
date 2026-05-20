@@ -1,22 +1,21 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using Godot;
 using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using NewGameProject.Runtime;
 
-public partial class Main : Node
-{
-	private double _tickAccumulator = 0;
-	private const double TickInterval = 0.1;
-	private bool _initialized = false;
+public partial class Main : Node {
+    private double _tickAccumulator = 0;
+    private const double TickInterval = 0.1;
+    private bool _firstFrame = true;
+    private bool _iterationPending = false;
 
-	public override void _Ready()
-	{
-		var modulePath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "module.zip"));
+    public override void _Ready() {
+        var modulePath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "module.zip"));
 
-		if (!File.Exists(modulePath))
-		{
-			GD.PrintErr($@"
+        if (!File.Exists(modulePath)) {
+            GD.PrintErr($@"
 **********************************************************
 *  Missing module archive
 *
@@ -28,37 +27,35 @@ public partial class Main : Node
 *
 *  Aborting startup.
 **********************************************************");
-			return;
-		}
+            return;
+        }
 
-		GD.Print($"[Main] Loading module from: {modulePath}");
-		RuntimeInterop.ProcessArchive(modulePath);
+        GD.Print($"[Main] Loading module from: {modulePath}");
+        RuntimeInterop.ProcessArchive(modulePath);
 
-		var rootNode = new RootNode();
-		AddChild(rootNode);
-		GD.Print("[Main] Runtime started.");
-	}
-
-	public override void _Process(double delta)
-	{
-		if (!_initialized)
-		{
-			_initialized = true;
-			return;
-		}
-
-		_tickAccumulator += delta;
-		if (_tickAccumulator >= TickInterval)
-		{
-			_tickAccumulator = 0;
-			try
-			{
-				RuntimeInterop.RunIteration(0);
-			}
-			catch (Exception ex)
-			{
-				GD.PrintErr($"[Runtime] Unhandled exception: {ex.Message}");
-			}
-		}
-	}
+        var rootNode = new RootNode();
+        AddChild(rootNode);
+        GD.Print("[Main] Runtime started.");
+        Task.Run(() => {
+            try {
+                ulong gametime = 0L;
+                const int intervalMs = 100;
+                while (true) {
+                    var start = Stopwatch.GetTimestamp();
+                    RuntimeInterop.setGameTime(gametime);
+                    RuntimeInterop.RunIteration();
+                    var elapsed = (Stopwatch.GetTimestamp() - start) / (double)Stopwatch.Frequency;
+                    var sleepMs = (int)((intervalMs / 1000.0 - elapsed) * 1000);
+                    GD.Print(sleepMs);
+                    if (sleepMs > 0) {
+                        Thread.Sleep(sleepMs);
+                    }
+                    gametime += intervalMs;
+                }
+            }
+            catch (Exception ex) {
+                GD.PrintErr($"Thread died due to managed exception: {ex.Message}\n{ex.StackTrace}");
+            }
+        });
+    }
 }

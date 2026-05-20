@@ -35,7 +35,7 @@ export default (hostApi) => {
     content: {
       entityId: string.of("entity_id"),
       name: string.of("textKey"),
-      type: "entityTextValue",
+      type: "entityNumberValue",
       align: "center",
     },
     background: hostApi.texture.of("texture.exr")
