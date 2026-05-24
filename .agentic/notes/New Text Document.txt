@@ -1,0 +1,7 @@
+In the client project
+
+When running the main scene the panel isn't updating
+
+To be able to run an automated test to check it i first need to add a test to test if a repeateable effect can stop by itself
+
+Write test in stage 4
