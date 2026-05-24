@@ -2,23 +2,6 @@ use std::ffi::{CStr, CString};
 use libc::c_char;
 use std::ptr;
 
-use serde::Deserialize;
-
-#[derive(Deserialize)]
-struct JsPanel {
-    id: Option<String>,
-    anchor: Option<Anchor>,
-    pivot: Option<Anchor>,
-    offset: Option<Anchor>,
-    size: Option<Size>,
-    background: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct Anchor { x: Option<f32>, y: Option<f32>, top: Option<f32>, bottom: Option<f32>, left: Option<f32>, right: Option<f32> }
-#[derive(Deserialize)]
-struct Size { height: f32, width: f32 }
-
 // Canonical Cdecl implementation (internal name to avoid duplicate exports)
 #[no_mangle]
 pub extern "C" fn get_panel_by_id_c(id: *const c_char) -> *mut c_char {
@@ -158,6 +141,29 @@ pub extern "C" fn test_pointer_return() -> *mut libc::c_char {
     ptr
 }
 
+// Helper: extract f32 from serde_json::Value
+fn json_get_f32<'a>(val: &'a serde_json::Value, key: &str) -> f32 {
+    val.get(key).and_then(|v| v.as_f64()).map(|n| n as f32).unwrap_or(0.0)
+}
+
+// Helper: extract nested f32 from serde_json::Value
+fn json_get_nested_f32<'a>(val: &'a serde_json::Value, outer: &str, inner: &str) -> f32 {
+    val.get(outer).and_then(|o| o.get(inner)).and_then(|v| v.as_f64()).map(|n| n as f32).unwrap_or(0.0)
+}
+
+// Helper: extract string from serde_json::Value
+fn json_get_string<'a>(val: &'a serde_json::Value, key: &str) -> Option<String> {
+    val.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
+}
+
+// Helper: extract children JSON from serde_json::Value
+fn json_extract_children(val: &serde_json::Value) -> String {
+    match val.get("children") {
+        Some(c) => c.to_string(),
+        None => "[]".to_string(),
+    }
+}
+
 // New API: return a pointer to a PanelFfi struct. Caller must free with runtime_free_panel.
 #[no_mangle]
 pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate::ffi_mod::types::PanelFfi {
@@ -165,9 +171,11 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
     let _ = std::fs::write("E:\\workspace\\rust_struct_size.txt", format!("PanelFfi struct size = {} bytes\n", rust_struct_size));
     let _ = std::fs::write("rust_function_called.txt", "get_panel_by_id_struct called\n");
     eprintln!("DEBUG: get_panel_by_id_struct called, PanelFfi struct size = {} bytes", rust_struct_size);
+    eprintln!("DEBUG: id ptr is_null={}", id.is_null());
     if id.is_null() { return std::ptr::null_mut(); }
     let id_str = unsafe { CStr::from_ptr(id).to_string_lossy().to_string() };
-    
+    eprintln!("DEBUG: id_str='{}'", id_str);
+
     // DEBUG: test if pointer handling itself works - return a minimal struct with empty JSON
     if id_str == "null_test" {
         eprintln!("DEBUG: Returning null_test struct");
@@ -188,7 +196,7 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
         eprintln!("DEBUG: null_test ptr={:p}", raw_ptr);
         return raw_ptr;
     }
-    
+
     // DEBUG: return a fixed test struct for marshaling diagnostics
     if id_str == "TEST_FIXED" {
         eprintln!("DEBUG: Returning TEST_FIXED struct");
@@ -196,7 +204,7 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
         let bg_str = CString::new("test_bg.png").unwrap();
         let children_str = CString::new("[{\"id\":\"child1\"}]").unwrap();
         let panel_str = CString::new("{\"test\":true}").unwrap();
-        
+
         let test_panel = Box::new(crate::ffi_mod::types::PanelFfi {
             id: id_str.into_raw(),
             background: bg_str.into_raw(),
@@ -208,28 +216,27 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
             panel_json: panel_str.into_raw(),
         });
         let raw_ptr = Box::into_raw(test_panel);
-        
+
         // Log the exact bytes we're returning
         let struct_ptr = raw_ptr as *const u8;
         let struct_bytes = unsafe { std::slice::from_raw_parts(struct_ptr, 72) };
         let hex_str = struct_bytes.iter().map(|b| format!("{:02X}", b)).collect::<Vec<_>>().join(" ");
-        
+
         eprintln!("DEBUG: TEST_FIXED ptr={:p}", raw_ptr);
         eprintln!("DEBUG: TEST_FIXED struct bytes: {}", hex_str);
-        
+
         let _ = std::fs::write("E:\\workspace\\rust_test_fixed_struct.txt", format!(
             "TEST_FIXED returned:\n\
              ptr={:p}\n\
              struct_bytes={}\n",
             raw_ptr, hex_str
         ));
-        
+
         return raw_ptr;
     }
-    
+
     let panels = crate::state::last_panels().lock().unwrap().clone();
     let debug_msg = format!("Looking for id='{}' in {} panels\n", id_str, panels.len());
-    // Append to debug file
     std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -251,6 +258,10 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                 f.write_all(panel_debug.as_bytes()).ok()
             });
     }
+    eprintln!("DEBUG_PANELS: id='{}' panels={}", id_str, panels.len());
+    for (i, p) in panels.iter().enumerate() {
+        eprintln!("DEBUG_PANELS[{}]: {}", i, p.chars().take(200).collect::<String>());
+    }
 
     // Try to find matching JSON panel
     for p in panels.iter() {
@@ -268,121 +279,60 @@ pub extern "C" fn get_panel_by_id_struct(id: *const libc::c_char) -> *mut crate:
                         s = s.trim();
                     }
                     if s == id_str {
-                        // create PanelFfi from JSON: extract background crude
+                        // Parse JSON using serde_json::Value for maximum robustness
+                        let val: serde_json::Value = serde_json::from_str(p).unwrap_or(serde_json::Value::Null);
+
+                        // Extract background string
                         let mut bg_ptr: *mut libc::c_char = std::ptr::null_mut();
-                        if let Some(bpos) = p.find("\"background\"") {
-                            if let Some(colon2) = p[bpos..].find(':') {
-                                let after2 = &p[bpos + colon2 + 1..];
-                                let mut sb = after2.trim_start();
-                                if sb.starts_with('"') {
-                                    sb = &sb[1..];
-                                    if let Some(endb) = sb.find('"') { sb = &sb[..endb]; }
-                                } else {
-                                    if let Some(endb) = sb.find(',') { sb = &sb[..endb]; }
-                                    if let Some(endb) = sb.find('}') { sb = &sb[..endb]; }
-                                    sb = sb.trim();
-                                }
-                                if !sb.is_empty() {
-                                    let bg_cstr = CString::new(sb.to_string()).unwrap_or_else(|_| CString::new("").unwrap());
-                                    bg_ptr = bg_cstr.into_raw();
-                                }
+                        if let Some(bg_str) = json_get_string(&val, "background") {
+                            if !bg_str.is_empty() {
+                                let bg_cstr = CString::new(bg_str).unwrap_or_else(|_| CString::new("").unwrap());
+                                bg_ptr = bg_cstr.into_raw();
                             }
                         }
+
                         let id_cstr = CString::new(id_str.clone()).unwrap_or_else(|_| CString::new("").unwrap());
                         let id_ptr = id_cstr.into_raw();
-                        // parse numeric fields via serde
-                        let serde_result = serde_json::from_str::<JsPanel>(p);
-                        if let Ok(parsed_panel) = serde_result {
-                            let _ = std::fs::write("E:\\workspace\\rust_debug_detail.txt", "Serde parsing succeeded\n");
-                            let anchor_raw = parsed_panel.anchor.unwrap_or(Anchor { x: None, y: None, top: None, bottom: None, left: None, right: None });
-                            let pivot_raw = parsed_panel.pivot.unwrap_or(Anchor { x: None, y: None, top: None, bottom: None, left: None, right: None });
-                            let offset_raw = parsed_panel.offset.unwrap_or(Anchor { x: None, y: None, top: None, bottom: None, left: None, right: None });
-                            let size = parsed_panel.size.unwrap_or(Size { height:100.0, width:100.0 });
-                            let ax = anchor_raw.x.unwrap_or(0.0);
-                            let ay = anchor_raw.y.unwrap_or(0.0);
-                            let px = pivot_raw.x.unwrap_or(0.0);
-                            let py = pivot_raw.y.unwrap_or(0.0);
-                            let ot = offset_raw.top.unwrap_or(offset_raw.y.unwrap_or(0.0));
-                            let ob = offset_raw.bottom.unwrap_or(0.0);
-                            let ol = offset_raw.left.unwrap_or(offset_raw.x.unwrap_or(0.0));
-                            let or = offset_raw.right.unwrap_or(0.0);
-                            let sh = size.height;
-                            let sw = size.width;
-                            // REMOVED OLD LOG LINE FOR DEBUGGING
-                            let children_json_ptr = {
-                                let v2: serde_json::Value = serde_json::from_str(p).unwrap_or(serde_json::Value::Null);
-                                match v2.get("children") {
-                                    Some(c) => {
-                                        let children_cstr = CString::new(c.to_string()).unwrap_or_else(|_| CString::new("[]").unwrap());
-                                        let raw = children_cstr.into_raw();
-                                        eprintln!("DEBUG: children from Some, ptr={:p}", raw);
-                                        raw
-                                    },
-                                    None => {
-                                        // Always return a non-NULL pointer with empty array
-                                        let empty_children_cstr = CString::new("[]").unwrap();
-                                        let raw = empty_children_cstr.into_raw();
-                                        eprintln!("DEBUG: children from None, ptr={:p}", raw);
-                                        raw
-                                    }
-                                }
-                            };
-                            let panel_json_cstr = match CString::new(p.as_str()) {
-                                Ok(s) => s,
-                                Err(_e) => {
-                                    // If there's a null byte in the JSON, use a sanitized version
-                                    let sanitized = p.chars().filter(|&c| c != '\0').collect::<String>();
-                                    CString::new(sanitized).unwrap_or_else(|_| CString::new("{}").unwrap())
-                                }
-                            };
-                            let panel_json_raw = panel_json_cstr.into_raw();
-                            eprintln!("DEBUG: panel_json_raw ptr={:p}", panel_json_raw);
-                            let _ = std::fs::write("E:\\workspace\\rust_panel_json_ptr.txt", format!("panel_json_raw={:p}, children_ptr={:p}\n", panel_json_raw, children_json_ptr));
-                            let children_json_raw = children_json_ptr;
-                            let panel = Box::new(crate::ffi_mod::types::PanelFfi {
-                                id: id_ptr,
-                                background: bg_ptr,
-                                anchor: crate::ffi_mod::types::AnchorFfi { x: ax, y: ay },
-                                pivot: crate::ffi_mod::types::AnchorFfi { x: px, y: py },
-                                offset: crate::ffi_mod::types::OffsetFfi { top: ot, bottom: ob, left: ol, right: or },
-                                size: crate::ffi_mod::types::SizeFfi { height: sh, width: sw },
-                                children_json: children_json_raw,
-                                panel_json: panel_json_raw,
-                            });
-                            let raw_ptr = Box::into_raw(panel);
-                            let _ = std::fs::write("E:\\workspace\\rust_allocated_ptr.txt", format!("Rust allocated: ptr={:p}\n", raw_ptr));
-                            // Immediately read back the pointers from the box to verify they're correct
-                            let children_read = unsafe { (*raw_ptr).children_json };
-                            let panel_read = unsafe { (*raw_ptr).panel_json };
-                            let _ = std::fs::write("E:\\workspace\\rust_written_vs_read.txt", format!("WRITTEN: children={:p}, panel={:p}\nREAD_BACK: children={:p}, panel={:p}\n", children_json_raw, panel_json_raw, children_read, panel_read));
-                            
-                            // Debug: dump the raw bytes of the struct before returning
-                            let struct_ptr = raw_ptr as *const u8;
-                            let struct_bytes = unsafe { std::slice::from_raw_parts(struct_ptr, std::mem::size_of::<crate::ffi_mod::types::PanelFfi>()) };
-                            let hex_str = struct_bytes.iter().map(|b| format!("{:02X}", b)).collect::<Vec<_>>().join(" ");
-                            let _ = std::fs::write("E:\\workspace\\rust_struct_dump.txt", format!("Rust struct bytes at ptr={:p}:\n{}\n", raw_ptr, hex_str));
-                            
-                            eprintln!("MARKER_PATH_SERDE_OK returned ptr {:p}", raw_ptr);
-                            return raw_ptr;
-                        } else {
-                            let panel_json_cstr = match CString::new(p.clone()) {
-                                Ok(s) => s,
-                                Err(_) => CString::new("{}").expect("Failed to create fallback JSON CString")
-                            };
-                            let children_json_cstr = CString::new("[]").unwrap();
-                            let panel = Box::new(crate::ffi_mod::types::PanelFfi {
-                                id: id_ptr,
-                                background: bg_ptr,
-                                anchor: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
-                                pivot: crate::ffi_mod::types::AnchorFfi { x:0.0, y:0.0 },
-                                offset: crate::ffi_mod::types::OffsetFfi { top:0.0, bottom:0.0, left:0.0, right:0.0 },
-                                size: crate::ffi_mod::types::SizeFfi { height:100.0, width:100.0 },
-                                children_json: children_json_cstr.into_raw(),
-                                panel_json: panel_json_cstr.into_raw(),
-                            });
-                            eprintln!("MARKER_PATH_SERDE_FAIL returned ptr");
-                            return Box::into_raw(panel);
-                        }
+
+                        // Extract all numeric fields using serde_json::Value
+                        let ax = json_get_nested_f32(&val, "anchor", "x");
+                        let ay = json_get_nested_f32(&val, "anchor", "y");
+                        let px = json_get_nested_f32(&val, "pivot", "x");
+                        let py = json_get_nested_f32(&val, "pivot", "y");
+                        let ot = json_get_nested_f32(&val, "offset", "top");
+                        let ob = json_get_nested_f32(&val, "offset", "bottom");
+                        let ol = json_get_nested_f32(&val, "offset", "left");
+                        let or_val = json_get_nested_f32(&val, "offset", "right");
+                        let sh = json_get_nested_f32(&val, "size", "height");
+                        let sw = json_get_nested_f32(&val, "size", "width");
+                        let sh = if sh == 0.0 { 100.0 } else { sh };
+                        let sw = if sw == 0.0 { 100.0 } else { sw };
+
+                        let children_str = json_extract_children(&val);
+                        let children_json_cstr = CString::new(children_str).unwrap_or_else(|_| CString::new("[]").unwrap());
+
+                        let panel_json_cstr = match CString::new(p.as_str()) {
+                            Ok(s) => s,
+                            Err(_) => {
+                                let sanitized = p.chars().filter(|&c| c != '\0').collect::<String>();
+                                CString::new(sanitized).unwrap_or_else(|_| CString::new("{}").unwrap())
+                            }
+                        };
+
+                        let panel = Box::new(crate::ffi_mod::types::PanelFfi {
+                            id: id_ptr,
+                            background: bg_ptr,
+                            anchor: crate::ffi_mod::types::AnchorFfi { x: ax, y: ay },
+                            pivot: crate::ffi_mod::types::AnchorFfi { x: px, y: py },
+                            offset: crate::ffi_mod::types::OffsetFfi { top: ot, bottom: ob, left: ol, right: or_val },
+                            size: crate::ffi_mod::types::SizeFfi { height: sh, width: sw },
+                            children_json: children_json_cstr.into_raw(),
+                            panel_json: panel_json_cstr.into_raw(),
+                        });
+                        let raw_ptr = Box::into_raw(panel);
+                        eprintln!("MARKER_PATH_OK returned ptr {:p} (anchor={},{}, offset={},{},{},{}, size={},{})",
+                            raw_ptr, ax, ay, ot, ob, ol, or_val, sh, sw);
+                        return raw_ptr;
                     }
                 }
             }
@@ -437,12 +387,12 @@ pub extern "C" fn get_test_panel_fixed() -> *mut crate::ffi_mod::types::PanelFfi
     let bg_str = CString::new("test_bg.png").unwrap();
     let children_str = CString::new("[{\"id\":\"child1\"}]").unwrap();
     let panel_str = CString::new("{\"test\":true}").unwrap();
-    
+
     let id_ptr = id_str.into_raw();
     let bg_ptr = bg_str.into_raw();
     let children_ptr = children_str.into_raw();
     let panel_ptr = panel_str.into_raw();
-    
+
     let test_panel = Box::new(crate::ffi_mod::types::PanelFfi {
         id: id_ptr,
         background: bg_ptr,
@@ -453,18 +403,18 @@ pub extern "C" fn get_test_panel_fixed() -> *mut crate::ffi_mod::types::PanelFfi
         children_json: children_ptr,
         panel_json: panel_ptr,
     });
-    
+
     let raw_ptr = Box::into_raw(test_panel);
-    
+
     // Log the exact bytes we're returning
     let struct_ptr = raw_ptr as *const u8;
     let struct_bytes = unsafe { std::slice::from_raw_parts(struct_ptr, 72) };
     let hex_str = struct_bytes.iter().map(|b| format!("{:02X}", b)).collect::<Vec<_>>().join(" ");
-    
+
     eprintln!("get_test_panel_fixed: returning fixed test struct at ptr={:p}", raw_ptr);
     eprintln!("get_test_panel_fixed: struct bytes (72): {}", hex_str);
     eprintln!("get_test_panel_fixed: children_json ptr={:p}, panel_json ptr={:p}", children_ptr, panel_ptr);
-    
+
     let _ = std::fs::write("E:\\workspace\\rust_test_panel_fixed.txt", format!(
         "get_test_panel_fixed returned:\n\
          ptr={:p}\n\
@@ -475,6 +425,6 @@ pub extern "C" fn get_test_panel_fixed() -> *mut crate::ffi_mod::types::PanelFfi
          panel_json={:p}\n",
         raw_ptr, hex_str, id_ptr, bg_ptr, children_ptr, panel_ptr
     ));
-    
+
     raw_ptr
 }

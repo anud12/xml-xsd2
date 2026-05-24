@@ -20,7 +20,17 @@ static mut PENDING_EFFECTS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, f64>>>> = None;
 static mut COMPILED_MODULE: Option<&'static Mutex<Option<CompiledModule>>> = None;
+static mut COMPILED_AST_NODES: Option<&'static Mutex<HashMap<u64, serde_json::Value>>> = None;
 static mut GAME_TIME_MS: Option<&'static Mutex<u64>> = None;
+
+pub fn compiled_ast_nodes() -> &'static Mutex<HashMap<u64, serde_json::Value>> {
+    persisted_flag();
+    unsafe { COMPILED_AST_NODES.expect("compiled AST nodes initialized") }
+}
+
+pub fn set_compiled_ast_nodes(nodes: HashMap<u64, serde_json::Value>) {
+    *compiled_ast_nodes().lock().unwrap() = nodes;
+}
 static mut SCHEDULED_EFFECTS: Option<&'static Mutex<Vec<ScheduledEffect>>> = None;
 static mut LAST_SCHEDULED_TIME: Option<&'static Mutex<HashMap<String, u64>>> = None;
 static mut EFFECTS_AUTO_QUEUED: Option<&'static AtomicBool> = None;
@@ -62,6 +72,8 @@ fn persisted_flag() -> &'static AtomicBool {
         unsafe { LAST_ENTITY_NUMBER_DATA = Some(en); }
         let cm = Box::leak(Box::new(Mutex::new(None)));
         unsafe { COMPILED_MODULE = Some(cm); }
+        let ast = Box::leak(Box::new(Mutex::new(HashMap::new())));
+        unsafe { COMPILED_AST_NODES = Some(ast); }
         let gt = Box::leak(Box::new(Mutex::new(0u64)));
         unsafe { GAME_TIME_MS = Some(gt); }
         let se = Box::leak(Box::new(Mutex::new(Vec::new())));

@@ -123,13 +123,20 @@ public class ConstantNumberContent : PanelContent
 
 public class EntityNumberValueContent : PanelContent
 {
-    public string Name { get; set; }
+    public EntityValueEvaluator Evaluator { get; set; }
     public string Align { get; set; }
     public string? EntityId { get; set; }
 
+    public EntityNumberValueContent(uint astRootId, string entityId, string align = "center")
+    {
+        Evaluator = new EntityValueEvaluator(astRootId, entityId);
+        Align = align;
+    }
+
+    // Backwards-compatible constructor for legacy panels
     public EntityNumberValueContent(string name, string align = "center", string? entityId = null)
     {
-        Name = name;
+        // Legacy: no AST, will be handled by old code path
         Align = align;
         EntityId = entityId;
     }

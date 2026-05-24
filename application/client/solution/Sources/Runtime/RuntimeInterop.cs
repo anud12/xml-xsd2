@@ -255,9 +255,20 @@ public static class RuntimeInterop
                                 {
                                     var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
                                     var contentEntityId = contentProp.TryGetProperty("entityId", out var ei) ? ei.GetString() : null;
+                                    var contentAstRootId = contentProp.TryGetProperty("astRootId", out var arid) ? (uint?)arid.GetUInt32() : null;
                                     if (contentName != null)
                                     {
                                         panel.Content = new EntityTextValueContent(contentName, contentAlign, contentEntityId);
+                                    }
+                                    else if (contentAstRootId.HasValue && contentEntityId != null)
+                                    {
+                                        // Handle entityTextValue with compiled AST (value lambda)
+                                        panel.Content = new EntityTextValueContent(contentEntityId, contentAlign, contentEntityId);
+                                    }
+                                    else if (contentEntityId != null)
+                                    {
+                                        // Fallback: use "textKey" as default attribute name for entity text value
+                                        panel.Content = new EntityTextValueContent("textKey", contentAlign, contentEntityId);
                                     }
                                 }
                                 else if (contentType == "constantNumber")
@@ -267,11 +278,24 @@ public static class RuntimeInterop
                                 }
                                 else if (contentType == "entityNumberValue")
                                 {
-                                    var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
                                     var contentEntityId = contentProp.TryGetProperty("entityId", out var ei) ? ei.GetString() : null;
-                                    if (contentName != null)
+                                    var contentAstRootId = contentProp.TryGetProperty("astRootId", out var arid) ? (uint?)arid.GetUInt32() : null;
+                                    if (contentAstRootId.HasValue && contentEntityId != null)
                                     {
-                                        panel.Content = new EntityNumberValueContent(contentName, contentAlign, contentEntityId);
+                                        panel.Content = new EntityNumberValueContent(contentAstRootId.Value, contentEntityId, contentAlign);
+                                    }
+                                    else if (contentEntityId != null)
+                                    {
+                                        // Fallback: use numberKey as default for entity number value content
+                                        panel.Content = new EntityNumberValueContent("numberKey", contentAlign, contentEntityId);
+                                    }
+                                    else
+                                    {
+                                        var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
+                                        if (contentName != null)
+                                        {
+                                            panel.Content = new EntityNumberValueContent(contentName, contentAlign, contentEntityId);
+                                        }
                                     }
                                 }
                             }
@@ -377,11 +401,19 @@ public static class RuntimeInterop
                                 }
                                 else if (contentType == "entityNumberValue")
                                 {
-                                    var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
                                     var contentEntityId = contentProp.TryGetProperty("entityId", out var ei) ? ei.GetString() : null;
-                                    if (contentName != null)
+                                    var contentAstRootId = contentProp.TryGetProperty("astRootId", out var arid) ? (uint?)arid.GetUInt32() : null;
+                                    if (contentAstRootId.HasValue && contentEntityId != null)
                                     {
-                                        child.Content = new EntityNumberValueContent(contentName, contentAlign, contentEntityId);
+                                        child.Content = new EntityNumberValueContent(contentAstRootId.Value, contentEntityId, contentAlign);
+                                    }
+                                    else
+                                    {
+                                        var contentName = contentProp.TryGetProperty("name", out var cn) ? cn.GetString() : null;
+                                        if (contentName != null)
+                                        {
+                                            child.Content = new EntityNumberValueContent(contentName, contentAlign, contentEntityId);
+                                        }
                                     }
                                 }
                             }

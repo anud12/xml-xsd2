@@ -64,6 +64,9 @@ fn handle_entry_point(manifest_name: &str, manifest_json: &serde_json::Value, fi
 fn process_module_source(module_src: &str) {
     match extract_from_source(module_src) {
         Ok(dec) => {
+            // Apply declarations FIRST so original panel JSON is cached before compilation
+            declarations::apply_declarations(&dec);
+
             // Compile module: execute closures with instrumented builder context to produce AST
             match compiler::compile_module(module_src, &dec) {
                 Ok(compiled) => {
@@ -104,7 +107,6 @@ fn process_module_source(module_src: &str) {
                     crate::state::set_compiled_module(fallback);
                 }
             }
-            declarations::apply_declarations(&dec);
         }
         Err(_) => eprintln!("js extraction failed; no fallback heuristics are used"),
     }

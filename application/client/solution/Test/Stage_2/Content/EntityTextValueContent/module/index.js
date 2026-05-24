@@ -22,7 +22,7 @@ export default (hostApi) => {
     content: {
       align: "center",
       entityId: string.of("entity_id"),
-      name: string.of("textKey"),
+      value: (entity) => entity.getText(string.of("textKey")).orElse(string.of("None")),
       type: "entityTextValue",
     }
   })

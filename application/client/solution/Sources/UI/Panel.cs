@@ -13,7 +13,7 @@ public partial class Panel : Godot.Panel {
         }
     }
 
-    public Panel(NewGameProject.Runtime.Panel panel) {
+    public Panel(NewGameProject.Runtime.Panel panel, bool isRoot = true) {
         Name = panel.Id;
         UniqueNameInOwner = true;
         Owner = GetParent();
@@ -22,13 +22,29 @@ public partial class Panel : Godot.Panel {
         AnchorBottom = panel.Anchor.Y;
         AnchorLeft = panel.Anchor.X;
         AnchorRight = panel.Anchor.X;
-        OffsetTop = panel.Offset.top;
-        OffsetBottom = panel.Offset.bottom;
-        OffsetLeft = panel.Offset.left;
-        OffsetRight = panel.Offset.right;
+        if (isRoot) {
+            OffsetTop = panel.Offset.top - panel.Size.Height / 2f;
+            OffsetBottom = panel.Offset.top + panel.Size.Height / 2f;
+            OffsetLeft = panel.Offset.left - panel.Size.Width / 2f;
+            OffsetRight = panel.Offset.left + panel.Size.Width / 2f;
+        } else {
+            OffsetTop = panel.Offset.top;
+            OffsetBottom = panel.Offset.bottom;
+            OffsetLeft = panel.Offset.left;
+            OffsetRight = panel.Offset.right;
+        }
+        // Compute rect size from anchors and offsets
+        float rectWidth = (OffsetRight - OffsetLeft);
+        float rectHeight = (OffsetBottom - OffsetTop);
+        
+        // Determine grow direction: expand outward when rect is zero/negative
+        if (rectWidth <= 0) GrowHorizontal = GrowDirection.End;
+        else GrowHorizontal = GrowDirection.Both;
+        
+        if (rectHeight <= 0) GrowVertical = GrowDirection.End;
+        else GrowVertical = GrowDirection.Both;
+        
         SetCustomMinimumSize(new Vector2(panel.Size.Width, panel.Size.Height));
-        GrowHorizontal = GrowDirection.Both;
-        GrowVertical = GrowDirection.Both;
         ClipContents = true;
 
         // Debug: print incoming native panel values to help diagnose anchor/size mapping issues
@@ -74,52 +90,74 @@ public partial class Panel : Godot.Panel {
 
 
         if (panel.Children != null) {
-            var gridOrderContainer = new BoxContainer {
-                Name = "gridOrder",
-                Vertical = false,
-            };
-            gridOrderContainer.AddThemeConstantOverride("separation", 0);
-            AddChild(gridOrderContainer);
-
-            var numberOfTracks = panel.Layout?.Columns?.Length ?? 1;
-
-            var tracks = new List<BoxContainer>();
-            foreach (var i in Enumerable.Range(0, numberOfTracks)) {
-                var trackElement = new BoxContainer {
-                    Name = "track_" + i,
-                    Vertical = true,
+            var hasLayout = panel.Layout.HasValue && panel.Layout.Value.Columns != null && panel.Layout.Value.Columns.Length > 0;
+            if (hasLayout) {
+                // Grid layout mode: children are placed in grid container with tracks
+                var gridOrderContainer = new BoxContainer {
+                    Name = "gridOrder",
+                    Vertical = false,
                 };
-                trackElement.AddThemeConstantOverride("separation", 0);
-                tracks.Add(trackElement);
-                gridOrderContainer.AddChild(trackElement);
-            }
+                gridOrderContainer.AddThemeConstantOverride("separation", 0);
+                AddChild(gridOrderContainer);
 
-            for (int i = 0; i < panel.Children.Length; i++) {
-                var child = panel.Children[i];
-                var p = new Panel(child) {
-                    Name = child.Id,
-                    UniqueNameInOwner = true
-                };
-                tracks.ElementAt(i % numberOfTracks).AddChild(p);
-                p.SetOwner(this);
+                var numberOfTracks = panel.Layout.Value.Columns.Length;
+
+                var tracks = new List<BoxContainer>();
+                foreach (var i in Enumerable.Range(0, numberOfTracks)) {
+                    var trackElement = new BoxContainer {
+                        Name = "track_" + i,
+                        Vertical = true,
+                    };
+                    trackElement.AddThemeConstantOverride("separation", 0);
+                    tracks.Add(trackElement);
+                    gridOrderContainer.AddChild(trackElement);
+                }
+
+                for (int i = 0; i < panel.Children.Length; i++) {
+                    var child = panel.Children[i];
+                    var p = new Panel(child, isRoot: false) {
+                        Name = child.Id,
+                        UniqueNameInOwner = true
+                    };
+                    tracks.ElementAt(i % numberOfTracks).AddChild(p);
+                    p.SetOwner(this);
+                }
+            } else {
+          // Free-positioning mode: children are direct children positioned by their own anchor/offset
+                  float cumulativeHeight = 0;
+                  foreach (var origChild in panel.Children) {
+                     var child = origChild;
+                     if (child.Offset.top == 0 && child.Offset.left == 0 && child.Offset.bottom == 0 && child.Offset.right == 0) {
+                         child.Offset.top = cumulativeHeight;
+                         child.Offset.bottom = cumulativeHeight + child.Size.Height;
+                         cumulativeHeight += child.Size.Height;
+                     }
+                     var p = new Panel(child, isRoot: false) {
+                         Name = child.Id,
+                         UniqueNameInOwner = true
+                     };
+                     AddChild(p);
+                     p.SetOwner(this);
+                 }
             }
         }
     }
 
 
     public override void _GuiInput(InputEvent @event) {
-        // Check if the event is a mouse button click
         if (@event is InputEventMouseButton mouseEvent) {
-            // .Pressed ensures we trigger on 'down', and Mask checks for Left Click
             if (mouseEvent.Pressed && mouseEvent.ButtonIndex == MouseButton.Left) {
                 var actionName = panel.OnClick?.ActionName;
                 if (actionName != null) {
                     GD.Print($"{panel.Id}: Emitting action: {actionName}");
                     RuntimeInterop.emitAction(actionName);
                 }
-
-                // Optional: Stop the event from bubbling up to parent nodes
-                GetViewport().SetInputAsHandled();
+                // Forward click to children
+                foreach (var child in GetChildren()) {
+                    if (child is Panel childPanel) {
+                        childPanel._GuiInput(mouseEvent.Duplicate() as InputEventMouseButton);
+                    }
+                }
             }
         }
 
@@ -127,7 +165,6 @@ public partial class Panel : Godot.Panel {
             Vector2 localPos = mouseMotion.Position;
             AddChild(new Label() { Text = "" + localPos.ToString() + "" });
             GetViewport().SetInputAsHandled();
-            // Do something with the specific mouse position inside the panel
         }
     }
 

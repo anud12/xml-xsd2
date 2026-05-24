@@ -12,6 +12,9 @@ name = "java_junit_suite"
 path = "test/java_tests.rs"
 harness = false
 
+[dev-dependencies]
+serial_test = "3.2"
+
 [dependencies]
 anyhow = "1.0.102"
 

@@ -41,6 +41,9 @@ pub struct CompiledPanel {
     pub id: String,
     pub anchor: Option<CompiledAnchor>,
     pub offset: Option<CompiledOffset>,
+    pub content: Option<CompiledPanelContent>,
+    /// Raw content JSON from the compiled panel (preserves constant text, entity text value, etc.)
+    pub content_json: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,4 +58,15 @@ pub struct CompiledOffset {
     pub bottom: f64,
     pub left: f64,
     pub right: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "contentEntityNumberValue", rename_all = "camelCase")]
+pub enum CompiledPanelContent {
+    EntityNumberValue {
+        entity_id: String,
+        align: String,
+        expr_id: u64,
+        fallback: String,
+    },
 }

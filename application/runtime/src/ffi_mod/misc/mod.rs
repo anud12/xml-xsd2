@@ -10,6 +10,7 @@ pub mod set_entity_text_map_value;
 pub mod set_entity_number_map_value;
 pub mod run_iteration;
 pub mod set_game_time;
+pub mod evaluate_panel_value;
 
 pub use free_string::runtime_free_string;
 pub use free_string::runtime_free_panel;
@@ -25,3 +26,4 @@ pub use set_entity_text_map_value::runtime_set_entity_text_map_value;
 pub use set_entity_number_map_value::runtime_set_entity_number_map_value;
 pub use run_iteration::runtime_run_iteration;
 pub use set_game_time::runtime_set_game_time;
+pub use evaluate_panel_value::ffi_evaluate_panel_value;

@@ -454,6 +454,7 @@ export default (hostApi) => {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_value_wrapper_sum_via_map() {
         setup_test_environment();
         let files = build_test_files_with_effect();
@@ -477,6 +478,7 @@ export default (hostApi) => {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_process_pending_effects_increments_counter() {
         setup_test_environment();
         let files = build_test_files_with_effect();
@@ -500,6 +502,7 @@ export default (hostApi) => {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_multiple_effect_executions_increment_counter() {
         setup_test_environment();
         let files = build_test_files_with_effect();
@@ -523,6 +526,7 @@ export default (hostApi) => {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_effect_reoccurrence_scheduling() {
         setup_test_environment();
         let files = build_test_files_with_effect();
@@ -549,6 +553,7 @@ export default (hostApi) => {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_entity_number_data_persistence_across_effects() {
         setup_test_environment();
         let files = build_test_files_with_effect();
@@ -582,6 +587,7 @@ export default (hostApi) => {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_get_entity_number_map_value_after_effect() {
         setup_test_environment();
         let files = build_test_files_with_effect();

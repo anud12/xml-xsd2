@@ -102,14 +102,14 @@ export type MaybeExpression<T> = {
    */
   filter: (predicate: (v: T) => ConditionExpression) => MaybeExpression<T>;
 
-  /**
-   * Unwrap the value, providing a fallback for the absent case.
-   *
-   * If `Some`, returns the contained value. If `None`, evaluates and returns
-   * `defaultValue`.
-   *
-   * @param defaultValue - Fallback value returned when this is `None`.
-   */
+ /**
+    * Unwrap the value, providing a fallback for the absent case.
+    *
+    * If `Some`, returns the contained value. If `None`, evaluates and returns
+    * `defaultValue`.
+    *
+    * @param defaultValue - Fallback value returned when this is `None`.
+    */
   orElse: (defaultValue: T) => T;
 
   /**

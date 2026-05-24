@@ -35,12 +35,6 @@ export default (hostApi) => {
       children: [
         {
             id: "child",
-            offset: {
-                top: number.of(10),
-                bottom: number.of(10),
-                left: number.of(10),
-                right: number.of(10),
-            },
             size: {
                 height: number.of(10),
                 width: number.of(10),

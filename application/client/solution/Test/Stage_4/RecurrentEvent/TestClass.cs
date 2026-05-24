@@ -50,5 +50,6 @@ public partial class TestClass : Steps {
         await runner.SimulateFrames(1);
         
         assertions.HasContentText("12");
+
     }
 }

@@ -34,7 +34,7 @@ export default (hostApi) => {
     },
     content: {
       entityId: string.of("entity_id"),
-      name: string.of("textKey"),
+      value: (entity) => entity.getNumber(string.of("textKey")).orElse(number.of(0)),
       type: "entityNumberValue",
       align: "center",
     },

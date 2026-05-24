@@ -438,9 +438,30 @@ function createInstrumentedElement(elementId, hostApi) {
             var entityRefInfo = { queryId: elementId, keyId: keyId };
             return {
                 id: refId,
+                _entityRef: entityRefInfo,
                 map: function(callback) {
                     var numWrapper = makeNumberWrapper(refId, entityRefInfo);
                     try { callback(numWrapper); } catch(e) { /* ignore */ }
+                },
+                orElse: function(fallbackWrapper) {
+                    var fallbackId;
+                    if (fallbackWrapper && typeof fallbackWrapper.id === 'number') {
+                        fallbackId = fallbackWrapper.id;
+                    } else if (typeof fallbackWrapper === 'string') {
+                        fallbackId = registerNode({ type: "StringLiteral", value: fallbackWrapper });
+                    } else {
+                        fallbackId = registerNode({ type: "StringLiteral", value: String(fallbackWrapper || "") });
+                    }
+                    registerNode({
+                        type: "OrElseNumberRef",
+                        expr: refId,
+                        fallback: fallbackId
+                    });
+                    return {
+                        id: refId,
+                        _fallbackId: fallbackId,
+                        _entityRef: entityRefInfo
+                    };
                 }
             };
         },
@@ -458,12 +479,28 @@ function createInstrumentedElement(elementId, hostApi) {
             });
             return {
                 id: refId,
+                _entityRef: { queryId: elementId, keyId: keyId },
                 map: function(callback) {
                     var strWrapper = makeStringWrapper(refId);
                     try { callback(strWrapper); } catch(e) { /* ignore */ }
                 },
                 concat: function(suffix) {
                     return makeStringWrapper(refId);
+                },
+                orElse: function(fallbackWrapper) {
+                    var fallbackId;
+                    if (fallbackWrapper && typeof fallbackWrapper.id === 'number') {
+                        fallbackId = fallbackWrapper.id;
+                    } else if (typeof fallbackWrapper === 'string') {
+                        fallbackId = registerNode({ type: "StringLiteral", value: fallbackWrapper });
+                    } else {
+                        fallbackId = registerNode({ type: "StringLiteral", value: String(fallbackWrapper || "") });
+                    }
+                    return {
+                        id: refId,
+                        _fallbackId: fallbackId,
+                        _entityRef: { queryId: elementId, keyId: keyId }
+                    };
                 }
             };
         }
@@ -528,6 +565,8 @@ function instrumentHostApiInPlace() {
             }
         }
     };
+    // Replace registerPanel with instrumented version
+    h.registerPanel = instrumentedRegisterPanel;
 }
 
 // ---- Flush/clear ----
@@ -538,4 +577,177 @@ function __flushAstNodes() {
 function __clearAstNodes() {
     __astNodes = {};
     __nextNodeId = 1;
+}
+
+// ---- Compiled panels storage ----
+var __compiledPanels = [];
+
+function __flushCompiledPanels() {
+    return JSON.stringify(__compiledPanels);
+}
+
+// Helper: unwrap AST number wrapper {id: N} to plain number
+function _unwrapNumber(v) {
+    if (v && typeof v === "object" && typeof v.id === "number") {
+        var node = __astNodes[v.id];
+        if (node && typeof node.value === "number") return node.value;
+    }
+    return v;
+}
+
+// Helper: unwrap AST string wrapper {id: N} to plain string
+function _unwrapString(v) {
+    if (v && typeof v === "object" && typeof v.id === "number") {
+        var node = __astNodes[v.id];
+        if (node && typeof node.value === "string") return node.value;
+    }
+    return v;
+}
+
+// Helper: recursively unwrap AST wrappers in anchor/offset/size objects
+function _unwrapCoords(obj) {
+    if (!obj || typeof obj !== "object") return obj;
+    var out = {};
+    for (var k in obj) {
+        out[k] = _unwrapNumber(obj[k]);
+    }
+    return out;
+}
+
+// ---- Instrumented registerPanel for compilation ----
+function instrumentedRegisterPanel(p) {
+    if (!p || typeof p !== "object") return;
+
+    var panelObj = {
+        id: p.id || "unknown",
+        background: p.background || null,
+        size: _unwrapCoords(p.size) || { width: 100, height: 100 },
+        anchor: _unwrapCoords(p.anchor),
+        offset: _unwrapCoords(p.offset),
+    };
+
+    // Preserve onClick handler
+    if (p.onClick) {
+        panelObj.onClick = p.onClick;
+    }
+
+    // Preserve children (for panel hierarchy)
+    if (p.children) {
+        panelObj.children = p.children;
+    }
+
+    // Preserve layout configuration
+    if (p.layout) {
+        panelObj.layout = p.layout;
+    }
+
+    // If content has a function-valued value, compile it into AST
+    if (p.content && p.content.type === "entityNumberValue" && typeof p.content.value === "function") {
+        var entityIdVal = p.content.entityId;
+        var entityIdStr = null;
+        if (entityIdVal && typeof entityIdVal === "string") {
+            entityIdStr = entityIdVal;
+        } else if (entityIdVal && typeof entityIdVal === "object" && typeof entityIdVal.id === "number") {
+            // It's an AST node reference — resolve from registry
+            var node = __astNodes[entityIdVal.id];
+            if (node && typeof node.value === "string") {
+                entityIdStr = node.value;
+            }
+        }
+
+        // Create an instrumented element representing the entity
+        var elemId = registerNode({
+            type: "ElementRef",
+            query: registerNode({ type: "EntityQuery", filter: registerNode({ type: "FilterAll" }) })
+        });
+        var iElem = createInstrumentedElement(elemId, globalThis.host);
+
+        // Evaluate the value lambda against the instrumented entity
+        var result;
+        try { result = p.content.value(iElem); } catch(e) { result = null; }
+
+        // Check if result has .orElse fallback (from OrElseNumberRef)
+        var exprId = null;
+        var fallbackId = null;
+        if (result && typeof result.id === "number") {
+            exprId = result.id;
+            // If .orElse was called, a StringLiteral fallback was registered
+            // We capture it via the OrElseNumberRef node
+            if (result._fallbackId && typeof result._fallbackId === "number") {
+                fallbackId = result._fallbackId;
+            }
+        }
+
+        panelObj.content = {
+            contentEntityNumberValue: {
+                entityId: entityIdStr,
+                align: p.content.align || "center",
+                exprId: exprId,
+                fallbackId: fallbackId,
+            }
+        };
+    } else if (p.content && p.content.type === "entityTextValue" && typeof p.content.value === "function") {
+        // Handle entityTextValue with value lambda (similar to entityNumberValue)
+        var textEntityIdVal = p.content.entityId;
+        var textEntityIdStr = null;
+        if (textEntityIdVal && typeof textEntityIdVal === "string") {
+            textEntityIdStr = textEntityIdVal;
+        } else if (textEntityIdVal && typeof textEntityIdVal === "object" && typeof textEntityIdVal.id === "number") {
+            var textNode = __astNodes[textEntityIdVal.id];
+            if (textNode && typeof textNode.value === "string") {
+                textEntityIdStr = textNode.value;
+            }
+        }
+
+        var textElemId = registerNode({
+            type: "ElementRef",
+            query: registerNode({ type: "EntityQuery", filter: registerNode({ type: "FilterAll" }) })
+        });
+        var textElem = createInstrumentedElement(textElemId, globalThis.host);
+
+        var textResult;
+        try { textResult = p.content.value(textElem); } catch(e) { textResult = null; }
+
+        var textExprId = null;
+        var textFallbackId = null;
+        if (textResult && typeof textResult.id === "number") {
+            textExprId = textResult.id;
+            if (textResult._fallbackId && typeof textResult._fallbackId === "number") {
+                textFallbackId = textResult._fallbackId;
+            }
+        }
+
+        panelObj.content = {
+            contentEntityTextValue: {
+                entityId: textEntityIdStr,
+                align: p.content.align || "center",
+                exprId: textExprId,
+                fallbackId: textFallbackId,
+            }
+        };
+    } else if (p.content) {
+        // Unwrap AST wrappers in content.value for non-function content
+        var contentCopy = {};
+        for (var ck in p.content) {
+            if (ck === "value") {
+                contentCopy[ck] = _unwrapString(p.content[ck]);
+            } else {
+                contentCopy[ck] = p.content[ck];
+            }
+        }
+        panelObj.content = contentCopy;
+    }
+
+    __compiledPanels.push(panelObj);
+
+    // Also store to __registeredPanels so the extraction phase picks up the compiled panel JSON
+    // This ensures onClick, children, and other properties are available to the FFI
+    if (!globalThis.__registeredPanels) globalThis.__registeredPanels = [];
+    globalThis.__registeredPanels.push(JSON.stringify(panelObj));
+}
+
+// Override registerPanel on the host object with the instrumented version
+function instrumentRegisterPanel() {
+    if (!globalThis.host) return;
+    globalThis.host.registerPanel = instrumentedRegisterPanel;
 }

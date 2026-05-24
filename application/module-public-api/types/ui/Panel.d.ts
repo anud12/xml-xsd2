@@ -1,6 +1,7 @@
 import {NumberExpression} from "../primitives/numberExpression";
 import {TextureResource} from "../texture/TextureResource";
 import {StringExpression} from "../primitives/stringExpression";
+import {Entity, EntityExpression} from "module-public-api/types/Entity";
 
 /**
  * Function type used to register a panel with the UI system.
@@ -152,33 +153,33 @@ export type PanelOptions = {
   background: TextureResource;
 
   /**
-   * Inline content component rendered inside the panel, behind any
-   * child panels.
-   *
-   * One of four component types (see `PanelContent`):
-   * - `EntityTextValueComponent`  — displays a text attribute from an entity
-   * - `ConstantTextComponent`     — displays a static or expression-driven string
-   * - `EntityNumberValueComponent` — displays a numeric attribute from an entity
-   * - `ConstantNumberComponent`    — displays a static or expression-driven number
-   *
-   * Every content component carries an `align` property that selects
-   * one of nine positions inside the panel (from `"top-left"` to
-   * `"bottom-right"`; see `PanelContent` for the full table).
-   *
-   * If both `content` and `children` are present, content is rendered
-   * **first** (behind children).  Omit if the panel has no inline
-   * content.
-   *
-   * @default undefined  (no inline content rendered)
-   * @see specification/user-interface/text-value.md
-   * @example
-   *   content: {
-   *     type: "constant",
-   *     value: string.of("Hello"),
-   *     align: "center"
-   *   }
-   */
-  content?: PanelContent;
+    * Inline content component rendered inside the panel, behind any
+    * child panels.
+    *
+    * One of four component types (see `PanelContent`):
+    * - `EntityTextValueComponent`   — displays a text attribute from an entity
+    * - `ConstantTextComponent`      — displays a static or expression-driven string
+    * - `EntityNumberValueComponent`  — evaluates a value lambda against an entity
+    * - `ConstantNumberComponent`     — displays a static or expression-driven number
+    *
+    * Every content component carries an `align` property that selects
+    * one of nine positions inside the panel (from `"top-left"` to
+    * `"bottom-right"`; see `PanelContent` for the full table).
+    *
+    * If both `content` and `children` are present, content is rendered
+    * **first** (behind children).  Omit if the panel has no inline
+    * content.
+    *
+    * @default undefined  (no inline content rendered)
+    * @see specification/user-interface/text-value.md
+    * @example
+    *   content: {
+    *     type: "constant",
+    *     value: string.of("Hello"),
+    *     align: "center"
+    *   }
+    */
+   content?: PanelContent;
 
   /**
    * Click handler for the panel region.
@@ -318,23 +319,25 @@ export type PanelContent = (EntityTextValueComponent
  */
 export type EntityTextValueComponent = {
   /**
-   * Discriminant value — must be the literal string `"entityTextValue"`.
-   * Tells the framework to read a text attribute from an entity.
-   */
+    * Discriminant value — must be the literal string `"entityTextValue"`.
+    * Tells the framework to read a text attribute from an entity.
+    */
   type: "entityTextValue";
+  value?: (entity: Entity) =>  StringExpression;
   /**
-   * Expression that resolves to the name / key of the entity text-map
-   * attribute to display.
-   */
-  name: StringExpression;
+    * Expression that resolves to the attribute key name to read from
+    * the entity's text map.  Used as an alternative to the `value`
+    * lambda for simple text-attribute display.
+    */
+  name?: StringExpression;
   /**
-   * Expression that resolves to the entity ID whose attribute should
-   * be read.  If not supplied the framework resolves the attribute
-   * from the current context entity (the one in focus or selection
-   * scope).
-   *
-   * @default current context entity
-   */
+    * Expression that resolves to the entity ID whose attribute should
+    * be read.  If not supplied the framework resolves the attribute
+    * from the current context entity (the one in focus or selection
+    * scope).
+    *
+    * @default current context entity
+    */
   entityId?: StringExpression;
 };
 
@@ -371,12 +374,19 @@ export type ConstantTextComponent = {
 /**
  * Displays a numeric attribute from an entity.
  *
- * The framework looks up the entity by `entityId`, reads the
- * attribute named by `name` from the entity's number map, and
- * renders the resulting number.
+ * The framework looks up the entity by `entityId`, evaluates the
+ * `value` lambda against the entity, and renders the resulting
+ * string.  The lambda receives the entity instance and should
+ * return a `StringExpression` (e.g. via `entity.getNumber(key).orElse(fallback)`).
+ *
+ * The value lambda is compiled into an AST at module load time.
+ * The AST captures the entity key lookup chain and any fallback
+ * values, so the runtime evaluates the expression structurally
+ * without parsing JavaScript source code.
  *
  * - `type`: literal `"entityNumberValue"` (discriminant).
- * - `name`: `StringExpression` resolving to the entity attribute key.
+ * - `value`: `(entity: Entity) => StringExpression` that extracts
+ *   and formats the displayed value from the entity.
  * - `entityId`: optional `StringExpression` resolving to the entity
  *   identifier.  When omitted the framework uses the current context
  *   entity.
@@ -387,21 +397,17 @@ export type ConstantTextComponent = {
  *   {
  *     type: "entityNumberValue",
  *     entityId: string.of("player"),
- *     name: string.of("hp"),
+ *     value: (entity) => entity.getNumber("hp").orElse("None"),
  *     align: "center"
  *   }
  */
 export type EntityNumberValueComponent = {
   /**
    * Discriminant value — must be the literal string `"entityNumberValue"`.
-   * Tells the framework to read a numeric attribute from an entity.
+   * Tells the framework to evaluate a value expression against an entity.
    */
   type: "entityNumberValue";
-  /**
-   * Expression that resolves to the name / key of the entity number-map
-   * attribute to display.
-   */
-  name: StringExpression;
+  value: (entity: Entity) =>  NumberExpression;
   /**
    * Expression that resolves to the entity ID whose attribute should
    * be read.  If not supplied the framework resolves the attribute

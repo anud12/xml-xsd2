@@ -1,12 +1,13 @@
 {
+  "extends": "../../module-public-api/tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "CommonJS",
+    "baseUrl": "../..",
+    "strict": true,
     "checkJs": true,
-    "allowJs": true,
-    "noEmit": true,
-    "strict": false,
     "moduleResolution": "Node",
+    "paths": {
+      "module-public-api/*": ["module-public-api/*"]
+    }
   },
   "include": [
     "../../module-public-api/types/**/*.d.ts",

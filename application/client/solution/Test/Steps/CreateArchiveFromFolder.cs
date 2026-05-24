@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
+using System.Runtime.CompilerServices;
 
 namespace NewGameProject.Tests.XUnit;
 
@@ -17,7 +18,7 @@ public partial class Steps
         {
             foreach (var fileName in Directory.GetFiles(realPath, "*.*", SearchOption.AllDirectories))
             {
-                var entryName = prefix + "/" + Path.GetRelativePath(realPath, fileName).Replace('\\', '/');
+                var entryName = "module/" + Path.GetRelativePath(realPath, fileName).Replace('\\', '/');
 
                 var entry = archive.CreateEntry(entryName);
                 using (var es = entry.Open())

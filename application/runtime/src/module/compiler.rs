@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use crate::js_host_api::Declarations;
 use crate::js_runtime::{create_context, create_runtime};
 use crate::module::compiled_ast::expr::{ConditionExprNode, NumberExprNode, NumberCmpOp, StringExprNode};
-use crate::module::compiled_ast::module::{CompiledAction, CompiledEffect, CompiledEntity, CompiledModule};
+use crate::module::compiled_ast::module::{CompiledAction, CompiledEffect, CompiledEntity, CompiledModule, CompiledPanel};
 use crate::module::compiled_ast::query::{EntityFilterNode, EntityQueryNode};
 use crate::module::compiled_ast::mutation::MutationNode;
 
@@ -38,6 +38,10 @@ fn compile_effect_template() -> &'static str {
 
 fn compile_effect_prepare_template() -> &'static str {
     include_str!("../js/scripts/compile_effect_prepare.js")
+}
+
+fn compile_panels_template() -> &'static str {
+    include_str!("../js/scripts/compile_panels.js")
 }
 
 // ---- Source patching (same as extraction) ----
@@ -97,6 +101,9 @@ pub fn compile_module(module_src: &str, dec: &Declarations) -> Result<CompiledMo
     // Step 7: Compile each effect
     let effects = compile_effects(&ctx, &dec.events)?;
 
+    // Step 7b: Compile panels (flush compiled panels + AST nodes)
+    let (compiled_panels, ast_nodes) = compile_panels(&ctx)?;
+
     // Step 8: Build entities from entity_data
     let entities = build_entities_from_declarations(dec);
 
@@ -105,10 +112,16 @@ pub fn compile_module(module_src: &str, dec: &Declarations) -> Result<CompiledMo
         actions,
         effects,
         entities,
-        panels: Vec::new(),
+        panels: compiled_panels.clone(),
         created_by: dec.creators.clone(),
         emits_map: dec.emits.clone(),
     };
+
+    // Merge compiled panels into the panels cache so C# reads structured content
+    merge_compiled_panels_into_cache(&compiled_panels, &ast_nodes);
+
+    // Persist compiled AST registry for runtime FFI evaluation
+    crate::state::set_compiled_ast_nodes(ast_nodes.clone());
 
     // ctx is dropped here, cleaning up QuickJS resources
     Ok(compiled)
@@ -584,4 +597,187 @@ fn parse_number_map(val: Option<&serde_json::Value>, registry: &HashMap<u64, ser
         }
     }
     Ok(pairs)
+}
+
+// ---- Panel Compilation ----
+
+fn compile_panels(ctx: &Context) -> Result<(Vec<CompiledPanel>, HashMap<u64, serde_json::Value>)> {
+    let ast_json = ctx.with(|c| c.eval::<String, _>("__flushAstNodes()"))
+        .map_err(|e| anyhow::anyhow!("flush AST nodes error: {}", e))?;
+    let ast_nodes: HashMap<u64, serde_json::Value> =
+        serde_json::from_str(&ast_json).map_err(|e| anyhow::anyhow!("parse AST nodes error: {}", e))?;
+
+    let panels_json = ctx.with(|c| c.eval::<String, _>(compile_panels_template()))
+        .map_err(|e| anyhow::anyhow!("compile panels error: {}", e))?;
+    let panels: Vec<serde_json::Value> =
+        serde_json::from_str(&panels_json).map_err(|e| anyhow::anyhow!("parse panels error: {}", e))?;
+
+    let mut compiled_panels = Vec::new();
+    for panel_val in panels {
+        let id = panel_val.get("id").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+        let anchor = panel_val.get("anchor").and_then(|a| {
+            Some(crate::module::compiled_ast::module::CompiledAnchor {
+                x: a.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                y: a.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            })
+        });
+        let offset = panel_val.get("offset").and_then(|o| {
+            Some(crate::module::compiled_ast::module::CompiledOffset {
+                top: o.get("top").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                bottom: o.get("bottom").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                left: o.get("left").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                right: o.get("right").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            })
+        });
+        let content = parse_compiled_panel_content(panel_val.get("content"), &ast_nodes)?;
+        // Preserve raw content JSON for non-EntityNumberValue content types
+        let content_json = panel_val.get("content")
+            .map(|cv| serde_json::to_string(cv).unwrap_or_default());
+
+        compiled_panels.push(CompiledPanel {
+            id,
+            anchor,
+            offset,
+            content,
+            content_json,
+        });
+    }
+
+    Ok((compiled_panels, ast_nodes))
+}
+
+fn parse_compiled_panel_content(
+    val: Option<&serde_json::Value>,
+    _registry: &HashMap<u64, serde_json::Value>,
+) -> Result<Option<crate::module::compiled_ast::module::CompiledPanelContent>> {
+    match val {
+        Some(v) => {
+            if let Some(content_obj) = v.get("contentEntityNumberValue") {
+                let entity_id = content_obj.get("entityId").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let align = content_obj.get("align").and_then(|v| v.as_str()).unwrap_or("center").to_string();
+                let expr_id = content_obj.get("exprId").and_then(|v| v.as_u64()).unwrap_or(0);
+                let fallback_id = content_obj.get("fallbackId").and_then(|v| v.as_u64()).unwrap_or(0);
+                let fallback = resolve_string_literal(fallback_id, _registry);
+                Ok(Some(crate::module::compiled_ast::module::CompiledPanelContent::EntityNumberValue {
+                    entity_id,
+                    align,
+                    expr_id,
+                    fallback,
+                }))
+            } else {
+                Ok(None)
+            }
+        }
+        None => Ok(None),
+    }
+}
+
+fn resolve_string_literal(id: u64, registry: &HashMap<u64, serde_json::Value>) -> String {
+    if let Some(node) = registry.get(&id) {
+        if node.get("type").map(|v| v.as_str() == Some("StringLiteral")).unwrap_or(false) {
+            return node.get("value").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        }
+    }
+    String::new()
+}
+
+fn merge_compiled_panels_into_cache(
+    compiled_panels: &[CompiledPanel],
+    _ast_nodes: &HashMap<u64, serde_json::Value>,
+) {
+    let mut cache = crate::state::last_panels().lock().unwrap();
+    let mut new_panels = Vec::new();
+
+    for panel in compiled_panels {
+        // Find original panel JSON in cache to preserve all fields
+        let orig_json = cache.iter().find(|p| {
+            p.trim_start().starts_with('{') && p.contains(&format!("\"id\"")) && p.contains(&format!("\"{}\"", panel.id))
+        });
+
+        let mut panel_obj = if let Some(orig) = orig_json {
+            // Start with the original JSON to preserve ALL fields (anchor, offset, etc.)
+            serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(orig)
+                .unwrap_or_else(|_| serde_json::Map::new())
+        } else {
+            let mut m = serde_json::Map::new();
+            m.insert("id".to_string(), serde_json::Value::String(panel.id.clone()));
+            m
+        };
+
+        // Ensure id is set
+        panel_obj.insert("id".to_string(), serde_json::Value::String(panel.id.clone()));
+
+        // Always ensure anchor/offset/size exist with defaults
+        if panel_obj.get("anchor").is_none() {
+            let mut anchor_map = serde_json::Map::new();
+            if let Some(ref anchor) = panel.anchor {
+                anchor_map.insert("x".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(anchor.x).unwrap()));
+                anchor_map.insert("y".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(anchor.y).unwrap()));
+            } else {
+                anchor_map.insert("x".to_string(), serde_json::Value::Number(serde_json::Number::from(0)));
+                anchor_map.insert("y".to_string(), serde_json::Value::Number(serde_json::Number::from(0)));
+            }
+            panel_obj.insert("anchor".to_string(), serde_json::Value::Object(anchor_map));
+        }
+        if panel_obj.get("offset").is_none() {
+            let mut offset_map = serde_json::Map::new();
+            if let Some(ref offset) = panel.offset {
+                offset_map.insert("top".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(offset.top).unwrap()));
+                offset_map.insert("bottom".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(offset.bottom).unwrap()));
+                offset_map.insert("left".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(offset.left).unwrap()));
+                offset_map.insert("right".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(offset.right).unwrap()));
+            } else {
+                offset_map.insert("top".to_string(), serde_json::Value::Number(serde_json::Number::from(0)));
+                offset_map.insert("bottom".to_string(), serde_json::Value::Number(serde_json::Number::from(0)));
+                offset_map.insert("left".to_string(), serde_json::Value::Number(serde_json::Number::from(0)));
+                offset_map.insert("right".to_string(), serde_json::Value::Number(serde_json::Number::from(0)));
+            }
+            panel_obj.insert("offset".to_string(), serde_json::Value::Object(offset_map));
+        }
+        if panel_obj.get("size").is_none() {
+            let mut size_map = serde_json::Map::new();
+            size_map.insert("width".to_string(), serde_json::Value::Number(serde_json::Number::from(100)));
+            size_map.insert("height".to_string(), serde_json::Value::Number(serde_json::Number::from(100)));
+            panel_obj.insert("size".to_string(), serde_json::Value::Object(size_map));
+        }
+
+        // Override content only if we have compiled content
+        if let Some(content) = &panel.content {
+            match content {
+                crate::module::compiled_ast::module::CompiledPanelContent::EntityNumberValue { entity_id, align, expr_id, .. } => {
+                    let mut content_map = serde_json::Map::new();
+                    content_map.insert("type".to_string(), serde_json::Value::String("entityNumberValue".to_string()));
+                    content_map.insert("entityId".to_string(), serde_json::Value::String(entity_id.clone()));
+                    content_map.insert("align".to_string(), serde_json::Value::String(align.clone()));
+                    content_map.insert("astRootId".to_string(), serde_json::Value::Number(serde_json::Number::from(*expr_id)));
+                    panel_obj.insert("content".to_string(), serde_json::Value::Object(content_map));
+                }
+            }
+        } else if let Some(ref cj) = panel.content_json {
+            // Use raw content JSON for non-EntityNumberValue content (e.g., constant text, entity text value)
+            if let Ok(content_val) = serde_json::from_str::<serde_json::Value>(cj) {
+                panel_obj.insert("content".to_string(), content_val);
+            }
+        }
+
+        new_panels.push(serde_json::to_string(&serde_json::Value::Object(panel_obj)).unwrap_or_default());
+    }
+
+    let compiled_ids: std::collections::HashSet<&str> = compiled_panels.iter().map(|p| p.id.as_str()).collect();
+    cache.retain(|p| {
+        if p.trim_start().starts_with('{') {
+            !p.split(':').any(|segment| {
+                let trimmed = segment.trim();
+                if trimmed.starts_with('"') && trimmed.ends_with('"') {
+                    let inner = &trimmed[1..trimmed.len()-1];
+                    compiled_ids.contains(inner)
+                } else {
+                    false
+                }
+            })
+        } else {
+            !compiled_ids.contains(p.as_str())
+        }
+    });
+    cache.extend(new_panels);
 }

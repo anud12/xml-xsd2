@@ -13,6 +13,24 @@ public partial class EntityNumberValueContentNode : RichTextLabel {
         SetJustificationFlags(TextServer.JustificationFlag.None);
         SetAnchorsPreset(LayoutPreset.FullRect);
         ApplyAlignment(content.Align);
+        // Set initial text
+        if (content.Evaluator != null) {
+            Text = content.Evaluator.Evaluate();
+        }
+        else if (content.EntityId != null) {
+            Text = TryGetEntityNumberValue(content.EntityId);
+        }
+    }
+    
+    private static string TryGetEntityNumberValue(string entityId) {
+        string text = RuntimeInterop.GetEntityNumberMapValue(entityId, "numberKey");
+        if (string.IsNullOrEmpty(text)) {
+            text = RuntimeInterop.GetEntityNumberMapValue(entityId, "value");
+        }
+        if (string.IsNullOrEmpty(text)) {
+            text = RuntimeInterop.GetEntityNumberMapValue(entityId, "textKey");
+        }
+        return text;
     }
     private void ApplyAlignment(string align) {
         switch (align) {
@@ -55,8 +73,15 @@ public partial class EntityNumberValueContentNode : RichTextLabel {
         }
     }
 
-    public override void _Process(double delta) {
-        var text = RuntimeInterop.ReadEntityNumberValue(content.EntityId, content.Name);
-        Text = text;
+   public override void _Process(double delta) {
+        if (content.Evaluator != null) {
+            Text = content.Evaluator.Evaluate();
+        }
+        else if (content.EntityId != null) {
+            Text = TryGetEntityNumberValue(content.EntityId);
+        }
+        else {
+            Text = string.Empty;
+        }
     }
 }
