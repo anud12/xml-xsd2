@@ -1,0 +1,29 @@
+TASK SUMMARY
+===========
+Generated: 2026-05-25
+Notes processed: 1
+Tasks created: 3
+
+## Tasks by Priority
+HIGH:   2
+MEDIUM: 1
+LOW:    0
+
+## Task Registry
+| ID | File Name | Title | Priority | Status | Depends On |
+|----|-----------|-------|----------|--------|------------|
+| TASK-001 | TASK-2026-05-25-001-investigate-panel-not-updating.txt | Investigate why the main scene panel is not updating at runtime | high | pending | none |
+| TASK-002 | TASK-2026-05-25-002-stage4-repeatable-effect-self-stop.txt | Write Stage 4 test: repeatable effect can stop by itself | high | pending | none |
+| TASK-003 | TASK-2026-05-25-003-stage4-panel-update-with-iteration.txt | Write Stage 4 test: panel updates correctly during runtime iterations with repeatable effects | medium | pending | TASK-001, TASK-002 |
+
+## Notes Processed
+- New Text Document.txt: 3 task(s)
+
+## Flagged for Clarification
+None
+
+## Additional Notes
+- TASK-002 and TASK-003 both target the restricted directory `application/client/solution/Test/Stage_4/`. Agents cannot edit this directory. These tasks are specifications for a human implementer who has the necessary permissions.
+- TASK-001 and TASK-002 are independent and can be worked on in parallel.
+- TASK-003 blocks on both TASK-001 (needs root cause understanding) and TASK-002 (needs repeatable effect test baseline).
+- The existing Stage 4 test modules (`EntityNumberValueUpdate/` and `EntityTextValueUpdate/`) provide reference patterns for the new tests.

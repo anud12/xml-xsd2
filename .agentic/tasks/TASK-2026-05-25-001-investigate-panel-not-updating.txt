@@ -1,0 +1,36 @@
+TASK: TASK-2026-05-25-001-investigate-panel-not-updating
+CREATED: 2026-05-25
+SOURCE: New Text Document.txt
+PRIORITY: high
+STATUS: pending
+DEPENDS_ON: none
+ESTIMATE: half-day (~3-4 hours)
+
+## Title
+Investigate why the main scene panel is not updating at runtime
+
+## Description
+The note reports: "When running the main scene the panel isn't updating."
+
+This is a defect in the C# Godot client project. The panel UI in the main scene fails to reflect runtime entity state changes. The investigation should focus on:
+
+1. Examine `application/client/solution/Scenes/` for the main scene file(s) and how panels are wired up.
+2. Review the panel content update pipeline: how `RuntimeInterop.RunIteration()` propagates entity state changes to panel content (specifically `EntityNumberValueContent` and `EntityTextValueContent`).
+3. Check `application/client/solution/Sources/UI/Panel.cs` and related UI code for how panel content is refreshed after each iteration.
+4. Review whether the `_process` / `_physics_process` loop or equivalent update mechanism is correctly connected in the main scene's root node.
+5. Compare working test scenes (e.g., `res://Scenes/Test.tscn` used by Stage 4 tests) with the main scene to identify discrepancies in panel update wiring.
+
+Key files to examine:
+- `application/client/solution/Sources/UI/Panel.cs` (panel rendering logic)
+- `application/client/solution/Sources/Runtime/RuntimeInterop.cs` (runtime interop layer)
+- `application/client/solution/Scenes/` (main scene definition)
+- `application/client/solution/Test/Steps/LoadTestScene.cs` (how test scenes load and run)
+- `application/client/solution/Test/Steps/AssertPanel.cs` (panel assertion helpers showing expected panel structure)
+
+## Acceptance Criteria
+- Root cause of the panel not updating has been identified and documented
+- A clear description of what is missing or misconfigured in the main scene is provided
+- The finding is actionable — a subsequent fix task can be created from the investigation results
+
+## Dependencies
+No dependencies. This is a standalone investigation that other tasks (TASK-003) depend on.
