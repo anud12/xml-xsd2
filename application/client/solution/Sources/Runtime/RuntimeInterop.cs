@@ -498,6 +498,11 @@ public static class RuntimeInterop
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern bool runtime_export_state([MarshalAs(UnmanagedType.LPStr)] string path);
 
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_clear_state();
+
+    public static void ClearState() => runtime_clear_state();
+
     public static string ProcessArchive(string zipPath)
     {
         ZIP_PATH = zipPath;
@@ -651,8 +656,19 @@ public static class RuntimeInterop
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern void register_logger(IntPtr callback);
 
+    public static bool HasLogger => userLogCallback != null;
+
+    public static void ClearLogger()
+    {
+        userLogCallback = null;
+        nativeLogCallback = null;
+    }
+
     public static void RegisterLogger(Action<string> callback)
     {
+        if (userLogCallback != null)
+            return; // Don't overwrite existing logger (e.g., test-registered logger)
+
         userLogCallback = callback;
         // Create a delegate that will be called from native code
         nativeLogCallback = (message) =>
