@@ -46,7 +46,7 @@ public partial class Steps {
         }
 
         // Process the archive through the runtime interop
-        var dbPath = RuntimeInterop.ProcessArchive(_currentArchivePath);
+        // var dbPath = RuntimeInterop.ProcessArchive(_currentArchivePath);
 
         return this;
     }
