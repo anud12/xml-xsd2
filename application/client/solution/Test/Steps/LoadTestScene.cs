@@ -16,8 +16,12 @@ public partial class Steps
         // // Ensure the window isn't minimized and is visible for the capture
         // DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
         
+        
+        Game.ARCHIVE_DIR = _currentArchivePath;
+        Game.RUN_RUNTIME_LOOP = false;
+        
         // Load scene once for the entire test suite with automatic cleanup
-        runner = ISceneRunner.Load("res://Scenes/Test.tscn", true);
+        runner = ISceneRunner.Load("res://Scenes/Game.tscn", true);
         var scene = runner.Scene();
         // We maximize the view to bring the window to foreground to see what actually happened in the scene.
 

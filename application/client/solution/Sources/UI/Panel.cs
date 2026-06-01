@@ -124,10 +124,10 @@ public partial class Panel : Godot.Panel {
         }
 
         if (@event is InputEventMouseMotion mouseMotion) {
-            Vector2 localPos = mouseMotion.Position;
-            AddChild(new Label() { Text = "" + localPos.ToString() + "" });
-            GetViewport().SetInputAsHandled();
-            // Do something with the specific mouse position inside the panel
+            // Vector2 localPos = mouseMotion.Position;
+            // AddChild(new Label() { Text = "" + localPos.ToString() + "" });
+            // GetViewport().SetInputAsHandled();
+            // // Do something with the specific mouse position inside the panel
         }
     }
 

@@ -21,7 +21,7 @@ public partial class TestClass : Steps {
 
 
         var scene = LoadTestScene();
-        var rootNode = new RootNode();
+        var rootNode = scene.GetChild<RootNode>(0);
         var idList = RuntimeInterop.GetPanelIds();
 
         scene.AddChild(rootNode);
@@ -44,10 +44,11 @@ public partial class TestClass : Steps {
             ButtonMask = MouseButtonMask.Left
         };
         runner.Scene().GetViewport().PushInput(mouseEvent);
+        await runner.SimulateFrames(1);
+        
         mouseEvent = (InputEventMouseButton)mouseEvent.Duplicate();
         mouseEvent.Pressed = false;
         runner.Scene().GetViewport().PushInput(mouseEvent);
-        await runner.SimulateFrames(1);
 
         AssertRuntimeOutputContains("___From module action fired line___");
         AssertRuntimeOutputContainsNot("___From module effect prepare fired line___");
@@ -66,5 +67,6 @@ public partial class TestClass : Steps {
         
         AssertRuntimeOutputContainsNot("___From module effect prepare fired line___");
         AssertRuntimeOutputContainsNot("___From module effect fired line___");
+
     }
 }

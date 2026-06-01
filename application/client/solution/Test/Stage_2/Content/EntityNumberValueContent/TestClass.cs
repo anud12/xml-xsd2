@@ -22,7 +22,7 @@ public class TestClass : Steps {
             .ProcessArchive();
 
         var scene = LoadTestScene();
-        var rootNode = new RootNode();
+        var rootNode = scene.GetChild<RootNode>(0);
         var idList = RuntimeInterop.GetPanelIds();
 
         scene.AddChild(rootNode);
