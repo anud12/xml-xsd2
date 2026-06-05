@@ -1,6 +1,6 @@
-# Stage_4 - Interaction Assertions Suite
+# Stage - Interaction Assertions Suite
 
 ## Purpose
 
-Stage 4 validates **UI updates correctness** in the rendering system when runtime executes an interaction.
+Stage validates **UI updates correctness** in the rendering system when runtime executes an interaction.
 
