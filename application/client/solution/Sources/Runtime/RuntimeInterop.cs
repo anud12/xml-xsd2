@@ -639,14 +639,17 @@ public static class RuntimeInterop
     public static void emitAction(string action) => runtime_emit_action(action);
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
-    private static extern double runtime_run_iteration(double tickRateInSec);
+    private static extern long runtime_run_iteration(long elapsedUnits);
 
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern long runtime_get_elapsed_time_units();
 
-    public static double RunIteration(long tickRateInSec = 0) {
-        userLogCallback?.Invoke("DEBUG: RunIteration called with tickRateInSec=" + tickRateInSec);
-        var elapsedTime = runtime_run_iteration(tickRateInSec);
-        return elapsedTime;
+    public static long RunIteration(long elapsedUnits = 0) {
+        userLogCallback?.Invoke("DEBUG: RunIteration called with elapsedUnits=" + elapsedUnits);
+        return runtime_run_iteration(elapsedUnits);
     }
+
+    public static long GetElapsedTimeUnits() => runtime_get_elapsed_time_units();
 
     // Logger callback support
     private delegate void LogCallback([MarshalAs(UnmanagedType.LPStr)] string message);

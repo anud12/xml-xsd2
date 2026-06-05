@@ -25,6 +25,7 @@ pub use misc::get_entity_number_map_value;
 pub use misc::runtime_set_entity_text_map_value;
 pub use misc::runtime_set_entity_number_map_value;
 pub use misc::runtime_run_iteration;
+pub use misc::runtime_get_elapsed_time_units;
 
 // Re-export from native_stdio
 pub use crate::native_stdio::register_logger;

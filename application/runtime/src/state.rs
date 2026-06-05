@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use rusqlite::Connection;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Once, Mutex};
 
 use std::collections::HashMap;
@@ -22,6 +22,7 @@ static mut LAST_CREATED_BY: Option<&'static Mutex<HashMap<String, Vec<String>>>>
 static mut PENDING_EFFECTS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, f64>>>> = None;
+static mut ELAPSED_TIME_UNITS: Option<&'static AtomicI64> = None;
 
 fn persisted_flag() -> &'static AtomicBool {
     INIT.call_once(|| {
@@ -51,6 +52,8 @@ fn persisted_flag() -> &'static AtomicBool {
         unsafe { LAST_ENTITY_DATA = Some(ed); }
         let en = Box::leak(Box::new(Mutex::new(HashMap::new())));
         unsafe { LAST_ENTITY_NUMBER_DATA = Some(en); }
+        let et = Box::leak(Box::new(AtomicI64::new(0)));
+        unsafe { ELAPSED_TIME_UNITS = Some(et); }
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }
 }
@@ -143,8 +146,21 @@ pub fn last_entity_number_data() -> &'static Mutex<HashMap<String, HashMap<Strin
     unsafe { LAST_ENTITY_NUMBER_DATA.expect("entity number data initialized") }
 }
 
-pub fn set_last_entity_number_data(data: HashMap<String, HashMap<String, f64>>) {
+ pub fn set_last_entity_number_data(data: HashMap<String, HashMap<String, f64>>) {
     *last_entity_number_data().lock().unwrap() = data;
+}
+
+pub fn elapsed_time_units() -> &'static AtomicI64 {
+    persisted_flag();
+    unsafe { ELAPSED_TIME_UNITS.expect("elapsed time units initialized") }
+}
+
+pub fn add_elapsed_time_units(units: i64) {
+    elapsed_time_units().fetch_add(units, Ordering::SeqCst);
+}
+
+pub fn get_elapsed_time_units() -> i64 {
+    elapsed_time_units().load(Ordering::SeqCst)
 }
 
 pub fn set_pending_effects(effects: Vec<String>) {
@@ -155,7 +171,7 @@ pub fn clear_pending_effects() {
     pending_effects().lock().unwrap().clear();
 }
 
-#[allow(dead_code)]
+ #[allow(dead_code)]
 pub fn clear_state() {
     // Clear cached rows and flags so embedding processes can reset runtime state between tests
     *last_file_rows().lock().unwrap() = Vec::new();
@@ -170,6 +186,7 @@ pub fn clear_state() {
     *last_archive_path().lock().unwrap() = String::new();
     *last_entity_data().lock().unwrap() = HashMap::new();
     *last_entity_number_data().lock().unwrap() = HashMap::new();
+    elapsed_time_units().store(0, Ordering::SeqCst);
     persisted_flag().store(false, Ordering::SeqCst);
 }
 
