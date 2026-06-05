@@ -1,5 +1,5 @@
-# Stage_1 - Panel Position Assertions Suite
+# Stage - Panel Position Assertions Suite
 
 ## Purpose
 
-Stage 1 validates **panel position calculation correctness** in the rendering engine.
+Stage validates **panel position calculation correctness** in the rendering engine.

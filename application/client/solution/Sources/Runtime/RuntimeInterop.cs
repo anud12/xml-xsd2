@@ -642,7 +642,7 @@ public static class RuntimeInterop
     private static extern double runtime_run_iteration(double tickRateInSec);
 
 
-    public static double RunIteration(double tickRateInSec = 0) {
+    public static double RunIteration(long tickRateInSec = 0) {
         userLogCallback?.Invoke("DEBUG: RunIteration called with tickRateInSec=" + tickRateInSec);
         var elapsedTime = runtime_run_iteration(tickRateInSec);
         return elapsedTime;
