@@ -36,21 +36,34 @@ fn eval_source_in_ctx(ctx: &Context, code: &str) -> Result<()> {
 fn call_module_default_if_present(ctx: &Context, transformed: &str) {
     if transformed.contains("__module_default") {
         let call_snippet = r#"try {
+            var hostApi = {
+                string: { of: s => s },
+                number: { of: n => n },
+                entity: {
+                    create: function(){ return { withTextMap: function(tm){ return tm; } }; },
+                    filter: {
+                        create: function() {
+                            return {
+                                byId: function(fn) {
+                                    return { fn: fn };
+                                }
+                            };
+                        }
+                    }
+                },
+                textMap: { create: function(){ return { put: function(k,v){ const o = {}; o[k]=v; return o; } }; } },
+                texture: { of: function(p){ return p; } },
+                emitEvent: host.emitEvent,
+                registerEvent: host.registerEvent,
+                registerAction: host.registerAction,
+                registerEffect: host.registerEffect,
+                registerPanel: host.registerPanel,
+                setEntity: host.setEntity,
+                log: host.log
+            };
+            globalThis.hostApi = hostApi;
             if (typeof __module_default === 'function') {
-                __module_default({
-                    string: { of: s => s },
-                    number: { of: n => n },
-                    entity: { create: function(){ return { withTextMap: function(tm){ return tm; } }; } },
-                    textMap: { create: function(){ return { put: function(k,v){ const o = {}; o[k]=v; return o; } }; } },
-                    texture: { of: function(p){ return p; } },
-                    emitEvent: host.emitEvent,
-                    registerEvent: host.registerEvent,
-                    registerAction: host.registerAction,
-                    registerEffect: host.registerEffect,
-                    registerPanel: host.registerPanel,
-                    setEntity: host.setEntity,
-                    log: host.log
-                });
+                __module_default(hostApi);
             }
         } catch(e) { }
         "#;
@@ -63,7 +76,16 @@ pub fn extract_from_source(source: &str) -> Result<Declarations> {
     let transformed = transform_source_for_default(source);
     eval_source_in_ctx(&ctx, &transformed)?;
     call_module_default_if_present(&ctx, &transformed);
+
+    // Debug: check __pendingEffects before extraction
+    let pending_debug = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__pendingEffects || [])")).unwrap_or_else(|_| "[]".to_string());
+    eprintln!("DEBUG: __pendingEffects before extract_declarations: {}", pending_debug);
+
+    let logs_debug = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__logs || [])")).unwrap_or_else(|_| "[]".to_string());
+    eprintln!("DEBUG: __logs before extract_declarations: {}", logs_debug);
+
     let dec = extract_declarations(&ctx)?;
+    eprintln!("DEBUG: dec.pending_effects: {:?}", dec.pending_effects);
     Ok(dec)
 }
 
@@ -109,21 +131,34 @@ fn eval_entry_in_ctx(ctx: &Context, source: &str) -> Result<String> {
     ctx.with(|ctx| ctx.eval::<(), _>(transformed.clone()))?;
     if transformed.contains("__module_default") {
         let call_snippet = r#"try {
+            var hostApi = {
+                string: { of: s => s },
+                number: { of: n => n },
+                entity: {
+                    create: function(){ return { withTextMap: function(tm){ return tm; } }; },
+                    filter: {
+                        create: function() {
+                            return {
+                                byId: function(fn) {
+                                    return { fn: fn };
+                                }
+                            };
+                        }
+                    }
+                },
+                textMap: { create: function(){ return { put: function(k,v){ const o = {}; o[k]=v; return o; } }; } },
+                texture: { of: function(p){ return p; } },
+                emitEvent: host.emitEvent,
+                registerEvent: host.registerEvent,
+                registerAction: host.registerAction,
+                registerEffect: host.registerEffect,
+                registerPanel: host.registerPanel,
+                setEntity: host.setEntity,
+                log: host.log
+            };
+            globalThis.hostApi = hostApi;
             if (typeof __module_default === 'function') {
-                __module_default({
-                    string: { of: s => s },
-                    number: { of: n => n },
-                    entity: { create: function(){ return { withTextMap: function(tm){ return tm; } }; } },
-                    textMap: { create: function(){ return { put: function(k,v){ const o = {}; o[k]=v; return o; } }; } },
-                    texture: { of: function(p){ return p; } },
-                    emitEvent: host.emitEvent,
-                    registerEvent: host.registerEvent,
-                    registerAction: host.registerAction,
-                    registerEffect: host.registerEffect,
-                    registerPanel: host.registerPanel,
-                    setEntity: host.setEntity,
-                    log: host.log
-                });
+                __module_default(hostApi);
             }
         } catch(e) { }"#;
         let _ = ctx.with(|ctx| ctx.eval::<(), _>(call_snippet));
@@ -406,61 +441,447 @@ fn run_simulation_and_collect(ctx: &Context, script: &str) -> Result<(String, St
     Ok((result_json, logs_json))
 }
 
-pub fn process_pending_effects(files: &std::collections::HashMap<String, String>) -> Result<()> {
+pub fn process_pending_effects(files: &std::collections::HashMap<String, String>, current_elapsed: i64) -> Result<()> {
     // Get pending effects from state
     let effects = crate::state::pending_effects().lock().unwrap().clone();
-    
+
     if effects.is_empty() {
         return Ok(());
     }
-    
+
     // Clear the pending effects queue
     crate::state::clear_pending_effects();
-    
+
     // Create a runtime and context
     let (_rt, ctx) = prepare_runtime_and_ctx()?;
     install_host_api(&ctx)?;
     let source = select_entry_source(files);
-    
-    let _transformed = eval_entry_in_ctx(&ctx, &source)?;
-    
-    // For each effect, execute it
-    for effect_name in effects.iter() {
-        // Build the effect execution script
-        let script = format!(r#"
-            const evs = globalThis.__registeredEvents || [];
-            let found = null;
-            for (let i = 0; i < evs.length; i++) {{
-                const e = evs[i];
-                if (e && typeof e === 'object' && e.name === "{}") {{
-                    found = e;
-                    break;
+
+// Eval module source first (this may call setEntity which sets initial __entityData)
+        let _transformed = eval_entry_in_ctx(&ctx, &source)?;
+
+        // Then sync entity number data from Rust to JS (overwriting any setEntity calls)
+        let number_data = crate::state::last_entity_number_data().lock().unwrap().clone();
+        let entity_store_json: Vec<serde_json::Value> = number_data.iter().map(|(entity_id, props)| {
+            let mut obj = serde_json::Map::new();
+            obj.insert(entity_id.clone(), serde_json::Value::String(entity_id.clone()));
+            if let Some(number_map) = props.get("key") {
+                obj.insert("key".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(*number_map).unwrap_or(serde_json::Number::from(0))));
+            }
+            serde_json::Value::Object(obj)
+        }).collect();
+        let entity_store_json_str = serde_json::to_string(&entity_store_json).unwrap_or_else(|_| "[]".to_string());
+        let _ = ctx.with(|ctx| ctx.eval::<(), _>(format!("globalThis.__entityStore = {}; ", entity_store_json_str)));
+
+        // Also sync to __entityData for numberMap access
+        let entity_data_json: std::collections::HashMap<String, serde_json::Value> = number_data.iter().map(|(entity_id, props)| {
+            let mut nm = serde_json::Map::new();
+            for (k, v) in props.iter() {
+                if let Some(n) = serde_json::Number::from_f64(*v) {
+                    nm.insert(k.clone(), serde_json::Value::Number(n));
+                }
+            }
+            let mut obj = serde_json::Map::new();
+            obj.insert("numberMap".to_string(), serde_json::Value::Object(nm));
+            (entity_id.clone(), serde_json::Value::Object(obj))
+        }).collect();
+        let entity_data_json_str = serde_json::to_string(&entity_data_json).unwrap_or_else(|_| "{}".to_string());
+        let _ = ctx.with(|ctx| ctx.eval::<(), _>(format!("globalThis.__entityData = {}; ", entity_data_json_str)));
+
+        // Make hostApi available globally for effect's apply function
+        let _ = ctx.with(|ctx| ctx.eval::<(), _>(r#"
+            globalThis.hostApi = {
+                entity: {
+                    filter: {
+                        create: function() {
+                            return {
+                                byId: function(fn) {
+                                    return { fn: fn };
+                                }
+                            };
+                        }
+                    }
+                },
+                string: { of: function(s) { return s; } },
+                number: { of: function(n) { return n; } }
+            };
+        "#));
+
+// For each pending effect, execute it
+        for effect_name in effects.iter() {
+            // Build the effect execution script
+let script = format!(r#"
+            (function() {{
+                globalThis.__logs = [];
+                globalThis.__logs.push('DEBUG: effect script started');
+                const evs = globalThis.__registeredEvents || [];
+                globalThis.__logs.push('DEBUG: effect script, evs count=' + evs.length);
+                let found = null;
+                for (let i = 0; i < evs.length; i++) {{
+                    const e = evs[i];
+                    if (e && typeof e === 'object' && e.name === "{}") {{
+                        found = e;
+                        break;
+                    }}
                 }}
-            }}
-            
-            if (found) {{
+
+                globalThis.__logs.push('DEBUG: effect script, found=' + (found ? 'yes' : 'no'));
+
+                if (!found) {{
+                    globalThis.__logs.push('DEBUG: effect {} not found');
+                    return;
+                }}
+
+// Simple buildEventContext
+                function buildEventContext() {{
+                    globalThis.__logs.push('DEBUG_CTX: buildEventContext called');
+                    // Find first entity
+                    let found_entity = null;
+                    for (let eid in globalThis.__entityData) {{
+                        found_entity = globalThis.__entityData[eid];
+                        break;
+                    }}
+                    globalThis.__logs.push('DEBUG_CTX: found_entity=' + JSON.stringify(found_entity));
+
+                    return {{
+getEntityBy: function(filter) {{
+                            globalThis.__logs.push('DEBUG_CTX: getEntityBy called');
+                            return {{
+                                map: function(cb) {{
+                                    globalThis.__logs.push('DEBUG_CTX: map called, found_entity=' + JSON.stringify(found_entity));
+                                    if (!found_entity) return;
+                                    cb({{
+                                        getNumber: function(key) {{
+                                            globalThis.__logs.push('DEBUG_CTX: getNumber called, key=' + key);
+                                            return {{
+                                                map: function(cb3) {{
+                                                    if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return;
+                                                    globalThis.__logs.push('DEBUG_CTX: calling cb3 with sum');
+                                                    cb3({{
+                                                        sum: function(s) {{
+                                                            globalThis.__logs.push('DEBUG_CTX: sum called, adding ' + s);
+                                                            found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
+                                                            globalThis.__logs.push('DEBUG_CTX: sum done, new value=' + found_entity.numberMap[key]);
+                                                        }}
+                                                    }});
+                                                }}
+                                            }};
+                                        }}
+                                    }});
+                                }}
+                            }};
+                        }}
+                    }};
+                }}
+
                 let prepared = null;
                 if (typeof found.prepare === 'function') {{
-                    prepared = found.prepare({{}});
+                    try {{
+                        globalThis.__logs.push('DEBUG: calling prepare');
+                        prepared = found.prepare({{}});
+                        globalThis.__logs.push('DEBUG: prepare returned: ' + JSON.stringify(prepared));
+                    }} catch(e) {{
+                        globalThis.__logs.push('DEBUG: prepare error: ' + String(e));
+                    }}
                 }}
-                
+
                 if (typeof found.apply === 'function') {{
-                    found.apply();
+                    try {{
+                        globalThis.__logs.push('DEBUG: calling apply');
+                        found.apply(buildEventContext(), prepared);
+                        globalThis.__logs.push('DEBUG: apply completed');
+                    }} catch(e) {{
+                        globalThis.__logs.push('DEBUG: scheduled effect apply error: ' + String(e));
+                    }}
+                }} else {{
+                    globalThis.__logs.push('DEBUG: apply is not a function, type=' + typeof found.apply);
                 }}
-            }}
-        "#, effect_name);
-        
-        let _ = ctx.with(|ctx| ctx.eval::<(), _>(script));
-        
+
+                // Extract reoccurAfterMs value for scheduling
+                let reoccurInterval = null;
+                if (typeof found.reoccurAfterMs === 'function') {{
+                    try {{
+                        const reoccurResult = found.reoccurAfterMs({{ executionCount: {}, input: {{}}, output: prepared }});
+                        if (reoccurResult && typeof reoccurResult === 'object' && typeof reoccurResult.value === 'number') {{
+                            reoccurInterval = reoccurResult.value;
+                        }} else if (typeof reoccurResult === 'number') {{
+                            reoccurInterval = reoccurResult;
+                        }}
+                    }} catch(e) {{}}
+                }}
+
+                // Extract isReoccuranceApplicable value
+                let isApplicable = true;
+                if (typeof found.isReoccuranceApplicable === 'function') {{
+                    try {{
+                        const appResult = found.isReoccuranceApplicable({{ executionCount: 0, input: {{}}, output: prepared }});
+                        if (appResult && typeof appResult === 'object' && typeof appResult.value === 'boolean') {{
+                            isApplicable = appResult.value;
+                        }} else if (typeof appResult === 'boolean') {{
+                            isApplicable = appResult;
+                        }}
+                    }} catch(e) {{}}
+                }}
+
+                globalThis.__lastEffectReoccurInterval = reoccurInterval;
+                globalThis.__lastEffectIsApplicable = isApplicable;
+            }})();
+        "#, effect_name, effect_name, 0);
+
+        let script_result = ctx.with(|ctx| ctx.eval::<(), _>(script));
+        match &script_result {
+            Ok(_) => eprintln!("DEBUG: pending effect, script executed successfully"),
+            Err(e) => eprintln!("DEBUG: pending effect, script error: {:?}", e),
+        }
+
+        // Read modified entity data from JS context
+        let entity_data_updated = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__entityData || {})")).unwrap_or_else(|_| "{}".to_string());
+        eprintln!("DEBUG: pending effect, __entityData after: {}", entity_data_updated);
+        if let Ok(updated_data) = serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(&entity_data_updated) {
+            let mut number_data = crate::state::last_entity_number_data().lock().unwrap();
+            for (entity_id, entity_val) in updated_data.iter() {
+                let entity_map = number_data.entry(entity_id.clone()).or_insert_with(std::collections::HashMap::new);
+                if let Some(number_map) = entity_val.get("numberMap").and_then(|v| v.as_object()) {
+                    for (k, v) in number_map.iter() {
+                        if let Some(n) = v.as_f64() {
+                            entity_map.insert(k.clone(), n);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Read reoccurrence info
+        let reoccur_interval: f64 = ctx.with(|ctx| ctx.eval::<f64, _>("globalThis.__lastEffectReoccurInterval || 1")).unwrap_or(1.0);
+        let is_applicable: bool = ctx.with(|ctx| ctx.eval::<bool, _>("globalThis.__lastEffectIsApplicable !== false")).unwrap_or(true);
+
+        // Schedule reoccurrence if applicable
+        if is_applicable && reoccur_interval > 0.0 {
+            let interval = (reoccur_interval as i64) * 10;
+            let next_exec_time = ((current_elapsed / interval) + 1) * interval;
+            eprintln!("DEBUG: scheduling effect '{}' next_exec={}, interval={}, current={}", effect_name, next_exec_time, interval, current_elapsed);
+            crate::state::add_scheduled_effect(
+                effect_name.clone(),
+                serde_json::Value::Object(serde_json::Map::new()),
+                next_exec_time,
+                interval,
+            );
+        }
+
         // Collect logs
         let logs_json = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__logs || [])")).unwrap_or_else(|_| "[]".to_string());
         if let Ok(logs_vec) = serde_json::from_str::<Vec<String>>(&logs_json) {
             for l in logs_vec.iter() {
-                runtime_log!("{}", l);
+                eprintln!("DEBUG_JS_LOG: {}", l);
+                if !l.starts_with("DEBUG_TEMPLATE:") {
+                    runtime_log!("{}", l);
+                }
             }
         }
     }
-    
+
+    Ok(())
+}
+
+pub fn process_scheduled_effects(files: &std::collections::HashMap<String, String>, current_elapsed: i64) -> Result<()> {
+    // Get effects that are due for execution
+    let due_effects = crate::state::get_due_scheduled_effects(current_elapsed);
+
+    if due_effects.is_empty() {
+        return Ok(());
+    }
+
+    eprintln!("DEBUG: process_scheduled_effects, due_effects count: {}", due_effects.len());
+    for scheduled in due_effects.iter() {
+        eprintln!("DEBUG: executing scheduled effect: {} (count={}, next_exec={})", scheduled.name, scheduled.execution_count, scheduled.next_exec_time);
+
+        // Create a runtime and context
+        let (_rt, ctx) = prepare_runtime_and_ctx()?;
+        install_host_api(&ctx)?;
+        let source = select_entry_source(files);
+
+        // Eval module source first
+        let _transformed = eval_entry_in_ctx(&ctx, &source)?;
+
+        // Then sync entity number data from Rust to JS
+        let number_data = crate::state::last_entity_number_data().lock().unwrap().clone();
+        eprintln!("DEBUG: scheduled effect, Rust entity data: {:?}", number_data);
+        let entity_data_json: std::collections::HashMap<String, serde_json::Value> = number_data.iter().map(|(entity_id, props)| {
+            let mut nm = serde_json::Map::new();
+            for (k, v) in props.iter() {
+                if let Some(n) = serde_json::Number::from_f64(*v) {
+                    nm.insert(k.clone(), serde_json::Value::Number(n));
+                }
+            }
+            let mut obj = serde_json::Map::new();
+            obj.insert("numberMap".to_string(), serde_json::Value::Object(nm));
+            (entity_id.clone(), serde_json::Value::Object(obj))
+        }).collect();
+        let entity_data_json_str = serde_json::to_string(&entity_data_json).unwrap_or_else(|_| "{}".to_string());
+        let _ = ctx.with(|ctx| ctx.eval::<(), _>(format!("globalThis.__entityData = {}; ", entity_data_json_str)));
+
+        // Make hostApi available globally
+        let _ = ctx.with(|ctx| ctx.eval::<(), _>(r#"
+            globalThis.hostApi = {
+                entity: {
+                    filter: {
+                        create: function() {
+                            return { byId: function(fn) { return { fn: fn }; } };
+                        }
+                    }
+                },
+                string: { of: function(s) { return s; } },
+                number: { of: function(n) { return n; } }
+            };
+        "#));
+
+        // Build the effect execution script
+        let effect_name = &scheduled.name;
+        let script = format!(r#"
+            (function() {{
+                globalThis.__logs = [];
+                const evs = globalThis.__registeredEvents || [];
+                globalThis.__logs.push('DEBUG: scheduled effect, registeredEvents count=' + evs.length);
+                let found = null;
+                for (let i = 0; i < evs.length; i++) {{
+                    const e = evs[i];
+                    if (e && typeof e === 'object' && e.name === "{}") {{
+                        found = e;
+                        break;
+                    }}
+                }}
+
+                globalThis.__logs.push('DEBUG: scheduled effect, found=' + (found ? 'yes' : 'no'));
+
+                if (!found) {{
+                    globalThis.__logs.push('DEBUG: scheduled effect {} not found');
+                    return;
+                }}
+
+                function buildEventContext() {{
+                    globalThis.__logs.push('DEBUG_CTX: scheduled buildEventContext called');
+                    let found_entity = null;
+                    for (let eid in globalThis.__entityData) {{
+                        found_entity = globalThis.__entityData[eid];
+                        break;
+                    }}
+                    globalThis.__logs.push('DEBUG_CTX: scheduled found_entity=' + JSON.stringify(found_entity));
+                    return {{
+                        getEntityBy: function(filter) {{
+                            globalThis.__logs.push('DEBUG_CTX: scheduled getEntityBy called');
+                            return {{
+                                map: function(cb) {{
+                                    globalThis.__logs.push('DEBUG_CTX: scheduled map called, found_entity=' + JSON.stringify(found_entity));
+                                    if (!found_entity) return;
+                                    cb({{
+                                        getNumber: function(key) {{
+                                            return {{
+                                                map: function(cb3) {{
+                                                    if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return;
+                                                    cb3({{
+                                                        sum: function(s) {{
+                                                            found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
+                                                        }}
+                                                    }});
+                                                }}
+                                            }};
+                                        }}
+                                    }});
+                                }}
+                            }};
+                        }}
+                    }};
+                }}
+
+                let prepared = null;
+                if (typeof found.prepare === 'function') {{
+                    try {{ prepared = found.prepare({{}}); }} catch(e) {{}}
+                }}
+
+                if (typeof found.apply === 'function') {{
+                    try {{
+                        found.apply(buildEventContext(), prepared);
+                    }} catch(e) {{
+                        globalThis.__logs = globalThis.__logs || [];
+                        globalThis.__logs.push('DEBUG: scheduled effect apply error: ' + String(e));
+                    }}
+                }}
+
+                let reoccurInterval = null;
+                if (typeof found.reoccurAfterMs === 'function') {{
+                    try {{
+                        const reoccurResult = found.reoccurAfterMs({{ executionCount: {}, input: {{}}, output: prepared }});
+                        if (reoccurResult && typeof reoccurResult === 'object' && typeof reoccurResult.value === 'number') {{
+                            reoccurInterval = reoccurResult.value;
+                        }} else if (typeof reoccurResult === 'number') {{
+                            reoccurInterval = reoccurResult;
+                        }}
+                    }} catch(e) {{}}
+                }}
+
+                let isApplicable = true;
+                if (typeof found.isReoccuranceApplicable === 'function') {{
+                    try {{
+                        const appResult = found.isReoccuranceApplicable({{ executionCount: {}, input: {{}}, output: prepared }});
+                        if (appResult && typeof appResult === 'object' && typeof appResult.value === 'boolean') {{
+                            isApplicable = appResult.value;
+                        }} else if (typeof appResult === 'boolean') {{
+                            isApplicable = appResult;
+                        }}
+                    }} catch(e) {{}}
+                }}
+
+                globalThis.__lastEffectReoccurInterval = reoccurInterval;
+                globalThis.__lastEffectIsApplicable = isApplicable;
+            }})();
+        "#, effect_name, effect_name, scheduled.execution_count, scheduled.execution_count);
+
+        let _ = ctx.with(|ctx| ctx.eval::<(), _>(script));
+
+        // Read modified entity data from JS context
+        let entity_data_updated = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__entityData || {})")).unwrap_or_else(|_| "{}".to_string());
+        eprintln!("DEBUG: scheduled effect, __entityData after: {}", entity_data_updated);
+        if let Ok(updated_data) = serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(&entity_data_updated) {
+            let mut number_data = crate::state::last_entity_number_data().lock().unwrap();
+            for (entity_id, entity_val) in updated_data.iter() {
+                let entity_map = number_data.entry(entity_id.clone()).or_insert_with(std::collections::HashMap::new);
+                if let Some(number_map) = entity_val.get("numberMap").and_then(|v| v.as_object()) {
+                    for (k, v) in number_map.iter() {
+                        if let Some(n) = v.as_f64() {
+                            entity_map.insert(k.clone(), n);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Read reoccurrence info
+        let reoccur_interval: f64 = ctx.with(|ctx| ctx.eval::<f64, _>("globalThis.__lastEffectReoccurInterval || 1")).unwrap_or(1.0);
+        let is_applicable: bool = ctx.with(|ctx| ctx.eval::<bool, _>("globalThis.__lastEffectIsApplicable !== false")).unwrap_or(true);
+
+        // Update scheduled effect for next reoccurrence
+        if is_applicable && reoccur_interval > 0.0 {
+            let interval = (reoccur_interval as i64) * 10;
+            let next_exec_time = ((current_elapsed / interval) + 1) * interval;
+            let mut effects = crate::state::scheduled_effects().lock().unwrap();
+            if let Some(effect) = effects.iter_mut().find(|e| e.name == scheduled.name) {
+                effect.next_exec_time = next_exec_time;
+                effect.reoccurrence_interval = interval;
+            }
+        }
+
+        // Collect logs
+        let logs_json = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__logs || [])")).unwrap_or_else(|_| "[]".to_string());
+        if let Ok(logs_vec) = serde_json::from_str::<Vec<String>>(&logs_json) {
+            for l in logs_vec.iter() {
+                eprintln!("DEBUG_JS_LOG: {}", l);
+                if !l.starts_with("DEBUG_TEMPLATE:") {
+                    runtime_log!("{}", l);
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 

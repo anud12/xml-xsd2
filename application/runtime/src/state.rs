@@ -20,9 +20,20 @@ static mut LAST_ENTITY_PATTERNS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_PANELS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_CREATED_BY: Option<&'static Mutex<HashMap<String, Vec<String>>>> = None;
 static mut PENDING_EFFECTS: Option<&'static Mutex<Vec<String>>> = None;
+static mut SCHEDULED_EFFECTS: Option<&'static Mutex<Vec<ScheduledEffect>>> = None;
 static mut LAST_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, f64>>>> = None;
 static mut ELAPSED_TIME_UNITS: Option<&'static AtomicI64> = None;
+
+/// Tracks effects that should reoccur at specific elapsed time intervals.
+#[derive(Clone, Debug)]
+pub struct ScheduledEffect {
+    pub name: String,
+    pub payload: serde_json::Value,
+    pub next_exec_time: i64,
+    pub reoccurrence_interval: i64,
+    pub execution_count: u64,
+}
 
 fn persisted_flag() -> &'static AtomicBool {
     INIT.call_once(|| {
@@ -48,6 +59,8 @@ fn persisted_flag() -> &'static AtomicBool {
         unsafe { LAST_CREATED_BY = Some(cb); }
         let pe = Box::leak(Box::new(Mutex::new(Vec::new())));
         unsafe { PENDING_EFFECTS = Some(pe); }
+        let se = Box::leak(Box::new(Mutex::new(Vec::new())));
+        unsafe { SCHEDULED_EFFECTS = Some(se); }
         let ed = Box::leak(Box::new(Mutex::new(HashMap::new())));
         unsafe { LAST_ENTITY_DATA = Some(ed); }
         let en = Box::leak(Box::new(Mutex::new(HashMap::new())));
@@ -132,6 +145,11 @@ pub fn pending_effects() -> &'static Mutex<Vec<String>> {
     unsafe { PENDING_EFFECTS.expect("pending effects initialized") }
 }
 
+pub fn scheduled_effects() -> &'static Mutex<Vec<ScheduledEffect>> {
+    persisted_flag();
+    unsafe { SCHEDULED_EFFECTS.expect("scheduled effects initialized") }
+}
+
 pub fn last_entity_data() -> &'static Mutex<HashMap<String, HashMap<String, String>>> {
     persisted_flag();
     unsafe { LAST_ENTITY_DATA.expect("entity data initialized") }
@@ -171,6 +189,32 @@ pub fn clear_pending_effects() {
     pending_effects().lock().unwrap().clear();
 }
 
+pub fn add_scheduled_effect(name: String, payload: serde_json::Value, next_exec_time: i64, reoccurrence_interval: i64) {
+    let mut effects = scheduled_effects().lock().unwrap();
+    // Remove any existing effect with the same name to avoid duplicates
+    effects.retain(|e| e.name != name);
+    effects.push(ScheduledEffect {
+        name,
+        payload,
+        next_exec_time,
+        reoccurrence_interval,
+        execution_count: 0,
+    });
+}
+
+pub fn get_due_scheduled_effects(current_elapsed: i64) -> Vec<ScheduledEffect> {
+    let mut effects = scheduled_effects().lock().unwrap();
+    let mut due = Vec::new();
+    for effect in effects.iter_mut() {
+        while current_elapsed >= effect.next_exec_time && effect.reoccurrence_interval > 0 {
+            effect.execution_count += 1;
+            due.push(effect.clone());
+            effect.next_exec_time = effect.next_exec_time + effect.reoccurrence_interval;
+        }
+    }
+    due
+}
+
  #[allow(dead_code)]
 pub fn clear_state() {
     // Clear cached rows and flags so embedding processes can reset runtime state between tests
@@ -182,6 +226,7 @@ pub fn clear_state() {
     *last_entity_patterns().lock().unwrap() = Vec::new();
     *last_panels().lock().unwrap() = Vec::new();
     clear_pending_effects();
+    *scheduled_effects().lock().unwrap() = Vec::new();
     *last_created_by().lock().unwrap() = HashMap::new();
     *last_archive_path().lock().unwrap() = String::new();
     *last_entity_data().lock().unwrap() = HashMap::new();

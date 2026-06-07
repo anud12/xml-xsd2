@@ -6,7 +6,7 @@ using Vector2 = Godot.Vector2;
 
 namespace GdUnit4.Examples.Basics.Setup.Test.Stage_5.EntityTextValueUpdate;
 
-// [TestSuite]
+[TestSuite]
 public partial class TestClass : Steps {
     [TestCategory("Step_5")]
     [TestCase]
@@ -18,8 +18,8 @@ public partial class TestClass : Steps {
             .AddFileToArchive("module/texture.exr", "texture.exr")
             .EnsureDllAccessible()
             .ProcessArchive();
-        
-                
+
+
         var scene = LoadTestScene();
         var rootNode = new RootNode();
         var idList = RuntimeInterop.GetPanelIds();
@@ -35,26 +35,46 @@ public partial class TestClass : Steps {
         var assertions = AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
             .HasContentText("0");
 
-        
-        //Run iteration with 1 unit elapsed time
-        RuntimeInterop.RunIteration(1);
+
+        //Run iteration with not enough time to trigger a new reoccurance
+        RuntimeInterop.RunIteration(9);
         await runner.SimulateFrames(1);
-        Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(1L);
+        Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(9L);
         assertions.HasContentText("1");
-        
-        
-        //Run iteration with 1 unit elapsed time
+
+        //Run iteration with enough time to trigger a new reoccurance
         RuntimeInterop.RunIteration(1);
         await runner.SimulateFrames(1);
-        Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(2L);
+        Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(10L);
         assertions.HasContentText("2");
-        
-        
-        //Run iteration with 2 units elapsed time
-        RuntimeInterop.RunIteration(2);
+
+
+        //Run iteration with not enough time to trigger a new reoccurance
+        RuntimeInterop.RunIteration(9);
         await runner.SimulateFrames(1);
-        Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(4L);
-        
+        Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(19L);
+        assertions.HasContentText("2");
+
+        //Run iteration with not enough time to trigger a new reoccurance
+        RuntimeInterop.RunIteration(1);
+        await runner.SimulateFrames(1);
+        Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(20L);
+        assertions.HasContentText("3");
+
+
+        //Run iteration with exact time to trigger a new reoccurance
+        RuntimeInterop.RunIteration(10);
+        await runner.SimulateFrames(1);
+        Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(30L);
         assertions.HasContentText("4");
+
+
+        //Run iteration with exact time to trigger a new reoccurance twice
+        RuntimeInterop.RunIteration(20);
+        await runner.SimulateFrames(1);
+        Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(50L);
+
+        assertions.HasContentText("6");
+        await DebugView();
     }
 }
