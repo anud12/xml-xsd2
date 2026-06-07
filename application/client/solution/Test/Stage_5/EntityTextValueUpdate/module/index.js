@@ -11,7 +11,7 @@ export default (hostApi) => {
   hostApi.registerEffect({
     name:"repeat",
     reoccurAfterMs: (context, executionCount, input, output) => {
-      return hostApi.maybe.of(number.of(1));
+      return hostApi.maybe.of(number.of(10));
     },
     isReoccuranceApplicable: (context, executionCount, input, output) => {
       return hostApi.condition.of(true);
