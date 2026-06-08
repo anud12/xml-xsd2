@@ -75,6 +75,5 @@ public partial class TestClass : Steps {
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(50L);
 
         assertions.HasContentText("6");
-        await DebugView();
     }
 }
