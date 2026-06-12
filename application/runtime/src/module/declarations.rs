@@ -34,6 +34,18 @@ pub fn apply_declarations(dec: &Declarations) {
     crate::state::set_last_event_rows(dec.events.iter().map(|e| vec![e.clone()]).collect());
     let action_map = build_action_to_created(dec);
     crate::state::set_last_created_by(action_map);
+    // Store pending effects from emitEvent calls during module processing
+    if !dec.pending_effects.is_empty() {
+        eprintln!("DEBUG: apply_declarations setting pending_effects: {:?}", dec.pending_effects);
+        runtime_log!("pending effects: {:?}", dec.pending_effects);
+        crate::state::set_pending_effects(dec.pending_effects.clone());
+        // Verify the state was set
+        let verify = crate::state::pending_effects().lock().unwrap().clone();
+        eprintln!("DEBUG: after set_pending_effects, pending_effects is: {:?}", verify);
+    } else {
+        eprintln!("DEBUG: apply_declarations, pending_effects is empty!");
+    }
+
     // Store entity textMap data from setEntity calls
     if let serde_json::Value::Object(entities) = &dec.entity_data {
         let mut data: std::collections::HashMap<String, std::collections::HashMap<String, String>> = std::collections::HashMap::new();

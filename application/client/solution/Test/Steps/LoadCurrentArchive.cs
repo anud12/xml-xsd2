@@ -11,10 +11,9 @@ public partial class Steps {
     private List<string>? LogLines;
     public Steps ProcessArchive()
     {
-        if (LogLines is null) {
-            LogLines = new List<string>();
-            RuntimeInterop.RegisterLogger(message => LogLines.Add(message));            
-        }
+        LogLines = new List<string>();
+        RuntimeInterop.ClearLogger();
+        RuntimeInterop.RegisterLogger(message => LogLines.Add(message));
         
         
         if (string.IsNullOrEmpty(_currentArchivePath) || !File.Exists(_currentArchivePath))
@@ -45,8 +44,11 @@ public partial class Steps {
             }
         }
 
-        // Process the archive through the runtime interop
-        var dbPath = RuntimeInterop.ProcessArchive(_currentArchivePath);
+        // Clear previous state and process the archive into the Rust runtime
+        RuntimeInterop.ClearState();
+        var result = RuntimeInterop.ProcessArchive(_currentArchivePath);
+        if (result == null)
+            throw new InvalidOperationException("Failed to process archive: " + _currentArchivePath);
 
         return this;
     }

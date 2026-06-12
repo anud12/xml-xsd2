@@ -23,7 +23,8 @@ fn process_pending_effects() {
     }
     
     // Call the effect processor
-    if let Err(e) = crate::js_executor::process_pending_effects(&files_map) {
+    let current_elapsed = crate::state::get_elapsed_time_units();
+    if let Err(e) = crate::js_executor::process_pending_effects(&files_map, current_elapsed) {
         eprintln!("Failed to process pending effects: {:?}", e);
     }
 }

@@ -13,6 +13,7 @@ public class OffsetFfiTests : Steps {
             .AddFileToArchive("module/texture.exr", "texture.exr")
             .ProcessArchive();
 
+        
         var top = RuntimeInterop.GetPanelById("top");
         Assertions.AssertThat(top.Offset.top).IsEqual(-100f);
         Assertions.AssertThat(top.Offset.bottom).IsEqual(-100f);

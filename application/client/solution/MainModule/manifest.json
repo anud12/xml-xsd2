@@ -1,0 +1,6 @@
+{
+  "id": "test-tick",
+  "version": "1.0.0",
+  "name": "TestTick Module",
+  "entry": "index.js"
+}
