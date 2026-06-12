@@ -1,4 +1,4 @@
-<Project Sdk="Godot.NET.Sdk/4.6.3">
+<Project Sdk="Godot.NET.Sdk/4.6.2">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
@@ -9,9 +9,9 @@
 
   <!--GdUnit4-->
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageReference Include="gdUnit4.api" Version="5.1.0-rc3" />
-    <PackageReference Include="gdUnit4.test.adapter" Version="3.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
+    <PackageReference Include="gdUnit4.api" Version="5.1.0-rc3"/>
+    <PackageReference Include="gdUnit4.test.adapter" Version="3.0.0"/>
   </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -54,11 +54,6 @@
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\manifest.json" />
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\texture.exr" />
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\texture.exr.import" />
-    <Content Include="Test\Stage_5\ElapsedTimeUnits\module\index.js" />
-    <Content Include="Test\Stage_5\ElapsedTimeUnits\module\manifest.json" />
-    <Content Include="Test\Stage_5\EntityTextValueUpdate\module\index.js" />
-    <Content Include="Test\Stage_5\EntityTextValueUpdate\module\manifest.json" />
-    <Content Include="Test\Stage_5\EntityTextValueUpdate\module\texture.exr" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\index.js" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\manifest.json" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\texture.exr" />

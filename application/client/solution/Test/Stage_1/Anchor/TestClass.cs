@@ -13,6 +13,8 @@ public partial class Anchor : Steps {
     [RequireGodotRuntime]
     public async Task Given_panel_it_should_apply_anchors() {
         // I create a module from the first folder
+        
+        
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
@@ -26,10 +28,6 @@ public partial class Anchor : Steps {
         var idList = RuntimeInterop.GetPanelIds();
 
         scene.AddChild(rootNode);
-        rootNode.SetSize(new Vector2() {
-            X = 1000,
-            Y = 1000
-        });
         rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
                 await runner.SimulateFrames(1);
         

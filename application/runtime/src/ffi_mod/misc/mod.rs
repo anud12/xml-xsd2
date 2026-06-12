@@ -23,3 +23,4 @@ pub use get_entity_number_map_value::get_entity_number_map_value;
 pub use set_entity_text_map_value::runtime_set_entity_text_map_value;
 pub use set_entity_number_map_value::runtime_set_entity_number_map_value;
 pub use run_iteration::runtime_run_iteration;
+pub use run_iteration::runtime_get_elapsed_time_units;
