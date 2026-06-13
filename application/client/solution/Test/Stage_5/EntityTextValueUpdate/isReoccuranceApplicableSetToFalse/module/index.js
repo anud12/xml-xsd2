@@ -7,14 +7,14 @@ export default (hostApi) => {
       "key": number.of(0)
     }
   })
-
+  
   hostApi.registerEffect({
     name:"repeat",
     reoccurAfterMs: (context, executionCount, input, output) => {
       return hostApi.maybe.of(number.of(10));
     },
     isReoccuranceApplicable: (context, executionCount, input, output) => {
-      return hostApi.condition.of(true);
+      return hostApi.condition.of(false);
     },
     apply:(context, output) => {
       context.getEntityBy(hostApi.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id"))))
@@ -23,7 +23,7 @@ export default (hostApi) => {
         })
     }
   })
-
+  
   hostApi.emitEvent("repeat", {});
 
   hostApi.registerPanel({
@@ -42,7 +42,7 @@ export default (hostApi) => {
       entityId: string.of("entity_id"),
       name: string.of("key"),
       type: "entityNumberValue",
-      align: "top",
+      align: "center",
     },
     background: hostApi.texture.of("texture.exr")
   })

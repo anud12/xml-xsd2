@@ -4,7 +4,7 @@ using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
 using Vector2 = Godot.Vector2;
 
-namespace GdUnit4.Examples.Basics.Setup.Test.Stage_5.EntityTextValueUpdate;
+namespace GdUnit4.Examples.Basics.Setup.Test.Stage_5.EntityTextValueUpdate.isReoccuranceApplicableSetToTrue;
 
 [TestSuite]
 public partial class TestClass : Steps {
