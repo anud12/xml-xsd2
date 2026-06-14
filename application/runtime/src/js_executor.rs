@@ -59,7 +59,8 @@ fn call_module_default_if_present(ctx: &Context, transformed: &str) {
                 registerEffect: host.registerEffect,
                 registerPanel: host.registerPanel,
                 setEntity: host.setEntity,
-                log: host.log
+                log: host.log,
+                maybe: { of: function(v) { return { value: v }; }, none: function() { return { value: undefined }; } }
             };
             globalThis.hostApi = hostApi;
             if (typeof __module_default === 'function') {
@@ -154,7 +155,8 @@ fn eval_entry_in_ctx(ctx: &Context, source: &str) -> Result<String> {
                 registerEffect: host.registerEffect,
                 registerPanel: host.registerPanel,
                 setEntity: host.setEntity,
-                log: host.log
+                log: host.log,
+                maybe: { of: function(v) { return { value: v }; }, none: function() { return { value: undefined }; } }
             };
             globalThis.hostApi = hostApi;
             if (typeof __module_default === 'function') {
@@ -503,7 +505,8 @@ pub fn process_pending_effects(files: &std::collections::HashMap<String, String>
                     }
                 },
                 string: { of: function(s) { return s; } },
-                number: { of: function(n) { return n; } }
+                number: { of: function(n) { return n; } },
+                maybe: { of: function(v) { return { value: v }; }, none: function() { return { value: undefined }; } }
             };
         "#));
 
@@ -547,34 +550,74 @@ let script = format!(r#"
 getEntityBy: function(filter) {{
                             globalThis.__logs.push('DEBUG_CTX: getEntityBy called');
                             return {{
-                                map: function(cb) {{
-                                    globalThis.__logs.push('DEBUG_CTX: map called, found_entity=' + JSON.stringify(found_entity));
-                                    if (!found_entity) return;
-                                    cb({{
-                                        getNumber: function(key) {{
-                                            globalThis.__logs.push('DEBUG_CTX: getNumber called, key=' + key);
-                                            return {{
-                                                map: function(cb3) {{
-                                                    if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return;
-                                                    globalThis.__logs.push('DEBUG_CTX: calling cb3 with sum');
-                                                    cb3({{
-                                                        sum: function(s) {{
-                                                            globalThis.__logs.push('DEBUG_CTX: sum called, adding ' + s);
-                                                            found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
-                                                            globalThis.__logs.push('DEBUG_CTX: sum done, new value=' + found_entity.numberMap[key]);
-                                                        }}
-                                                    }});
-                                                }}
-                                            }};
-                                        }}
-                                    }});
-                                }}
-                            }};
-                        }}
-                    }};
-                }}
+                       map: function(cb) {{
+                                     globalThis.__logs.push('DEBUG_CTX: map called, found_entity=' + JSON.stringify(found_entity));
+                                     if (!found_entity) return;
+                                     cb({{
+                                         getNumber: function(key) {{
+                                             globalThis.__logs.push('DEBUG_CTX: getNumber called, key=' + key);
+                                             return {{
+                                                 map: function(cb3) {{
+                                                     if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return;
+                                                     globalThis.__logs.push('DEBUG_CTX: calling cb3 with sum');
+                                                     cb3({{
+                                                         sum: function(s) {{
+                                                             globalThis.__logs.push('DEBUG_CTX: sum called, adding ' + s);
+                                                             found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
+                                                             globalThis.__logs.push('DEBUG_CTX: sum done, new value=' + found_entity.numberMap[key]);
+                                                         }}
+                                                     }});
+                                                 }}
+                                             }};
+                                         }}
+                                     }});
+                                 }},
+                                 get: function(idx) {{
+                                     if (!found_entity.numberMap) return {{ flatMap: function(fn) {{ return {{ isCondition: function(condFn) {{ return {{ getOnTrueOrFalse: function(tv, fv) {{ return fv; }} }}; }} }}; }} }};
+                                     var key = Object.keys(found_entity.numberMap)[0];
+                                     var numVal = found_entity.numberMap[key];
+                             var numObj = {{
+                                          isLessOrEqualTo: function(limit) {{ return Number(numVal) < Number(limit); }},
+                                          isGreaterThan: function(limit) {{ return Number(numVal) > Number(limit); }},
+                                          get: function() {{ return numVal; }},
+                                          getNumber: function(k) {{
+                                              return {{
+                                                  flatMap: function(fn) {{
+                                                      fn(numObj);
+                                                      return {{
+                                                          isCondition: function(condFn) {{
+                                                              return {{
+                                                                  getOnTrueOrFalse: function(tv, fv) {{
+                                                                      return condFn(numObj) ? tv : fv;
+                                                                  }}
+                                                              }};
+                                                          }}
+                                                      }};
+                                                  }}
+                                              }};
+                                          }}
+                                      }};
+                                      return {{
+                                          flatMap: function(fn) {{
+                                              fn(numObj);
+                                              return {{
+                                                  isCondition: function(condFn) {{
+                                                      return {{
+                                                          getOnTrueOrFalse: function(tv, fv) {{
+                                                              return condFn(numObj) ? tv : fv;
+                                                          }}
+                                                      }};
+                                                  }}
+                                              }};
+                                          }}
+                                      }};
+                                  }}
+                              }};
+                          }}
+                     }};
+                 }}
 
-                let prepared = null;
+                 let prepared = null;
                 if (typeof found.prepare === 'function') {{
                     try {{
                         globalThis.__logs.push('DEBUG: calling prepare');
@@ -585,6 +628,7 @@ getEntityBy: function(filter) {{
                     }}
                 }}
 
+                // Always apply the effect
                 if (typeof found.apply === 'function') {{
                     try {{
                         globalThis.__logs.push('DEBUG: calling apply');
@@ -593,15 +637,14 @@ getEntityBy: function(filter) {{
                     }} catch(e) {{
                         globalThis.__logs.push('DEBUG: scheduled effect apply error: ' + String(e));
                     }}
-                }} else {{
-                    globalThis.__logs.push('DEBUG: apply is not a function, type=' + typeof found.apply);
                 }}
 
-                // Extract reoccurAfterMs value for scheduling
+                // Extract reoccurAfterMs value AFTER apply for scheduling next execution
                 let reoccurInterval = null;
                 if (typeof found.reoccurAfterMs === 'function') {{
                     try {{
-                        const reoccurResult = found.reoccurAfterMs({{ executionCount: {}, input: {{}}, output: prepared }});
+                        var reoccurCtx = Object.assign({{ executionCount: {}, input: {{}}, output: prepared }}, buildEventContext());
+                        const reoccurResult = found.reoccurAfterMs(reoccurCtx);
                         if (reoccurResult && typeof reoccurResult === 'object' && typeof reoccurResult.value === 'number') {{
                             reoccurInterval = reoccurResult.value;
                         }} else if (typeof reoccurResult === 'number') {{
@@ -652,14 +695,16 @@ getEntityBy: function(filter) {{
         }
 
         // Read reoccurrence info
-        let reoccur_interval: f64 = ctx.with(|ctx| ctx.eval::<f64, _>("globalThis.__lastEffectReoccurInterval || 1")).unwrap_or(1.0);
+        let reoccur_raw: String = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__lastEffectReoccurInterval)") ).unwrap_or_else(|_| "null".to_string());
+        eprintln!("DEBUG_FFW: reoccur_raw={} for effect={}", reoccur_raw, effect_name);
+        let reoccur_interval: f64 = ctx.with(|ctx| ctx.eval::<f64, _>("globalThis.__lastEffectReoccurInterval || 0")).unwrap_or(0.0);
         let is_applicable: bool = ctx.with(|ctx| ctx.eval::<bool, _>("globalThis.__lastEffectIsApplicable !== false")).unwrap_or(true);
 
         // Schedule reoccurrence if applicable
         if is_applicable && reoccur_interval > 0.0 {
-            let interval = (reoccur_interval as i64) * 10;
+            let interval = reoccur_interval as i64;
             let next_exec_time = ((current_elapsed / interval) + 1) * interval;
-            eprintln!("DEBUG: scheduling effect '{}' next_exec={}, interval={}, current={}", effect_name, next_exec_time, interval, current_elapsed);
+            eprintln!("DEBUG_FFW: scheduling effect '{}' next_exec={}, interval={}, current={}, reoccur_interval={}", effect_name, next_exec_time, interval, current_elapsed, reoccur_interval);
             crate::state::add_scheduled_effect(
                 effect_name.clone(),
                 serde_json::Value::Object(serde_json::Map::new()),
@@ -731,7 +776,8 @@ pub fn process_scheduled_effects(files: &std::collections::HashMap<String, Strin
                     }
                 },
                 string: { of: function(s) { return s; } },
-                number: { of: function(n) { return n; } }
+                number: { of: function(n) { return n; } },
+                maybe: { of: function(v) { return { value: v }; }, none: function() { return { value: undefined }; } }
             };
         "#));
 
@@ -770,34 +816,75 @@ pub fn process_scheduled_effects(files: &std::collections::HashMap<String, Strin
                         getEntityBy: function(filter) {{
                             globalThis.__logs.push('DEBUG_CTX: scheduled getEntityBy called');
                             return {{
-                                map: function(cb) {{
-                                    globalThis.__logs.push('DEBUG_CTX: scheduled map called, found_entity=' + JSON.stringify(found_entity));
-                                    if (!found_entity) return;
-                                    cb({{
-                                        getNumber: function(key) {{
-                                            return {{
-                                                map: function(cb3) {{
-                                                    if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return;
-                                                    cb3({{
-                                                        sum: function(s) {{
-                                                            found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
-                                                        }}
-                                                    }});
-                                                }}
-                                            }};
-                                        }}
-                                    }});
-                                }}
-                            }};
-                        }}
-                    }};
-                }}
+                        map: function(cb) {{
+                                     globalThis.__logs.push('DEBUG_CTX: scheduled map called, found_entity=' + JSON.stringify(found_entity));
+                                     if (!found_entity) return;
+                                     cb({{
+                                         getNumber: function(key) {{
+                                             return {{
+                                                 map: function(cb3) {{
+                                                     if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return;
+                                                     cb3({{
+                                                         sum: function(s) {{
+                                                             found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
+                                                         }}
+                                                     }});
+                                                 }}
+                                             }};
+                                         }}
+                                     }});
+                                 }},
+                                 get: function(idx) {{
+                                     if (!found_entity.numberMap) return {{ flatMap: function(fn) {{ return {{ isCondition: function(condFn) {{ return {{ getOnTrueOrFalse: function(tv, fv) {{ return fv; }} }}; }} }}; }} }};
+                                     var key = Object.keys(found_entity.numberMap)[0];
+                                     var numVal = found_entity.numberMap[key];
+                            var numObj = {{
+                                          isLessOrEqualTo: function(limit) {{ return Number(numVal) < Number(limit); }},
+                                          isGreaterThan: function(limit) {{ return Number(numVal) > Number(limit); }},
+                                          get: function() {{ return numVal; }},
+                                          getNumber: function(k) {{
+                                              return {{
+                                                  flatMap: function(fn) {{
+                                                      fn(numObj);
+                                                      return {{
+                                                          isCondition: function(condFn) {{
+                                                              return {{
+                                                                  getOnTrueOrFalse: function(tv, fv) {{
+                                                                      return condFn(numObj) ? tv : fv;
+                                                                  }}
+                                                              }};
+                                                          }}
+                                                      }};
+                                                  }}
+                                              }};
+                                          }}
+                                      }};
+                                      return {{
+                                          flatMap: function(fn) {{
+                                              fn(numObj);
+                                              return {{
+                                                  isCondition: function(condFn) {{
+                                                      return {{
+                                                          getOnTrueOrFalse: function(tv, fv) {{
+                                                              return condFn(numObj) ? tv : fv;
+                                                          }}
+                                                      }};
+                                                  }}
+                                              }};
+                                          }}
+                                      }};
+                                  }}
+                              }};
+                          }}
+                     }};
+                 }}
 
                 let prepared = null;
                 if (typeof found.prepare === 'function') {{
                     try {{ prepared = found.prepare({{}}); }} catch(e) {{}}
                 }}
 
+                // Always apply the effect
                 if (typeof found.apply === 'function') {{
                     try {{
                         found.apply(buildEventContext(), prepared);
@@ -807,10 +894,12 @@ pub fn process_scheduled_effects(files: &std::collections::HashMap<String, Strin
                     }}
                 }}
 
+                // Extract reoccurAfterMs value AFTER apply for scheduling next execution
                 let reoccurInterval = null;
                 if (typeof found.reoccurAfterMs === 'function') {{
                     try {{
-                        const reoccurResult = found.reoccurAfterMs({{ executionCount: {}, input: {{}}, output: prepared }});
+                        var reoccurCtx = Object.assign({{ executionCount: {}, input: {{}}, output: prepared }}, buildEventContext());
+                        const reoccurResult = found.reoccurAfterMs(reoccurCtx);
                         if (reoccurResult && typeof reoccurResult === 'object' && typeof reoccurResult.value === 'number') {{
                             reoccurInterval = reoccurResult.value;
                         }} else if (typeof reoccurResult === 'number') {{
@@ -856,18 +945,21 @@ pub fn process_scheduled_effects(files: &std::collections::HashMap<String, Strin
         }
 
         // Read reoccurrence info
-        let reoccur_interval: f64 = ctx.with(|ctx| ctx.eval::<f64, _>("globalThis.__lastEffectReoccurInterval || 1")).unwrap_or(1.0);
+        let reoccur_interval: f64 = ctx.with(|ctx| ctx.eval::<f64, _>("globalThis.__lastEffectReoccurInterval || 0")).unwrap_or(0.0);
         let is_applicable: bool = ctx.with(|ctx| ctx.eval::<bool, _>("globalThis.__lastEffectIsApplicable !== false")).unwrap_or(true);
 
         // Update scheduled effect for next reoccurrence
+        let mut effects = crate::state::scheduled_effects().lock().unwrap();
         if is_applicable && reoccur_interval > 0.0 {
-            let interval = (reoccur_interval as i64) * 10;
+            let interval = reoccur_interval as i64;
             let next_exec_time = ((current_elapsed / interval) + 1) * interval;
-            let mut effects = crate::state::scheduled_effects().lock().unwrap();
             if let Some(effect) = effects.iter_mut().find(|e| e.name == scheduled.name) {
                 effect.next_exec_time = next_exec_time;
                 effect.reoccurrence_interval = interval;
             }
+        } else {
+            // Remove effect from scheduled list when no longer applicable
+            effects.retain(|e| e.name != scheduled.name);
         }
 
         // Collect logs
