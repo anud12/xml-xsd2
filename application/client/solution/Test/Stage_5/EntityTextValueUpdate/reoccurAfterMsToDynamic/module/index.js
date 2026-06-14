@@ -18,7 +18,7 @@ export default (hostApi) => {
         .get(number.of(0))
         .flatMap(elementExpr => elementExpr.getNumber(key))
         .isCondition(value => value.isLessOrEqualTo(number.of(3)))
-        .getOnTrueOrFalse(hostApi.maybe.none(), hostApi.maybe.of(hostApi.number.of(10)));
+        .getOnTrueOrFalse(hostApi.maybe.of(hostApi.number.of(10)), hostApi.maybe.none());
     },
     apply: (context, output) => {
       context.getEntityBy(filter)
