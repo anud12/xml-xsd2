@@ -4,7 +4,7 @@ using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
 using Vector2 = Godot.Vector2;
 
-namespace GdUnit4.Examples.Basics.Setup.Test.Stage_5.EntityTextValueUpdate.isReoccuranceApplicableSetToFalse;
+namespace GdUnit4.Examples.Basics.Setup.Test.Stage_5.EntityTextValueUpdate.reoccurAfterMsToValue;
 
 [TestSuite]
 public partial class TestClass : Steps {
@@ -46,27 +46,27 @@ public partial class TestClass : Steps {
         RuntimeInterop.RunIteration(1);
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(10L);
-        assertions.HasContentText("1");
+        assertions.HasContentText("2");
 
 
         //Run iteration with not enough time to trigger a new reoccurance
         RuntimeInterop.RunIteration(9);
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(19L);
-        assertions.HasContentText("1");
+        assertions.HasContentText("2");
 
         //Run iteration with not enough time to trigger a new reoccurance
         RuntimeInterop.RunIteration(1);
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(20L);
-        assertions.HasContentText("1");
+        assertions.HasContentText("3");
 
 
         //Run iteration with exact time to trigger a new reoccurance
         RuntimeInterop.RunIteration(10);
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(30L);
-        assertions.HasContentText("1");
+        assertions.HasContentText("4");
 
 
         //Run iteration with exact time to trigger a new reoccurance twice
@@ -74,6 +74,6 @@ public partial class TestClass : Steps {
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(50L);
 
-        assertions.HasContentText("1");
+        assertions.HasContentText("6");
     }
 }
