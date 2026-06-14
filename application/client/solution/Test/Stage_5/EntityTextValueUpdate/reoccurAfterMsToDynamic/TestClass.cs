@@ -4,7 +4,7 @@ using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
 using Vector2 = Godot.Vector2;
 
-namespace GdUnit4.Examples.Basics.Setup.Test.Stage_5.EntityTextValueUpdate.isReoccuranceApplicableSetToTrue;
+namespace GdUnit4.Examples.Basics.Setup.Test.Stage_5.EntityTextValueUpdate.isReoccuranceApplicableSetDynamically;
 
 [TestSuite]
 public partial class TestClass : Steps {
@@ -62,18 +62,18 @@ public partial class TestClass : Steps {
         assertions.HasContentText("3");
 
 
-        //Run iteration with exact time to trigger a new reoccurance
+        //Run iteration with exact time to trigger a new reoccurance, but it doesn't execute since the value is already 3
         RuntimeInterop.RunIteration(10);
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(30L);
-        assertions.HasContentText("4");
+        assertions.HasContentText("3");
 
 
-        //Run iteration with exact time to trigger a new reoccurance twice
+        //Run iteration with exact time to trigger a new reoccurance twice, but it doesn't execute since the value is already 3
         RuntimeInterop.RunIteration(20);
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(50L);
 
-        assertions.HasContentText("6");
+        assertions.HasContentText("3");
     }
 }

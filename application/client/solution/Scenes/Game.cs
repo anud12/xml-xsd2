@@ -49,7 +49,7 @@ public partial class Game : Node {
 
                 while (RUN_RUNTIME_LOOP) {
                     stopwatch.Restart();
-                    RuntimeInterop.RunIteration(10);
+                    RuntimeInterop.RunIteration(1);
                     stopwatch.Stop();
 
                     long sleepTimeMs = cycleDurationMs - stopwatch.ElapsedMilliseconds;

@@ -13,9 +13,6 @@ export default (hostApi) => {
     reoccurAfterMs: (context, executionCount, input, output) => {
       return hostApi.maybe.of(number.of(10));
     },
-    isReoccuranceApplicable: (context, executionCount, input, output) => {
-      return hostApi.condition.of(false);
-    },
     apply:(context, output) => {
       context.getEntityBy(hostApi.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id"))))
         .map(elementExpr => {
