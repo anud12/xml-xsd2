@@ -1,7 +1,9 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number, string} = hostApi;
-
+  const filter = hostApi.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id")));
+  const key = string.of("key");
+  
   hostApi.setEntity(string.of("entity_id"), {
     numberMap: {
       "key": number.of(0)
@@ -9,17 +11,18 @@ export default (hostApi) => {
   })
 
   hostApi.registerEffect({
-    name:"repeat",
+    name: "repeat",
     reoccurAfterMs: (context, executionCount, input, output) => {
-      return hostApi.maybe.of(number.of(1));
+      return context.getEntityBy(filter)
+        .get(number.of(0))
+        .flatMap(elementExpr => elementExpr.getNumber(key))
+        .isCondition(value => value.isLessOrEqualTo(number.of(20)))
+        .getOnTrueOrFalse(hostApi.maybe.of(hostApi.number.of(1)), hostApi.maybe.none());
     },
-    isReoccuranceApplicable: (context, executionCount, input, output) => {
-      return hostApi.condition.of(true);
-    },
-    apply:(context, output) => {
-      context.getEntityBy(hostApi.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id"))))
+    apply: (context, output) => {
+      context.getEntityBy(filter)
         .map(elementExpr => {
-          elementExpr.getNumber(string.of("key")).map(v => v.sum(number.of(1)));
+          elementExpr.getNumber(key).map(v => v.sum(number.of(1)));
         })
     }
   })

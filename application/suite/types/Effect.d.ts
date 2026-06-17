@@ -20,7 +20,7 @@ export type EventContext = {
    * The runtime enforces a recursion guard to prevent infinite synchronous
    * emission chains.
    */
-  emitEvent: (eventName: string, input: Record<string, any>) => void;
+  emitEvent: <T>(eventName: StringExpression, input: Record<string, any>) => T;
 
   /**
    * Create a new entity during the effect's `apply` phase.
