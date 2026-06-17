@@ -1,6 +1,6 @@
 import {ConditionExpressionApi} from "./primitives/conditionExpression";
 import {NumberExpressionApi} from "./primitives/numberExpression";
-import {StringExpression} from "./primitives/stringExpression";
+import {StringExpression, StringExpressionApi} from "./primitives/stringExpression";
 import {MaybeExpressionApi} from "./primitives/maybeExpression";
 import {TemporalExpressionApi} from "./primitives/temporalExpression";
 import {RegisterEffectFunction} from "./Effect";
@@ -15,7 +15,7 @@ import {EntityCreationArguments} from "./Entity";
 export type HostApi = {
   condition: ConditionExpressionApi,
   number: NumberExpressionApi,
-  string: StringExpression,
+  string: StringExpressionApi,
   maybe: MaybeExpressionApi,
   temporal: TemporalExpressionApi,
 

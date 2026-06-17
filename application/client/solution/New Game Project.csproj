@@ -65,6 +65,11 @@
     <Content Include="Test\Stage_5\EntityTextValueUpdate\reoccurAfterMsToValue\module\index.js" />
     <Content Include="Test\Stage_5\EntityTextValueUpdate\reoccurAfterMsToValue\module\manifest.json" />
     <Content Include="Test\Stage_5\EntityTextValueUpdate\reoccurAfterMsToValue\module\texture.exr" />
+    <Content Include="Test\Stage_5\readme.md" />
+    <Content Include="Test\Stage_6\EmitChildEvents\module\index.js" />
+    <Content Include="Test\Stage_6\EmitChildEvents\module\manifest.json" />
+    <Content Include="Test\Stage_6\EmitChildEvents\module\texture.exr" />
+    <Content Include="Test\Stage_6\readme.md" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\index.js" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\manifest.json" />
     <Content Include="Test\Step_2\ConstantTextContent\center\module\texture.exr" />
