@@ -23,6 +23,7 @@ static mut PENDING_EFFECTS: Option<&'static Mutex<Vec<String>>> = None;
 static mut SCHEDULED_EFFECTS: Option<&'static Mutex<Vec<ScheduledEffect>>> = None;
 static mut LAST_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, f64>>>> = None;
+static mut INITIAL_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut ELAPSED_TIME_UNITS: Option<&'static AtomicI64> = None;
 
 /// Tracks effects that should reoccur at specific elapsed time intervals.
@@ -65,6 +66,8 @@ fn persisted_flag() -> &'static AtomicBool {
         unsafe { LAST_ENTITY_DATA = Some(ed); }
         let en = Box::leak(Box::new(Mutex::new(HashMap::new())));
         unsafe { LAST_ENTITY_NUMBER_DATA = Some(en); }
+        let ied = Box::leak(Box::new(Mutex::new(HashMap::new())));
+        unsafe { INITIAL_ENTITY_DATA = Some(ied); }
         let et = Box::leak(Box::new(AtomicI64::new(0)));
         unsafe { ELAPSED_TIME_UNITS = Some(et); }
     });
@@ -168,6 +171,15 @@ pub fn last_entity_number_data() -> &'static Mutex<HashMap<String, HashMap<Strin
     *last_entity_number_data().lock().unwrap() = data;
 }
 
+pub fn initial_entity_data() -> &'static Mutex<HashMap<String, HashMap<String, String>>> {
+    persisted_flag();
+    unsafe { INITIAL_ENTITY_DATA.expect("initial entity data initialized") }
+}
+
+pub fn set_initial_entity_data(data: HashMap<String, HashMap<String, String>>) {
+    *initial_entity_data().lock().unwrap() = data;
+}
+
 pub fn elapsed_time_units() -> &'static AtomicI64 {
     persisted_flag();
     unsafe { ELAPSED_TIME_UNITS.expect("elapsed time units initialized") }
@@ -202,6 +214,11 @@ pub fn add_scheduled_effect(name: String, payload: serde_json::Value, next_exec_
     });
 }
 
+pub fn remove_scheduled_effect(name: &str) {
+    let mut effects = scheduled_effects().lock().unwrap();
+    effects.retain(|e| e.name != name);
+}
+
 pub fn get_due_scheduled_effects(current_elapsed: i64) -> Vec<ScheduledEffect> {
     let mut effects = scheduled_effects().lock().unwrap();
     let mut due = Vec::new();
@@ -231,6 +248,7 @@ pub fn clear_state() {
     *last_archive_path().lock().unwrap() = String::new();
     *last_entity_data().lock().unwrap() = HashMap::new();
     *last_entity_number_data().lock().unwrap() = HashMap::new();
+    *initial_entity_data().lock().unwrap() = HashMap::new();
     elapsed_time_units().store(0, Ordering::SeqCst);
     persisted_flag().store(false, Ordering::SeqCst);
 }

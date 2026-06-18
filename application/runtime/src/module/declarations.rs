@@ -70,8 +70,10 @@ pub fn apply_declarations(dec: &Declarations) {
                 number_data.insert(entity_id.clone(), nm);
             }
         }
-        crate::state::set_last_entity_data(data);
+        crate::state::set_last_entity_data(data.clone());
         crate::state::set_last_entity_number_data(number_data);
+        // Store initial entity data for later resets (e.g., textMap reset before scheduled effects)
+        crate::state::set_initial_entity_data(data);
     }
 }
 
