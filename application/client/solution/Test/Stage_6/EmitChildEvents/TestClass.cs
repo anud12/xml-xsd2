@@ -34,7 +34,7 @@ public partial class TestClass : Steps {
 
         var numberAssertions = AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
             .HasContentText("0");
-        var textAssertions = AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
+        var textAssertions = AssertPanelThat(rootNode.GetNode<Panel>(idList[1]))
             .HasContentText("No");
 
 
