@@ -15,6 +15,7 @@ export type NumberExpression = {
   subtract: (numberExpression:NumberExpression) => NumberExpression,
   multiply: (numberExpression:NumberExpression) => NumberExpression,
   divide: (numberExpression:NumberExpression) => NumberExpression,
+  modulo: (numberExpression:NumberExpression) => NumberExpression,
   random: (fromInclusive:NumberExpression, toInclusive: NumberExpression) => NumberExpression,
 
   /** Comparison operations returning a lazy ConditionExpression. Prefix 'is' required. */

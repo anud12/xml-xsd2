@@ -1,4 +1,4 @@
-import {MaybeExpression} from "suite/types/primitives/maybeExpression";
+import {MaybeExpression} from "./maybeExpression";
 
 export type ConditionExpression = {
   /** Short-circuiting combinators. Immutable. */

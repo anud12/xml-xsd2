@@ -51,7 +51,7 @@ export default (hostApi) => {
       context.getEntityBy(filter)
         .map(elementExpr => {
           elementExpr.getNumber(key).map(v => {
-            shouldDouble.ifTrue(() => {
+            shouldDouble.ifFalse(() => {
               v.sum(number.of(1))
             })
             shouldDouble.ifTrue(() => {
