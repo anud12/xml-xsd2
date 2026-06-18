@@ -43,16 +43,16 @@ public partial class TestClass : Steps {
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(9L);
         //Value is 3 = (previous 0) + 1 (+ 2 from key-modify-if-par)
-        numberAssertions.HasContentText("3");
-        textAssertions.HasContentText("Yes");
+        numberAssertions.HasContentText("0");
+        textAssertions.HasContentText("No");
 
         //Run iteration with enough time to trigger a new reoccurance
         RuntimeInterop.RunIteration(1);
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(10L);
-        //Value is 4 = (previous 3) + 1
-        numberAssertions.HasContentText("4");
-        textAssertions.HasContentText("No");
+        //Value is 3 = (previous 0) + 1 (+ 2 from key-modify-if-par)
+        numberAssertions.HasContentText("3");
+        textAssertions.HasContentText("Yes");
 
 
         //Run iteration with not enough time to trigger a new reoccurance
@@ -66,18 +66,17 @@ public partial class TestClass : Steps {
         RuntimeInterop.RunIteration(1);
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(20L);
-        //Value is 7 = (previous 4) + 1 (+ 2 from key-modify-if-par)
-        numberAssertions.HasContentText("7");
-        textAssertions.HasContentText("Yes");
+        numberAssertions.HasContentText("4");
+        textAssertions.HasContentText("No");
 
 
         //Run iteration with exact time to trigger a new reoccurance
         RuntimeInterop.RunIteration(10);
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(30L);
-        //Value is 8 = (previous 7) + 1
-        numberAssertions.HasContentText("8");
-        textAssertions.HasContentText("No");
+        //Value is 7 = (previous 4) + 1 (+ 2 from key-modify-if-par)
+        numberAssertions.HasContentText("7");
+        textAssertions.HasContentText("Yes");
 
 
         //Run iteration with exact time to trigger a new reoccurance twice
@@ -85,9 +84,9 @@ public partial class TestClass : Steps {
         await runner.SimulateFrames(1);
         Assertions.AssertThat(RuntimeInterop.GetElapsedTimeUnits()).IsEqual(50L);
 
+        //Value is 8 = (previous 7) + 1
         //Value is 11 = (previous 8) + 1 (+ 2 from key-modify-if-par)
-        //Value is 12 = (previous 11) + 1
-        numberAssertions.HasContentText("12");
-        textAssertions.HasContentText("No");
+        numberAssertions.HasContentText("11");
+        textAssertions.HasContentText("Yes");
     }
 }
