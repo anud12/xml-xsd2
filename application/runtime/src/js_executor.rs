@@ -14,9 +14,6 @@ fn create_rt_ctx_and_install(_source: &str) -> Result<(Runtime, Context)> {
     let rt = create_runtime()?;
     let ctx = create_context(&rt)?;
     install_host_api(&ctx)?;
-    // minimal sanity prints kept
-    if let Ok(kind) = ctx.with(|ctx| ctx.eval::<String, _>("typeof host")) { eprintln!("debug: typeof host = {}", kind); }
-    if let Ok(kind) = ctx.with(|ctx| ctx.eval::<String, _>("typeof createEntity")) { eprintln!("debug: typeof createEntity = {}", kind); }
     Ok((rt, ctx))
 }
 
@@ -60,7 +57,14 @@ fn call_module_default_if_present(ctx: &Context, transformed: &str) {
                 registerPanel: host.registerPanel,
                 setEntity: host.setEntity,
                 log: host.log,
-                maybe: { of: function(v) { return { value: v }; }, none: function() { return { value: undefined }; } }
+                maybe: { of: function(v) { return { value: v }; }, none: function() { return { value: undefined }; } },
+                condition: { of: function(v) {
+                    return {
+                        value: v,
+                        ifTrue: function(cb) { if (v && typeof cb === 'function') cb(); },
+                        ifFalse: function(cb) { if (!v && typeof cb === 'function') cb(); }
+                    };
+                }}
             };
             globalThis.hostApi = hostApi;
             if (typeof __module_default === 'function') {
@@ -78,15 +82,7 @@ pub fn extract_from_source(source: &str) -> Result<Declarations> {
     eval_source_in_ctx(&ctx, &transformed)?;
     call_module_default_if_present(&ctx, &transformed);
 
-    // Debug: check __pendingEffects before extraction
-    let pending_debug = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__pendingEffects || [])")).unwrap_or_else(|_| "[]".to_string());
-    eprintln!("DEBUG: __pendingEffects before extract_declarations: {}", pending_debug);
-
-    let logs_debug = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__logs || [])")).unwrap_or_else(|_| "[]".to_string());
-    eprintln!("DEBUG: __logs before extract_declarations: {}", logs_debug);
-
     let dec = extract_declarations(&ctx)?;
-    eprintln!("DEBUG: dec.pending_effects: {:?}", dec.pending_effects);
     Ok(dec)
 }
 
@@ -96,33 +92,20 @@ pub fn extract_from_source(source: &str) -> Result<Declarations> {
 /// first column is used as the textMap_name value).
 fn select_entry_source(files: &std::collections::HashMap<String, String>) -> String {
     use serde_json::Value;
-    runtime_log!("DEBUG_SELECT: select_entry_source called with {} files", files.len());
     for (name, content) in files.iter() {
-        runtime_log!("DEBUG_SELECT: checking file '{}' ({} chars)", name, content.len());
         if name.ends_with("manifest.json") || (name.to_lowercase().contains("manifest") && name.ends_with(".json")) {
-            runtime_log!("DEBUG_SELECT: found manifest file: {}", name);
             if let Ok(v) = serde_json::from_str::<Value>(content) {
                 if let Some(entry) = v.get("entry").and_then(|v| v.as_str()) {
-                    runtime_log!("DEBUG_SELECT: manifest.entry = {}", entry);
                     if let Some(src) = files.get(entry) {
-                        runtime_log!("DEBUG_SELECT: returning entry '{}' with {} chars", entry, src.len());
                         return src.clone();
-                    } else {
-                        runtime_log!("DEBUG_SELECT: entry '{}' not found in files!", entry);
                     }
-                } else {
-                    runtime_log!("DEBUG_SELECT: manifest has no 'entry' field");
                 }
-            } else {
-                runtime_log!("DEBUG_SELECT: failed to parse manifest as JSON");
             }
         }
     }
     if let Some(src) = files.get("index.js") {
-        runtime_log!("DEBUG_SELECT: returning fallback index.js ({} chars)", src.len());
         return src.clone();
     }
-    runtime_log!("DEBUG_SELECT: no index.js found, returning first file or empty");
     if let Some((_k, v)) = files.iter().next() { return v.clone(); }
     "".to_string()
 }
@@ -156,7 +139,14 @@ fn eval_entry_in_ctx(ctx: &Context, source: &str) -> Result<String> {
                 registerPanel: host.registerPanel,
                 setEntity: host.setEntity,
                 log: host.log,
-                maybe: { of: function(v) { return { value: v }; }, none: function() { return { value: undefined }; } }
+                maybe: { of: function(v) { return { value: v }; }, none: function() { return { value: undefined }; } },
+                condition: { of: function(v) {
+                    return {
+                        value: v,
+                        ifTrue: function(cb) { if (v && typeof cb === 'function') cb(); },
+                        ifFalse: function(cb) { if (!v && typeof cb === 'function') cb(); }
+                    };
+                }}
             };
             globalThis.hostApi = hostApi;
             if (typeof __module_default === 'function') {
@@ -173,9 +163,7 @@ fn sim_template_js() -> &'static str {
   globalThis.__entityStore = initialStore || [];
   globalThis.__createdEntities = globalThis.__createdEntities || [];
   const acts = globalThis.__registeredActions || [];
-  globalThis.__logs = [];  // Clear previous logs to avoid duplication
-  globalThis.__logs.push('DEBUG_TEMPLATE: registered actions count=' + acts.length);
-  globalThis.__logs.push('DEBUG_TEMPLATE: action name to find=' + actionName);
+  globalThis.__logs = [];
   const evs = globalThis.__registeredEvents || [];
   function recordCreated(obj) {
     if (obj && typeof obj === 'object') {
@@ -267,16 +255,8 @@ fn sim_template_js() -> &'static str {
     if (typeof ef.apply === 'function') { try { ef.apply(buildEventContext(), prepared); } catch(e) {} }
   }
   function emitEvent(name, payload) {
-    try {
-      globalThis.__logs = globalThis.__logs || [];
-      globalThis.__logs.push('DEBUG_TEMPLATE: emitEvent called with name=' + String(name));
-      globalThis.__pendingEffects = globalThis.__pendingEffects || [];
-      globalThis.__pendingEffects.push({ name: name, payload: payload });
-      globalThis.__logs.push('DEBUG_TEMPLATE: pendingEffects length=' + globalThis.__pendingEffects.length);
-    } catch (err) {
-      globalThis.__logs = globalThis.__logs || [];
-      globalThis.__logs.push('DEBUG_TEMPLATE: ERROR in emitEvent: ' + String(err));
-    }
+    globalThis.__pendingEffects = globalThis.__pendingEffects || [];
+    globalThis.__pendingEffects.push({ name: name, payload: payload });
   }
   globalThis.__processPendingEffects = function() {
     const pending = globalThis.__pendingEffects || [];
@@ -295,33 +275,18 @@ fn sim_template_js() -> &'static str {
     }
   }
   if (actionObj) {
-    globalThis.__logs.push('DEBUG_TEMPLATE: found action, about to execute');
     const wrappedEmitEvent = function(name, payload) {
-      globalThis.__logs.push('DEBUG_TEMPLATE: wrappedEmitEvent called with name=' + String(name));
       return emitEvent(name, payload);
     };
-    globalThis.__logs.push('DEBUG_TEMPLATE: wrappedEmitEvent type: ' + typeof wrappedEmitEvent);
     const ctx = { emitEffect: wrappedEmitEvent, emitEvent: wrappedEmitEvent, createEntity: recordCreated, entity: { create: ()=>({ withTextMap: tm => tm }) }, textMap: { create: ()=>({ put: (k,v)=>{ const o={}; o[k]=v; return o; } }) }, string: { of: s => s } };
-    globalThis.__logs.push('DEBUG_TEMPLATE: ctx.emitEffect type: ' + typeof ctx.emitEffect);
-    globalThis.__logs.push('DEBUG_TEMPLATE: ctx.emitEffect === wrappedEmitEvent: ' + (ctx.emitEffect === wrappedEmitEvent));
-    globalThis.__logs.push('DEBUG_TEMPLATE: actionObj type: ' + typeof actionObj);
-    globalThis.__logs.push('DEBUG_TEMPLATE: actionObj.apply type: ' + typeof actionObj.apply);
-    if (actionObj.apply) {
-      globalThis.__logs.push('DEBUG_TEMPLATE: actionObj.apply.length: ' + actionObj.apply.length);
-    }
     try {
       if (typeof actionObj === 'object' && typeof actionObj.apply === 'function') { 
-        globalThis.__logs.push('DEBUG_TEMPLATE: calling actionObj.apply(ctx)');
         actionObj.apply(ctx); 
-        globalThis.__logs.push('DEBUG_TEMPLATE: actionObj.apply returned');
       }
       else if (typeof actionObj === 'function') { 
-        globalThis.__logs.push('DEBUG_TEMPLATE: calling actionObj(ctx) as function');
-        try { actionObj(ctx); } catch(e) { globalThis.__logs.push('DEBUG_TEMPLATE: action function threw: ' + String(e)); } 
+        try { actionObj(ctx); } catch(e) {} 
       }
-    } catch(e) { globalThis.__logs.push('DEBUG_TEMPLATE: action threw: ' + String(e)); }
-    globalThis.__logs.push('DEBUG_TEMPLATE: action execution completed');
-    globalThis.__logs.push('DEBUG_TEMPLATE: pendingEffects after action: ' + JSON.stringify(globalThis.__pendingEffects || []));
+    } catch(e) {}
   }
 
   return JSON.stringify({ created: globalThis.__createdEntities, store: globalThis.__entityStore, pendingEffects: globalThis.__pendingEffects || [] });
@@ -334,52 +299,19 @@ pub fn simulate_action(
     action_name: &str,
     initial_store: &[Vec<String>],
 ) -> Result<(Vec<String>, Vec<Vec<String>>)> {
-    eprintln!("DEBUG: simulate_action called");
-    eprintln!("DEBUG: files in archive:");
-    for (path, _) in files.iter() {
-        eprintln!("  - {}", path);
-    }
-    
     let (_rt, ctx) = prepare_runtime_and_ctx()?;
     install_host_api(&ctx)?;
     let source = select_entry_source(files);
-    
-    // Debug: log which module is being loaded
-    eprintln!("DEBUG: Loading module, length={}, first 300 chars:", source.len());
-    if source.len() > 300 {
-        eprintln!("{}", &source[..300]);
-    } else {
-        eprintln!("{}", &source);
-    }
-    
-    // Debug: check if this is the AndTriggerEffect module
-    if source.contains("emitEffect") {
-        eprintln!("DEBUG: Loading module that uses emitEffect");
-        eprintln!("DEBUG: Module source length: {}", source.len());
-        let effect_count = source.matches("emitEffect").count();
-        eprintln!("DEBUG: emitEffect appears {} times in source", effect_count);
-        runtime_log!("DEBUG_MODULE: Loading AndTriggerEffect module with emitEffect");
-    }
-    
     let _transformed = eval_entry_in_ctx(&ctx, &source)?;
 
     let store_json = build_initial_store_json(initial_store)?;
     let action_js = serde_json::to_string(action_name)?;
     let script = sim_template_js().replace("ACTION_PLACEHOLDER", &action_js).replace("STORE_PLACEHOLDER", &store_json);
-    eprintln!("debug: running simulation script for action: {}", action_name);
-    eprintln!("debug: script length: {}", script.len());
 
     let (result_json, logs_json) = run_simulation_and_collect(&ctx, &script)?;
-    eprintln!("debug: simulate_action raw json: {}", result_json);
-
     if let Ok(logs_vec) = serde_json::from_str::<Vec<String>>(&logs_json) {
-        eprintln!("DEBUG: About to log {} entries from JavaScript", logs_vec.len());
-        for (i, l) in logs_vec.iter().enumerate() {
-            // Skip DEBUG_TEMPLATE logs
-            if !l.starts_with("DEBUG_TEMPLATE:") {
-                eprintln!("DEBUG: Logging entry {}: {}", i, l);
-                runtime_log!("{}", l);
-            }
+        for l in logs_vec.iter() {
+            runtime_log!("{}", l);
         }
     }
 
@@ -399,14 +331,10 @@ pub fn simulate_action(
         pending_effects: Vec<PendingEffect>,
     }
     let sim: SimResult = serde_json::from_str(&result_json)?;
-    
-    // Store pending effects in state
+
     if !sim.pending_effects.is_empty() {
         let effect_names: Vec<String> = sim.pending_effects.iter().map(|e| e.name.clone()).collect();
-        runtime_log!("DEBUG: storing {} pending effects: {:?}", effect_names.len(), effect_names);
         crate::state::set_pending_effects(effect_names);
-    } else {
-        runtime_log!("DEBUG: no pending effects to store");
     }
 
     let store_rows = convert_store_values(&sim.store);
@@ -435,36 +363,28 @@ fn build_initial_store_json(initial_store: &[Vec<String>]) -> Result<String> {
 }
 
 fn run_simulation_and_collect(ctx: &Context, script: &str) -> Result<(String, String)> {
-    eprintln!("debug: run_simulation_and_collect: executing script");
     let result_json = ctx.with(|ctx| ctx.eval::<String, _>(script))?;
-    eprintln!("debug: run_simulation_and_collect: script returned: {}", result_json);
     let logs_json = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__logs || [])")).unwrap_or_else(|_| "[]".to_string());
-    eprintln!("debug: run_simulation_and_collect: logs: {}", logs_json);
     Ok((result_json, logs_json))
 }
 
 pub fn process_pending_effects(files: &std::collections::HashMap<String, String>, current_elapsed: i64) -> Result<()> {
-    // Get pending effects from state
     let effects = crate::state::pending_effects().lock().unwrap().clone();
 
     if effects.is_empty() {
         return Ok(());
     }
 
-    // Clear the pending effects queue
     crate::state::clear_pending_effects();
 
-    // Create a runtime and context
     let (_rt, ctx) = prepare_runtime_and_ctx()?;
     install_host_api(&ctx)?;
     let source = select_entry_source(files);
 
-// Eval module source first (this may call setEntity which sets initial __entityData)
-        let _transformed = eval_entry_in_ctx(&ctx, &source)?;
+    let _transformed = eval_entry_in_ctx(&ctx, &source)?;
 
-        // Then sync entity number data from Rust to JS (overwriting any setEntity calls)
-        let number_data = crate::state::last_entity_number_data().lock().unwrap().clone();
-        let entity_store_json: Vec<serde_json::Value> = number_data.iter().map(|(entity_id, props)| {
+    let number_data = crate::state::last_entity_number_data().lock().unwrap().clone();
+    let entity_store_json: Vec<serde_json::Value> = number_data.iter().map(|(entity_id, props)| {
             let mut obj = serde_json::Map::new();
             obj.insert(entity_id.clone(), serde_json::Value::String(entity_id.clone()));
             if let Some(number_map) = props.get("key") {
@@ -475,7 +395,8 @@ pub fn process_pending_effects(files: &std::collections::HashMap<String, String>
         let entity_store_json_str = serde_json::to_string(&entity_store_json).unwrap_or_else(|_| "[]".to_string());
         let _ = ctx.with(|ctx| ctx.eval::<(), _>(format!("globalThis.__entityStore = {}; ", entity_store_json_str)));
 
-        // Also sync to __entityData for numberMap access
+        // Also sync to __entityData for numberMap and textMap access
+        let text_data = crate::state::last_entity_data().lock().unwrap().clone();
         let entity_data_json: std::collections::HashMap<String, serde_json::Value> = number_data.iter().map(|(entity_id, props)| {
             let mut nm = serde_json::Map::new();
             for (k, v) in props.iter() {
@@ -485,272 +406,372 @@ pub fn process_pending_effects(files: &std::collections::HashMap<String, String>
             }
             let mut obj = serde_json::Map::new();
             obj.insert("numberMap".to_string(), serde_json::Value::Object(nm));
+            // Also include textMap if present
+            if let Some(text_props) = text_data.get(entity_id) {
+                let mut tm = serde_json::Map::new();
+                for (k, v) in text_props.iter() {
+                    tm.insert(k.clone(), serde_json::Value::String(v.clone()));
+                }
+                obj.insert("textMap".to_string(), serde_json::Value::Object(tm));
+            }
             (entity_id.clone(), serde_json::Value::Object(obj))
         }).collect();
         let entity_data_json_str = serde_json::to_string(&entity_data_json).unwrap_or_else(|_| "{}".to_string());
         let _ = ctx.with(|ctx| ctx.eval::<(), _>(format!("globalThis.__entityData = {}; ", entity_data_json_str)));
 
-        // Make hostApi available globally for effect's apply function
-        let _ = ctx.with(|ctx| ctx.eval::<(), _>(r#"
-            globalThis.hostApi = {
-                entity: {
-                    filter: {
-                        create: function() {
-                            return {
-                                byId: function(fn) {
-                                    return { fn: fn };
-                                }
-                            };
+// Make hostApi available globally for effect's apply function
+            let _ = ctx.with(|ctx| ctx.eval::<(), _>(r#"
+                globalThis.hostApi = {
+                    entity: {
+                        filter: {
+                            create: function() {
+                                return {
+                                    byId: function(fn) {
+                                        return { fn: fn };
+                                    }
+                                };
+                            }
                         }
-                    }
-                },
-                string: { of: function(s) { return s; } },
-                number: { of: function(n) { return n; } },
-                maybe: { of: function(v) { return { value: v }; }, none: function() { return { value: undefined }; } }
-            };
-        "#));
+                    },
+                    string: { of: function(s) { return s; } },
+                    number: { of: function(n) { return n; } },
+                    maybe: { of: function(v) { return { value: v }; }, none: function() { return { value: undefined }; } },
+                    condition: { of: function(v) {
+                        return {
+                            value: v,
+                            ifTrue: function(cb) { if (v && typeof cb === 'function') cb(); },
+                            ifFalse: function(cb) { if (!v && typeof cb === 'function') cb(); }
+                        };
+                    }}
+                };
+            "#));
 
 // For each pending effect, execute it
         for effect_name in effects.iter() {
-            // Build the effect execution script
-let script = format!(r#"
-            (function() {{
-                globalThis.__logs = [];
-                globalThis.__logs.push('DEBUG: effect script started');
-                const evs = globalThis.__registeredEvents || [];
-                globalThis.__logs.push('DEBUG: effect script, evs count=' + evs.length);
-                let found = null;
-                for (let i = 0; i < evs.length; i++) {{
-                    const e = evs[i];
-                    if (e && typeof e === 'object' && e.name === "{}") {{
-                        found = e;
-                        break;
+            // Find the effect and store it globally
+            let lookup_script = format!(r#"
+                (function() {{
+                    var evs = globalThis.__registeredEvents || [];
+                    for (var i = 0; i < evs.length; i++) {{
+                        if (evs[i] && evs[i].name === '{}') {{
+                            globalThis.__foundEffect = evs[i];
+                            break;
+                        }}
                     }}
-                }}
+                }})();
+            "#, effect_name);
+            if let Err(_e) = ctx.with(|ctx| ctx.eval::<(), _>(lookup_script)) {
+                continue;
+            }
 
-                globalThis.__logs.push('DEBUG: effect script, found=' + (found ? 'yes' : 'no'));
+            let found_check = ctx.with(|ctx| ctx.eval::<bool, _>("globalThis.__foundEffect !== undefined")).unwrap_or(false);
+            if !found_check {
+                continue;
+            }
 
-                if (!found) {{
-                    globalThis.__logs.push('DEBUG: effect {} not found');
-                    return;
-                }}
-
-// Simple buildEventContext
-                function buildEventContext() {{
-                    globalThis.__logs.push('DEBUG_CTX: buildEventContext called');
-                    // Find first entity
-                    let found_entity = null;
-                    for (let eid in globalThis.__entityData) {{
+            // Build the context
+            let _ = ctx.with(|ctx| ctx.eval::<(), _>(r#"
+                (function() {
+                    var found_entity = null;
+                    for (var eid in globalThis.__entityData) {
                         found_entity = globalThis.__entityData[eid];
                         break;
-                    }}
-                    globalThis.__logs.push('DEBUG_CTX: found_entity=' + JSON.stringify(found_entity));
+                    }
+                    globalThis.__context = {
+                        getEntityBy: function(filter) {
+                            return {
+map: function(cb) {
+                                      if (!found_entity) return;
+                                      cb({
+                                         getNumber: function(key) {
+                                            return {
+map: function(cb3) {
+                                                      if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return { orElse: function(def) { return def; } };
+                                                       var result = cb3({
+                                                   sum: function(s) {
+                                                                        found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
+                                                                    },
+                                                                  divide: function(d) {
+                                                                      var numVal = found_entity.numberMap[key];
+                                                                      var remainder = Number(numVal) % Number(d);
+                                                                      return {
+                                                                          isEqualTo: function(target) {
+                                                                              var isEqual = (remainder === Number(target));
+                                                                              return {
+                                                                                  ifTrue: function(cb) { if (isEqual && typeof cb === 'function') cb(); },
+                                                                                  ifFalse: function(cb) { if (!isEqual && typeof cb === 'function') cb(); },
+                                                                                  orElse: function(def) { return isEqual ? { value: true, ifTrue: function(cb) { if (typeof cb === 'function') cb(); }, ifFalse: function(cb) {} } : def; }
+                                                                              };
+                                                                          }
+                                                                      };
+                                                                  },
+                                                                  isLessOrEqualTo: function(target) {
+                                                                      return Number(found_entity.numberMap[key]) <= Number(target);
+                                                                  }
+                                                              });
+                                                    return result || { orElse: function(def) { return def; } };
+                                                }
+                                            };
+                                        },
+                                        getText: function(key) {
+                                            return {
+                                                ifPresent: function(cb) {
+                                                    if (found_entity.textMap && found_entity.textMap[key] !== undefined) {
+                                                        cb({
+                                                            get: function() { return found_entity.textMap[key]; },
+                                                            set: function(val) {
+                                                                if (!found_entity.textMap) found_entity.textMap = {};
+                                                                found_entity.textMap[key] = val;
+                                                            }
+                                                        });
+                                                    }
+                                                }
+                                            };
+                                        }
+                                    });
+                                },
+get: function(index) {
+                                    return {
+                                        flatMap: function(fn) {
+                                            if (!found_entity) return { orElse: function(def) { return def; } };
+                                            var flatMapKey = null;
+                                            var entityExpr = {
+                                                getNumber: function(key) {
+                                                    flatMapKey = key;
+                                                    return {
+                                                        map: function(cb3) {
+                                                            if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return { orElse: function(def) { return def; } };
+                                                           var result = cb3({
+                                                                 sum: function(s) {
+                                                                     found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
+                                                                 },
+                                                                 divide: function(d) {
+                                                                     var numVal = found_entity.numberMap[key];
+                                                                     var remainder = Number(numVal) % Number(d);
+                                                                     return {
+                                                                         isEqualTo: function(target) {
+                                                                             var isEqual = (remainder === Number(target));
+                                                                             return {
+                                                                                 ifTrue: function(cb) { if (isEqual && typeof cb === 'function') cb(); },
+                                                                                 ifFalse: function(cb) { if (!isEqual && typeof cb === 'function') cb(); },
+                                                                                 orElse: function(def) { return isEqual ? { value: true, ifTrue: function(cb) { if (typeof cb === 'function') cb(); }, ifFalse: function(cb) {} } : def; }
+                                                                             };
+                                                                         }
+                                                                     };
+                                                                 },
+                                                                 isLessOrEqualTo: function(target) {
+                                                                      return Number(found_entity.numberMap[key]) <= Number(target);
+                                                                  },
+                                                                  modulo: function(d) {
+                                                                      var remainder = Number(found_entity.numberMap[key]) % Number(d);
+                                                                      return {
+                                                                          isEqualTo: function(target) {
+                                                                              var isEqual = (remainder === Number(target));
+                                                                              return {
+                                                                                  ifTrue: function(cb) { if (isEqual && typeof cb === 'function') cb(); },
+                                                                                  ifFalse: function(cb) { if (!isEqual && typeof cb === 'function') cb(); },
+                                                                                  orElse: function(def) { return isEqual ? { value: true, ifTrue: function(cb) { if (typeof cb === 'function') cb(); }, ifFalse: function(cb) {} } : def; }
+                                                                              };
+                                                                          }
+                                                                      };
+                                                                  }
+                                                              });
+                                                             return result || { orElse: function(def) { return def; } };
+                                                         }
+                                                     };
+                                                 }
+                                             };
+                                             var result = fn(entityExpr);
+                                           return {
+                                                 map: function(cb) {
+                                                     if (result && typeof result.map === 'function') {
+                                                         return result.map(cb);
+                                                     }
+                                                     return { orElse: function(def) { return def; } };
+                                                 },
+                                                 orElse: function(def) { return def; },
+isCondition: function(condFn) {
+                                                       var numVal = found_entity.numberMap && flatMapKey !== null ? found_entity.numberMap[flatMapKey] : 0;
+                                                      var numWrapper = { isLessOrEqualTo: function(t) { return Number(numVal) < Number(t); } };
+                                                     var isTrue = condFn(numWrapper);
+                                                     return {
+                                                         getOnTrueOrFalse: function(trueVal, falseVal) {
+                                                             return isTrue ? trueVal : falseVal;
+                                                         }
+                                                     };
+                                                 }
+                                             };
+                                        },
+                                        map: function(cb) {
+                                            if (!found_entity) return;
+                                            cb({
+                                                getText: function(key) {
+                                                    return {
+                                                        ifPresent: function(cb2) {
+                                                            if (found_entity.textMap && found_entity.textMap[key] !== undefined) {
+                                                                cb2({
+                                                                    get: function() { return found_entity.textMap[key]; },
+                                                                    set: function(val) {
+                                                                        if (!found_entity.textMap) found_entity.textMap = {};
+                                                                        found_entity.textMap[key] = val;
+                                                                    }
+                                                                });
+                                                            }
+                                                        }
+                                                    };
+                                                }
+                                            });
+                                        }
+                                    };
+                                }
+                            };
+                        },
+                        emitEvent: function(name, payload) {
+                            globalThis.__pendingEffects = globalThis.__pendingEffects || [];
+                            globalThis.__pendingEffects.push(name);
+                            // Try to execute the effect immediately to get its condition result
+                            var target = null;
+                            var evs = globalThis.__registeredEvents || [];
+                            for (var i = 0; i < evs.length; i++) {
+                                if (evs[i] && evs[i].name === name) { target = evs[i]; break; }
+                            }
+                            var conditionMet = false;
+                            if (target) {
+                                try {
+                                    var prepared = null;
+                                    if (typeof target.prepare === 'function') {
+                                        prepared = target.prepare(globalThis.__context);
+                                    }
+                                    // Check if prepared has a condition value (truthy check)
+                                    if (prepared && typeof prepared === 'object' && prepared.value) {
+                                        // Execute apply if it exists
+                                        if (typeof target.apply === 'function') {
+                                            target.apply(globalThis.__context, prepared);
+                                        }
+                                    }
+                                    // For condition check: if prepare returned something with a value, condition is met
+                                    conditionMet = (prepared && typeof prepared === 'object' && prepared.value) || false;
+                                } catch(e) {}
+                            }
+                            var _state = [conditionMet];
+                            return {
+                                ifTrue: function(cb) {
+                                    if (_state[0] && typeof cb === 'function') { cb(); _state[0] = false; }
+                                },
+                                ifFalse: function(cb) {
+                                    if (!_state[0] && typeof cb === 'function') cb();
+                                }
+                            };
+                        }
+                    };
+                    })();
+            "#)).ok();
 
-                    return {{
-getEntityBy: function(filter) {{
-                            globalThis.__logs.push('DEBUG_CTX: getEntityBy called');
-                            return {{
-                       map: function(cb) {{
-                                     globalThis.__logs.push('DEBUG_CTX: map called, found_entity=' + JSON.stringify(found_entity));
-                                     if (!found_entity) return;
-                                     cb({{
-                                         getNumber: function(key) {{
-                                             globalThis.__logs.push('DEBUG_CTX: getNumber called, key=' + key);
-                                             return {{
-                                                 map: function(cb3) {{
-                                                     if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return;
-                                                     globalThis.__logs.push('DEBUG_CTX: calling cb3 with sum');
-                                                     cb3({{
-                                                         sum: function(s) {{
-                                                             globalThis.__logs.push('DEBUG_CTX: sum called, adding ' + s);
-                                                             found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
-                                                             globalThis.__logs.push('DEBUG_CTX: sum done, new value=' + found_entity.numberMap[key]);
-                                                         }}
-                                                     }});
-                                                 }}
-                                             }};
-                                         }}
-                                     }});
-                                 }},
-                                 get: function(idx) {{
-                                     if (!found_entity.numberMap) return {{ flatMap: function(fn) {{ return {{ isCondition: function(condFn) {{ return {{ getOnTrueOrFalse: function(tv, fv) {{ return fv; }} }}; }} }}; }} }};
-                                     var key = Object.keys(found_entity.numberMap)[0];
-                                     var numVal = found_entity.numberMap[key];
-                             var numObj = {{
-                                          isLessOrEqualTo: function(limit) {{ return Number(numVal) < Number(limit); }},
-                                          isGreaterThan: function(limit) {{ return Number(numVal) > Number(limit); }},
-                                          get: function() {{ return numVal; }},
-                                          getNumber: function(k) {{
-                                              return {{
-                                                  flatMap: function(fn) {{
-                                                      fn(numObj);
-                                                      return {{
-                                                          isCondition: function(condFn) {{
-                                                              return {{
-                                                                  getOnTrueOrFalse: function(tv, fv) {{
-                                                                      return condFn(numObj) ? tv : fv;
-                                                                  }}
-                                                              }};
-                                                          }}
-                                                      }};
-                                                  }}
-                                              }};
-                                          }}
-                                      }};
-                                      return {{
-                                          flatMap: function(fn) {{
-                                              fn(numObj);
-                                              return {{
-                                                  isCondition: function(condFn) {{
-                                                      return {{
-                                                          getOnTrueOrFalse: function(tv, fv) {{
-                                                              return condFn(numObj) ? tv : fv;
-                                                          }}
-                                                      }};
-                                                  }}
-                                              }};
-                                          }}
-                                      }};
-                                  }}
-                              }};
-                          }}
-                     }};
-                 }}
+            // Call prepare if exists
+            ctx.with(|ctx| ctx.eval::<(), _>(r#"
+                (function() {
+                    if (globalThis.__foundEffect && typeof globalThis.__foundEffect.prepare === 'function') {
+                        try { globalThis.__prepared = globalThis.__foundEffect.prepare(globalThis.__context); } catch(e) {}
+                    }
+                })();
+            "#)).ok();
 
-                 let prepared = null;
-                if (typeof found.prepare === 'function') {{
-                    try {{
-                        globalThis.__logs.push('DEBUG: calling prepare');
-                        prepared = found.prepare({{}});
-                        globalThis.__logs.push('DEBUG: prepare returned: ' + JSON.stringify(prepared));
-                    }} catch(e) {{
-                        globalThis.__logs.push('DEBUG: prepare error: ' + String(e));
-                    }}
-                }}
+            // Call apply
+            ctx.with(|ctx| ctx.eval::<(), _>(r#"
+                (function() {
+                    if (globalThis.__foundEffect && typeof globalThis.__foundEffect.apply === 'function') {
+                        try { globalThis.__foundEffect.apply(globalThis.__context, globalThis.__prepared); } catch(e) {}
+                    }
+                })();
+            "#)).ok();
 
-                // Always apply the effect
-                if (typeof found.apply === 'function') {{
-                    try {{
-                        globalThis.__logs.push('DEBUG: calling apply');
-                        found.apply(buildEventContext(), prepared);
-                        globalThis.__logs.push('DEBUG: apply completed');
-                    }} catch(e) {{
-                        globalThis.__logs.push('DEBUG: scheduled effect apply error: ' + String(e));
-                    }}
-                }}
+            // Re-evaluate reoccurrence info after apply
+            let reoccur_interval: f64 = ctx.with(|ctx| ctx.eval::<f64, _>(r#"
+                (function() {
+                    if (globalThis.__foundEffect && typeof globalThis.__foundEffect.reoccurAfterMs === 'function') {
+                        try {
+                            var result = globalThis.__foundEffect.reoccurAfterMs(globalThis.__context);
+                            if (result && typeof result === 'object') {
+                                if (typeof result.value === 'number') return result.value;
+                                if (result.value === undefined) return -1;
+                            }
+if (typeof result === 'number') return result;
+                         } catch(e) {}
+                    }
+                    return -1;
+                })();
+            "#)).unwrap_or(-1.0);
 
-                // Extract reoccurAfterMs value AFTER apply for scheduling next execution
-                let reoccurInterval = null;
-                if (typeof found.reoccurAfterMs === 'function') {{
-                    try {{
-                        var reoccurCtx = Object.assign({{ executionCount: {}, input: {{}}, output: prepared }}, buildEventContext());
-                        const reoccurResult = found.reoccurAfterMs(reoccurCtx);
-                        if (reoccurResult && typeof reoccurResult === 'object' && typeof reoccurResult.value === 'number') {{
-                            reoccurInterval = reoccurResult.value;
-                        }} else if (typeof reoccurResult === 'number') {{
-                            reoccurInterval = reoccurResult;
-                        }}
-                    }} catch(e) {{}}
-                }}
-
-                // Extract isReoccuranceApplicable value
-                let isApplicable = true;
-                if (typeof found.isReoccuranceApplicable === 'function') {{
-                    try {{
-                        const appResult = found.isReoccuranceApplicable({{ executionCount: 0, input: {{}}, output: prepared }});
-                        if (appResult && typeof appResult === 'object' && typeof appResult.value === 'boolean') {{
-                            isApplicable = appResult.value;
-                        }} else if (typeof appResult === 'boolean') {{
-                            isApplicable = appResult;
-                        }}
-                    }} catch(e) {{}}
-                }}
-
-                globalThis.__lastEffectReoccurInterval = reoccurInterval;
-                globalThis.__lastEffectIsApplicable = isApplicable;
-            }})();
-        "#, effect_name, effect_name, 0);
-
-        let script_result = ctx.with(|ctx| ctx.eval::<(), _>(script));
-        match &script_result {
-            Ok(_) => eprintln!("DEBUG: pending effect, script executed successfully"),
-            Err(e) => eprintln!("DEBUG: pending effect, script error: {:?}", e),
-        }
-
-        // Read modified entity data from JS context
-        let entity_data_updated = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__entityData || {})")).unwrap_or_else(|_| "{}".to_string());
-        eprintln!("DEBUG: pending effect, __entityData after: {}", entity_data_updated);
-        if let Ok(updated_data) = serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(&entity_data_updated) {
-            let mut number_data = crate::state::last_entity_number_data().lock().unwrap();
-            for (entity_id, entity_val) in updated_data.iter() {
-                let entity_map = number_data.entry(entity_id.clone()).or_insert_with(std::collections::HashMap::new);
-                if let Some(number_map) = entity_val.get("numberMap").and_then(|v| v.as_object()) {
-                    for (k, v) in number_map.iter() {
-                        if let Some(n) = v.as_f64() {
-                            entity_map.insert(k.clone(), n);
+            // Read modified entity data from JS context
+            let entity_data_updated = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__entityData || {})")).unwrap_or_else(|_| "{}".to_string());
+            if let Ok(updated_data) = serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(&entity_data_updated) {
+                let mut number_data = crate::state::last_entity_number_data().lock().unwrap();
+                let mut text_data = crate::state::last_entity_data().lock().unwrap();
+                for (entity_id, entity_val) in updated_data.iter() {
+                    let entity_map = number_data.entry(entity_id.clone()).or_insert_with(std::collections::HashMap::new);
+                    if let Some(number_map) = entity_val.get("numberMap").and_then(|v| v.as_object()) {
+                        for (k, v) in number_map.iter() {
+                            if let Some(n) = v.as_f64() {
+                                entity_map.insert(k.clone(), n);
+                            }
+                        }
+                    }
+                    // Also sync textMap back
+                    if let Some(text_map) = entity_val.get("textMap").and_then(|v| v.as_object()) {
+                        let text_entity_map = text_data.entry(entity_id.clone()).or_insert_with(std::collections::HashMap::new);
+                        for (k, v) in text_map.iter() {
+                            if let Some(s) = v.as_str() {
+                                text_entity_map.insert(k.clone(), s.to_string());
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // Read reoccurrence info
-        let reoccur_raw: String = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__lastEffectReoccurInterval)") ).unwrap_or_else(|_| "null".to_string());
-        eprintln!("DEBUG_FFW: reoccur_raw={} for effect={}", reoccur_raw, effect_name);
-        let reoccur_interval: f64 = ctx.with(|ctx| ctx.eval::<f64, _>("globalThis.__lastEffectReoccurInterval || 0")).unwrap_or(0.0);
-        let is_applicable: bool = ctx.with(|ctx| ctx.eval::<bool, _>("globalThis.__lastEffectIsApplicable !== false")).unwrap_or(true);
+  // Schedule reoccurrence if applicable
+            if reoccur_interval > 0.0 {
+                let interval = reoccur_interval as i64;
+                let next_exec_time = ((current_elapsed / interval) + 1) * interval;
+                crate::state::add_scheduled_effect(
+                    effect_name.clone(),
+                    serde_json::Value::Object(serde_json::Map::new()),
+                    next_exec_time,
+                    interval,
+                );
+            }
 
-        // Schedule reoccurrence if applicable
-        if is_applicable && reoccur_interval > 0.0 {
-            let interval = reoccur_interval as i64;
-            let next_exec_time = ((current_elapsed / interval) + 1) * interval;
-            eprintln!("DEBUG_FFW: scheduling effect '{}' next_exec={}, interval={}, current={}, reoccur_interval={}", effect_name, next_exec_time, interval, current_elapsed, reoccur_interval);
-            crate::state::add_scheduled_effect(
-                effect_name.clone(),
-                serde_json::Value::Object(serde_json::Map::new()),
-                next_exec_time,
-                interval,
-            );
-        }
-
-        // Collect logs
-        let logs_json = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__logs || [])")).unwrap_or_else(|_| "[]".to_string());
-        if let Ok(logs_vec) = serde_json::from_str::<Vec<String>>(&logs_json) {
-            for l in logs_vec.iter() {
-                eprintln!("DEBUG_JS_LOG: {}", l);
-                if !l.starts_with("DEBUG_TEMPLATE:") {
+            // Collect logs from effect execution
+            let logs_json = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__logs || [])")).unwrap_or_else(|_| "[]".to_string());
+            if let Ok(logs_vec) = serde_json::from_str::<Vec<String>>(&logs_json) {
+                for l in logs_vec.iter() {
                     runtime_log!("{}", l);
                 }
             }
         }
-    }
 
-    Ok(())
+        Ok(())
 }
 
 pub fn process_scheduled_effects(files: &std::collections::HashMap<String, String>, current_elapsed: i64) -> Result<()> {
-    // Get effects that are due for execution
     let due_effects = crate::state::get_due_scheduled_effects(current_elapsed);
 
     if due_effects.is_empty() {
         return Ok(());
     }
 
-    eprintln!("DEBUG: process_scheduled_effects, due_effects count: {}", due_effects.len());
     for scheduled in due_effects.iter() {
-        eprintln!("DEBUG: executing scheduled effect: {} (count={}, next_exec={})", scheduled.name, scheduled.execution_count, scheduled.next_exec_time);
-
         // Create a runtime and context
         let (_rt, ctx) = prepare_runtime_and_ctx()?;
         install_host_api(&ctx)?;
         let source = select_entry_source(files);
-
-        // Eval module source first
         let _transformed = eval_entry_in_ctx(&ctx, &source)?;
 
-        // Then sync entity number data from Rust to JS
+        // Sync entity data from Rust to JS
         let number_data = crate::state::last_entity_number_data().lock().unwrap().clone();
-        eprintln!("DEBUG: scheduled effect, Rust entity data: {:?}", number_data);
+        // Reset textMap to initial state before scheduled effects (so child effects can set it fresh)
+        let initial_text_data = crate::state::initial_entity_data().lock().unwrap().clone();
+        *crate::state::last_entity_data().lock().unwrap() = initial_text_data.clone();
+        let text_data = crate::state::last_entity_data().lock().unwrap().clone();
         let entity_data_json: std::collections::HashMap<String, serde_json::Value> = number_data.iter().map(|(entity_id, props)| {
             let mut nm = serde_json::Map::new();
             for (k, v) in props.iter() {
@@ -760,178 +781,293 @@ pub fn process_scheduled_effects(files: &std::collections::HashMap<String, Strin
             }
             let mut obj = serde_json::Map::new();
             obj.insert("numberMap".to_string(), serde_json::Value::Object(nm));
+            // Also include textMap if present
+            if let Some(text_props) = text_data.get(entity_id) {
+                let mut tm = serde_json::Map::new();
+                for (k, v) in text_props.iter() {
+                    tm.insert(k.clone(), serde_json::Value::String(v.clone()));
+                }
+                obj.insert("textMap".to_string(), serde_json::Value::Object(tm));
+            }
             (entity_id.clone(), serde_json::Value::Object(obj))
         }).collect();
         let entity_data_json_str = serde_json::to_string(&entity_data_json).unwrap_or_else(|_| "{}".to_string());
-        let _ = ctx.with(|ctx| ctx.eval::<(), _>(format!("globalThis.__entityData = {}; ", entity_data_json_str)));
+        ctx.with(|ctx| ctx.eval::<(), _>(format!("globalThis.__entityData = {}; ", entity_data_json_str))).ok();
 
-        // Make hostApi available globally
-        let _ = ctx.with(|ctx| ctx.eval::<(), _>(r#"
-            globalThis.hostApi = {
-                entity: {
-                    filter: {
-                        create: function() {
-                            return { byId: function(fn) { return { fn: fn }; } };
-                        }
-                    }
-                },
-                string: { of: function(s) { return s; } },
-                number: { of: function(n) { return n; } },
-                maybe: { of: function(v) { return { value: v }; }, none: function() { return { value: undefined }; } }
-            };
-        "#));
-
-        // Build the effect execution script
-        let effect_name = &scheduled.name;
-        let script = format!(r#"
+        // Find the effect and store it globally
+        let lookup_script = format!(r#"
             (function() {{
-                globalThis.__logs = [];
-                const evs = globalThis.__registeredEvents || [];
-                globalThis.__logs.push('DEBUG: scheduled effect, registeredEvents count=' + evs.length);
-                let found = null;
-                for (let i = 0; i < evs.length; i++) {{
-                    const e = evs[i];
-                    if (e && typeof e === 'object' && e.name === "{}") {{
-                        found = e;
+                var evs = globalThis.__registeredEvents || [];
+                for (var i = 0; i < evs.length; i++) {{
+                    if (evs[i] && evs[i].name === '{}') {{
+                        globalThis.__foundEffect = evs[i];
                         break;
                     }}
                 }}
-
-                globalThis.__logs.push('DEBUG: scheduled effect, found=' + (found ? 'yes' : 'no'));
-
-                if (!found) {{
-                    globalThis.__logs.push('DEBUG: scheduled effect {} not found');
-                    return;
-                }}
-
-                function buildEventContext() {{
-                    globalThis.__logs.push('DEBUG_CTX: scheduled buildEventContext called');
-                    let found_entity = null;
-                    for (let eid in globalThis.__entityData) {{
-                        found_entity = globalThis.__entityData[eid];
-                        break;
-                    }}
-                    globalThis.__logs.push('DEBUG_CTX: scheduled found_entity=' + JSON.stringify(found_entity));
-                    return {{
-                        getEntityBy: function(filter) {{
-                            globalThis.__logs.push('DEBUG_CTX: scheduled getEntityBy called');
-                            return {{
-                        map: function(cb) {{
-                                     globalThis.__logs.push('DEBUG_CTX: scheduled map called, found_entity=' + JSON.stringify(found_entity));
-                                     if (!found_entity) return;
-                                     cb({{
-                                         getNumber: function(key) {{
-                                             return {{
-                                                 map: function(cb3) {{
-                                                     if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return;
-                                                     cb3({{
-                                                         sum: function(s) {{
-                                                             found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
-                                                         }}
-                                                     }});
-                                                 }}
-                                             }};
-                                         }}
-                                     }});
-                                 }},
-                                 get: function(idx) {{
-                                     if (!found_entity.numberMap) return {{ flatMap: function(fn) {{ return {{ isCondition: function(condFn) {{ return {{ getOnTrueOrFalse: function(tv, fv) {{ return fv; }} }}; }} }}; }} }};
-                                     var key = Object.keys(found_entity.numberMap)[0];
-                                     var numVal = found_entity.numberMap[key];
-                            var numObj = {{
-                                          isLessOrEqualTo: function(limit) {{ return Number(numVal) < Number(limit); }},
-                                          isGreaterThan: function(limit) {{ return Number(numVal) > Number(limit); }},
-                                          get: function() {{ return numVal; }},
-                                          getNumber: function(k) {{
-                                              return {{
-                                                  flatMap: function(fn) {{
-                                                      fn(numObj);
-                                                      return {{
-                                                          isCondition: function(condFn) {{
-                                                              return {{
-                                                                  getOnTrueOrFalse: function(tv, fv) {{
-                                                                      return condFn(numObj) ? tv : fv;
-                                                                  }}
-                                                              }};
-                                                          }}
-                                                      }};
-                                                  }}
-                                              }};
-                                          }}
-                                      }};
-                                      return {{
-                                          flatMap: function(fn) {{
-                                              fn(numObj);
-                                              return {{
-                                                  isCondition: function(condFn) {{
-                                                      return {{
-                                                          getOnTrueOrFalse: function(tv, fv) {{
-                                                              return condFn(numObj) ? tv : fv;
-                                                          }}
-                                                      }};
-                                                  }}
-                                              }};
-                                          }}
-                                      }};
-                                  }}
-                              }};
-                          }}
-                     }};
-                 }}
-
-                let prepared = null;
-                if (typeof found.prepare === 'function') {{
-                    try {{ prepared = found.prepare({{}}); }} catch(e) {{}}
-                }}
-
-                // Always apply the effect
-                if (typeof found.apply === 'function') {{
-                    try {{
-                        found.apply(buildEventContext(), prepared);
-                    }} catch(e) {{
-                        globalThis.__logs = globalThis.__logs || [];
-                        globalThis.__logs.push('DEBUG: scheduled effect apply error: ' + String(e));
-                    }}
-                }}
-
-                // Extract reoccurAfterMs value AFTER apply for scheduling next execution
-                let reoccurInterval = null;
-                if (typeof found.reoccurAfterMs === 'function') {{
-                    try {{
-                        var reoccurCtx = Object.assign({{ executionCount: {}, input: {{}}, output: prepared }}, buildEventContext());
-                        const reoccurResult = found.reoccurAfterMs(reoccurCtx);
-                        if (reoccurResult && typeof reoccurResult === 'object' && typeof reoccurResult.value === 'number') {{
-                            reoccurInterval = reoccurResult.value;
-                        }} else if (typeof reoccurResult === 'number') {{
-                            reoccurInterval = reoccurResult;
-                        }}
-                    }} catch(e) {{}}
-                }}
-
-                let isApplicable = true;
-                if (typeof found.isReoccuranceApplicable === 'function') {{
-                    try {{
-                        const appResult = found.isReoccuranceApplicable({{ executionCount: {}, input: {{}}, output: prepared }});
-                        if (appResult && typeof appResult === 'object' && typeof appResult.value === 'boolean') {{
-                            isApplicable = appResult.value;
-                        }} else if (typeof appResult === 'boolean') {{
-                            isApplicable = appResult;
-                        }}
-                    }} catch(e) {{}}
-                }}
-
-                globalThis.__lastEffectReoccurInterval = reoccurInterval;
-                globalThis.__lastEffectIsApplicable = isApplicable;
             }})();
-        "#, effect_name, effect_name, scheduled.execution_count, scheduled.execution_count);
+        "#, scheduled.name);
+        if let Err(_e) = ctx.with(|ctx| ctx.eval::<(), _>(lookup_script)) {
+            continue;
+        }
 
-        let _ = ctx.with(|ctx| ctx.eval::<(), _>(script));
+        let found_check = ctx.with(|ctx| ctx.eval::<bool, _>("globalThis.__foundEffect !== undefined")).unwrap_or(false);
+        if !found_check {
+            continue;
+        }
 
-        // Read modified entity data from JS context
+        // Build the context
+        ctx.with(|ctx| ctx.eval::<(), _>(r#"
+            (function() {
+                var found_entity = null;
+                for (var eid in globalThis.__entityData) {
+                    found_entity = globalThis.__entityData[eid];
+                    break;
+                }
+                globalThis.__context = {
+                    getEntityBy: function(filter) {
+                        return {
+                            map: function(cb) {
+                                if (!found_entity) return;
+                                cb({
+                                    getNumber: function(key) {
+                                        return {
+                                            map: function(cb3) {
+                                                if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return { orElse: function(def) { return def; } };
+                                                var result = cb3({
+                                                    sum: function(s) {
+                                                        found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
+                                                    },
+                                                    isLessOrEqualTo: function(target) {
+                                                        return Number(found_entity.numberMap[key]) <= Number(target);
+                                                    }
+                                                });
+                                                return result || { orElse: function(def) { return def; } };
+                                            }
+                                        };
+                                    },
+                                    getText: function(key) {
+                                        return {
+                                            ifPresent: function(cb2) {
+                                                if (found_entity.textMap && found_entity.textMap[key] !== undefined) {
+                                                    cb2({
+                                                        get: function() { return found_entity.textMap[key]; },
+                                                        set: function(val) {
+                                                            if (!found_entity.textMap) found_entity.textMap = {};
+                                                            found_entity.textMap[key] = val;
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        };
+                                    }
+                                });
+                            },
+                            get: function(index) {
+                                return {
+                                    flatMap: function(fn) {
+                                        if (!found_entity) return { orElse: function(def) { return def; } };
+                                        var schedFlatMapKey = null;
+                                        var entityExpr = {
+                                            getNumber: function(key) {
+                                                schedFlatMapKey = key;
+                                                return {
+                                                    map: function(cb3) {
+                                                        if (!found_entity.numberMap || found_entity.numberMap[key] === undefined) return { orElse: function(def) { return def; } };
+                                                        var result = cb3({
+                                                            sum: function(s) {
+                                                                found_entity.numberMap[key] = Number(found_entity.numberMap[key]) + Number(s);
+                                                            },
+                                                            divide: function(d) {
+                                                                var numVal = found_entity.numberMap[key];
+                                                                var remainder = Number(numVal) % Number(d);
+                                                                return {
+                                                                    isEqualTo: function(target) {
+                                                                        var isEqual = (remainder === Number(target));
+                                                                        return {
+                                                                            ifTrue: function(cb) { if (isEqual && typeof cb === 'function') cb(); },
+                                                                            ifFalse: function(cb) { if (!isEqual && typeof cb === 'function') cb(); },
+                                                                            orElse: function(def) { return isEqual ? { value: true, ifTrue: function(cb) { if (typeof cb === 'function') cb(); }, ifFalse: function(cb) {} } : def; }
+                                                                        };
+                                                                    }
+                                                                };
+                                                            },
+                                                            isLessOrEqualTo: function(target) {
+                                                                return Number(found_entity.numberMap[key]) <= Number(target);
+                                                            },
+                                                            modulo: function(d) {
+                                                                var remainder = Number(found_entity.numberMap[key]) % Number(d);
+                                                                return {
+                                                                    isEqualTo: function(target) {
+                                                                        var isEqual = (remainder === Number(target));
+                                                                        return {
+                                                                            ifTrue: function(cb) { if (isEqual && typeof cb === 'function') cb(); },
+                                                                            ifFalse: function(cb) { if (!isEqual && typeof cb === 'function') cb(); },
+                                                                            orElse: function(def) { return isEqual ? { value: true, ifTrue: function(cb) { if (typeof cb === 'function') cb(); }, ifFalse: function(cb) {} } : def; }
+                                                                        };
+                                                                    }
+                                                                };
+                                                            }
+                                                        });
+                                                        return result || { orElse: function(def) { return def; } };
+                                                    }
+                                                };
+                                            }
+                                        };
+                                        var result = fn(entityExpr);
+                                        return {
+                                            map: function(cb) {
+                                                if (result && typeof result.map === 'function') {
+                                                    return result.map(cb);
+                                                }
+                                                return { orElse: function(def) { return def; } };
+                                            },
+                                            orElse: function(def) { return def; },
+isCondition: function(condFn) {
+                                                 var numVal = found_entity.numberMap && schedFlatMapKey !== null ? found_entity.numberMap[schedFlatMapKey] : 0;
+                                                 var numWrapper = { isLessOrEqualTo: function(t) { return Number(numVal) < Number(t); } };
+                                                var isTrue = condFn(numWrapper);
+                                                return {
+                                                    getOnTrueOrFalse: function(trueVal, falseVal) {
+                                                        return isTrue ? trueVal : falseVal;
+                                                    }
+                                                };
+                                            }
+                                        };
+                                    },
+                                    map: function(cb) {
+                                        if (!found_entity) return;
+                                        cb({
+                                            getText: function(key) {
+                                                return {
+                                                    ifPresent: function(cb2) {
+                                                        if (found_entity.textMap && found_entity.textMap[key] !== undefined) {
+                                                            cb2({
+                                                                get: function() { return found_entity.textMap[key]; },
+                                                                set: function(val) {
+                                                                    if (!found_entity.textMap) found_entity.textMap = {};
+                                                                    found_entity.textMap[key] = val;
+                                                                }
+                                                            });
+                                                        }
+                                                    }
+                                                };
+                                            }
+                                        });
+                                    }
+                                };
+                            }
+                        };
+                    },
+                    emitEvent: function(name, payload) {
+                        globalThis.__pendingEffects = globalThis.__pendingEffects || [];
+                        globalThis.__pendingEffects.push(name);
+                        // Try to evaluate child effect inline to determine condition
+                        var target = null;
+                        var evs = globalThis.__registeredEvents || [];
+                        for (var i = 0; i < evs.length; i++) {
+                            if (evs[i] && evs[i].name === name) { target = evs[i]; break; }
+                        }
+                        var _cond = false;
+                        if (target) {
+                            try {
+                                var childPrepared = null;
+                                if (typeof target.prepare === 'function') {
+                                    childPrepared = target.prepare(globalThis.__context);
+                                }
+                                if (childPrepared && typeof childPrepared === 'object' && childPrepared.value) {
+                                    _cond = true;
+                                    if (typeof target.apply === 'function') {
+                                        target.apply(globalThis.__context, childPrepared);
+                                    }
+                                }
+                            } catch(e) {}
+                        }
+                        var _state = [_cond];
+                        return {
+                            ifTrue: function(cb) { if (_state[0] && typeof cb === 'function') { cb(); _state[0] = false; } },
+                            ifFalse: function(cb) { if (!_state[0] && typeof cb === 'function') cb(); }
+                        };
+                    }
+                };
+            })();
+        "#)).ok();
+
+        // Evaluate reoccurAfterMs BEFORE apply (pre-gate)
+        let reoccur_interval_pre: f64 = ctx.with(|ctx| ctx.eval::<f64, _>(r#"
+            (function() {
+                if (globalThis.__foundEffect && typeof globalThis.__foundEffect.reoccurAfterMs === 'function') {
+                    try {
+                        var result = globalThis.__foundEffect.reoccurAfterMs(globalThis.__context);
+                        if (result && typeof result === 'object') {
+                            if (typeof result.value === 'number') return result.value;
+                            if (result.value === undefined) return -1;
+                        }
+                        if (typeof result === 'number') return result;
+                    } catch(e) {}
+                }
+                return -1;
+            })();
+        "#)).unwrap_or(-1.0);
+
+        // If reoccurAfterMs returns <= 0, skip and remove from scheduled
+        if reoccur_interval_pre <= 0.0 {
+            crate::state::remove_scheduled_effect(&scheduled.name);
+            continue;
+        }
+
+        // Call prepare
+        ctx.with(|ctx| ctx.eval::<(), _>(r#"
+            (function() {
+                if (globalThis.__foundEffect && typeof globalThis.__foundEffect.prepare === 'function') {
+                    try { globalThis.__prepared = globalThis.__foundEffect.prepare(globalThis.__context); } catch(e) {}
+                }
+            })();
+        "#)).ok();
+
+        // Call apply
+        ctx.with(|ctx| ctx.eval::<(), _>(r#"
+            (function() {
+                if (globalThis.__foundEffect && typeof globalThis.__foundEffect.apply === 'function') {
+                    try { globalThis.__foundEffect.apply(globalThis.__context, globalThis.__prepared); } catch(e) {}
+                }
+            })();
+        "#)).ok();
+
+        // Re-evaluate reoccurAfterMs after apply (post-gate) to determine if we should reschedule
+        let reoccur_interval_post: f64 = ctx.with(|ctx| ctx.eval::<f64, _>(r#"
+            (function() {
+                if (globalThis.__foundEffect && typeof globalThis.__foundEffect.reoccurAfterMs === 'function') {
+                    try {
+                        var result = globalThis.__foundEffect.reoccurAfterMs(globalThis.__context);
+                        if (result && typeof result === 'object') {
+                            if (typeof result.value === 'number') return result.value;
+                            if (result.value === undefined) return -1;
+                        }
+                        if (typeof result === 'number') return result;
+                    } catch(e) {}
+                }
+                return -1;
+            })();
+        "#)).unwrap_or(-1.0);
+
+        // Only reschedule if post-apply reoccurAfterMs is positive
+        if reoccur_interval_post > 0.0 {
+            let current_elapsed_for_scheduling = current_elapsed;
+            let interval_for_scheduling = reoccur_interval_post as i64;
+            let next_exec_time = ((current_elapsed_for_scheduling / interval_for_scheduling) + 1) * interval_for_scheduling;
+            crate::state::add_scheduled_effect(
+                scheduled.name.clone(),
+                serde_json::Value::Object(serde_json::Map::new()),
+                next_exec_time,
+                interval_for_scheduling,
+            );
+        }
+
+        // Read modified entity data
         let entity_data_updated = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__entityData || {})")).unwrap_or_else(|_| "{}".to_string());
-        eprintln!("DEBUG: scheduled effect, __entityData after: {}", entity_data_updated);
         if let Ok(updated_data) = serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(&entity_data_updated) {
             let mut number_data = crate::state::last_entity_number_data().lock().unwrap();
+            let mut text_data = crate::state::last_entity_data().lock().unwrap();
             for (entity_id, entity_val) in updated_data.iter() {
                 let entity_map = number_data.entry(entity_id.clone()).or_insert_with(std::collections::HashMap::new);
                 if let Some(number_map) = entity_val.get("numberMap").and_then(|v| v.as_object()) {
@@ -941,40 +1077,28 @@ pub fn process_scheduled_effects(files: &std::collections::HashMap<String, Strin
                         }
                     }
                 }
+                // Also sync textMap back
+                if let Some(text_map) = entity_val.get("textMap").and_then(|v| v.as_object()) {
+                    let text_entity_map = text_data.entry(entity_id.clone()).or_insert_with(std::collections::HashMap::new);
+                    for (k, v) in text_map.iter() {
+                        if let Some(s) = v.as_str() {
+                            text_entity_map.insert(k.clone(), s.to_string());
+                        }
+                    }
+                }
             }
-        }
-
-        // Read reoccurrence info
-        let reoccur_interval: f64 = ctx.with(|ctx| ctx.eval::<f64, _>("globalThis.__lastEffectReoccurInterval || 0")).unwrap_or(0.0);
-        let is_applicable: bool = ctx.with(|ctx| ctx.eval::<bool, _>("globalThis.__lastEffectIsApplicable !== false")).unwrap_or(true);
-
-        // Update scheduled effect for next reoccurrence
-        let mut effects = crate::state::scheduled_effects().lock().unwrap();
-        if is_applicable && reoccur_interval > 0.0 {
-            let interval = reoccur_interval as i64;
-            let next_exec_time = ((current_elapsed / interval) + 1) * interval;
-            if let Some(effect) = effects.iter_mut().find(|e| e.name == scheduled.name) {
-                effect.next_exec_time = next_exec_time;
-                effect.reoccurrence_interval = interval;
-            }
-        } else {
-            // Remove effect from scheduled list when no longer applicable
-            effects.retain(|e| e.name != scheduled.name);
         }
 
         // Collect logs
         let logs_json = ctx.with(|ctx| ctx.eval::<String, _>("JSON.stringify(globalThis.__logs || [])")).unwrap_or_else(|_| "[]".to_string());
         if let Ok(logs_vec) = serde_json::from_str::<Vec<String>>(&logs_json) {
             for l in logs_vec.iter() {
-                eprintln!("DEBUG_JS_LOG: {}", l);
-                if !l.starts_with("DEBUG_TEMPLATE:") {
-                    runtime_log!("{}", l);
-                }
+                runtime_log!("{}", l);
             }
         }
     }
 
-    Ok(())
+ Ok(())
 }
 
 fn convert_store_values(values: &[serde_json::Value]) -> Vec<Vec<String>> {
