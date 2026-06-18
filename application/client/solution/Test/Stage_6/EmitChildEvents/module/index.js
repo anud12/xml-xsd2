@@ -20,7 +20,7 @@ export default (hostApi) => {
       const output = context.getEntityBy(filter).get(number.of(0)).flatMap(v => {
         return v.getNumber(key)
       })
-        .map(v => v.divide(number.of(2))
+        .map(v => v.modulo(number.of(2))
           .isEqualTo(number.of(0)));
       return output.orElse(hostApi.condition.of(false));
     },
@@ -87,7 +87,7 @@ export default (hostApi) => {
   })
 
   hostApi.registerPanel({
-    id: "center",
+    id: "isModifiedPanel",
     size: {
       height: number.of(100),
       width: number.of(100)
