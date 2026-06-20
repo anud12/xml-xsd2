@@ -1,32 +1,26 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number, string} = hostApi;
-  const filter = hostApi.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id")));
-  const key = string.of("key");
-  
+
   hostApi.setEntity(string.of("entity_id"), {
     numberMap: {
       "key": number.of(0)
     }
   })
-
+  
   hostApi.registerEffect({
-    name: "repeat",
+    name:"repeat",
     reoccurAfterMs: (context, executionCount, input, output) => {
-      return context.getEntityBy(filter)
-        .get(number.of(0))
-        .flatMap(elementExpr => elementExpr.getNumber(key))
-        .isCondition(value => value.isLessOrEqualTo(number.of(20)))
-        .getOnTrueOrFalse(hostApi.maybe.of(hostApi.number.of(1)), hostApi.maybe.none());
+      return hostApi.maybe.of(number.of(10));
     },
-    apply: (context, output) => {
-      context.getEntityBy(filter)
+    apply:(context, output) => {
+      context.getEntityBy(hostApi.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id"))))
         .map(elementExpr => {
-          elementExpr.getNumber(key).map(v => v.sum(number.of(1)));
+          elementExpr.getNumber(string.of("key")).map(v => v.sum(number.of(1)));
         })
     }
   })
-
+  
   hostApi.emitEvent("repeat", {});
 
   hostApi.registerPanel({
@@ -45,7 +39,7 @@ export default (hostApi) => {
       entityId: string.of("entity_id"),
       name: string.of("key"),
       type: "entityNumberValue",
-      align: "top",
+      align: "center",
     },
     background: hostApi.texture.of("texture.exr")
   })

@@ -1,9 +1,10 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number, string} = hostApi;
+
   const filter = hostApi.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id")));
-  const key = string.of("key");
-  
+  const key = string.of("key")
+
   hostApi.setEntity(string.of("entity_id"), {
     numberMap: {
       "key": number.of(0)
@@ -16,8 +17,8 @@ export default (hostApi) => {
       return context.getEntityBy(filter)
         .get(number.of(0))
         .flatMap(elementExpr => elementExpr.getNumber(key))
-        .isCondition(value => value.isLessOrEqualTo(number.of(20)))
-        .getOnTrueOrFalse(hostApi.maybe.of(hostApi.number.of(1)), hostApi.maybe.none());
+        .isCondition(value => value.isLessOrEqualTo(number.of(3)))
+        .getOnTrueOrFalse(hostApi.maybe.of(hostApi.number.of(10)), hostApi.maybe.none());
     },
     apply: (context, output) => {
       context.getEntityBy(filter)
@@ -43,9 +44,9 @@ export default (hostApi) => {
     },
     content: {
       entityId: string.of("entity_id"),
-      name: string.of("key"),
+      name: key,
       type: "entityNumberValue",
-      align: "top",
+      align: "center",
     },
     background: hostApi.texture.of("texture.exr")
   })
