@@ -1,3 +1,5 @@
+import {MaybeExpression} from "./maybeExpression";
+
 export type ConditionExpression = {
   /** Short-circuiting combinators. Immutable. */
   and: (other: ConditionExpression) => ConditionExpression;
@@ -6,10 +8,12 @@ export type ConditionExpression = {
   /** Logical inversion. */
   negate: () => ConditionExpression;
 
-  /** Convenience combinators that accept callbacks producing ConditionExpression values lazily. */
-  ifTrue:  (cb: () => ConditionExpression) => ConditionExpression; // invoke cb only when receiver is true
-  ifFalse: (cb: () => ConditionExpression) => ConditionExpression; // invoke cb only when receiver is false
+  /** Convenience combinators that accept callbacks producing ConditionExpression values lazily. Returns self. */
+  ifTrue:  (cb: () => void) => ConditionExpression; // invoke cb only when receiver is true
+  ifFalse: (cb: () => void) => ConditionExpression; // invoke cb only when receiver is false
   /** Marker for HostApi surfaces */
+} & {
+  
 };
 
 export type ConditionExpressionApi = {

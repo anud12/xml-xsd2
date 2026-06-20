@@ -3,4 +3,6 @@
 /android/
 /TestResults
 
+/**/**.cs.uid
+/**/**.import
 /**/result.png

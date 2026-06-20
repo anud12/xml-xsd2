@@ -12,8 +12,8 @@ export type StringExpressionApi = {
 }
 
 export type StringExpression = {
-  /** Convenience to create a literal */
-  of: (s: string) => StringExpression,
+  /** Replaces string, and returns the new value */
+  set: (s: StringExpression) => StringExpression,
   /** Concatenate two expressions */
   concat: (other: StringExpression) => StringExpression,
   /** Join multiple expressions using an optional separator */

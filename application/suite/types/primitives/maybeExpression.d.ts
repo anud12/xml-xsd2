@@ -14,6 +14,11 @@ export type MaybeExpressionApi = {
 }
 
 
+type ConditionalMaybe<T> = {
+  /** Get true/false branches based on condition result */
+  getOnTrueOrFalse: <U>(trueCase: MaybeExpression<U>, falseCase: MaybeExpression<U>) => MaybeExpression<U>,
+}
+
 export type MaybeExpression<T> = {
   of: (v: T) => MaybeExpression<T>,
   none: () => MaybeExpression<T>,
@@ -32,4 +37,7 @@ export type MaybeExpression<T> = {
 
   /** Side-effects */
   ifPresent: (cb: (v: T) => void) => void,
+
+  /** Check presence and apply a condition on the unwrapped value */
+  isCondition: (predicate: (v: T) => ConditionExpression) => ConditionalMaybe<T>,
 }
