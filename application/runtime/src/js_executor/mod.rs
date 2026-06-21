@@ -1,6 +1,7 @@
 //! JavaScript execution module for extraction and simulation.
 
 mod extract;
+mod extract_invoke;
 mod simulate;
 mod context_builders;
 mod pending_effects;

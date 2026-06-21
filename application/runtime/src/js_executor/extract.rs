@@ -30,39 +30,16 @@ pub fn extract_from_source(source: &str) -> Result<Declarations> {
     let (_rt, ctx) = create_rt_ctx()?;
     let transformed = transform_source(source);
 
-    // Step 1: Install host API
     let host_script = get_host_api_script();
     ctx.with(|ctx| {
         ctx.eval::<(), _>(host_script.clone())
     }).map_err(|e| anyhow!("host API eval failed: {}", e))?;
 
-    // Step 2: Eval module source
     ctx.with(|ctx| {
         ctx.eval::<(), _>(transformed.clone())
-    }).map_err(|e| anyhow!("module source eval failed: {}", e))?;
+    }).map_err(|e| anyhow!("module eval failed: {}", e))?;
 
-    // Step 3: Build hostApi and call __module_default
-    let invoke_js = r#"
-var h=globalThis.host;
-if(!h){throw new Error("globalThis.host is undefined");}
-var hostApi={
-  string:{of:function(s){return s;}},
-  number:{of:function(n){return n;}},
-  texture:{of:function(p){return p;}},
-  emitEvent:h.emitEvent,
-  registerEvent:h.registerEvent,
-  registerAction:h.registerAction,
-  registerEffect:h.registerEffect,
-  registerPanel:h.registerPanel,
-  setEntity:h.setEntity,
-  log:h.log,
-  maybe:{of:function(v){return{value:v};},none:function(){return{value:undefined};}},
-  condition:{of:function(v){return{value:v,ifTrue:function(cb){if(v&&typeof cb==='function')cb();},ifFalse:function(cb){if(!v&&typeof cb==='function')cb();}};}}
-};
-globalThis.hostApi=hostApi;
-var __mod=globalThis.__module_default||__module_default;
-if(typeof __mod==='function'){__mod(hostApi);}
-"#;
+    let invoke_js = super::extract_invoke::get_invoke_js();
     ctx.with(|ctx| {
         ctx.eval::<(), _>(invoke_js.to_string())
     }).map_err(|e| anyhow!("invoke eval failed: {}", e))?;
