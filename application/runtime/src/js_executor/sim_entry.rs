@@ -1,6 +1,5 @@
 use anyhow::Result;
 use rquickjs::Context;
-use super::extract::HOST_API_JS;
 
 pub fn select_entry_source(files: &std::collections::HashMap<String, String>) -> String {
     use serde_json::Value;
@@ -25,9 +24,27 @@ pub fn eval_entry_in_ctx(ctx: &Context, source: &str) -> Result<String> {
     } else { source.to_string() };
     ctx.with(|ctx| ctx.eval::<(), _>(transformed.clone()))?;
     if transformed.contains("__module_default") {
-        let s = format!("try{{{};if(typeof __module_default==='function')\
-            {{__module_default(hostApi);}}}}catch(e){{}}", HOST_API_JS);
-        let _ = ctx.with(|ctx| ctx.eval::<(), _>(s));
+        let js = r#"
+var h=globalThis.host;
+var hostApi={
+  string:{of:function(s){return s;}},
+  number:{of:function(n){return n;}},
+  texture:{of:function(p){return p;}},
+  emitEvent:h.emitEvent,
+  registerEvent:h.registerEvent,
+  registerAction:h.registerAction,
+  registerEffect:h.registerEffect,
+  registerPanel:h.registerPanel,
+  setEntity:h.setEntity,
+  log:h.log,
+  maybe:{of:function(v){return{value:v};},none:function(){return{value:undefined};}},
+  condition:{of:function(v){return{value:v,ifTrue:function(cb){if(v&&typeof cb==='function')cb();},ifFalse:function(cb){if(!v&&typeof cb==='function')cb();}};}}
+};
+globalThis.hostApi=hostApi;
+var __mod=globalThis.__module_default||__module_default;
+if(typeof __mod==='function'){__mod(hostApi);}
+"#;
+        let _ = ctx.with(|ctx| ctx.eval::<(), _>(js.to_string()));
     }
     Ok(transformed)
 }
