@@ -1,10 +1,10 @@
-pub(super) fn host_api_script_part1() -> &'static str {
+pub fn host_api_script_part1() -> &'static str {
     "// Minimal host API expected by tests. \
      All side-effects are explicit\n// console.log calls so \
      test harness can observe them.\nglobalThis.host = {"
 }
 
-pub(super) fn host_api_script_emit() -> &'static str {
+pub fn host_api_script_emit() -> &'static str {
     r#"emitEvent(name) {
         globalThis.__logs = globalThis.__logs || [];
         globalThis.__logs.push('DEBUG: emitEvent called');

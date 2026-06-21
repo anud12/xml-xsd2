@@ -1,4 +1,4 @@
-pub(super) fn host_api_script_log() -> &'static str {
+pub fn host_api_script_log() -> &'static str {
     r#"log(msg) {
         try {
             globalThis.__logs =
@@ -10,7 +10,7 @@ pub(super) fn host_api_script_log() -> &'static str {
     texture: { of: function(t) { return t; } }"#
 }
 
-pub(super) fn host_api_script_rest() -> String {
+pub fn host_api_script_rest() -> String {
     use super::script_register::host_api_script_register_block;
     use super::script_panel_entity::{
         host_api_script_panel,
@@ -35,7 +35,7 @@ pub(super) fn host_api_script_rest() -> String {
     s
 }
 
-pub(super) fn host_api_script_tail() -> &'static str {
+pub fn host_api_script_tail() -> &'static str {
     "\n// Provide convenient aliases that scripts \
      sometimes use\nglobalThis.createEntity = \
      function(o) { return globalThis.host.createEntity(o); \

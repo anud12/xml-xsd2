@@ -1,7 +1,7 @@
-mod script_emit;
-mod script_register;
-mod script_panel_entity;
-mod script_rest;
+pub mod script_emit;
+pub mod script_register;
+pub mod script_panel_entity;
+pub mod script_rest;
 mod script_extract;
 mod script_extract_map;
 

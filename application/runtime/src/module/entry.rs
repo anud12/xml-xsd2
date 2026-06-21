@@ -29,9 +29,9 @@ pub(super) fn handle_entry_point(
 fn process_module_source(module_src: &str) {
     match extract_from_source(module_src) {
         Ok(dec) => super::declarations::apply_declarations(&dec),
-        Err(_) => eprintln!(
-            "js extraction failed; \
-            no fallback heuristics are used"),
+        Err(e) => eprintln!(
+            "js extraction failed: {}; \
+            no fallback heuristics are used", e),
     }
 }
 
