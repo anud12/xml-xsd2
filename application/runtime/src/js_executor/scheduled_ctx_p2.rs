@@ -42,7 +42,7 @@ const SCHED_CTX_JS_P2: &str = r#", get: function(index) {
                                 }};
                             }});
                             return r||{orElse:function(d){return d;}};
-                        }}};
+                        }}}
                     };
                     var result=fn(ee);
                     return{map:function(cb){

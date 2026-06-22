@@ -33,34 +33,7 @@ pub fn sync_entity_store(ctx: &Context) {
 }
 
 pub fn sync_entity_data_with_initial(ctx: &Context) {
-    let nd = crate::state::last_entity_number_data().lock().unwrap().clone();
     let init = crate::state::initial_entity_data().lock().unwrap().clone();
     *crate::state::last_entity_data().lock().unwrap() = init;
-    let td = crate::state::last_entity_data().lock().unwrap().clone();
     super::entity_sync_map::__sync_entity_data_map(ctx);
-    build_initial_entity_data_json(ctx, &nd, &td);
-}
-
-fn build_initial_entity_data_json(
-    ctx: &Context,
-    nd: &std::collections::HashMap<String, std::collections::HashMap<String, f64>>,
-    td: &std::collections::HashMap<String, std::collections::HashMap<String, String>>,
-) {
-    let dj: std::collections::HashMap<String, serde_json::Value> = nd.iter()
-        .map(|(id, _)| {
-            let nm = serde_json::Map::new();
-            let mut obj = serde_json::Map::new();
-            obj.insert("numberMap".into(), serde_json::Value::Object(nm));
-            if let Some(tp) = td.get(id) {
-                let mut tm = serde_json::Map::new();
-                for (k, v) in tp.iter() {
-                    tm.insert(k.clone(), serde_json::Value::String(v.clone()));
-                }
-                obj.insert("textMap".into(), serde_json::Value::Object(tm));
-            }
-            (id.clone(), serde_json::Value::Object(obj))
-        }).collect();
-    let ds = serde_json::to_string(&dj).unwrap_or_else(|_| "{}".into());
-    let _ = ctx.with(|c| c.eval::<(), _>(
-        format!("globalThis.__entityData = {}; ", ds)));
 }

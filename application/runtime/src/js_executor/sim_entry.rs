@@ -37,6 +37,7 @@ var hostApi={
   registerPanel:h.registerPanel,
   setEntity:h.setEntity,
   log:h.log,
+  entity:h.entity,
   maybe:{
      of:function(v){return{value:v};},
      none:function(){return{value:undefined};}

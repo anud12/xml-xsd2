@@ -9,18 +9,6 @@ use super::context_builders::{
     call_effect_prepare, call_effect_apply, sync_entity_data_back,
 };
 
-const EFFECT_HOST_API_JS: &str = r#"(function(){
-    globalThis.hostApi={entity:{filter:{create:function(){
-        return{byId:function(fn){return{fn:fn;}};}}}},
-    string:{of:function(s){return s;}},number:{of:function(n){return n;}},
-    maybe:{of:function(v){return{value:v};},none:function(){
-        return{value:undefined};}},
-    condition:{of:function(v){return{value:v,
-        ifTrue:function(cb){if(v&&typeof cb==='function')cb();},
-        ifFalse:function(cb){if(!v&&typeof cb==='function')cb();}};
-    }}};
-})()"#;
-
 pub fn process_pending_effects(
     files: &std::collections::HashMap<String, String>,
     current_elapsed: i64,
@@ -34,8 +22,13 @@ pub fn process_pending_effects(
     let source = select_entry_source(files);
     let _transformed = eval_entry_in_ctx(&ctx, &source)?;
 
+    // Ensure hostApi has entity.filter for effect closures
+    let _ = ctx.with(|c| c.eval::<(), _>(
+        "if(globalThis.hostApi&&!globalThis.hostApi.entity){\
+         globalThis.hostApi.entity=globalThis.host.entity;}"
+    ));
+
     sync_entity_data(&ctx);
-    let _ = ctx.with(|c| c.eval::<(), _>(EFFECT_HOST_API_JS));
 
     for effect_name in effects.iter() {
         if !lookup_effect(&ctx, effect_name) { continue; }
@@ -54,6 +47,7 @@ pub fn process_pending_effects(
                 next, iv,
             );
         }
+
         sync_entity_data_back(&ctx);
         collect_logs(&ctx);
     }

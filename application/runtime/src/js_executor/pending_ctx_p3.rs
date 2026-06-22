@@ -10,12 +10,12 @@ const PENDING_CTX_JS_P3: &str = r#",map:function(cb){
                                         if(!fe.textMap)fe.textMap={};
                                         fe.textMap[key]=val;
                                     }});
-                            }};
-                        }});
+                            }}
+                        }}});
                     }};
                 }};
             }
-        },
+        ,
         emitEvent: function(name, payload) {
             globalThis.__pendingEffects=globalThis.__pendingEffects||[];
             globalThis.__pendingEffects.push(name);

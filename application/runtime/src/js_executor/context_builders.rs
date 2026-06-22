@@ -11,13 +11,27 @@ pub use super::entity_sync_back::{
 };
 
 pub fn build_effect_context_pending(ctx: &Context) {
-    let js = super::js_strings_pending::get_pending_ctx_js();
-    let _ = ctx.with(|c| c.eval::<(), _>(js));
+    build_effect_context_impl(ctx, "pending");
 }
 
 pub fn build_effect_context_scheduled(ctx: &Context) {
-    let js = super::js_strings_scheduled::get_scheduled_ctx_js();
-    let _ = ctx.with(|c| c.eval::<(), _>(js));
+    build_effect_context_impl(ctx, "scheduled");
+}
+
+fn build_effect_context_impl(ctx: &Context, kind: &str) {
+    let (p1, p2, p3) = if kind == "pending" {
+        (super::pending_ctx_p1::get_part1(),
+         super::pending_ctx_p2::get_part2(),
+         super::pending_ctx_p3::get_part3())
+    } else {
+        (super::scheduled_ctx_p1::get_part1(),
+         super::scheduled_ctx_p2::get_part2(),
+         super::scheduled_ctx_p3::get_part3())
+    };
+
+    // Evaluate full JS directly
+    let full = format!("{}{}{}", p1, p2, p3);
+    let _ = ctx.with(|c| c.eval::<(), _>(full.as_str()));
 }
 
 pub fn sync_entity_data(ctx: &Context) {
