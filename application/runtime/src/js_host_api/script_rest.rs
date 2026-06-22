@@ -1,3 +1,7 @@
+pub fn host_api_script_entity_filter() -> &'static str {
+    "entity:{filter:{create:function(){return{byId:function(f){return{fn:f}}}}}},"
+}
+
 pub fn host_api_script_log() -> &'static str {
     r#"log(msg) {
         try {
@@ -29,6 +33,7 @@ pub fn host_api_script_rest() -> String {
         host_api_script_create_entity().to_string());
     parts.push(
         host_api_script_set_entity().to_string());
+    parts.push(host_api_script_entity_filter().to_string());
     parts.push(host_api_script_log().to_string());
     let mut s = parts.join("");
     s.push_str(" }"); // close globalThis.host object

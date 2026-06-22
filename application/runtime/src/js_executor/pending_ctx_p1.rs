@@ -39,9 +39,9 @@ const PENDING_CTX_JS_P1: &str = r#"(function() {
                                     if(!fe.textMap)fe.textMap={};
                                     fe.textMap[key]=val;
                                 }});
-                        }};
-                    }};
-                }});
+                        }}
+                    }}
+                });
             }"#;
 
 pub fn get_part1() -> &'static str { PENDING_CTX_JS_P1 }

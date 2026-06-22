@@ -10,18 +10,14 @@ pub fn host_api_script_emit() -> &'static str {
         globalThis.__logs.push('DEBUG: emitEvent called');
         globalThis.__pendingEffects =
             globalThis.__pendingEffects || [];
-        globalThis.__pendingEffects.push({
-            name: (name && typeof name === 'object'
+        var eventName = (name && typeof name === 'object'
                 && typeof name.name === 'string')
-                ? name.name : String(name),
+                ? name.name : String(name);
+        globalThis.__pendingEffects.push({
+            name: eventName,
             payload: {}
         });
-        if (name && typeof name === 'object'
-            && typeof name.name === 'string') {
-            globalThis.__logs.push(`event: ${name.name}`);
-        } else {
-            globalThis.__logs.push(`event: ${String(name)}`);
-        }
+        globalThis.__logs.push('event: ' + eventName);
     },"#
 }
 
