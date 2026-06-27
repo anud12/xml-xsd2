@@ -16,6 +16,9 @@ Workflow:
         - update file then commit
         - delete old file then commit
 
+Source file constraints:
+ - Maximum lines per source file: 75 lines
+ - Maximum columns (characters per line): 120 columns
 
 
 Keep working until tests are all passing.
