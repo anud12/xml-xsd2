@@ -47,7 +47,7 @@ public partial class Game : Node {
                 var stopwatch = new System.Diagnostics.Stopwatch();
                 const long cycleDurationMs = 250;
 
-                while (RUN_RUNTIME_LOOP) {
+                // while (RUN_RUNTIME_LOOP) {
                     stopwatch.Restart();
                     RuntimeInterop.RunIteration(1);
                     stopwatch.Stop();
@@ -57,7 +57,7 @@ public partial class Game : Node {
                     if (sleepTimeMs > 0) {
                         Thread.Sleep((int)sleepTimeMs);
                     }
-                }
+                // }
             }).Start();
         }
     }

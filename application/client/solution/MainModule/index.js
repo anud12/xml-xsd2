@@ -62,16 +62,20 @@ export default (hostApi) => {
       width: number.of(100)
     },
     offset: {
-      top: number.of(50),
-      bottom: number.of(50),
-      left: number.of(50),
-      right: number.of(50),
+      top: number.of(70),
+      bottom: number.of(70),
+      left: number.of(70),
+      right: number.of(70),
     },
     content: {
       entityId: string.of("entity_id"),
       name: string.of("key"),
       type: "entityNumberValue",
       align: "top",
+    },
+    hover: {
+      texture: hostApi.texture.of("hover.exr"),
+      thickness: 5,
     },
     background: hostApi.texture.of("texture.exr")
   })
@@ -84,8 +88,8 @@ export default (hostApi) => {
       width: number.of(100)
     },
     offset: {
-      top: number.of(50),
-      bottom: number.of(50),
+      top: number.of(100),
+      bottom: number.of(100),
       left: number.of(250),
       right: number.of(250),
     },
@@ -94,6 +98,10 @@ export default (hostApi) => {
       name: string.of("isModified"),
       type: "entityTextValue",
       align: "center",
+    },
+    hover: {
+      texture: hostApi.texture.of("hover.exr"),
+      thickness: 10,
     },
     background: hostApi.texture.of("texture.exr")
   })

@@ -32,6 +32,8 @@ export type PanelOptions = {
 
   onClick?: PanelOnClickHandler;
 
+  hover?: { texture: TextureResource; thickness: number };
+
   layout?: GridLayout,
   children?: PanelOptions[]
 };
