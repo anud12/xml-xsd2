@@ -1,10 +1,12 @@
-using Castle.Components.DictionaryAdapter.Xml;
+using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
 using NewGameProject.Runtime;
 using Vector2 = Godot.Vector2;
 
 public partial class Panel : Godot.Panel {
     private NewGameProject.Runtime.Panel panel;
+    private HoverOutline _hoverOutline;
+
 
     public NewGameProject.Runtime.Panel ChildPanel {
         get {
@@ -29,7 +31,18 @@ public partial class Panel : Godot.Panel {
         SetCustomMinimumSize(new Vector2(panel.Size.Width, panel.Size.Height));
         GrowHorizontal = GrowDirection.Both;
         GrowVertical = GrowDirection.Both;
-        ClipContents = true;
+        // ClipContents = true;
+
+
+        if (panel.Hover.HasValue) {
+            _hoverOutline = new HoverOutline(panel.Hover);
+            _hoverOutline.Visible = false;
+            MouseEntered += () =>  _hoverOutline.Visible = true;
+            MouseExited += () => _hoverOutline.Visible = false;
+            Resized += () => _hoverOutline.Resize();
+            AddChild(_hoverOutline);
+            _hoverOutline.Resize();
+        }
 
         // Debug: print incoming native panel values to help diagnose anchor/size mapping issues
         GD.Print(
@@ -104,6 +117,8 @@ public partial class Panel : Godot.Panel {
                 p.SetOwner(this);
             }
         }
+
+        SetChildrenMouseIgnore();
     }
 
 
@@ -122,15 +137,15 @@ public partial class Panel : Godot.Panel {
                 GetViewport().SetInputAsHandled();
             }
         }
-
-        if (@event is InputEventMouseMotion mouseMotion) {
-            // Vector2 localPos = mouseMotion.Position;
-            // AddChild(new Label() { Text = "" + localPos.ToString() + "" });
-            // GetViewport().SetInputAsHandled();
-            // // Do something with the specific mouse position inside the panel
-        }
     }
 
+    private void _MouseEnter() {
+        _hoverOutline.Visible = true;
+    }
+
+    private void _MouseExit() {
+        _hoverOutline.Visible = false;
+    }
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready() {
@@ -141,6 +156,18 @@ public partial class Panel : Godot.Panel {
 
     // Called every frame. 'delta' is the elapsed time since the previous frame.
     public override void _Process(double delta) {
-        
+    }
+    
+    private void SetChildrenMouseIgnore() {
+        MouseFilter = MouseFilterEnum.Pass;
+        foreach (Node child in GetChildren())
+        {
+            // If the child is a Control UI element, ignore its mouse events
+            if (child is Control controlChild)
+            {
+                controlChild.MouseFilter = MouseFilterEnum.Pass;
+            }
+
+        }
     }
 }
