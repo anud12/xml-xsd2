@@ -19,7 +19,7 @@ public struct Panel
     public Panel[]? Children;
     public PanelOnClickHandler? OnClick;
     public PanelContent? Content;
-    public HoverBox? HoverBox;
+    public Hover? Hover;
 }
 
 public struct Layout
@@ -123,7 +123,7 @@ public class ConstantNumberContent : PanelContent
 }
 
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-public struct HoverBox
+public struct Hover
 {
     public string Texture;
     public int Thickness;

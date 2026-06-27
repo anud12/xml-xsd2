@@ -238,14 +238,14 @@ public static class RuntimeInterop
                                 }
                             }
 
-                            // Parse hoverBox if present
-                            if (doc.RootElement.TryGetProperty("hoverBox", out var hoverBoxProp) && hoverBoxProp.ValueKind == System.Text.Json.JsonValueKind.Object)
+                            // Parse hover if present
+                            if (doc.RootElement.TryGetProperty("hover", out var hoverProp) && hoverProp.ValueKind == System.Text.Json.JsonValueKind.Object)
                             {
-                                var hoverTexture = hoverBoxProp.TryGetProperty("texture", out var ht) ? ht.GetString() : null;
-                                var hoverThickness = hoverBoxProp.TryGetProperty("thickness", out var hth) ? hth.GetInt32() : 0;
+                                var hoverTexture = hoverProp.TryGetProperty("texture", out var ht) ? ht.GetString() : null;
+                                var hoverThickness = hoverProp.TryGetProperty("thickness", out var hth) ? hth.GetInt32() : 0;
                                 if (hoverTexture != null)
                                 {
-                                    panel.HoverBox = new HoverBox { Texture = hoverTexture, Thickness = hoverThickness };
+                                    panel.Hover = new Hover { Texture = hoverTexture, Thickness = hoverThickness };
                                 }
                             }
 
