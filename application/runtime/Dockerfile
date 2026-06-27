@@ -5,7 +5,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS base
 ARG GODOT_VERSION=4.6.3
 ENV GODOT_VERSION=${GODOT_VERSION}
 
-# Install system dependencies
+# Install system dependencies + Adoptium JDK 21 + Maven
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     unzip \
@@ -24,7 +24,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsqlite3-dev \
     pkg-config \
     gcc \
-    default-jdk \
+    ca-certificates \
+    gnupg \
+    && install -m 0755 -d /etc/apt/keyrings && \
+    wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /etc/apt/keyrings/adoptium.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb $(cat /etc/os-release | grep ^VERSION_CODENAME= | cut -d= -f2) main" > /etc/apt/sources.list.d/adoptium.list && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    temurin-21-jdk \
     maven \
     && rm -rf /var/lib/apt/lists/*
 
