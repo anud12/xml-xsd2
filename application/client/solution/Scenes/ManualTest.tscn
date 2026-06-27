@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" uid="uid://df2yk3j8syoct" path="res://Scenes/ManualTest.cs" id="1_xtwf7"]
 
+[sub_resource type="ImageTexture" id="ImageTexture_xtwf7"]
+
 [node name="Node" type="Node" unique_id=1684124677]
 script = ExtResource("1_xtwf7")
 
@@ -10,6 +12,10 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = -1.0
+offset_right = 4.0
+offset_bottom = -1.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -35,3 +41,22 @@ justification_flags = 0
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
+
+[node name="MarginContainer" type="MarginContainer" parent="Control/Panel" unique_id=795981432]
+texture_filter = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="NinePatchRect" type="NinePatchRect" parent="Control/Panel/MarginContainer" unique_id=133777831]
+texture_filter = 1
+layout_mode = 2
+texture = SubResource("ImageTexture_xtwf7")
+draw_center = false
+patch_margin_left = 5
+patch_margin_top = 5
+patch_margin_right = 5
+patch_margin_bottom = 5

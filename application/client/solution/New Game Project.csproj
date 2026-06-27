@@ -48,6 +48,7 @@
     <Content Include="Test\Ffi\Panel\Content\module\texture.exr" />
     <Content Include="Test\Ffi\Panel\Content\module\texture.exr.import" />
     <Content Include="Test\Stage_1\readme.md" />
+    <Content Include="Test\Stage_2\Hover\module\hover.exr" />
     <Content Include="Test\Stage_2\readme.md" />
     <Content Include="Test\Stage_3\readme.md" />
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\index.js" />
