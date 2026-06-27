@@ -19,6 +19,7 @@ public struct Panel
     public Panel[]? Children;
     public PanelOnClickHandler? OnClick;
     public PanelContent? Content;
+    public HoverBox? HoverBox;
 }
 
 public struct Layout
@@ -119,6 +120,13 @@ public class ConstantNumberContent : PanelContent
         Value = value;
         Align = align;
     }
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+public struct HoverBox
+{
+    public string Texture;
+    public int Thickness;
 }
 
 public class EntityNumberValueContent : PanelContent

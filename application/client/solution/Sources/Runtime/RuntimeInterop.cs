@@ -238,6 +238,17 @@ public static class RuntimeInterop
                                 }
                             }
 
+                            // Parse hoverBox if present
+                            if (doc.RootElement.TryGetProperty("hoverBox", out var hoverBoxProp) && hoverBoxProp.ValueKind == System.Text.Json.JsonValueKind.Object)
+                            {
+                                var hoverTexture = hoverBoxProp.TryGetProperty("texture", out var ht) ? ht.GetString() : null;
+                                var hoverThickness = hoverBoxProp.TryGetProperty("thickness", out var hth) ? hth.GetInt32() : 0;
+                                if (hoverTexture != null)
+                                {
+                                    panel.HoverBox = new HoverBox { Texture = hoverTexture, Thickness = hoverThickness };
+                                }
+                            }
+
                             // Parse content if present
                             if (doc.RootElement.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == System.Text.Json.JsonValueKind.Object)
                             {
