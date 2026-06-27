@@ -3,7 +3,11 @@ use std::process::Command;
 fn main() {
 
     // Always invoke 'mvn' from PATH. Tests will fail if Maven is missing.
-    let status = Command::new("mvn.cmd")
+    #[cfg(target_os = "windows")]
+    let cmd = "mvn.cmd";
+    #[cfg(not(target_os = "windows"))]
+    let cmd = "mvn";
+    let status = Command::new(cmd)
         .arg("clean")
         .arg("compile")
         .arg("test")

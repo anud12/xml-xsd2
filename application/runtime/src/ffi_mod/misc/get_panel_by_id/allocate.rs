@@ -3,6 +3,7 @@ use std::os::raw::c_void;
 use libc::c_char;
 use std::ptr;
 
+#[cfg(target_os = "windows")]
 #[link(name = "ole32")]
 extern "system" {
     fn CoTaskMemAlloc(cb: usize) -> *mut c_void;
@@ -13,7 +14,7 @@ pub(crate) fn allocate_cstr(s: &str) -> *mut c_char {
         |_| CString::new("").unwrap()
     );
     let len = bytes.to_bytes_with_nul().len();
-    let mem = unsafe { CoTaskMemAlloc(len) as *mut i8 };
+    let mem = unsafe { libc::malloc(len) as *mut i8 };
     if mem.is_null() { return ptr::null_mut(); }
     unsafe {
         ptr::copy_nonoverlapping(
@@ -23,6 +24,7 @@ pub(crate) fn allocate_cstr(s: &str) -> *mut c_char {
     mem as *mut c_char
 }
 
+#[cfg(target_os = "windows")]
 pub(crate) fn allocate_wstr(s: &str) -> *mut u16 {
     use std::os::windows::ffi::OsStrExt;
     use std::ffi::OsString;

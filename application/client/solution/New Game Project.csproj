@@ -141,7 +141,7 @@
   <ItemGroup>
     <Folder Include="Test\Step_1\" />
   </ItemGroup>
-  <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">
+  <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild" Condition="'$(SkipRustBuild)' != 'true'">
     <Message Text="Building Rust runtime (cargo)..." Importance="high" />
     <Exec Command="cargo build --manifest-path &quot;$(RustManifest)&quot; --$(RustBuildProfile)" />
     <Message Text="Copying Rust runtime DLL to client folder..." Importance="high" />
@@ -153,7 +153,7 @@
     <Copy SourceFiles="@(RustBuiltDll)" DestinationFolder="$(MSBuildProjectDirectory)\.godot\mono\temp\bin\Release" SkipUnchangedFiles="false" />
   </Target>
   <!-- Validate JavaScript files under Features against TypeScript declarations before build -->
-  <Target Name="ValidateJsTypes" BeforeTargets="BeforeBuild">
+  <Target Name="ValidateJsTypes" BeforeTargets="BeforeBuild" Condition="'$(SkipJsValidation)' != 'true'">
     <Message Text="Ensuring TypeScript is installed (local)..." Importance="high" />
     <Exec Command="npm install typescript@5 --no-audit --no-fund --no-progress" ContinueOnError="false" />
     <Message Text="Validating JS files with tsc (tsconfig.json)..." Importance="high" />

@@ -1,0 +1,29 @@
+name: Docker Test Runner
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -f application/runtime/Dockerfile -t xml-xsd2-tests .
+
+      - name: Run tests
+        run: |
+          docker run --rm \
+            --memory 8g \
+            --cpus 4 \
+            xml-xsd2-tests

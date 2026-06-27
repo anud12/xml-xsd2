@@ -7,6 +7,10 @@ edition = "2021"
 name = "libxml_xsd2"
 crate-type = ["cdylib"]
 
+[[bin]]
+name = "java_tests"
+path = "test/java_tests.rs"
+
 [[test]]
 name = "java_junit_suite"
 path = "test/java_tests.rs"

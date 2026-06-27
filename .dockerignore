@@ -1,0 +1,32 @@
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.agentic/
+.opencode/
+.serena/
+
+# Build artifacts
+.godot/
+node_modules/
+target/
+TestResults/
+Test/test_results.log
+*.db
+*.log
+
+# Binaries
+*.dll
+*.exe
+*.pdb
+*.so
+
+# Node artifacts
+package-lock.json
+
+# Documentation
+todo.md
+specification/
+run_iteration.log

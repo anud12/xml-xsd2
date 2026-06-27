@@ -40,6 +40,7 @@ pub(crate) struct ParsedFields {
 
 pub mod allocate;
 pub mod narrow;
+#[cfg(target_os = "windows")]
 pub mod wide;
 pub mod panel_helpers;
 pub mod json_extract;
@@ -50,6 +51,7 @@ pub mod struct_lookup;
 pub mod test_panel;
 
 pub use narrow::get_panel_by_id_c;
+#[cfg(target_os = "windows")]
 pub use wide::get_panel_by_id_wide;
 pub use narrow::get_panel_by_id;
 pub use struct_lookup::get_panel_by_id_struct;
