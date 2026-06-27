@@ -15,7 +15,8 @@ pub extern "C" fn runtime_free_string(s: *mut c_char) {
 pub extern "C" fn runtime_free_panel(p: *mut crate::ffi_mod::types::PanelFfi) {
     if p.is_null() { return; }
     unsafe {
-        // Convert back to owned Box to drop it; strings were allocated with CString::into_raw (CoTaskMemAlloc not used for struct fields)
+        // Convert back to owned Box to drop it;
+        // strings were allocated with CString::into_raw
         let panel = Box::from_raw(p);
         if !panel.id.is_null() {
             let _ = CString::from_raw(panel.id);

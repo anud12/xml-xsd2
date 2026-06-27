@@ -5,7 +5,12 @@ pub extern "C" fn runtime_emit_action(action_name: *const std::os::raw::c_char) 
     runtime_log!("DEBUG_EMIT: runtime_emit_action called");
     
     use std::io::Write;
-    if let Ok(c_str) = (if action_name.is_null() { Err(()) } else { Ok(unsafe { std::ffi::CStr::from_ptr(action_name) }) }) {
+    let c_str_opt = if action_name.is_null() {
+        None
+    } else {
+        Some(unsafe { std::ffi::CStr::from_ptr(action_name) })
+    };
+    if let Some(c_str) = c_str_opt {
         if let Ok(name) = c_str.to_str() {
             if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("C:\\temp\\rust_debug.log") {
                 let _ = writeln!(f, "[{}] runtime_emit_action: action={}", std::process::id(), name);

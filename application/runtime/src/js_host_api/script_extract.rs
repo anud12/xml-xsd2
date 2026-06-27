@@ -1,0 +1,42 @@
+use super::script_extract_map::extract_map_items;
+
+pub(super) fn extract_declarations_script() -> String {
+    format!(
+        r#"(function(){{
+            const out = {{
+                events: [], actions: [], functions: [],
+                entities: [], creators: {{}}, emits: {{}},
+                panels: [], entity_data: {{}},
+                pending_effects: []
+            }};
+            {}
+            out.logs = globalThis.__logs || [];
+            out.functions = Object.getOwnPropertyNames(
+                globalThis).filter(k => {{
+                    try {{
+                        return typeof globalThis[k]
+                            === 'function'
+                            && !k.startsWith('_')
+                            && k !== 'host';
+                    }} catch(e) {{ return false; }}
+                }}).sort();
+            out.creators =
+                globalThis.__createdEntitiesFor || {{}};
+            out.emits = globalThis.__emitsMap || {{}};
+            out.panels =
+                globalThis.__registeredPanels || [];
+            out.entity_data =
+                globalThis.__entityData || {{}};
+            const pending =
+                globalThis.__pendingEffects || [];
+            out.pending_effects =
+                pending.map(function(pe) {{
+                    return (pe && typeof pe === 'object'
+                        && typeof pe.name === 'string')
+                        ? pe.name : String(pe);
+                }});
+            return JSON.stringify(out);
+        }})()"#,
+        extract_map_items()
+    )
+}
