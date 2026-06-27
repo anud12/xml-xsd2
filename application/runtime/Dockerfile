@@ -61,14 +61,27 @@ WORKDIR /workspace/application/runtime
 RUN mkdir -p target && \
     cargo build --release && \
     mkdir -p /workspace/application/suite/target/test-classes && \
-    cp target/release/liblibxml_xsd2.so /workspace/application/suite/target/test-classes/libxml_xsd2.so
+    cp target/release/liblibxml_xsd2.so /workspace/application/suite/target/test-classes/libxml_xsd2.so && \
+    mkdir -p /workspace/application/client/solution/.godot/mono/temp/bin/Release && \
+    mkdir -p /workspace/application/client/solution/.godot/mono/temp/bin/Debug && \
+    cp target/release/liblibxml_xsd2.so /workspace/application/client/solution/.godot/mono/temp/bin/Release/libxml_xsd2.so && \
+    cp target/release/liblibxml_xsd2.so /workspace/application/client/solution/.godot/mono/temp/bin/Debug/libxml_xsd2.so
 
-# Copy .runsettings into suite for C# dotnet test invocation by java_tests.rs
-WORKDIR /workspace/application/suite
-RUN cp /workspace/application/client/solution/.runsettings .
-
-# Generate .runsettings with actual Godot path (env vars not expanded in XML)
+# Generate .runsettings with actual Godot path (in client/solution for dotnet test)
+WORKDIR /workspace/application/client/solution
 RUN sed -i "s|\$GODOT_BIN|$GODOT_BIN|g" .runsettings
+
+# Restore and build C# project (skip Rust build — .so already copied)
+RUN dotnet restore "New Game Project.csproj" && \
+    dotnet build "New Game Project.csproj" \
+      -c Release \
+      --no-incremental \
+      /p:SkipRustBuild=true \
+      /p:SkipJsValidation=true
+
+# Overwrite Debug DLL with Release so Godot runtime loads correct assembly
+RUN cp ".godot/mono/temp/bin/Release/New Game Project.dll" ".godot/mono/temp/bin/Debug/New Game Project.dll" && \
+    cp ".godot/mono/temp/bin/Release/New Game Project.pdb" ".godot/mono/temp/bin/Debug/New Game Project.pdb"
 
 # Run all tests (Java + C#) via java_tests.rs, with Xvfb for headless Godot
 ENTRYPOINT ["/bin/bash", "-c"]
