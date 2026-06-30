@@ -44,10 +44,11 @@ export type DimensionSize = {
 };
 
 /**
- * A single dimension of a Container.
+ * A single dimension label of a Container.
  *
- * Each dimension is a mapping from a member entity to its coordinate along
- * that axis. The number of declared dimensions determines container arity
+ * Declares only the name of the axis (e.g. `"slot"`, `"row"`, `"col"`).
+ * Position, span, and size functions live on the Container itself, keyed by
+ * this name. The number of declared dimensions determines container arity
  * (1 → 1D, 2 → 2D).
  *
  * @see containers.md — Dimensions section
@@ -55,16 +56,6 @@ export type DimensionSize = {
 export type Dimension = {
   /** Optional human-friendly name for this dimension (e.g. `"slot"`, `"row"`). */
   name?: string;
-  /**
-   * Maps a member entity to its position in this dimension.
-   *
-   * Evaluated by the runtime to produce integer coordinates. How non-integer
-   * values are handled (floor/round/reject) is the container rule's
-   * responsibility.
-   */
-  mapping: (entity: Entity) => NumberExpression;
-  /** Optional bounds and out-of-bounds policy. */
-  size?: DimensionSize;
 };
 
 /**
@@ -72,6 +63,38 @@ export type Dimension = {
  */
 export type EntityReference = {
   entity?: { entityIdReference: string }[];
+};
+
+/**
+ * 2D rectangle layout for a container.
+ *
+ * Declares position, span, and size as row/col pairs instead of per-dimension
+ * functions. This is a convenience form that the runtime resolves into the
+ * standard `getPosition(entity, dimension)`, `getSpan(entity, dimension)`,
+ * and `size[dimension]` model.
+ *
+ * @see containers.md — asRectangle examples
+ */
+export type RectangleLayout = {
+  /** Returns the position of a member entity as a NumberExpression. */
+  getPosition: (entity: Entity) => NumberExpression;
+  /** Returns the span of a member entity as a NumberExpression. */
+  getSpan: (entity: Entity) => NumberExpression;
+  /** Size bounds and out-of-bounds policy. */
+  size: ContainerSize;
+};
+
+/**
+ * Builder form of {@link RectangleLayout} used during construction.
+ *
+ * Receives {@link EntityExpression} callbacks instead of runtime Entity.
+ *
+ * @see RectangleLayout
+ */
+export type RectangleLayoutExpression = {
+  getPosition: (entity: EntityExpression) => NumberExpression;
+  getSpan: (entity: EntityExpression) => NumberExpression;
+  size: { value: NumberExpression; outOfBounds: OutOfBoundsRule };
 };
 
 /**
@@ -92,11 +115,33 @@ export type Container = {
   /** The set of entities currently held by this container. */
   entities: EntityReference;
   /**
-   * Optional spatial dimensions. The number of declared dimensions determines
-   * the container's arity: 0 = unstructured, 1 = 1D (slots), 2 = 2D (grid).
-   * Only 1D and 2D containers are supported.
+   * Optional spatial dimension labels. The number of declared dimensions
+   * determines the container's arity: 0 = unstructured, 1 = 1D (slots),
+   * 2 = 2D (grid). Only 1D and 2D containers are supported.
    */
   dimensions?: Dimension[];
+  /**
+   * Optional 2D rectangle layout. When present, declares position, span,
+   * and size. Mirrors the root-level getPosition/getSpan/size.
+   */
+  asRectangle?: RectangleLayout;
+  /**
+   * Maps a member entity to its position as a NumberExpression.
+   *
+   * @param entity - The member entity.
+   */
+  getPosition: (entity: Entity) => NumberExpression;
+  /**
+   * Maps a member entity to the number of cells it occupies as a
+   * NumberExpression. Defaults to 1 when not overridden.
+   *
+   * @param entity - The member entity.
+   */
+  getSpan: (entity: Entity) => NumberExpression;
+  /**
+   * Optional size bounds and out-of-bounds policy.
+   */
+  size?: ContainerSize;
 };
 
 /**
@@ -140,23 +185,6 @@ export type DimensionExpression = {
    * @param name - e.g. `"slot"`, `"row"`, `"col"`.
    */
   withName: (name: string) => DimensionExpression;
-
-  /**
-   * Declare the mapping function from a member entity to its coordinate in
-   * this dimension.
-   *
-   * The callback receives an {@link EntityExpression} and must return a
-   * {@link NumberExpression} representing the entity's position.
-   */
-  withMapping: (mapping: (entity: EntityExpression) => NumberExpression) => DimensionExpression;
-
-  /**
-   * Declare optional size bounds and the out-of-bounds policy.
-   *
-   * @param value       - Number of valid positions (e.g. `hostApi.number.of(20)`).
-   * @param outOfBounds - Policy when position exceeds bounds.
-   */
-  withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => DimensionExpression;
 };
 
 /**
@@ -180,7 +208,7 @@ export type ContainerExpression = {
   withEntity: (entity: EntityExpression) => ContainerExpression;
 
   /**
-   * Add a dimension declaration to this container builder.
+   * Add a dimension name declaration to this container builder.
    *
    * Containers support at most two dimensions (1D or 2D).
    *
@@ -202,6 +230,37 @@ export type ContainerExpression = {
    * @param numberMap - NumberMapExpression to evaluate and assign.
    */
   withNumberMap: (numberMap: NumberMapExpression) => ContainerExpression;
+
+  /**
+   * Declare the position function.
+   *
+   * @param getPosition - Callback receiving an {@link EntityExpression} and
+   * returning a {@link NumberExpression} for the entity's position.
+   */
+  withGetPosition: (getPosition: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
+
+  /**
+   * Declare the span function.
+   *
+   * @param getSpan - Callback receiving an {@link EntityExpression} and
+   * returning a {@link NumberExpression} for the entity's occupied cells.
+   */
+  withGetSpan: (getSpan: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
+
+  /**
+   * Declare optional size bounds and out-of-bounds policy.
+   *
+   * @param value - Number of valid positions (e.g. `hostApi.number.of(20)`).
+   * @param outOfBounds - Policy when position exceeds bounds.
+   */
+  withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression;
+
+  /**
+   * Declare a 2D rectangle layout with position, span, and size.
+   *
+   * @param layout - {@link RectangleLayoutExpression} with callbacks.
+   */
+  asRectangle: (layout: RectangleLayoutExpression) => ContainerExpression;
 };
 
 /**
@@ -213,13 +272,21 @@ export type ContainerExpression = {
  *
  * @example
  * ```ts
+ * // 1D slot-based inventory
  * const inv = hostApi.container.create()
- *   .withDimension(hostApi.container.dimension?.create()
- *     .withName("slot")
- *     .withMapping(e => e.withNumberMap(hostApi.numberMap.create()).withTextMap(hostApi.textMap.create()))
- *     .withSize(hostApi.number.of(20), "clamp")
- *   );
+ *   .withDimension(hostApi.container.dimension?.create().withName("slot"))
+ *   .withGetPosition(e => e.number_map.get("slotIndex"))
+ *   .withGetSpan(e => e.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
+ *   .withSize(hostApi.number.of(20), "clamp");
  * hostApi.container.asRule?.("basic_inventory", inv);
+ *
+ * // 2D rectangle inventory
+ * const grid = hostApi.container.create()
+ *   .asRectangle({
+ *     getPosition: (e) => e.number_map.get("row"),
+ *     getSpan: (e) => e.number_map.get("span").orElse(hostApi.number.of(1)),
+ *     size: { value: hostApi.number.of(10), outOfBounds: "clamp" },
+ *   });
  * ```
  *
  * @see ContainerExpression

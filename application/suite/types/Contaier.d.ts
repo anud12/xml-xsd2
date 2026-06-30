@@ -28,17 +28,29 @@ export type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
 
 export type DimensionExpression = {
   withName: (name: string) => DimensionExpression,
-  withMapping: (mapping: (entity: EntityExpression) => NumberExpression) => DimensionExpression,
-  withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => DimensionExpression,
+}
+
+export type RectangleLayoutExpression = {
+  getPosition: (entity: EntityExpression) => NumberExpression,
+  getSpan: (entity: EntityExpression) => NumberExpression,
+  size: { value: NumberExpression, outOfBounds: OutOfBoundsRule },
 }
 
 export type ContainerExpression = {
   /** Append an inline member entity built using EntityExpression */
   withEntity: (entity: EntityExpression) => ContainerExpression,
-  /** Add a dimension expression to the container builder */
+  /** Add a dimension name to the container builder */
   withDimension: (dimension: DimensionExpression) => ContainerExpression,
   /** Replace the entity's text_map with the supplied TextMapExpression */
   withTextMap: (textMap: TextMapExpression) => EntityExpression,
   /** Replace the entity's number_map with the supplied NumberMapExpression */
   withNumberMap: (numberMap: NumberMapExpression) => EntityExpression,
+  /** Declare the position function */
+  withGetPosition: (getPosition: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the span function */
+  withGetSpan: (getSpan: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the size bounds */
+  withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
+  /** Declare a 2D rectangle layout */
+  asRectangle: (layout: RectangleLayoutExpression) => ContainerExpression,
 }
