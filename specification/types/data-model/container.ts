@@ -44,21 +44,6 @@ export type DimensionSize = {
 };
 
 /**
- * A single dimension label of a Container.
- *
- * Declares only the name of the axis (e.g. `"slot"`, `"row"`, `"col"`).
- * Position, span, and size functions live on the Container itself, keyed by
- * this name. The number of declared dimensions determines container arity
- * (1 → 1D, 2 → 2D).
- *
- * @see containers.md — Dimensions section
- */
-export type Dimension = {
-  /** Optional human-friendly name for this dimension (e.g. `"slot"`, `"row"`). */
-  name?: string;
-};
-
-/**
  * Reference structure listing the entities currently held by a container.
  */
 export type EntityReference = {
@@ -81,7 +66,7 @@ export type RectangleLayout = {
   /** Returns the span of a member entity as a NumberExpression. */
   getSpan: (entity: Entity) => NumberExpression;
   /** Size bounds and out-of-bounds policy. */
-  size: ContainerSize;
+  size: DimensionSize;
 };
 
 /**
@@ -115,12 +100,6 @@ export type Container = {
   /** The set of entities currently held by this container. */
   entities: EntityReference;
   /**
-   * Optional spatial dimension labels. The number of declared dimensions
-   * determines the container's arity: 0 = unstructured, 1 = 1D (slots),
-   * 2 = 2D (grid). Only 1D and 2D containers are supported.
-   */
-  dimensions?: Dimension[];
-  /**
    * Optional 2D rectangle layout. When present, declares position, span,
    * and size. Mirrors the root-level getPosition/getSpan/size.
    */
@@ -141,7 +120,7 @@ export type Container = {
   /**
    * Optional size bounds and out-of-bounds policy.
    */
-  size?: ContainerSize;
+  size?: DimensionSize;
 };
 
 /**
@@ -206,15 +185,6 @@ export type ContainerExpression = {
    * @param entity - EntityExpression to add as a member.
    */
   withEntity: (entity: EntityExpression) => ContainerExpression;
-
-  /**
-   * Add a dimension name declaration to this container builder.
-   *
-   * Containers support at most two dimensions (1D or 2D).
-   *
-   * @param dimension - DimensionExpression to append.
-   */
-  withDimension: (dimension: DimensionExpression) => ContainerExpression;
 
   /**
    * Replace this container's text_map with the evaluated result of `textMap`.
