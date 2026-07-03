@@ -29,14 +29,14 @@ export type ContainerExpressionType = {
 export type OutOfBoundsRule = 'unbound' | 'clamp' | 'wrap';
 
 /**
- * Optional size bounds for a container.
+ * Optional size bounds for a single container axis.
  *
  * When present, defines the valid position range and how out-of-range positions
  * are handled.
  */
-export type DimensionSize = {
+export type AxisSize = {
   /**
-   * Number of valid positions (e.g. `10` for a 10-slot bag).
+   * Number of valid positions along this axis (e.g. `10` for a 10-slot bag).
    */
   value: NumberExpression;
   /** Policy applied when an entity's position falls outside [0, value). */
@@ -96,9 +96,13 @@ export type Container = {
    */
   getSpanY: (entity: Entity) => NumberExpression;
   /**
-   * Optional size bounds and out-of-bounds policy.
+   * Optional size bounds along the x-axis.
    */
-  size?: DimensionSize;
+  sizeX?: AxisSize;
+  /**
+   * Optional size bounds along the y-axis.
+   */
+  sizeY?: AxisSize;
 };
 
 /**
@@ -169,12 +173,20 @@ export type ContainerExpression = {
   withGetSpanY: (getSpanY: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
 
   /**
-   * Declare optional size bounds and out-of-bounds policy.
+   * Declare optional size bounds along the x-axis.
    *
    * @param value - Number of valid positions (e.g. `hostApi.number.of(20)`).
    * @param outOfBounds - Policy when position exceeds bounds.
    */
-  withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression;
+  withSizeX: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression;
+
+  /**
+   * Declare optional size bounds along the y-axis.
+   *
+   * @param value - Number of valid positions (e.g. `hostApi.number.of(20)`).
+   * @param outOfBounds - Policy when position exceeds bounds.
+   */
+  withSizeY: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression;
 };
 
 /**
@@ -192,7 +204,8 @@ export type ContainerExpression = {
  *   .withGetY(e => hostApi.number.of(0))
  *   .withGetSpanX(e => e.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
  *   .withGetSpanY(e => hostApi.number.of(1))
- *   .withSize(hostApi.number.of(20), "clamp");
+ *   .withSizeX(hostApi.number.of(20), "clamp")
+ *   .withSizeY(hostApi.number.of(1), "clamp");
  * hostApi.container.asRule?.("basic_inventory", inv);
  * ```
  *

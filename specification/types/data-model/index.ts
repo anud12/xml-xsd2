@@ -3,7 +3,7 @@ export type { TextMap, NumberMap, TextMapExpression, TextMapExpressionApi, Numbe
 export type { ContainerList, Entity, EntityExpression, EntityExpressionApi, EntityExpressionType } from './entity';
 export type {
   OutOfBoundsRule,
-  DimensionSize,
+  AxisSize,
   EntityReference,
   Container,
   ContainerExpression,

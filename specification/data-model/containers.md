@@ -36,10 +36,11 @@ type Container = {
   getY: (entity: Entity) => NumberExpression,
   getSpanX: (entity: Entity) => NumberExpression,
   getSpanY: (entity: Entity) => NumberExpression,
-  size?: DimensionSize,
+  sizeX?: AxisSize,
+  sizeY?: AxisSize,
 }
 
-type DimensionSize = {
+type AxisSize = {
   value: NumberExpression,
   outOfBounds: OutOfBoundsRule,
 }
@@ -138,12 +139,13 @@ Containers declare position, span, and optional size bounds through functions on
 - `getY(entity)`: a function on the Container that, given a member Entity, returns a NumberExpression for the Entity's y-coordinate.
 - `getSpanX(entity)`: a function on the Container that, given a member Entity, returns a NumberExpression for the number of cells the Entity occupies along the x-axis. Defaults to 1 when not overridden.
 - `getSpanY(entity)`: a function on the Container that, given a member Entity, returns a NumberExpression for the number of cells the Entity occupies along the y-axis. Defaults to 1 when not overridden.
-- `size`: an optional `DimensionSize` defining the valid range for positions and the out-of-bounds policy (unbound, clamp, wrap).
+- `sizeX`: an optional `AxisSize` defining the valid range for positions along the x-axis and the out-of-bounds policy (unbound, clamp, wrap).
+- `sizeY`: an optional `AxisSize` defining the valid range for positions along the y-axis and the out-of-bounds policy (unbound, clamp, wrap).
 
 Examples:
 
-- **Slot-based inventory**: `getX` returns each item's `slotIndex`, `getY` returns 0, `getSpanX` lets an item occupy multiple consecutive slots (e.g., a 2-slot weapon), `getSpanY` defaults to 1, `size` sets the number of slots (e.g., 20).
-- **Grid-based chest**: `getX` returns the row coordinate, `getY` returns the column coordinate, `getSpanX` / `getSpanY` let an item span multiple cells (e.g., a 2x2 armor piece), `size` defines the grid bounds.
+- **Slot-based inventory**: `getX` returns each item's `slotIndex`, `getY` returns 0, `getSpanX` lets an item occupy multiple consecutive slots (e.g., a 2-slot weapon), `getSpanY` defaults to 1, `sizeX` sets the number of slots (e.g., 20), `sizeY` defaults to 1.
+- **Grid-based chest**: `getX` returns the row coordinate, `getY` returns the column coordinate, `getSpanX` / `getSpanY` let an item span multiple cells (e.g., a 2x2 armor piece), `sizeX` / `sizeY` define the grid bounds.
 
 Semantics note: NumberExpression results are numeric. Container rules must document how numeric results are interpreted (e.g., integer index vs. real coordinate), how non-integer values are handled (flooring, rounding), and what happens when values fall outside declared sizes (unbound, clamp, wrap). Container rules must also document how span is enforced: whether spanning entities may overlap, whether a span that extends beyond the declared size is rejected or clamped, and whether span values must be positive integers. The runtime evaluates NumberExpressions deterministically; interpretation and enforcement are the responsibility of the container rule implementation.
 
@@ -206,8 +208,10 @@ export type ContainerExpression = {
   withGetSpanX: (getSpanX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
   /** Declare the y-span function */
   withGetSpanY: (getSpanY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
-  /** Declare the size bounds */
-  withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
+  /** Declare the x-axis size bounds */
+  withSizeX: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
+  /** Declare the y-axis size bounds */
+  withSizeY: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
 }
 ```
 
@@ -226,7 +230,8 @@ const inv = hostApi.container.create()
   .withGetY((entity) => hostApi.number.of(0))
   .withGetSpanX((entity) => entity.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
   .withGetSpanY((entity) => hostApi.number.of(1))
-  .withSize(hostApi.number.of(20), "clamp")
+  .withSizeX(hostApi.number.of(20), "clamp")
+  .withSizeY(hostApi.number.of(1), "clamp")
   .withEntity(potionEntity);
 
 /* intent: register container template 'basic_inventory' in runtime repository */
@@ -245,8 +250,12 @@ const bagContainer: Container = {
   getSpanX: (entity) =>
     entity.getNumber(hostApi.string.of("slotSpan")).orElse(hostApi.number.of(1)),
   getSpanY: (entity) => hostApi.number.of(1),
-  size: {
+  sizeX: {
     value: hostApi.number.of(20),
+    outOfBounds: "clamp",
+  },
+  sizeY: {
+    value: hostApi.number.of(1),
     outOfBounds: "clamp",
   },
   entities: {
@@ -265,7 +274,11 @@ const gridContainer: Container = {
     entity.getNumber(hostApi.string.of("rowSpan")).orElse(hostApi.number.of(1)),
   getSpanY: (entity) =>
     entity.getNumber(hostApi.string.of("colSpan")).orElse(hostApi.number.of(1)),
-  size: {
+  sizeX: {
+    value: hostApi.number.of(3),
+    outOfBounds: "wrap",
+  },
+  sizeY: {
     value: hostApi.number.of(3),
     outOfBounds: "wrap",
   },

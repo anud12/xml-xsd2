@@ -77,7 +77,8 @@ hostApi.action.registerCustomAction({
       .withGetY((entity) => hostApi.number.of(0))
       .withGetSpanX((entity) => entity.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
       .withGetSpanY((entity) => hostApi.number.of(1))
-      .withSize(hostApi.number.of(20), "clamp")
+      .withSizeX(hostApi.number.of(20), "clamp")
+      .withSizeY(hostApi.number.of(1), "clamp")
       .withEntity(/* default starting items */);
     
     context.registerContainer(userId, "inventory", inventory);
