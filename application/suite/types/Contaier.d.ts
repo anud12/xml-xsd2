@@ -33,6 +33,8 @@ export type ContainerExpression = {
   withGetSpanX: (getSpanX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
   /** Declare the y-span function */
   withGetSpanY: (getSpanY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
-  /** Declare the size bounds */
-  withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
+  /** Declare the x-axis size bounds */
+  withSizeX: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
+  /** Declare the y-axis size bounds */
+  withSizeY: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
 }
