@@ -72,8 +72,9 @@ hostApi.action.registerCustomAction({
     
     // Create user's inventory container
     const inventory = hostApi.container.create()
-      .withGetPosition((entity) => entity.number_map.get("slotIndex")
+      .withGetX((entity) => entity.number_map.get("slotIndex")
         .orElse(hostApi.number.of(0)))
+      .withGetY((entity) => hostApi.number.of(0))
       .withSize(hostApi.number.of(20), "clamp")
       .withEntity(/* default starting items */);
     

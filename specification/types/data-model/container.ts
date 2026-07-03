@@ -70,11 +70,17 @@ export type Container = {
   /** The set of entities currently held by this container. */
   entities: EntityReference;
   /**
-   * Maps a member entity to its position as a NumberExpression.
+   * Maps a member entity to its x-coordinate as a NumberExpression.
    *
    * @param entity - The member entity.
    */
-  getPosition: (entity: Entity) => NumberExpression;
+  getX: (entity: Entity) => NumberExpression;
+  /**
+   * Maps a member entity to its y-coordinate as a NumberExpression.
+   *
+   * @param entity - The member entity.
+   */
+  getY: (entity: Entity) => NumberExpression;
   /**
    * Maps a member entity to the number of cells it occupies as a
    * NumberExpression. Defaults to 1 when not overridden.
@@ -93,7 +99,7 @@ export type Container = {
  *
  * Accessible via `hostApi.container.dimension` inside module scripts.
  * DimensionExpressions are used to label container axes (e.g. `"slot"`, `"row"`)
- * when working with getPosition/getSpan/size.
+ * when working with getX/getY/getSpan/size.
  *
  * @see DimensionExpression
  * @see containers.md — Size section
@@ -171,10 +177,18 @@ export type ContainerExpression = {
   /**
    * Declare the position function.
    *
-   * @param getPosition - Callback receiving an {@link EntityExpression} and
-   * returning a {@link NumberExpression} for the entity's position.
+   * @param getX - Callback receiving an {@link EntityExpression} and
+   * returning a {@link NumberExpression} for the entity's x-coordinate.
    */
-  withGetPosition: (getPosition: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
+  withGetX: (getX: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
+
+  /**
+   * Declare the y-coordinate function.
+   *
+   * @param getY - Callback receiving an {@link EntityExpression} and
+   * returning a {@link NumberExpression} for the entity's y-coordinate.
+   */
+  withGetY: (getY: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
 
   /**
    * Declare the span function.
@@ -204,7 +218,8 @@ export type ContainerExpression = {
  * ```ts
  * // Slot-based inventory
  * const inv = hostApi.container.create()
- *   .withGetPosition(e => e.number_map.get("slotIndex"))
+ *   .withGetX(e => e.number_map.get("slotIndex"))
+ *   .withGetY(e => hostApi.number.of(0))
  *   .withGetSpan(e => e.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
  *   .withSize(hostApi.number.of(20), "clamp");
  * hostApi.container.asRule?.("basic_inventory", inv);
