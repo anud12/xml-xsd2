@@ -6,8 +6,6 @@ export type {
   DimensionSize,
   EntityReference,
   Container,
-  DimensionExpressionApi,
-  DimensionExpression,
   ContainerExpression,
   ContainerExpressionApi,
   ContainerExpressionType,

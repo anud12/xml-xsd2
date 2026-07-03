@@ -74,8 +74,6 @@ export type {
   EntityReference,
   Container,
   ContainerExpressionType,
-  DimensionExpression,
-  DimensionExpressionApi,
   ContainerExpression,
   ContainerExpressionApi,
 } from './data-model/container';

@@ -10,25 +10,13 @@ export type ContainerExpressionApi = {
   asRule?: (ruleName: string, expr: ContainerExpression) => ContainerExpressionApi,
   getRule?: (ruleName: string) => ContainerExpression,
   type: ContainerExpressionType,
-  /** Dimension expression builder factory for labeling container axes */
-  dimension?: DimensionExpressionApi,
 }
 
 export type ContainerExpressionType = {
   // marker for dynamic HostApi typing
 }
 
-export type DimensionExpressionApi = {
-  create: () => DimensionExpression,
-  asRule?: (ruleName: string, expr: DimensionExpression) => DimensionExpressionApi,
-  getRule?: (ruleName: string) => DimensionExpression,
-}
-
 export type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
-
-export type DimensionExpression = {
-  withName: (name: string) => DimensionExpression,
-}
 
 export type ContainerExpression = {
   /** Append an inline member entity built using EntityExpression */
