@@ -30,13 +30,6 @@ export type DimensionExpression = {
   withName: (name: string) => DimensionExpression,
 }
 
-export type RectangleLayoutExpression = {
-  getX: (entity: EntityExpression) => NumberExpression,
-  getY: (entity: EntityExpression) => NumberExpression,
-  getSpan: (entity: EntityExpression) => NumberExpression,
-  size: { value: NumberExpression, outOfBounds: OutOfBoundsRule },
-}
-
 export type ContainerExpression = {
   /** Append an inline member entity built using EntityExpression */
   withEntity: (entity: EntityExpression) => ContainerExpression,
@@ -52,6 +45,4 @@ export type ContainerExpression = {
   withGetSpan: (getSpan: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
   /** Declare the size bounds */
   withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
-  /** Declare a 2D rectangle layout */
-  asRectangle: (layout: RectangleLayoutExpression) => ContainerExpression,
 }
