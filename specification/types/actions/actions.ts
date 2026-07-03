@@ -5,17 +5,17 @@ import type { TemporalExpression } from '../primitives/temporalExpression';
 import type { EntityExpression } from '../data-model/entity';
 
 /**
- * 1D or 2D position within a container.
+ * Fixed x/y position within a container.
  *
- * The number of declared fields must match the target container's arity.
- * The runtime validates this at step [4] before any module code runs.
+ * All containers expose x/y axes, so the point always carries both coordinates.
  *
  * @see actions.md — Wire Message section
  * @see containers.md — Size section
  */
-export type ContainerPoint =
-  | { dimension1: NumberExpression }
-  | { dimension1: NumberExpression; dimension2: NumberExpression };
+export type ContainerPoint = {
+  x: NumberExpression;
+  y: NumberExpression;
+};
 
 /**
  * Discriminated union describing what the action is targeting.
