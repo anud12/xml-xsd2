@@ -197,9 +197,9 @@ export type ContainerExpression = {
   /** Append an inline member entity built using EntityExpression */
   withEntity: (entity: EntityExpression) => ContainerExpression,
   /** Replace the entity's text_map with the supplied TextMapExpression */
-  withTextMap: (textMap: TextMapExpression) => EntityExpression,
+  withTextMap: (textMap: TextMapExpression) => ContainerExpression,
   /** Replace the entity's number_map with the supplied NumberMapExpression */
-  withNumberMap: (numberMap: NumberMapExpression) => EntityExpression,
+  withNumberMap: (numberMap: NumberMapExpression) => ContainerExpression,
   /** Declare the x-coordinate function */
   withGetX: (getX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
   /** Declare the y-coordinate function */

@@ -18,10 +18,11 @@ type RegisterPointActionArgs = {
   apply: (context: ActionContext, target: { type: "point"; containerId: UniqueGlobalContainerId; position: ContainerPoint }) => void;
 }
 
-// 1D or 2D, matching the target container's arity
-type ContainerPoint =
-  | { dimension1: NumberExpression }
-  | { dimension1: NumberExpression; dimension2: NumberExpression }
+// Fixed x/y position within the container
+type ContainerPoint = {
+  x: NumberExpression;
+  y: NumberExpression;
+}
 ```
 
 ### Parameters
@@ -35,24 +36,15 @@ type ContainerPoint =
 
 ### Target Format
 
-The target includes both the container and the position within it:
+The target includes both the container and the x/y position within it:
 
 ```ts
 target = {
   type: "point",
   containerId: "container-12345",
-  position: { dimension1: 42 }  // 1D coordinate
-}
-
-// or for 2D:
-target = {
-  type: "point",
-  containerId: "container-12345",
-  position: { dimension1: 10, dimension2: 20 }  // 2D coordinates
+  position: { x: 10, y: 20 }
 }
 ```
-
-**Validation**: The runtime validates that the position arity (1D or 2D) matches the container's arity at step [4] of the runtime flow.
 
 ---
 
@@ -62,10 +54,10 @@ target = {
 socket.send({
   actionName: "dig",
   actorEntityId: playerEntityId,
-  target: { 
+  target: {
     type: "point",
     containerId: groundContainerId,
-    position: { dimension1: 15, dimension2: 42 }
+    position: { x: 15, y: 42 }
   }
 });
 ```
@@ -109,10 +101,12 @@ hostApi.registerPointAction({
 
 ### 1D example — fishing at a location
 
+For containers using only one axis (e.g., a single-row bag), `y` is simply ignored:
+
 ```ts
 hostApi.registerPointAction({
   name: "fish",
-  description: "Cast a line into the water at a specific depth",
+  description: "Cast a line into the water at a specific slot",
   guard: (ctx, target) => {
     // Ensure the position is a valid fishing spot
     return ctx.actor.isInWater(target.containerId, target.position);
@@ -121,7 +115,7 @@ hostApi.registerPointAction({
   apply: (ctx, target) => {
     ctx.emitEvent("castLine", {
       containerId: target.containerId,
-      depth: target.position.dimension1,
+      slot: target.position.x,
     });
   }
 });
@@ -137,16 +131,16 @@ hostApi.registerPointAction({
     // Check if the grid position is empty
     const occupant = ctx.actor.getGridOccupant(
       target.containerId,
-      target.position.dimension1,
-      target.position.dimension2
+      target.position.x,
+      target.position.y
     );
     return !occupant;
   },
   apply: (ctx, target) => {
     ctx.emitEvent("placeWardAtCoords", {
       containerId: target.containerId,
-      x: target.position.dimension1,
-      y: target.position.dimension2,
+      x: target.position.x,
+      y: target.position.y,
       wardType: hostApi.string.of("protection"),
     });
   }
@@ -159,9 +153,9 @@ To summon creatures at multiple points, the client sends multiple point actions:
 
 ```ts
 const summonPoints = [
-  { dimension1: 10, dimension2: 10 },
-  { dimension1: 15, dimension2: 10 },
-  { dimension1: 10, dimension2: 15 },
+  { x: 10, y: 10 },
+  { x: 15, y: 10 },
+  { x: 10, y: 15 },
 ];
 
 for (const point of summonPoints) {
@@ -206,16 +200,6 @@ hostApi.registerPointAction({
   }
 });
 ```
-
----
-
-## Arity Matching
-
-The runtime validates that point targets have the correct arity for their container:
-
-- If the container is 1D, the position must have exactly `dimension1`.
-- If the container is 2D, the position must have both `dimension1` and `dimension2`.
-- Mismatches are rejected at runtime step [4] with an error to the client.
 
 ---
 
