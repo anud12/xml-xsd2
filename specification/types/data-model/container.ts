@@ -95,51 +95,6 @@ export type Container = {
 };
 
 /**
- * HostApi factory for creating {@link DimensionExpression} builders.
- *
- * Accessible via `hostApi.container.dimension` inside module scripts.
- * DimensionExpressions are used to label container axes (e.g. `"slot"`, `"row"`)
- * when working with getX/getY/getSpan/size.
- *
- * @see DimensionExpression
- * @see containers.md — Size section
- */
-export type DimensionExpressionApi = {
-  /** Create an empty DimensionExpression builder. */
-  create: () => DimensionExpression;
-
-  /**
-   * Register or replace a named DimensionExpression rule.
-   * Optional; follow the standard repository/indexing pattern if implemented.
-   */
-  asRule?: (ruleName: string, expr: DimensionExpression) => DimensionExpressionApi;
-
-  /**
-   * Return a DimensionExpression that resolves the named rule at evaluation
-   * time.
-   * Optional; follow the standard repository/indexing pattern if implemented.
-   */
-  getRule?: (ruleName: string) => DimensionExpression;
-};
-
-/**
- * An immutable, lazily-evaluated builder for declaring a container dimension label.
- *
- * All methods return a new DimensionExpression (immutable).
- *
- * @see DimensionExpressionApi
- * @see containers.md — Size section
- */
-export type DimensionExpression = {
-  /**
-   * Set a human-friendly name for this dimension.
-   *
-   * @param name - e.g. `"slot"`, `"row"`, `"col"`.
-   */
-  withName: (name: string) => DimensionExpression;
-};
-
-/**
  * An immutable, lazily-evaluated builder for constructing Container instances.
  *
  * All methods return a new ContainerExpression (immutable). Evaluation is
@@ -252,11 +207,4 @@ export type ContainerExpressionApi = {
    * effect arguments dynamically. No runtime behavior.
    */
   type: ContainerExpressionType;
-
-  /**
-   * Dimension expression builder factory for labeling container axes.
-   *
-   * Optional — implementations may omit if not needed.
-   */
-  dimension?: DimensionExpressionApi;
 };
