@@ -75,6 +75,8 @@ hostApi.action.registerCustomAction({
       .withGetX((entity) => entity.number_map.get("slotIndex")
         .orElse(hostApi.number.of(0)))
       .withGetY((entity) => hostApi.number.of(0))
+      .withGetSpanX((entity) => entity.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
+      .withGetSpanY((entity) => hostApi.number.of(1))
       .withSize(hostApi.number.of(20), "clamp")
       .withEntity(/* default starting items */);
     
