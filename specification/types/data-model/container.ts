@@ -82,12 +82,19 @@ export type Container = {
    */
   getY: (entity: Entity) => NumberExpression;
   /**
-   * Maps a member entity to the number of cells it occupies as a
+   * Maps a member entity to the number of cells it occupies along the x-axis as a
    * NumberExpression. Defaults to 1 when not overridden.
    *
    * @param entity - The member entity.
    */
-  getSpan: (entity: Entity) => NumberExpression;
+  getSpanX: (entity: Entity) => NumberExpression;
+  /**
+   * Maps a member entity to the number of cells it occupies along the y-axis as a
+   * NumberExpression. Defaults to 1 when not overridden.
+   *
+   * @param entity - The member entity.
+   */
+  getSpanY: (entity: Entity) => NumberExpression;
   /**
    * Optional size bounds and out-of-bounds policy.
    */
@@ -146,12 +153,20 @@ export type ContainerExpression = {
   withGetY: (getY: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
 
   /**
-   * Declare the span function.
+   * Declare the x-span function.
    *
-   * @param getSpan - Callback receiving an {@link EntityExpression} and
-   * returning a {@link NumberExpression} for the entity's occupied cells.
+   * @param getSpanX - Callback receiving an {@link EntityExpression} and
+   * returning a {@link NumberExpression} for the entity's occupied cells along the x-axis.
    */
-  withGetSpan: (getSpan: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
+  withGetSpanX: (getSpanX: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
+
+  /**
+   * Declare the y-span function.
+   *
+   * @param getSpanY - Callback receiving an {@link EntityExpression} and
+   * returning a {@link NumberExpression} for the entity's occupied cells along the y-axis.
+   */
+  withGetSpanY: (getSpanY: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
 
   /**
    * Declare optional size bounds and out-of-bounds policy.
@@ -175,7 +190,8 @@ export type ContainerExpression = {
  * const inv = hostApi.container.create()
  *   .withGetX(e => e.number_map.get("slotIndex"))
  *   .withGetY(e => hostApi.number.of(0))
- *   .withGetSpan(e => e.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
+ *   .withGetSpanX(e => e.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
+ *   .withGetSpanY(e => hostApi.number.of(1))
  *   .withSize(hostApi.number.of(20), "clamp");
  * hostApi.container.asRule?.("basic_inventory", inv);
  * ```

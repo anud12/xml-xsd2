@@ -29,8 +29,10 @@ export type ContainerExpression = {
   withGetX: (getX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
   /** Declare the y-coordinate function */
   withGetY: (getY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
-  /** Declare the span function */
-  withGetSpan: (getSpan: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the x-span function */
+  withGetSpanX: (getSpanX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the y-span function */
+  withGetSpanY: (getSpanY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
   /** Declare the size bounds */
   withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
 }
