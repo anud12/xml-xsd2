@@ -71,7 +71,6 @@ export type {
 export type {
   OutOfBoundsRule,
   DimensionSize,
-  Dimension,
   EntityReference,
   Container,
   ContainerExpressionType,

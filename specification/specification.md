@@ -44,7 +44,7 @@ The specification is **implementation-agnostic**: it describes behaviour and con
 | Document | Description |
 |---|---|
 | [`entities.md`](./data-model/entities.md) | **Entity** — atomic world object. Has `id`, `textMap`, `numberMap`, and container memberships. Includes `EntityExpression` builder API. |
-| [`containers.md`](./data-model/containers.md) | **Container** — holds Entities. Supports 1D/2D dimensions (slot/grid). Includes `ContainerExpression` builder API. |
+| [`containers.md`](./data-model/containers.md) | **Container** — holds Entities. Supports position, span, and size (slot/grid). Includes `ContainerExpression` builder API. |
 | [`textMap.md`](./data-model/textMap.md) | Keyed string map (`TextMap`) expression builder. `StringExpression` values attached to Entities and Containers. |
 | [`numberMap.md`](./data-model/numberMap.md) | Keyed number map (`NumberMap`) expression builder. `NumberExpression` values attached to Entities and Containers. |
 

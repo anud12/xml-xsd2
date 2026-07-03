@@ -10,7 +10,7 @@ export type ContainerExpressionApi = {
   asRule?: (ruleName: string, expr: ContainerExpression) => ContainerExpressionApi,
   getRule?: (ruleName: string) => ContainerExpression,
   type: ContainerExpressionType,
-  /** Dimension expression builder factory */
+  /** Dimension expression builder factory for labeling container axes */
   dimension?: DimensionExpressionApi,
 }
 

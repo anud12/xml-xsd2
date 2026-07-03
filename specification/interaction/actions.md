@@ -36,7 +36,7 @@ type ActionTarget =
   | { type: "container"; containerId: UniqueGlobalContainerId }
   | { type: "point";     containerId: UniqueGlobalContainerId; position: ContainerPoint }
 
-// 1D or 2D, matching the target container's declared dimensions
+// 1D or 2D, matching the target container's arity
 type ContainerPoint =
   | { dimension1: NumberExpression }
   | { dimension1: NumberExpression; dimension2: NumberExpression }
@@ -171,7 +171,7 @@ No-input actions skip target validation and follow a simpler processing flow:
 
 [4] Validate target type matches action's registered type
     │  → Mismatch: reject with error to client
-    │  For "point" targets: validate dimension count matches container's declared dimensions
+    │  For "point" targets: validate position arity matches container arity
 
 [5] Evaluate guard ConditionExpression (read-only, current read-buffer)
     │  → False or throws: reject with error + corrective state delta to client
@@ -224,7 +224,7 @@ No-input actions skip target validation and follow a simpler processing flow:
 | Event emission fails | Event logged; independent events continue; committed state includes successful event emissions |
 | Cooldown check race (two concurrent actions, same actor) | Per-actor lock serializes; only one executes; second queued and rejected when checked again (cooldown active) |
 | Two actions from same actor arrive simultaneously | Per-actor lock enforces sequential execution; second action waits for first to complete |
-| `ContainerPoint` dimension count mismatches container arity | Validated at step [4] before any module code runs |
+| `ContainerPoint` arity mismatches container arity | Validated at step [4] before any module code runs |
 | Module hot-reload mid-session | Runtime pauses, sends full resync to all clients, resumes with new module |
 | Client sends duplicate ActionMessage (retry) | Cooldown rejection on second message + corrective delta; idempotency guaranteed by cooldown |
 
@@ -239,7 +239,7 @@ No-input actions skip target validation and follow a simpler processing flow:
 - [`conditionExpression.md`](../expressions/conditionExpression.md) — guard expression primitives
 - [`temporalExpression.md`](../expressions/temporalExpression.md) — cooldown duration expression *(spec pending)*
 - [`entities.md`](../data-model/entities.md) — EntityExpression used in ActionContext
-- [`containers.md`](../data-model/containers.md) — ContainerExpression and dimension model
+- [`containers.md`](../data-model/containers.md) — ContainerExpression and size model
 - [`runtime.md`](../runtime/runtime.md) — ExecutionContext, double-buffer commit, module sandboxing
 
 ---
