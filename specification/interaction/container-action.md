@@ -133,5 +133,5 @@ hostApi.registerContainerAction({
 
 - [`actions.md`](./actions.md) — Common concepts, wire protocol, runtime flow
 - [`effects.md`](./effects.md) — Event system and Effect chaining
-- [`containers.md`](../data-model/containers.md) — Container model and dimension system
+- [`containers.md`](../data-model/containers.md) — Container model and size system
 - [`conditionExpression.md`](../expressions/conditionExpression.md) — guard expression primitives

@@ -127,7 +127,7 @@ export type HostApi = {
    * API.
    *
    * Combined surface of {@link ContainerExpressionApi}
-   * (create/asRule/getRule/type/dimension) and {@link ContainerApi} (filter).
+    * (create/asRule/getRule/type) and {@link ContainerApi} (filter).
    *
    * @see containers.md
    * @see containerFilter.md

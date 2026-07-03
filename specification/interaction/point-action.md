@@ -18,7 +18,7 @@ type RegisterPointActionArgs = {
   apply: (context: ActionContext, target: { type: "point"; containerId: UniqueGlobalContainerId; position: ContainerPoint }) => void;
 }
 
-// 1D or 2D, matching the target container's declared dimensions
+// 1D or 2D, matching the target container's arity
 type ContainerPoint =
   | { dimension1: NumberExpression }
   | { dimension1: NumberExpression; dimension2: NumberExpression }
@@ -52,7 +52,7 @@ target = {
 }
 ```
 
-**Validation**: The runtime validates that the dimension count (1D or 2D) matches the container's declared dimension count at step [4] of the runtime flow.
+**Validation**: The runtime validates that the position arity (1D or 2D) matches the container's arity at step [4] of the runtime flow.
 
 ---
 
@@ -209,12 +209,12 @@ hostApi.registerPointAction({
 
 ---
 
-## Dimension Matching
+## Arity Matching
 
-The runtime validates that point targets have the correct dimension count for their container:
+The runtime validates that point targets have the correct arity for their container:
 
-- If the container declares `dimension1` only (1D), the position must have exactly `dimension1`.
-- If the container declares `dimension1` and `dimension2` (2D), the position must have both fields.
+- If the container is 1D, the position must have exactly `dimension1`.
+- If the container is 2D, the position must have both `dimension1` and `dimension2`.
 - Mismatches are rejected at runtime step [4] with an error to the client.
 
 ---
@@ -223,5 +223,5 @@ The runtime validates that point targets have the correct dimension count for th
 
 - [`actions.md`](./actions.md) — Common concepts, wire protocol, runtime flow
 - [`effects.md`](./effects.md) — Event system and Effect chaining
-- [`containers.md`](../data-model/containers.md) — Container model and dimension system
+- [`containers.md`](../data-model/containers.md) — Container model and size system
 - [`conditionExpression.md`](../expressions/conditionExpression.md) — guard expression primitives
