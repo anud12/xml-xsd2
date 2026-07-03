@@ -32,7 +32,8 @@ type Container = {
   getTextKeys: () => ListExpression<string>,
   getNumberKeys: () => ListExpression<string>,
   entities: ListExpression<EntityExpression>,
-  getPosition: (entity: Entity) => NumberExpression,
+  getX: (entity: Entity) => NumberExpression,
+  getY: (entity: Entity) => NumberExpression,
   getSpan: (entity: Entity) => NumberExpression,
   size?: DimensionSize,
 }
@@ -132,14 +133,15 @@ That explicitness is what makes containers useful for validation, runtime operat
 
 Containers declare position, span, and optional size bounds through functions on the Container itself.
 
-- `getPosition(entity)`: a function on the Container that, given a member Entity, returns a NumberExpression for the Entity's position.
+- `getX(entity)`: a function on the Container that, given a member Entity, returns a NumberExpression for the Entity's x-coordinate.
+- `getY(entity)`: a function on the Container that, given a member Entity, returns a NumberExpression for the Entity's y-coordinate.
 - `getSpan(entity)`: a function on the Container that, given a member Entity, returns a NumberExpression for the number of cells the Entity occupies. Defaults to 1 when not overridden.
 - `size`: an optional `DimensionSize` defining the valid range for positions and the out-of-bounds policy (unbound, clamp, wrap).
 
 Examples:
 
-- **Slot-based inventory**: `getPosition` returns each item's `slotIndex`, `size` sets the number of slots (e.g., 20). An optional `getSpan` lets an item occupy multiple consecutive slots (e.g., a 2-slot weapon).
-- **Grid-based chest**: `getPosition` returns a row/col coordinate, `size` defines the grid bounds, `getSpan` lets an item span multiple cells (e.g., a 2x2 armor piece).
+- **Slot-based inventory**: `getX` returns each item's `slotIndex`, `getY` returns 0, `size` sets the number of slots (e.g., 20). An optional `getSpan` lets an item occupy multiple consecutive slots (e.g., a 2-slot weapon).
+- **Grid-based chest**: `getX` returns the row coordinate, `getY` returns the column coordinate, `size` defines the grid bounds, `getSpan` lets an item span multiple cells (e.g., a 2x2 armor piece).
 
 Semantics note: NumberExpression results are numeric. Container rules must document how numeric results are interpreted (e.g., integer index vs. real coordinate), how non-integer values are handled (flooring, rounding), and what happens when values fall outside declared sizes (unbound, clamp, wrap). Container rules must also document how span is enforced: whether spanning entities may overlap, whether a span that extends beyond the declared size is rejected or clamped, and whether span values must be positive integers. The runtime evaluates NumberExpressions deterministically; interpretation and enforcement are the responsibility of the container rule implementation.
 
@@ -206,8 +208,10 @@ export type ContainerExpression = {
   withTextMap: (textMap: TextMapExpression) => EntityExpression,
   /** Replace the entity's number_map with the supplied NumberMapExpression */
   withNumberMap: (numberMap: NumberMapExpression) => EntityExpression,
-  /** Declare the position function */
-  withGetPosition: (getPosition: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the x-coordinate function */
+  withGetX: (getX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the y-coordinate function */
+  withGetY: (getY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
   /** Declare the span function */
   withGetSpan: (getSpan: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
   /** Declare the size bounds */
@@ -218,7 +222,7 @@ export type ContainerExpression = {
 ### Examples
 
 **Important:** The examples below show two different contexts:
-- **ContainerExpression.withGetPosition()** during **CONSTRUCTION** (builder phase) receives an `EntityExpression` (builder context), which can access `entity.number_map.get()` directly.
+- **ContainerExpression.withGetX()** during **CONSTRUCTION** (builder phase) receives an `EntityExpression` (builder context), which can access `entity.number_map.get()` directly.
 - **Container** data models at **runtime** receive **runtime Entity** objects, which must use the accessor API (`entity.getNumber()`, `entity.getText()`) instead of direct map access.
 
 ```ts
@@ -226,7 +230,8 @@ export type ContainerExpression = {
 const potionEntity = /* intent: build inline EntityExpression with text 'name'='Health Potion' and number 'hp_restored'=20 */;
 
 const inv = hostApi.container.create()
-  .withGetPosition((entity) => entity.number_map.get("slotIndex"))
+  .withGetX((entity) => entity.number_map.get("slotIndex"))
+  .withGetY((entity) => hostApi.number.of(0))
   .withGetSpan((entity) => entity.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
   .withSize(hostApi.number.of(20), "clamp")
   .withEntity(potionEntity);
@@ -241,8 +246,9 @@ const instantiated = hostApi.container.getRule?.("basic_inventory")
 // Example: slot-based container data model — uses runtime Entity accessor API
 const bagContainer: Container = {
   id: "bag-1",
-  getPosition: (entity) =>
+  getX: (entity) =>
     entity.getNumber(hostApi.string.of("slotIndex")).orElse(hostApi.number.of(0)),
+  getY: (entity) => hostApi.number.of(0),
   getSpan: (entity) =>
     entity.getNumber(hostApi.string.of("slotSpan")).orElse(hostApi.number.of(1)),
   size: {
@@ -257,8 +263,10 @@ const bagContainer: Container = {
 // Example: grid container data model — uses runtime Entity accessor API with wrap behavior
 const gridContainer: Container = {
   id: "chest-grid-1",
-  getPosition: (entity) =>
+  getX: (entity) =>
     entity.getNumber(hostApi.string.of("row")).orElse(hostApi.number.of(0)),
+  getY: (entity) =>
+    entity.getNumber(hostApi.string.of("col")).orElse(hostApi.number.of(0)),
   getSpan: (entity) =>
     entity.getNumber(hostApi.string.of("rowSpan")).orElse(hostApi.number.of(1)),
   size: {

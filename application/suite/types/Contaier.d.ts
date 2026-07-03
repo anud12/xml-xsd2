@@ -31,7 +31,8 @@ export type DimensionExpression = {
 }
 
 export type RectangleLayoutExpression = {
-  getPosition: (entity: EntityExpression) => NumberExpression,
+  getX: (entity: EntityExpression) => NumberExpression,
+  getY: (entity: EntityExpression) => NumberExpression,
   getSpan: (entity: EntityExpression) => NumberExpression,
   size: { value: NumberExpression, outOfBounds: OutOfBoundsRule },
 }
@@ -43,8 +44,10 @@ export type ContainerExpression = {
   withTextMap: (textMap: TextMapExpression) => EntityExpression,
   /** Replace the entity's number_map with the supplied NumberMapExpression */
   withNumberMap: (numberMap: NumberMapExpression) => EntityExpression,
-  /** Declare the position function */
-  withGetPosition: (getPosition: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the x-coordinate function */
+  withGetX: (getX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the y-coordinate function */
+  withGetY: (getY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
   /** Declare the span function */
   withGetSpan: (getSpan: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
   /** Declare the size bounds */
