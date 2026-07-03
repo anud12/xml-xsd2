@@ -10,35 +10,31 @@ export type ContainerExpressionApi = {
   asRule?: (ruleName: string, expr: ContainerExpression) => ContainerExpressionApi,
   getRule?: (ruleName: string) => ContainerExpression,
   type: ContainerExpressionType,
-  /** Dimension expression builder factory */
-  dimension?: DimensionExpressionApi,
 }
 
 export type ContainerExpressionType = {
   // marker for dynamic HostApi typing
 }
 
-export type DimensionExpressionApi = {
-  create: () => DimensionExpression,
-  asRule?: (ruleName: string, expr: DimensionExpression) => DimensionExpressionApi,
-  getRule?: (ruleName: string) => DimensionExpression,
-}
-
 export type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
-
-export type DimensionExpression = {
-  withName: (name: string) => DimensionExpression,
-  withMapping: (mapping: (entity: EntityExpression) => NumberExpression) => DimensionExpression,
-  withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => DimensionExpression,
-}
 
 export type ContainerExpression = {
   /** Append an inline member entity built using EntityExpression */
   withEntity: (entity: EntityExpression) => ContainerExpression,
-  /** Add a dimension expression to the container builder */
-  withDimension: (dimension: DimensionExpression) => ContainerExpression,
   /** Replace the entity's text_map with the supplied TextMapExpression */
   withTextMap: (textMap: TextMapExpression) => EntityExpression,
   /** Replace the entity's number_map with the supplied NumberMapExpression */
   withNumberMap: (numberMap: NumberMapExpression) => EntityExpression,
+  /** Declare the x-coordinate function */
+  withGetX: (getX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the y-coordinate function */
+  withGetY: (getY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the x-span function */
+  withGetSpanX: (getSpanX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the y-span function */
+  withGetSpanY: (getSpanY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the x-axis size bounds */
+  withSizeX: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
+  /** Declare the y-axis size bounds */
+  withSizeY: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
 }

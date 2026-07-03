@@ -72,12 +72,13 @@ hostApi.action.registerCustomAction({
     
     // Create user's inventory container
     const inventory = hostApi.container.create()
-      .withDimension(hostApi.container.dimension?.create()
-        .withName("slot")
-        .withMapping((entity) => entity.getNumber(hostApi.string.of("slotIndex"))
-          .orElse(hostApi.number.of(0)))
-        .withSize(hostApi.number.of(20), "clamp")
-      )
+      .withGetX((entity) => entity.number_map.get("slotIndex")
+        .orElse(hostApi.number.of(0)))
+      .withGetY((entity) => hostApi.number.of(0))
+      .withGetSpanX((entity) => entity.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
+      .withGetSpanY((entity) => hostApi.number.of(1))
+      .withSizeX(hostApi.number.of(20), "clamp")
+      .withSizeY(hostApi.number.of(1), "clamp")
       .withEntity(/* default starting items */);
     
     context.registerContainer(userId, "inventory", inventory);

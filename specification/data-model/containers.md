@@ -32,19 +32,16 @@ type Container = {
   getTextKeys: () => ListExpression<string>,
   getNumberKeys: () => ListExpression<string>,
   entities: ListExpression<EntityExpression>,
-  dimensions?: ListExpression<Dimension>,
+  getX: (entity: Entity) => NumberExpression,
+  getY: (entity: Entity) => NumberExpression,
+  getSpanX: (entity: Entity) => NumberExpression,
+  getSpanY: (entity: Entity) => NumberExpression,
+  sizeX?: AxisSize,
+  sizeY?: AxisSize,
 }
 
-type Dimension = {
-  name?: string, // friendly name (e.g., "row", "col", "slot")
-  // mapping: a function that receives the member Entity and returns a NumberExpression
-  mapping: (entity: Entity) => NumberExpression,
-  // optional size and out-of-bounds handling
-  size?: DimensionSize,
-}
-
-type DimensionSize = {
-  value: NumberExpression, // e.g., hostApi.number.of(10)
+type AxisSize = {
+  value: NumberExpression,
   outOfBounds: OutOfBoundsRule,
 }
 
@@ -134,20 +131,23 @@ The important conceptual boundary is that a Container is not merely a list field
 
 That explicitness is what makes containers useful for validation, runtime operations, indexing, and behavior-specific rules.
 
-## Dimensions
+## Size
 
-Containers may optionally declare one or more dimensions to support indexed or coordinate-like addressing of contained Entities. The current specification supports only 1D and 2D containers.
+Containers declare position, span, and optional size bounds through functions on the Container itself.
 
-- Container type: determined by the number of declared dimensions. Only 1D and 2D are supported; a 1D container has a single dimension, a 2D container declares two dimensions.
-- Dimension definition: each dimension is a mapping function from an Entity to a NumberExpression. At evaluation time the runtime computes the NumberExpression for a given Entity to yield the position (index or coordinate) in that dimension.
-- Dimension size: each declared dimension may include an optional size (expressed as a NumberExpression). When present, the size describes the valid range for indices or bounds for coordinates and can be used for validation, clamping, or wrap behavior depending on container-rule semantics.
+- `getX(entity)`: a function on the Container that, given a member Entity, returns a NumberExpression for the Entity's x-coordinate.
+- `getY(entity)`: a function on the Container that, given a member Entity, returns a NumberExpression for the Entity's y-coordinate.
+- `getSpanX(entity)`: a function on the Container that, given a member Entity, returns a NumberExpression for the number of cells the Entity occupies along the x-axis. Defaults to 1 when not overridden.
+- `getSpanY(entity)`: a function on the Container that, given a member Entity, returns a NumberExpression for the number of cells the Entity occupies along the y-axis. Defaults to 1 when not overridden.
+- `sizeX`: an optional `AxisSize` defining the valid range for positions along the x-axis and the out-of-bounds policy (unbound, clamp, wrap).
+- `sizeY`: an optional `AxisSize` defining the valid range for positions along the y-axis and the out-of-bounds policy (unbound, clamp, wrap).
 
 Examples:
 
-- 1D (slots): a bag may declare a single dimension mapping items to integer 'slotIndex' positions. An optional size sets the number of slots.
-- 2D (grid): a chest or grid may declare 'row' and 'col' dimensions mapping items to grid coordinates; sizes define the number of rows and columns.
+- **Slot-based inventory**: `getX` returns each item's `slotIndex`, `getY` returns 0, `getSpanX` lets an item occupy multiple consecutive slots (e.g., a 2-slot weapon), `getSpanY` defaults to 1, `sizeX` sets the number of slots (e.g., 20), `sizeY` defaults to 1.
+- **Grid-based chest**: `getX` returns the row coordinate, `getY` returns the column coordinate, `getSpanX` / `getSpanY` let an item span multiple cells (e.g., a 2x2 armor piece), `sizeX` / `sizeY` define the grid bounds.
 
-Semantics note: NumberExpression results are numeric. Container rules must document how numeric results are interpreted (e.g., integer index vs. real coordinate), how non-integer values are handled (flooring, rounding), and what happens when values fall outside declared sizes (unbound, clamp, wrap). The runtime evaluates NumberExpressions deterministically; interpretation and enforcement are the responsibility of the container rule implementation.
+Semantics note: NumberExpression results are numeric. Container rules must document how numeric results are interpreted (e.g., integer index vs. real coordinate), how non-integer values are handled (flooring, rounding), and what happens when values fall outside declared sizes (unbound, clamp, wrap). Container rules must also document how span is enforced: whether spanning entities may overlap, whether a span that extends beyond the declared size is rejected or clamped, and whether span values must be positive integers. The runtime evaluates NumberExpressions deterministically; interpretation and enforcement are the responsibility of the container rule implementation.
 
 ---
 
@@ -187,54 +187,51 @@ export type ContainerExpressionApi = {
   asRule?: (ruleName: string, expr: ContainerExpression) => ContainerExpressionApi,
   getRule?: (ruleName: string) => ContainerExpression,
   type: ContainerExpressionType,
-  /** Dimension expression builder factory */
-  dimension?: DimensionExpressionApi,
 }
 
 export type ContainerExpressionType = {
   // marker for dynamic HostApi typing
 }
 
-export type DimensionExpressionApi = {
-  create: () => DimensionExpression,
-  asRule?: (ruleName: string, expr: DimensionExpression) => DimensionExpressionApi,
-  getRule?: (ruleName: string) => DimensionExpression,
-}
-
-export type DimensionExpression = {
-  withName: (name: string) => DimensionExpression,
-  withMapping: (mapping: (entity: EntityExpression) => NumberExpression) => DimensionExpression,
-  withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => DimensionExpression,
-}
-
 export type ContainerExpression = {
   /** Append an inline member entity built using EntityExpression */
   withEntity: (entity: EntityExpression) => ContainerExpression,
-  /** Add a dimension expression to the container builder */
-  withDimension: (dimension: DimensionExpression) => ContainerExpression,
   /** Replace the entity's text_map with the supplied TextMapExpression */
   withTextMap: (textMap: TextMapExpression) => EntityExpression,
   /** Replace the entity's number_map with the supplied NumberMapExpression */
   withNumberMap: (numberMap: NumberMapExpression) => EntityExpression,
+  /** Declare the x-coordinate function */
+  withGetX: (getX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the y-coordinate function */
+  withGetY: (getY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the x-span function */
+  withGetSpanX: (getSpanX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the y-span function */
+  withGetSpanY: (getSpanY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  /** Declare the x-axis size bounds */
+  withSizeX: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
+  /** Declare the y-axis size bounds */
+  withSizeY: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
 }
 ```
 
 ### Examples
 
 **Important:** The examples below show two different contexts:
-- **DimensionExpression.withMapping()** during **CONSTRUCTION** (builder phase) receives an `EntityExpression` (builder context), which can access `entity.number_map.get()` directly.
-- **Container dimensions** shown in **runtime data models** receive **runtime Entity** objects, which must use the accessor API (`entity.getNumber()`, `entity.getText()`) instead of direct map access.
+- **ContainerExpression.withGetX()** during **CONSTRUCTION** (builder phase) receives an `EntityExpression` (builder context), which can access `entity.number_map.get()` directly.
+- **Container** data models at **runtime** receive **runtime Entity** objects, which must use the accessor API (`entity.getNumber()`, `entity.getText()`) instead of direct map access.
 
 ```ts
 // Build inline member entity using text/number map helpers
 const potionEntity = /* intent: build inline EntityExpression with text 'name'='Health Potion' and number 'hp_restored'=20 */;
 
 const inv = hostApi.container.create()
-  .withDimension(hostApi.container.dimension?.create()
-    .withName("slot")
-    .withMapping((entity) => entity.number_map.get("slotIndex"))
-    .withSize(hostApi.number.of(20), "clamp")
-  )
+  .withGetX((entity) => entity.number_map.get("slotIndex"))
+  .withGetY((entity) => hostApi.number.of(0))
+  .withGetSpanX((entity) => entity.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
+  .withGetSpanY((entity) => hostApi.number.of(1))
+  .withSizeX(hostApi.number.of(20), "clamp")
+  .withSizeY(hostApi.number.of(1), "clamp")
   .withEntity(potionEntity);
 
 /* intent: register container template 'basic_inventory' in runtime repository */
@@ -244,42 +241,47 @@ hostApi.container.asRule?.("basic_inventory", inv);
 const instantiated = hostApi.container.getRule?.("basic_inventory")
   .withEntity(/* intent: inline EntityExpression with text 'name'='Gem' */);
 
-// Example: 1D container (slots) data model — uses runtime Entity accessor API
+// Example: slot-based container data model — uses runtime Entity accessor API
 const bagContainer: Container = {
   id: "bag-1",
-  dimensions: [
-    {
-      name: "slot",
-      // mapping receives runtime Entity and must use accessor API: getNumber()
-      mapping: (entity) => entity.getNumber(hostApi.string.of("slotIndex")).orElse(hostApi.number.of(0)),
-      size: {
-        value: hostApi.number.of(20),
-        outOfBounds: "clamp",
-      },
-    },
-  ],
+  getX: (entity) =>
+    entity.getNumber(hostApi.string.of("slotIndex")).orElse(hostApi.number.of(0)),
+  getY: (entity) => hostApi.number.of(0),
+  getSpanX: (entity) =>
+    entity.getNumber(hostApi.string.of("slotSpan")).orElse(hostApi.number.of(1)),
+  getSpanY: (entity) => hostApi.number.of(1),
+  sizeX: {
+    value: hostApi.number.of(20),
+    outOfBounds: "clamp",
+  },
+  sizeY: {
+    value: hostApi.number.of(1),
+    outOfBounds: "clamp",
+  },
   entities: {
     entity: [ { entityIdReference: "item-1" }, { entityIdReference: "item-2" } ],
   },
 };
 
-// Example: 2D container (grid) data model — uses runtime Entity accessor API with wrap behavior
+// Example: grid container data model — uses runtime Entity accessor API with wrap behavior
 const gridContainer: Container = {
   id: "chest-grid-1",
-  dimensions: [
-    {
-      name: "row",
-      // mapping receives runtime Entity and must use accessor API: getNumber()
-      mapping: (entity) => entity.getNumber(hostApi.string.of("row")).orElse(hostApi.number.of(0)),
-      size: { value: hostApi.number.of(3), outOfBounds: "wrap" },
-    },
-    {
-      name: "col",
-      // mapping receives runtime Entity and must use accessor API: getNumber()
-      mapping: (entity) => entity.getNumber(hostApi.string.of("col")).orElse(hostApi.number.of(0)),
-      size: { value: hostApi.number.of(5), outOfBounds: "wrap" },
-    },
-  ],
+  getX: (entity) =>
+    entity.getNumber(hostApi.string.of("row")).orElse(hostApi.number.of(0)),
+  getY: (entity) =>
+    entity.getNumber(hostApi.string.of("col")).orElse(hostApi.number.of(0)),
+  getSpanX: (entity) =>
+    entity.getNumber(hostApi.string.of("rowSpan")).orElse(hostApi.number.of(1)),
+  getSpanY: (entity) =>
+    entity.getNumber(hostApi.string.of("colSpan")).orElse(hostApi.number.of(1)),
+  sizeX: {
+    value: hostApi.number.of(3),
+    outOfBounds: "wrap",
+  },
+  sizeY: {
+    value: hostApi.number.of(3),
+    outOfBounds: "wrap",
+  },
   entities: {
     entity: [ { entityIdReference: "gem-1" } ],
   },

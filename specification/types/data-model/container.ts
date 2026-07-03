@@ -17,54 +17,30 @@ export type ContainerExpressionType = {
 };
 
 /**
- * Controls what happens when an entity's position in a dimension falls outside
+ * Controls what happens when an entity's position falls outside
  * the declared size bounds.
  *
  * - `"unbound"` — no bounds enforcement; out-of-range positions are allowed.
  * - `"clamp"`   — positions are clamped to [0, size).
  * - `"wrap"`    — positions wrap modulo size.
  *
- * @see containers.md — Dimensions section
+ * @see containers.md — Size section
  */
 export type OutOfBoundsRule = 'unbound' | 'clamp' | 'wrap';
 
 /**
- * Optional bounds for a container dimension.
+ * Optional size bounds for a single container axis.
  *
- * When present, defines the valid index range and how out-of-range positions
+ * When present, defines the valid position range and how out-of-range positions
  * are handled.
  */
-export type DimensionSize = {
+export type AxisSize = {
   /**
-   * Number of valid positions in this dimension (e.g. `10` for a 10-slot bag).
+   * Number of valid positions along this axis (e.g. `10` for a 10-slot bag).
    */
   value: NumberExpression;
   /** Policy applied when an entity's position falls outside [0, value). */
   outOfBounds: OutOfBoundsRule;
-};
-
-/**
- * A single dimension of a Container.
- *
- * Each dimension is a mapping from a member entity to its coordinate along
- * that axis. The number of declared dimensions determines container arity
- * (1 → 1D, 2 → 2D).
- *
- * @see containers.md — Dimensions section
- */
-export type Dimension = {
-  /** Optional human-friendly name for this dimension (e.g. `"slot"`, `"row"`). */
-  name?: string;
-  /**
-   * Maps a member entity to its position in this dimension.
-   *
-   * Evaluated by the runtime to produce integer coordinates. How non-integer
-   * values are handled (floor/round/reject) is the container rule's
-   * responsibility.
-   */
-  mapping: (entity: Entity) => NumberExpression;
-  /** Optional bounds and out-of-bounds policy. */
-  size?: DimensionSize;
 };
 
 /**
@@ -73,6 +49,8 @@ export type Dimension = {
 export type EntityReference = {
   entity?: { entityIdReference: string }[];
 };
+
+
 
 /**
  * Data-model snapshot of a Container as it exists in the world_step.
@@ -92,71 +70,39 @@ export type Container = {
   /** The set of entities currently held by this container. */
   entities: EntityReference;
   /**
-   * Optional spatial dimensions. The number of declared dimensions determines
-   * the container's arity: 0 = unstructured, 1 = 1D (slots), 2 = 2D (grid).
-   * Only 1D and 2D containers are supported.
-   */
-  dimensions?: Dimension[];
-};
-
-/**
- * HostApi factory for creating {@link DimensionExpression} builders.
- *
- * Accessible via `hostApi.container.dimension` inside module scripts.
- *
- * @see DimensionExpression
- * @see containers.md — Dimensions section
- */
-export type DimensionExpressionApi = {
-  /** Create an empty DimensionExpression builder. */
-  create: () => DimensionExpression;
-
-  /**
-   * Register or replace a named DimensionExpression rule.
-   * Optional; follow the standard repository/indexing pattern if implemented.
-   */
-  asRule?: (ruleName: string, expr: DimensionExpression) => DimensionExpressionApi;
-
-  /**
-   * Return a DimensionExpression that resolves the named rule at evaluation
-   * time.
-   * Optional; follow the standard repository/indexing pattern if implemented.
-   */
-  getRule?: (ruleName: string) => DimensionExpression;
-};
-
-/**
- * An immutable, lazily-evaluated builder for declaring a container dimension.
- *
- * All methods return a new DimensionExpression (immutable).
- *
- * @see DimensionExpressionApi
- * @see containers.md — Dimensions section
- */
-export type DimensionExpression = {
-  /**
-   * Set a human-friendly name for this dimension.
+   * Maps a member entity to its x-coordinate as a NumberExpression.
    *
-   * @param name - e.g. `"slot"`, `"row"`, `"col"`.
+   * @param entity - The member entity.
    */
-  withName: (name: string) => DimensionExpression;
-
+  getX: (entity: Entity) => NumberExpression;
   /**
-   * Declare the mapping function from a member entity to its coordinate in
-   * this dimension.
+   * Maps a member entity to its y-coordinate as a NumberExpression.
    *
-   * The callback receives an {@link EntityExpression} and must return a
-   * {@link NumberExpression} representing the entity's position.
+   * @param entity - The member entity.
    */
-  withMapping: (mapping: (entity: EntityExpression) => NumberExpression) => DimensionExpression;
-
+  getY: (entity: Entity) => NumberExpression;
   /**
-   * Declare optional size bounds and the out-of-bounds policy.
+   * Maps a member entity to the number of cells it occupies along the x-axis as a
+   * NumberExpression. Defaults to 1 when not overridden.
    *
-   * @param value       - Number of valid positions (e.g. `hostApi.number.of(20)`).
-   * @param outOfBounds - Policy when position exceeds bounds.
+   * @param entity - The member entity.
    */
-  withSize: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => DimensionExpression;
+  getSpanX: (entity: Entity) => NumberExpression;
+  /**
+   * Maps a member entity to the number of cells it occupies along the y-axis as a
+   * NumberExpression. Defaults to 1 when not overridden.
+   *
+   * @param entity - The member entity.
+   */
+  getSpanY: (entity: Entity) => NumberExpression;
+  /**
+   * Optional size bounds along the x-axis.
+   */
+  sizeX?: AxisSize;
+  /**
+   * Optional size bounds along the y-axis.
+   */
+  sizeY?: AxisSize;
 };
 
 /**
@@ -180,15 +126,6 @@ export type ContainerExpression = {
   withEntity: (entity: EntityExpression) => ContainerExpression;
 
   /**
-   * Add a dimension declaration to this container builder.
-   *
-   * Containers support at most two dimensions (1D or 2D).
-   *
-   * @param dimension - DimensionExpression to append.
-   */
-  withDimension: (dimension: DimensionExpression) => ContainerExpression;
-
-  /**
    * Replace this container's text_map with the evaluated result of `textMap`.
    *
    * @param textMap - TextMapExpression to evaluate and assign.
@@ -202,6 +139,54 @@ export type ContainerExpression = {
    * @param numberMap - NumberMapExpression to evaluate and assign.
    */
   withNumberMap: (numberMap: NumberMapExpression) => ContainerExpression;
+
+  /**
+   * Declare the position function.
+   *
+   * @param getX - Callback receiving an {@link EntityExpression} and
+   * returning a {@link NumberExpression} for the entity's x-coordinate.
+   */
+  withGetX: (getX: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
+
+  /**
+   * Declare the y-coordinate function.
+   *
+   * @param getY - Callback receiving an {@link EntityExpression} and
+   * returning a {@link NumberExpression} for the entity's y-coordinate.
+   */
+  withGetY: (getY: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
+
+  /**
+   * Declare the x-span function.
+   *
+   * @param getSpanX - Callback receiving an {@link EntityExpression} and
+   * returning a {@link NumberExpression} for the entity's occupied cells along the x-axis.
+   */
+  withGetSpanX: (getSpanX: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
+
+  /**
+   * Declare the y-span function.
+   *
+   * @param getSpanY - Callback receiving an {@link EntityExpression} and
+   * returning a {@link NumberExpression} for the entity's occupied cells along the y-axis.
+   */
+  withGetSpanY: (getSpanY: (entity: EntityExpression) => NumberExpression) => ContainerExpression;
+
+  /**
+   * Declare optional size bounds along the x-axis.
+   *
+   * @param value - Number of valid positions (e.g. `hostApi.number.of(20)`).
+   * @param outOfBounds - Policy when position exceeds bounds.
+   */
+  withSizeX: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression;
+
+  /**
+   * Declare optional size bounds along the y-axis.
+   *
+   * @param value - Number of valid positions (e.g. `hostApi.number.of(20)`).
+   * @param outOfBounds - Policy when position exceeds bounds.
+   */
+  withSizeY: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression;
 };
 
 /**
@@ -213,12 +198,14 @@ export type ContainerExpression = {
  *
  * @example
  * ```ts
+ * // Slot-based inventory
  * const inv = hostApi.container.create()
- *   .withDimension(hostApi.container.dimension?.create()
- *     .withName("slot")
- *     .withMapping(e => e.withNumberMap(hostApi.numberMap.create()).withTextMap(hostApi.textMap.create()))
- *     .withSize(hostApi.number.of(20), "clamp")
- *   );
+ *   .withGetX(e => e.number_map.get("slotIndex"))
+ *   .withGetY(e => hostApi.number.of(0))
+ *   .withGetSpanX(e => e.number_map.get("slotSpan").orElse(hostApi.number.of(1)))
+ *   .withGetSpanY(e => hostApi.number.of(1))
+ *   .withSizeX(hostApi.number.of(20), "clamp")
+ *   .withSizeY(hostApi.number.of(1), "clamp");
  * hostApi.container.asRule?.("basic_inventory", inv);
  * ```
  *
@@ -249,12 +236,4 @@ export type ContainerExpressionApi = {
    * effect arguments dynamically. No runtime behavior.
    */
   type: ContainerExpressionType;
-
-  /**
-   * Dimension expression builder factory.
-   *
-   * Optional — implementations may omit if dimension support is not yet
-   * implemented.
-   */
-  dimension?: DimensionExpressionApi;
 };

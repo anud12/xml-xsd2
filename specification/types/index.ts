@@ -70,13 +70,10 @@ export type {
 
 export type {
   OutOfBoundsRule,
-  DimensionSize,
-  Dimension,
+  AxisSize,
   EntityReference,
   Container,
   ContainerExpressionType,
-  DimensionExpression,
-  DimensionExpressionApi,
   ContainerExpression,
   ContainerExpressionApi,
 } from './data-model/container';
