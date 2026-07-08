@@ -5,6 +5,7 @@ import {MaybeExpressionApi} from "./primitives/maybeExpression";
 import {TemporalExpressionApi} from "./primitives/temporalExpression";
 import {RegisterEffectFunction} from "./Effect";
 import {EntityExpressionApi} from "./Entity";
+import {ContainerExpressionApi, ContainerCreationArguments} from "./Contaier";
 import {NumberMapExpressionApi} from "./numberMap";
 import {TextMapExpressionApi} from "./textMap";
 import {RegisterActionFunction} from "./action";
@@ -23,9 +24,11 @@ export type HostApi = {
   textMap: TextMapExpressionApi,
 
   entity: EntityExpressionApi,
-  container: ConditionExpressionApi,
+  container: ContainerExpressionApi,
 
   setEntity: (entityId: StringExpression, arguments: EntityCreationArguments) => void;
+
+  setContainer: (containerId: StringExpression, arguments: ContainerCreationArguments) => void;
 
   registerEffect: RegisterEffectFunction,
   registerAction: RegisterActionFunction,
