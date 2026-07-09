@@ -48,7 +48,7 @@ export type AxisSize = {
  * Reference structure listing the entities currently held by a container.
  */
 export type EntityReference = {
-  entity?: { entityIdReference: StringExpression }[];
+  entity?: StringExpression[];
 };
 
 
