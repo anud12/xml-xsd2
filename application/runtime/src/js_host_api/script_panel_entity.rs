@@ -61,3 +61,40 @@ pub(super) fn host_api_script_set_entity()
         }
     },"#
 }
+
+pub(super) fn host_api_script_register_entity()
+    -> &'static str
+{
+    r#"registerEntity(obj) {
+        globalThis.__entityData =
+            globalThis.__entityData || {};
+        try {
+            if (obj && typeof obj === 'object') {
+                var id = obj.id || String(obj);
+                globalThis.__entityData[id] = obj;
+            }
+        } catch(e) { /* ignore */ }
+    },"#
+}
+
+pub(super) fn host_api_script_register_container()
+    -> &'static str
+{
+    r#"registerContainer(c) {
+        try {
+            var toPush = c;
+            if (c && typeof c === 'object') {
+                toPush = JSON.stringify(
+                    globalThis.serializeContainer(c));
+            }
+            globalThis.__registeredContainers =
+                globalThis.__registeredContainers || [];
+            globalThis.__registeredContainers.push(toPush);
+            globalThis.__logs = globalThis.__logs || [];
+            globalThis.__logs.push('container registered: ' + (c.id || c));
+        } catch(e) {
+            globalThis.__logs = globalThis.__logs || [];
+            globalThis.__logs.push('ERROR registerContainer: ' + e);
+        }
+    },"#
+}

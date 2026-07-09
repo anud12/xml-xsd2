@@ -22,7 +22,7 @@ fn get_host_api_script() -> String {
         script_emit::host_api_script_part1(),
         script_emit::host_api_script_emit(),
         script_rest::host_api_script_rest().as_str(),
-        script_rest::host_api_script_tail(),
+        script_rest::host_api_script_tail().as_str(),
     ].join("\n")
 }
 

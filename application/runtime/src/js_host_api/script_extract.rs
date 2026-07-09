@@ -7,7 +7,7 @@ pub(super) fn extract_declarations_script() -> String {
                 events: [], actions: [], functions: [],
                 entities: [], creators: {{}}, emits: {{}},
                 panels: [], entity_data: {{}},
-                pending_effects: []
+                containers: [], pending_effects: []
             }};
             {}
             out.logs = globalThis.__logs || [];
@@ -27,6 +27,8 @@ pub(super) fn extract_declarations_script() -> String {
                 globalThis.__registeredPanels || [];
             out.entity_data =
                 globalThis.__entityData || {{}};
+            out.containers =
+                globalThis.__registeredContainers || [];
             const pending =
                 globalThis.__pendingEffects || [];
             out.pending_effects =

@@ -41,6 +41,12 @@ pub fn last_entity_number_data() -> &'static Mutex<HashMap<String, HashMap<Strin
 pub fn initial_entity_data() -> &'static Mutex<HashMap<String, HashMap<String, String>>> {
     super::persisted_flag(); unsafe { super::INITIAL_ENTITY_DATA.expect("initial entity data initialized") }
 }
+pub fn last_containers() -> &'static Mutex<Vec<String>> {
+    super::persisted_flag(); unsafe { super::LAST_CONTAINERS.expect("containers initialized") }
+}
+pub fn set_last_containers(rows: Vec<String>) {
+    *last_containers().lock().unwrap() = rows;
+}
 pub fn elapsed_time_units() -> &'static AtomicI64 {
     super::persisted_flag(); unsafe { super::ELAPSED_TIME_UNITS.expect("elapsed time units initialized") }
 }

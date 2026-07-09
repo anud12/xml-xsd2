@@ -4,7 +4,6 @@ export type { ContainerList, Entity, EntityExpression, EntityExpressionApi, Enti
 export type {
   OutOfBoundsRule,
   AxisSize,
-  EntityReference,
   Container,
   ContainerExpression,
   ContainerExpressionApi,

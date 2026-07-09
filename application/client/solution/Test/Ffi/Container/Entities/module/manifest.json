@@ -1,0 +1,6 @@
+{
+  "id": "container-entities-test",
+  "version": "1.0.0",
+  "name": "Container Entities Test Module",
+  "entry": "index.js"
+}

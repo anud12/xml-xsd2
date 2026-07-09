@@ -1,0 +1,6 @@
+{
+  "id": "container-text-number-map-test",
+  "version": "1.0.0",
+  "name": "Container TextNumberMap Test Module",
+  "entry": "index.js"
+}
