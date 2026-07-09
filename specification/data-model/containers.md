@@ -31,7 +31,7 @@ type Container = {
   getNumber: (key: StringExpression) => MaybeExpression<NumberExpression>,
   getTextKeys: () => ListExpression<string>,
   getNumberKeys: () => ListExpression<string>,
-  entities: ListExpression<EntityExpression>,
+  entities: StringExpression[],
   getX: (entity: Entity) => NumberExpression,
   getY: (entity: Entity) => NumberExpression,
   getSpanX: (entity: Entity) => NumberExpression,
@@ -48,9 +48,6 @@ type AxisSize = {
 type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
 
 **Note: TextMap and NumberMap are internal implementation details.** Containers use accessor methods (`getText`, `getNumber`, `getTextKeys`, `getNumberKeys`) for accessing attributes and should not be accessed directly from modules. These map types are not exposed to the Entity or Container public API.
-type EntityReference = {
-  entity?: { entityIdReference: UniqueGlobalEntityId }[],
-}
 ```
 
 

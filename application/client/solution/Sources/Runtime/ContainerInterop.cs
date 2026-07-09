@@ -93,17 +93,11 @@ public static class ContainerInterop
         if (!root.TryGetProperty("entities", out var entitiesProp))
             return Array.Empty<string>();
 
-        if (entitiesProp.ValueKind != System.Text.Json.JsonValueKind.Object)
-            return Array.Empty<string>();
-
-        if (!entitiesProp.TryGetProperty("entity", out var entityArrayProp))
-            return Array.Empty<string>();
-
-        if (entityArrayProp.ValueKind != System.Text.Json.JsonValueKind.Array)
+        if (entitiesProp.ValueKind != System.Text.Json.JsonValueKind.Array)
             return Array.Empty<string>();
 
         var result = new List<string>();
-        foreach (var elem in entityArrayProp.EnumerateArray())
+        foreach (var elem in entitiesProp.EnumerateArray())
         {
             var entityId = elem.GetString();
             if (entityId != null)

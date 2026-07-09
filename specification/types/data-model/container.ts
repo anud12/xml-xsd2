@@ -45,15 +45,6 @@ export type AxisSize = {
 };
 
 /**
- * Reference structure listing the entities currently held by a container.
- */
-export type EntityReference = {
-  entity?: StringExpression[];
-};
-
-
-
-/**
  * Data-model snapshot of a Container as it exists in the world_step.
  *
  * Module code interacts with containers via {@link ContainerExpression}
@@ -69,7 +60,7 @@ export type Container = {
   /** Optional keyed numeric metadata. */
   numberMap?: NumberMap;
   /** The set of entities currently held by this container. */
-  entities: EntityReference;
+  entities: StringExpression[];
   /**
    * Maps a member entity to its x-coordinate as a NumberExpression.
    *
