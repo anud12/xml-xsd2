@@ -34,6 +34,7 @@ pub extern "C" fn runtime_process_archive(path: *const c_char) -> *mut c_char {
     
     let file_rows = crate::module::build_file_rows(&files);
     crate::state::set_last_file_rows(file_rows.clone());
+    crate::state::set_archive_files(files.clone());
     let mut entity_rows: Vec<Vec<String>> = Vec::new();
     crate::module::process_module(&files, &mut entity_rows);
     eprintln!("process_archive: panels after process_module = {:?}", crate::state::last_panels().lock().unwrap());

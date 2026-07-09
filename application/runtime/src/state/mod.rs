@@ -27,6 +27,7 @@ static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMa
 static mut INITIAL_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut LAST_CONTAINERS: Option<&'static Mutex<Vec<String>>> = None;
 static mut ELAPSED_TIME_UNITS: Option<&'static AtomicI64> = None;
+static mut ARCHIVE_FILES: Option<&'static Mutex<HashMap<String, String>>> = None;
 
 #[derive(Clone, Debug)]
 pub struct ScheduledEffect {
@@ -57,6 +58,7 @@ fn persisted_flag() -> &'static AtomicBool {
             INITIAL_ENTITY_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             LAST_CONTAINERS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
             ELAPSED_TIME_UNITS = Some(Box::leak(Box::new(AtomicI64::new(0))));
+            ARCHIVE_FILES = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
         }
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }

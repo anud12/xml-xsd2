@@ -14,9 +14,11 @@ use rquickjs::{Context, Runtime};
 /// context use `create_context(&runtime)`; the context borrows from the
 /// runtime and therefore must not outlive it.
 pub fn create_runtime() -> Result<Runtime> {
-    // Use Runtime::new() which may allocate the underlying QuickJS runtime.
     let rt = Runtime::new()?;
-    
+    rt.set_loader(
+        crate::js_executor::ArchiveResolver,
+        crate::js_executor::ArchiveLoader,
+    );
     Ok(rt)
 }
 
