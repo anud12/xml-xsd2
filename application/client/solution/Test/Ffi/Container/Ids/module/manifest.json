@@ -1,0 +1,6 @@
+{
+  "id": "container-ids-test",
+  "version": "1.0.0",
+  "name": "Container Ids Test Module",
+  "entry": "index.js"
+}

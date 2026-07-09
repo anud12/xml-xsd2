@@ -1,6 +1,0 @@
-{
-  "id": "container-test",
-  "version": "1.0.0",
-  "name": "Container Test Module",
-  "entry": "index.js"
-}

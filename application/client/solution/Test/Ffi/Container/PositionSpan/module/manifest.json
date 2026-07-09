@@ -1,0 +1,6 @@
+{
+  "id": "container-position-span-test",
+  "version": "1.0.0",
+  "name": "Container PositionSpan Test Module",
+  "entry": "index.js"
+}
