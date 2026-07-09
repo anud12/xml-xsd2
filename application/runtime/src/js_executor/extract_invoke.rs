@@ -11,6 +11,8 @@ var hostApi={
   registerAction:h.registerAction,
   registerEffect:h.registerEffect,
   registerPanel:h.registerPanel,
+  registerContainer:h.registerContainer,
+  registerEntity:h.registerEntity,
   setEntity:h.setEntity,
   log:h.log,
   entity:h.entity,

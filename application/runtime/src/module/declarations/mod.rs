@@ -29,6 +29,7 @@ pub fn apply_declarations(dec: &Declarations) {
     log_actions_and_panels(dec);
     set_state_from_declarations(dec);
     entity_data::store_entity_data(dec);
+    crate::state::set_last_containers(dec.containers.clone());
 }
 
 fn log_actions_and_panels(dec: &Declarations) {

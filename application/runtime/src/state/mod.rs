@@ -25,6 +25,7 @@ static mut SCHEDULED_EFFECTS: Option<&'static Mutex<Vec<ScheduledEffect>>> = Non
 static mut LAST_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, f64>>>> = None;
 static mut INITIAL_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
+static mut LAST_CONTAINERS: Option<&'static Mutex<Vec<String>>> = None;
 static mut ELAPSED_TIME_UNITS: Option<&'static AtomicI64> = None;
 
 #[derive(Clone, Debug)]
@@ -54,6 +55,7 @@ fn persisted_flag() -> &'static AtomicBool {
             LAST_ENTITY_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             LAST_ENTITY_NUMBER_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             INITIAL_ENTITY_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
+            LAST_CONTAINERS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
             ELAPSED_TIME_UNITS = Some(Box::leak(Box::new(AtomicI64::new(0))));
         }
     });
