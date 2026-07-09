@@ -1,7 +1,27 @@
 import {EntityExpression} from "./Entity";
 import {NumberExpression} from "./primitives/numberExpression";
+import {StringExpression} from "./primitives/stringExpression";
 import {TextMapExpression} from "./textMap";
 import {NumberMapExpression} from "./numberMap";
+
+export type ContainerCreationArguments = {
+  /** Keyed string metadata for the container */
+  textMap?: Record<string, StringExpression>
+  /** Keyed numeric metadata for the container */
+  numberMap?: Record<string, NumberExpression>
+  /** Maps a member entity to its x-coordinate as a NumberExpression */
+  getX?: (entity: EntityExpression) => NumberExpression
+  /** Maps a member entity to its y-coordinate as a NumberExpression */
+  getY?: (entity: EntityExpression) => NumberExpression
+  /** Maps a member entity to the number of cells it occupies along the x-axis. Defaults to 1 when not set */
+  getSpanX?: (entity: EntityExpression) => NumberExpression
+  /** Maps a member entity to the number of cells it occupies along the y-axis. Defaults to 1 when not set */
+  getSpanY?: (entity: EntityExpression) => NumberExpression
+  /** Optional size bounds along the x-axis */
+  sizeX?: { value: NumberExpression, outOfBounds: OutOfBoundsRule }
+  /** Optional size bounds along the y-axis */
+  sizeY?: { value: NumberExpression, outOfBounds: OutOfBoundsRule }
+}
 
 export type ContainerExpressionApi = {
   /** Create an empty container builder */
