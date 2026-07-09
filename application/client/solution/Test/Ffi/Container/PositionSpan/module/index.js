@@ -28,11 +28,13 @@ export default (hostApi) => {
 
   hostApi.registerContainer({
     id: "bag-1",
-    entities: [
-      { entityIdReference: "sword-1" },
-      { entityIdReference: "potion-1" },
-      { entityIdReference: "shield-1" },
-    ],
+    entities: {
+      entity: [
+        hostApi.string.of("sword-1"),
+        hostApi.string.of("potion-1"),
+        hostApi.string.of("shield-1"),
+      ],
+    },
     getX: (entity) => entity.number_map.get("slotIndex").orElse(number.of(0)),
     getY: (entity) => number.of(0),
     getSpanX: (entity) => entity.number_map.get("slotSpan").orElse(number.of(1)),

@@ -105,12 +105,9 @@ public static class ContainerInterop
         var result = new List<string>();
         foreach (var elem in entityArrayProp.EnumerateArray())
         {
-            if (elem.TryGetProperty("entityIdReference", out var refProp))
-            {
-                var entityId = refProp.GetString();
-                if (entityId != null)
-                    result.Add(entityId);
-            }
+            var entityId = elem.GetString();
+            if (entityId != null)
+                result.Add(entityId);
         }
         return result.ToArray();
     }
