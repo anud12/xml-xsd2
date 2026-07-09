@@ -1,6 +1,7 @@
 import type { UniqueGlobalContainerId } from './ids';
 import type { TextMap, NumberMap, TextMapExpression, NumberMapExpression } from './textMapNumberMap';
 import type { NumberExpression } from '../primitives/numberExpression';
+import type { StringExpression } from '../primitives/stringExpression';
 // Circular: container ↔ entity. TypeScript resolves type-only imports fine.
 import type { Entity, EntityExpression } from './entity';
 
@@ -47,7 +48,7 @@ export type AxisSize = {
  * Reference structure listing the entities currently held by a container.
  */
 export type EntityReference = {
-  entity?: { entityIdReference: string }[];
+  entity?: { entityIdReference: StringExpression }[];
 };
 
 
