@@ -59,10 +59,10 @@ public static class ContainerInterop
         {
             Id = root.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty,
             Entities = ParseEntityArray(root),
-            GetX = ParseEntityNumberMap(root, "getX"),
-            GetY = ParseEntityNumberMap(root, "getY"),
-            GetSpanX = ParseEntityNumberMap(root, "getSpanX"),
-            GetSpanY = ParseEntityNumberMap(root, "getSpanY"),
+            GetXForEntityId = ParseEntityNumberMap(root, "getX"),
+            GetYForEntityId = ParseEntityNumberMap(root, "getY"),
+            GetSpanXForEntityId = ParseEntityNumberMap(root, "getSpanX"),
+            GetSpanYForEntityId = ParseEntityNumberMap(root, "getSpanY"),
         };
 
         if (root.TryGetProperty("textMap", out var textMapProp) && textMapProp.ValueKind == System.Text.Json.JsonValueKind.Object)

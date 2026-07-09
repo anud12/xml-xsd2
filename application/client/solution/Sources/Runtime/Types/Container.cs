@@ -8,10 +8,10 @@ public struct Container
     public Dictionary<string, string>? TextMap;
     public Dictionary<string, double>? NumberMap;
     public string[] Entities;
-    public Dictionary<string, double>? GetX;
-    public Dictionary<string, double>? GetY;
-    public Dictionary<string, double>? GetSpanX;
-    public Dictionary<string, double>? GetSpanY;
+    public Dictionary<string, double>? GetXForEntityId;
+    public Dictionary<string, double>? GetYForEntityId;
+    public Dictionary<string, double>? GetSpanXForEntityId;
+    public Dictionary<string, double>? GetSpanYForEntityId;
     public AxisSize? SizeX;
     public AxisSize? SizeY;
 }
