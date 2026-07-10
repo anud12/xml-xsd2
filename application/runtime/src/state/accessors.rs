@@ -78,3 +78,9 @@ pub fn add_elapsed_time_units(units: i64) {
 pub fn get_elapsed_time_units() -> i64 {
     elapsed_time_units().load(Ordering::SeqCst)
 }
+pub fn archive_files() -> &'static Mutex<HashMap<String, String>> {
+    super::persisted_flag(); unsafe { super::ARCHIVE_FILES.expect("archive files initialized") }
+}
+pub fn set_archive_files(map: HashMap<String, String>) {
+    *archive_files().lock().unwrap() = map;
+}

@@ -2,6 +2,8 @@
 
 mod extract;
 mod extract_invoke;
+mod strip_export;
+mod import_resolver;
 mod simulate;
 mod context_builders;
 mod pending_effects;
@@ -24,8 +26,11 @@ mod scheduled_ctx_p3;
 mod sim_tpl_p1;
 mod sim_tpl_p2;
 mod sim_tpl_p3;
+mod sim_invoke;
+mod archive_loader;
 
 pub use extract::extract_from_source;
+pub use archive_loader::{ArchiveResolver, ArchiveLoader};
 pub use simulate::{simulate_action, convert_store_values};
 pub use pending_effects::process_pending_effects;
 pub use scheduled_effects::process_scheduled_effects;

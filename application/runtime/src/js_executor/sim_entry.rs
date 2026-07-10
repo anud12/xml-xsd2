@@ -1,7 +1,9 @@
 use anyhow::Result;
 use rquickjs::Context;
 
-pub fn select_entry_source(files: &std::collections::HashMap<String, String>) -> String {
+pub fn select_entry_source(
+    files: &std::collections::HashMap<String, String>,
+) -> String {
     use serde_json::Value;
     for (name, content) in files.iter() {
         if name.ends_with("manifest.json") ||
@@ -18,14 +20,21 @@ pub fn select_entry_source(files: &std::collections::HashMap<String, String>) ->
     "".to_string()
 }
 
-pub fn eval_entry_in_ctx(ctx: &Context, source: &str) -> Result<String> {
-    let transformed = if source.contains("export default") {
+fn transform_source(source: &str) -> String {
+    if source.contains("export default") {
         source.replace("export default", "var __module_default =")
-    } else { source.to_string() };
-    ctx.with(|ctx| ctx.eval::<(), _>(transformed.clone()))?;
+    } else { source.to_string() }
+}
+
+pub fn eval_entry_in_ctx(ctx: &Context, source: &str) -> Result<String> {
+    let transformed = transform_source(source);
+    ctx.with(|c| {
+        c.eval::<(), _>(transformed.clone())
+    })?;
     if transformed.contains("__module_default") {
         let js = r#"
 var h=globalThis.host;
+if(!h){throw new Error("host is undefined");}
 var hostApi={
   string:{of:function(s){return s;}},
   number:{of:function(n){return n;}},
@@ -35,6 +44,8 @@ var hostApi={
   registerAction:h.registerAction,
   registerEffect:h.registerEffect,
   registerPanel:h.registerPanel,
+  registerContainer:h.registerContainer,
+  registerEntity:h.registerEntity,
   setEntity:h.setEntity,
   log:h.log,
   entity:h.entity,
@@ -46,8 +57,12 @@ var hostApi={
      of:function(v){
        return{
          value:v,
-         ifTrue:function(cb){if(v&&typeof cb==='function')cb();},
-         ifFalse:function(cb){if(!v&&typeof cb==='function')cb();}
+         ifTrue:function(cb){
+           if(v&&typeof cb==='function')cb();
+         },
+         ifFalse:function(cb){
+           if(!v&&typeof cb==='function')cb();
+         }
        };
      }
    }
@@ -56,7 +71,7 @@ globalThis.hostApi=hostApi;
 var __mod=globalThis.__module_default||__module_default;
 if(typeof __mod==='function'){__mod(hostApi);}
 "#;
-        let _ = ctx.with(|ctx| ctx.eval::<(), _>(js.to_string()));
+        let _ = ctx.with(|c| c.eval::<(), _>(js.to_string()));
     }
     Ok(transformed)
 }

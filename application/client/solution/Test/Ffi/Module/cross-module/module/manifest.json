@@ -1,0 +1,6 @@
+{
+  "id": "cross-module",
+  "version": "1.0.0",
+  "name": "Cross Module Test",
+  "entry": "index.js"
+}
