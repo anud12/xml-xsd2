@@ -33,3 +33,12 @@ pub extern "C" fn runtime_free_panel(p: *mut crate::ffi_mod::types::PanelFfi) {
         // Box dropped here
     }
 }
+
+// Free a string returned by runtime_invoke_template
+#[no_mangle]
+pub extern "C" fn runtime_free_template_result(s: *mut c_char) {
+    if s.is_null() { return; }
+    unsafe {
+        let _ = CString::from_raw(s);
+    }
+}

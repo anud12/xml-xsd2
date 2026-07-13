@@ -10,9 +10,11 @@ pub mod get_entity_number_map_value;
 pub mod set_entity_text_map_value;
 pub mod set_entity_number_map_value;
 pub mod run_iteration;
+pub mod invoke_template;
 
 pub use free_string::runtime_free_string;
 pub use free_string::runtime_free_panel;
+pub use free_string::runtime_free_template_result;
 pub use clear_state::runtime_clear_state;
 pub use trigger_action::trigger_action;
 pub use emit_action::runtime_emit_action;
@@ -28,3 +30,5 @@ pub use set_entity_text_map_value::runtime_set_entity_text_map_value;
 pub use set_entity_number_map_value::runtime_set_entity_number_map_value;
 pub use run_iteration::runtime_run_iteration;
 pub use run_iteration::runtime_get_elapsed_time_units;
+pub use invoke_template::runtime_invoke_template;
+

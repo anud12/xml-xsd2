@@ -3,6 +3,10 @@ pub(super) fn host_api_script_panel() -> &'static str {
         try {
             var toPush = p;
             if (p && typeof p === 'object') {
+                if (p.content && p.content.type === 'containerList'
+                    && typeof p.content.template === 'function') {
+                    p.content.templateSource = p.content.template.toString();
+                }
                 toPush = JSON.stringify(p);
             } else if (typeof p === 'string') {
                 toPush = JSON.stringify({ id: p });
