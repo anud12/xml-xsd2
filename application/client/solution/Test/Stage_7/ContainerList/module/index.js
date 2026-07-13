@@ -44,6 +44,10 @@ export default (hostApi) => {
           height: number.of(50),
           width: number.of(50)
         },
+        anchor: {
+          x: number.of(0),
+          y: number.of(index * 0.25)
+        },
         content: {
           type: "entityTextValue",
           name: string.of("name"),
