@@ -285,6 +285,15 @@ public static class RuntimeInterop
                                         panel.Content = new EntityNumberValueContent(contentName, contentAlign, contentEntityId);
                                     }
                                 }
+                                else if (contentType == "containerList")
+                                {
+                                    var containerId = contentProp.TryGetProperty("containerId", out var cid) ? cid.GetString() : null;
+                                    var templateSource = contentProp.TryGetProperty("templateSource", out var ts) ? ts.GetString() : null;
+                                    if (containerId != null)
+                                    {
+                                        panel.Content = new ContainerListContent(containerId, templateSource ?? string.Empty, contentAlign);
+                                    }
+                                }
                             }
                         }
                         catch (System.Text.Json.JsonException ex)
@@ -393,6 +402,15 @@ public static class RuntimeInterop
                                     if (contentName != null)
                                     {
                                         child.Content = new EntityNumberValueContent(contentName, contentAlign, contentEntityId);
+                                    }
+                                }
+                                else if (contentType == "containerList")
+                                {
+                                    var containerId = contentProp.TryGetProperty("containerId", out var cid) ? cid.GetString() : null;
+                                    var templateSource = contentProp.TryGetProperty("templateSource", out var ts) ? ts.GetString() : null;
+                                    if (containerId != null)
+                                    {
+                                        child.Content = new ContainerListContent(containerId, templateSource ?? string.Empty, contentAlign);
                                     }
                                 }
                             }
@@ -692,5 +710,28 @@ public static class RuntimeInterop
         // Register with native runtime - need to marshal the delegate as a function pointer
         IntPtr funcPtr = Marshal.GetFunctionPointerForDelegate(nativeLogCallback);
         register_logger(funcPtr);
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_invoke_template(
+        [MarshalAs(UnmanagedType.LPStr)] string templateSource,
+        [MarshalAs(UnmanagedType.LPStr)] string entityId,
+        int index);
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_free_template_result(IntPtr ptr);
+
+    public static string InvokeTemplate(string templateSource, string entityId, int index)
+    {
+        var ptr = runtime_invoke_template(templateSource, entityId, index);
+        if (ptr == IntPtr.Zero) return "{}";
+        try
+        {
+            return Marshal.PtrToStringAnsi(ptr) ?? "{}";
+        }
+        finally
+        {
+            runtime_free_template_result(ptr);
+        }
     }
 }

@@ -73,6 +73,10 @@ public partial class Panel : Godot.Panel {
             AddChild(new EntityNumberValueContentNode(entityNumberValueContent));
         }
 
+        if (panel.Content is ContainerListContent containerListContent) {
+            AddChild(new ContainerListContentNode(containerListContent));
+        }
+
         if (panel.Background != null) {
             var Files = RuntimeInterop.GetFileFromArchive();
             if (Files.TryGetValue(panel.Background, out var imageData)) {

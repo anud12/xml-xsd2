@@ -142,3 +142,17 @@ public class EntityNumberValueContent : PanelContent
         EntityId = entityId;
     }
 }
+
+public class ContainerListContent : PanelContent
+{
+    public string ContainerId { get; set; }
+    public string TemplateSource { get; set; }
+    public string Align { get; set; }
+
+    public ContainerListContent(string containerId, string templateSource, string align = "center")
+    {
+        ContainerId = containerId;
+        TemplateSource = templateSource;
+        Align = align;
+    }
+}
