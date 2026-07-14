@@ -1,7 +1,3 @@
-pub(super) fn host_api_script_panel() -> &'static str {
-    r#"registerPanel: function() { /* no-op — handled by C# */ },"#
-}
-
 pub(super) fn host_api_script_create_entity()
     -> &'static str
 {
