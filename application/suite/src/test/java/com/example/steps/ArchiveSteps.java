@@ -127,12 +127,6 @@ public class ArchiveSteps {
         StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "events", csvFile);
     }
 
-    @Then("assert exported state panel includes regexes from {string} file")
-    public void exportedPanelShouldIncludeRegexes(String csvFile) throws Exception {
-        // Panels handled by C#; skipped in Java tests
-    }
-
-
     @When("I send action {string} from actor {string} to entity {string}")
     public void sendActionToEntity(String actionName, String actorId, String targetId) throws IOException, InterruptedException {
         try {

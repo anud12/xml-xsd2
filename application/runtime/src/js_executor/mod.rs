@@ -8,8 +8,6 @@ mod simulate;
 mod context_builders;
 mod pending_effects;
 mod scheduled_effects;
-mod js_strings_pending;
-mod js_strings_scheduled;
 mod js_strings_effect;
 mod entity_sync;
 mod entity_sync_map;
@@ -26,7 +24,6 @@ mod scheduled_ctx_p3;
 mod sim_tpl_p1;
 mod sim_tpl_p2;
 mod sim_tpl_p3;
-mod sim_invoke;
 mod archive_loader;
 
 pub use extract::extract_from_source;
