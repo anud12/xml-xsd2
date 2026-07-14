@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
+using NewGameProject.Module;
 using NewGameProject.Runtime;
 
 public partial class Game : Node {
@@ -22,6 +23,8 @@ public partial class Game : Node {
                 return;
             }
             GD.Print($"Archive loaded: {db}");
+            ModuleContextProvider.Context.ProcessArchive(zip);
+            GD.Print($"Loaded {ModuleContextProvider.Context.GetPanelIds().Length} panels");
         }
 
         _ready = true;
@@ -47,7 +50,7 @@ public partial class Game : Node {
                 var stopwatch = new System.Diagnostics.Stopwatch();
                 const long cycleDurationMs = 250;
 
-                // while (RUN_RUNTIME_LOOP) {
+                while (RUN_RUNTIME_LOOP) {
                     stopwatch.Restart();
                     RuntimeInterop.RunIteration(1);
                     stopwatch.Stop();
@@ -57,7 +60,7 @@ public partial class Game : Node {
                     if (sleepTimeMs > 0) {
                         Thread.Sleep((int)sleepTimeMs);
                     }
-                // }
+                }
             }).Start();
         }
     }

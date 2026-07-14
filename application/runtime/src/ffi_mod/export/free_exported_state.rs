@@ -11,6 +11,8 @@ pub extern "C" fn runtime_free_exported_state(ptr: *mut ExportedState) {
         free_c_string_array(boxed.actions.data, boxed.actions.len);
         free_c_string_array(boxed.events.data, boxed.events.len);
         free_c_string_array(boxed.entity_patterns.data, boxed.entity_patterns.len);
+        // Free panels
+        free_panel_array(boxed.panels.data, boxed.panels.len);
         // Free modules
         if !boxed.modules.data.is_null() && boxed.modules.len > 0 {
             let slice = std::ptr::slice_from_raw_parts_mut(boxed.modules.data, boxed.modules.len);

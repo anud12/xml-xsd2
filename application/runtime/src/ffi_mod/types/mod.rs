@@ -4,11 +4,15 @@ pub mod string_array;
 pub mod module_array;
 pub mod created_by;
 pub mod entity;
+pub mod panel_types;
+pub mod panel_conversions;
 
 pub use string_array::*;
 pub use module_array::*;
 pub use created_by::*;
 pub use entity::*;
+pub use panel_types::*;
+pub use panel_conversions::*;
 
 #[repr(C)]
 pub struct CStringArray {
@@ -59,6 +63,7 @@ pub struct ExportedState {
     pub entities: CStringArray,
     pub actions: CStringArray,
     pub events: CStringArray,
+    pub panels: PanelArray,
     pub modules: ModuleArray,
     pub files: FileArray,
     pub entity_patterns: CStringArray,
