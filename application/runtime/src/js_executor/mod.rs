@@ -24,6 +24,7 @@ mod scheduled_ctx_p3;
 mod sim_tpl_p1;
 mod sim_tpl_p2;
 mod sim_tpl_p3;
+mod sim_invoke;
 mod archive_loader;
 
 pub use extract::extract_from_source;
