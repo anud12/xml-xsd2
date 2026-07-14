@@ -9,7 +9,7 @@ pub fn build_exported_state(
     events_cached: Vec<Vec<String>>,
     modules_cached: Vec<Vec<String>>,
     patterns_cached: Vec<String>,
-    panels_cached: Vec<String>,
+    _panels_cached: Vec<String>,
     created_by_cached: HashMap<String, Vec<String>>,
 ) -> *mut ExportedState {
     unsafe {
@@ -27,7 +27,6 @@ pub fn build_exported_state(
             .collect();
         let (events_ptr, events_len) = string_vec_to_c_array(norm_events);
         let (patterns_ptr, patterns_len) = string_vec_to_c_array(patterns_cached);
-        let (panels_ptr, panels_len) = panels_to_c_array(panels_cached);
         let (modules_ptr, modules_len) = module_rows_to_c_array(modules_cached);
 
         let mut file_rows_vec: Vec<FileRow> = Vec::new();
@@ -55,7 +54,6 @@ pub fn build_exported_state(
             entities: CStringArray { len: entities_len, data: entities_ptr },
             actions: CStringArray { len: actions_len, data: actions_ptr },
             events: CStringArray { len: events_len, data: events_ptr },
-            panels: PanelArray { len: panels_len, data: panels_ptr },
             modules: ModuleArray { len: modules_len, data: modules_ptr },
             files: FileArray { len: files_len, data: files_ptr },
             entity_patterns: CStringArray { len: patterns_len, data: patterns_ptr },

@@ -1,6 +1,5 @@
 use crate::ffi_mod::types::*;
 
-mod panels_fallback;
 mod state_collection;
 
 #[export_name = "runtime_export_state_struct"]
@@ -17,12 +16,9 @@ pub extern "C" fn runtime_export_state_struct() -> *mut ExportedState {
         .lock().unwrap().clone();
     let patterns_cached = crate::state::last_entity_patterns()
         .lock().unwrap().clone();
-    let mut panels_cached = crate::state::last_panels()
-        .lock().unwrap().clone();
+    let panels_cached = Vec::new(); // Panels handled by C#
     let created_by_cached = crate::state::last_created_by()
         .lock().unwrap().clone();
-
-    panels_fallback::collect_panels_fallback(&mut panels_cached);
 
     state_collection::build_exported_state(
         files_cached, entities_cached, actions_cached, events_cached,

@@ -1,19 +1,5 @@
 pub(super) fn host_api_script_panel() -> &'static str {
-    r#"registerPanel(p) {
-        try {
-            var toPush = p;
-            if (p && typeof p === 'object') {
-                toPush = JSON.stringify(p);
-            } else if (typeof p === 'string') {
-                toPush = JSON.stringify({ id: p });
-            } else {
-                toPush = JSON.stringify({ id: String(p) });
-            }
-            globalThis.__registeredPanels =
-                globalThis.__registeredPanels || [];
-            globalThis.__registeredPanels.push(toPush);
-        } catch(e) { /* ignore */ }
-    },"#
+    r#"registerPanel: function() { /* no-op — handled by C# */ },"#
 }
 
 pub(super) fn host_api_script_create_entity()

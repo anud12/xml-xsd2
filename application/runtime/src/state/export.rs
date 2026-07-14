@@ -11,7 +11,7 @@ pub fn export_to_file(path: &str) {
     let actions = super::last_action_rows().lock().unwrap().clone();
     let events = super::last_event_rows().lock().unwrap().clone();
     let modules = super::last_module_rows().lock().unwrap().clone();
-    let panels = super::last_panels().lock().unwrap().clone();
+    let panels = Vec::new(); // Panels handled by C#
     let has = !files.is_empty() || !actions.is_empty() || !events.is_empty()
         || !entities.is_empty() || !modules.is_empty() || !panels.is_empty();
     if has {

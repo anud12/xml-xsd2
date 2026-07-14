@@ -1,13 +1,7 @@
 use crate::js_host_api::Declarations;
 
-pub fn append_panels_to_cache(dec: &Declarations) {
-    let mut existing =
-        crate::state::last_panels().lock().unwrap();
-    for p in dec.panels.iter() {
-        if !existing.contains(p) {
-            existing.push(p.clone());
-        }
-    }
+pub fn append_panels_to_cache(_dec: &Declarations) {
+    // Panels are handled by C#; Rust no-op
 }
 
 pub fn store_pending_effects(dec: &Declarations) {
