@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.util.regex.Pattern;
 
 import static com.example.utils.ArchiveRunner.DEBUG_DELIMITED;
-import static com.example.utils.StateAssertions.assertReturnedPanelNamesIsIn;
 
 public class ArchiveSteps {
     private final ArchiveState state = new ArchiveState();
@@ -184,11 +183,6 @@ public class ArchiveSteps {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Then("assert that `get_panel_names` is array {string} from json")
-    public void assertThatGet_panel_namesReturns(String arg0) {
-        // Panels handled by C#; skipped in Java tests
     }
 }
 

@@ -73,9 +73,6 @@ public interface RuntimeInteropJava extends Library {
      * Native entrypoint: load an archive from raw bytes.
      * Exposes the native function that accepts a byte buffer
      */
-    boolean runtime_load_archive(byte[] data, int length);
-
-    Pointer get_panel_names();
-
+     boolean runtime_load_archive(byte[] data, int length);
 
 }
