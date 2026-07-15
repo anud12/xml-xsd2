@@ -1,5 +1,5 @@
 /** @type {ModuleEntrypoint} */
-export default ({string, ...hostApi}) => {
-  hostApi.log("First module loaded");
+export default (hostApi) => {
+  hostApi.runtime.log("First module loaded");
 
 }

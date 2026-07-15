@@ -1,14 +1,14 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const {number, string} = hostApi;
+  const {number, string} = hostApi.runtime;
 
-  hostApi.setEntity(string.of("entity_id"), {
+  hostApi.runtime.setEntity(string.of("entity_id"), {
     textMap: {
       "textKey": string.of("textValue")
     }
   })
 
-  hostApi.registerPanel({
+  hostApi.ui.registerPanel({
     id: "center",
     size: {
       height: number.of(100),
@@ -26,6 +26,6 @@ export default (hostApi) => {
       type: "entityTextValue",
       align: "center",
     },
-    background: hostApi.texture.of("texture.exr")
+    background: hostApi.ui.texture.of("texture.exr")
   })
 }

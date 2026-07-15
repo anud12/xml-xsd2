@@ -1,7 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const {number, string} = hostApi;
-  hostApi.registerPanel({
+  const {number, string} = hostApi.runtime;
+  hostApi.ui.registerPanel({
     id: "panel",
     size: {
       height: number.of(100),
@@ -12,6 +12,6 @@ export default (hostApi) => {
       value: string.of("Content"),
       align: "center"
     },
-    background: hostApi.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.exr"),
   })
 }

@@ -1,7 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const {number} = hostApi;
-  hostApi.registerPanel({
+  const {number} = hostApi.runtime;
+  hostApi.ui.registerPanel({
     id: "hoverPanel",
     size: {
       height: number.of(100),
@@ -13,9 +13,9 @@ export default (hostApi) => {
       left: number.of(100),
       right: number.of(100),
     },
-    background: hostApi.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.exr"),
     hover: {
-      texture: hostApi.texture.of("hover.exr"),
+      texture: hostApi.ui.texture.of("hover.exr"),
       thickness: 10,
     },
   })

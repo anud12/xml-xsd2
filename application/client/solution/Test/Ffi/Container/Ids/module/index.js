@@ -1,9 +1,9 @@
 // @ts-nocheck
 export default (hostApi) => {
-  hostApi.registerContainer({
+  hostApi.runtime.registerContainer({
     id: "bag-1",
   });
-  hostApi.registerContainer({
+  hostApi.runtime.registerContainer({
     id: "chest-grid-1",
   });
 }

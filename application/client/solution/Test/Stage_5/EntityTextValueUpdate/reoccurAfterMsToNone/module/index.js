@@ -1,29 +1,29 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const {number, string} = hostApi;
+  const {number, string} = hostApi.runtime;
 
-  hostApi.setEntity(string.of("entity_id"), {
+  hostApi.runtime.setEntity(string.of("entity_id"), {
     numberMap: {
       "key": number.of(0)
     }
   })
   
-  hostApi.registerEffect({
+  hostApi.runtime.registerEffect({
     name:"repeat",
     reoccurAfterMs: (context, executionCount, input, output) => {
-      return hostApi.maybe.none();
+      return hostApi.runtime.maybe.none();
     },
     apply:(context, output) => {
-      context.getEntityBy(hostApi.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id"))))
+      context.getEntityBy(hostApi.runtime.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id"))))
         .map(elementExpr => {
           elementExpr.getNumber(string.of("key")).map(v => v.sum(number.of(1)));
         })
     }
   })
   
-  hostApi.emitEvent("repeat", {});
+  hostApi.runtime.emitEvent("repeat", {});
 
-  hostApi.registerPanel({
+  hostApi.ui.registerPanel({
     id: "center",
     size: {
       height: number.of(100),
@@ -41,6 +41,6 @@ export default (hostApi) => {
       type: "entityNumberValue",
       align: "center",
     },
-    background: hostApi.texture.of("texture.exr")
+    background: hostApi.ui.texture.of("texture.exr")
   })
 }

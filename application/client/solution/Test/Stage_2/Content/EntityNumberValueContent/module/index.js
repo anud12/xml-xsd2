@@ -1,14 +1,14 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const {number, string} = hostApi;
+  const {number, string} = hostApi.runtime;
   
-  hostApi.setEntity(string.of("entity_id"), {
+  hostApi.runtime.setEntity(string.of("entity_id"), {
     numberMap: {
       "numberKey": number.of(42)
     }
   })
 
-  hostApi.registerPanel({
+  hostApi.ui.registerPanel({
     id: "number-panel",
     size: {
       height: number.of(300),
@@ -18,7 +18,7 @@ export default (hostApi) => {
       x: number.of(0.5),
       y: number.of(0.5),
     },
-    background: hostApi.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.exr"),
     content: {
       align: "center",
       entityId: string.of("entity_id"),

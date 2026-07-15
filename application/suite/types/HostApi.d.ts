@@ -14,29 +14,31 @@ import {TextureApi} from "./texture/TextureApi";
 import {EntityCreationArguments} from "./Entity";
 
 export type HostApi = {
-  condition: ConditionExpressionApi,
-  number: NumberExpressionApi,
-  string: StringExpressionApi,
-  maybe: MaybeExpressionApi,
-  temporal: TemporalExpressionApi,
+  ui: {
+    registerPanel: RegisterPanelFunction,
+    texture: TextureApi,
+  },
+  runtime: {
+    condition: ConditionExpressionApi,
+    number: NumberExpressionApi,
+    string: StringExpressionApi,
+    maybe: MaybeExpressionApi,
+    temporal: TemporalExpressionApi,
 
-  numberMap: NumberMapExpressionApi,
-  textMap: TextMapExpressionApi,
+    numberMap: NumberMapExpressionApi,
+    textMap: TextMapExpressionApi,
 
-  entity: EntityExpressionApi,
-  container: ContainerExpressionApi,
+    entity: EntityExpressionApi,
+    container: ContainerExpressionApi,
 
-  setEntity: (entityId: StringExpression, arguments: EntityCreationArguments) => void;
+    setEntity: (entityId: StringExpression, arguments: EntityCreationArguments) => void;
 
-  setContainer: (containerId: StringExpression, arguments: ContainerCreationArguments) => void;
+    setContainer: (containerId: StringExpression, arguments: ContainerCreationArguments) => void;
 
-  registerEffect: RegisterEffectFunction,
-  registerAction: RegisterActionFunction,
+    registerEffect: RegisterEffectFunction,
+    registerAction: RegisterActionFunction,
 
-  registerPanel: RegisterPanelFunction,
-
-  texture: TextureApi,
-
-  emitEvent: <T>(eventName: string, arguments: T) => void
-  log:(string:string) => void;
+    emitEvent: <T>(eventName: string, arguments: T) => void
+    log:(string:string) => void;
+  }
 }
