@@ -41,6 +41,6 @@ export default (hostApi) => {
       type: "entityNumberValue",
       align: "center",
     },
-    background: hostApi.ui.texture.of("texture.exr")
+    background: hostApi.ui.texture.of("texture.png")
   })
 }

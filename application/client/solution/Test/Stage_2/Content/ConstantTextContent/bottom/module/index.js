@@ -11,7 +11,7 @@ export default (hostApi) => {
       x: number.of(0.5),
       y: number.of(0.5),
     },
-    background: hostApi.ui.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.png"),
       content: {
       type: "constant",
       align: "bottom",

@@ -10,7 +10,7 @@ public class SizeFfiTests : Steps {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
-            .AddFileToArchive("module/texture.exr", "texture.exr")
+            .AddFileToArchive("module/texture.png", "texture.png")
             .ProcessArchive();
 
         var panel = RuntimeInterop.GetPanelById("center");

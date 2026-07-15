@@ -74,10 +74,10 @@ export default (hostApi) => {
       align: "top",
     },
     hover: {
-      texture: hostApi.ui.texture.of("hover.exr"),
+      texture: hostApi.ui.texture.of("hover.png"),
       thickness: 5,
     },
-    background: hostApi.ui.texture.of("texture.exr")
+    background: hostApi.ui.texture.of("texture.png")
   })
 
 
@@ -100,9 +100,9 @@ export default (hostApi) => {
       align: "center",
     },
     hover: {
-      texture: hostApi.ui.texture.of("hover.exr"),
+      texture: hostApi.ui.texture.of("hover.png"),
       thickness: 10,
     },
-    background: hostApi.ui.texture.of("texture.exr")
+    background: hostApi.ui.texture.of("texture.png")
   })
 }

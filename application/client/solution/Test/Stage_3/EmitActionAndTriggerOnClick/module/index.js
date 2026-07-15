@@ -37,6 +37,6 @@ export default (hostApi) => {
             type: "emitAction",
             actionName: string.of("action")
         },
-        background: hostApi.ui.texture.of("texture.exr")
+        background: hostApi.ui.texture.of("texture.png")
     })
 }

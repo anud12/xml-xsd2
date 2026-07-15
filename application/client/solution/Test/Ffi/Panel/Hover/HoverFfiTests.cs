@@ -10,13 +10,13 @@ public class HoverFfiTests : Steps {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
-            .AddFileToArchive("module/texture.exr", "texture.exr")
-            .AddFileToArchive("module/hover.exr", "hover.exr")
+            .AddFileToArchive("module/texture.png", "texture.png")
+            .AddFileToArchive("module/hover.png", "hover.png")
             .ProcessArchive();
 
         var panel = RuntimeInterop.GetPanelById("hover");
         Assertions.AssertThat(panel.Hover.HasValue).IsTrue();
-        Assertions.AssertThat(panel.Hover.Value.Texture).IsEqual("hover.exr");
+        Assertions.AssertThat(panel.Hover.Value.Texture).IsEqual("hover.png");
         Assertions.AssertThat(panel.Hover.Value.Thickness).IsEqual(5);
     }
 
@@ -25,7 +25,7 @@ public class HoverFfiTests : Steps {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
-            .AddFileToArchive("module/texture.exr", "texture.exr")
+            .AddFileToArchive("module/texture.png", "texture.png")
             .ProcessArchive();
 
         var panel = RuntimeInterop.GetPanelById("no-hover");

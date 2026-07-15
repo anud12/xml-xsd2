@@ -7,6 +7,6 @@ export default (hostApi) => {
       height: number.of(100),
       width: number.of(100)
     },
-    background: hostApi.ui.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.png"),
   })
 }
