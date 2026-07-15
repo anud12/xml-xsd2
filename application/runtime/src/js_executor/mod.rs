@@ -8,8 +8,6 @@ mod simulate;
 mod context_builders;
 mod pending_effects;
 mod scheduled_effects;
-mod js_strings_pending;
-mod js_strings_scheduled;
 mod js_strings_effect;
 mod entity_sync;
 mod entity_sync_map;

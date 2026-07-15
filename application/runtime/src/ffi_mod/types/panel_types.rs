@@ -2,24 +2,16 @@ use std::ffi::CString;
 use libc::c_char;
 
 #[repr(C)]
-pub struct AnchorFfi {
-    pub x: f32,
-    pub y: f32,
-}
+pub struct AnchorFfi { pub x: f32, pub y: f32 }
 
 #[repr(C)]
 pub struct OffsetFfi {
-    pub top: f32,
-    pub bottom: f32,
-    pub left: f32,
-    pub right: f32,
+    pub top: f32, pub bottom: f32,
+    pub left: f32, pub right: f32,
 }
 
 #[repr(C)]
-pub struct SizeFfi {
-    pub height: f32,
-    pub width: f32,
-}
+pub struct SizeFfi { pub height: f32, pub width: f32 }
 
 #[repr(C)]
 pub struct PanelFfi {
@@ -39,14 +31,8 @@ pub struct PanelArray {
     pub data: *mut PanelFfi,
 }
 
-/// Free a PanelFfi array allocated by panels_to_c_array.
-pub unsafe fn free_panel_array(
-    ptr: *mut PanelFfi,
-    len: usize,
-) {
-    if ptr.is_null() || len == 0 {
-        return;
-    }
+pub unsafe fn free_panel_array(ptr: *mut PanelFfi, len: usize) {
+    if ptr.is_null() || len == 0 { return; }
     let slice = std::ptr::slice_from_raw_parts_mut(ptr, len);
     let boxed: Box<[PanelFfi]> = Box::from_raw(slice);
     for p in boxed.iter() {

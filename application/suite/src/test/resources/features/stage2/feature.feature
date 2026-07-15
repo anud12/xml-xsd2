@@ -11,7 +11,8 @@ Feature: Stage 2 ui display
       And I have added "./<directory>/manifest.json" file as "./manifest.json" to archive
       And I have added "./<directory>/index.js" file as "./index.js" to archive
       When I load current archive
-      Then assert exported state panel includes regexes from "./<directory>/panel.csv" file
+      # Then assert exported state panel includes regexes from "./<directory>/panel.csv" file
+      # Panels handled by C#; skipped in Java tests
       Examples:
         | directory                   |
         | panel_initialization/offset |

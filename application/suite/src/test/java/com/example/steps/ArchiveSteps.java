@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.util.regex.Pattern;
 
 import static com.example.utils.ArchiveRunner.DEBUG_DELIMITED;
-import static com.example.utils.StateAssertions.assertReturnedPanelNamesIsIn;
 
 public class ArchiveSteps {
     private final ArchiveState state = new ArchiveState();
@@ -128,12 +127,6 @@ public class ArchiveSteps {
         StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "events", csvFile);
     }
 
-    @Then("assert exported state panel includes regexes from {string} file")
-    public void exportedPanelShouldIncludeRegexes(String csvFile) throws Exception {
-        StateAssertions.assertExportedStateTableColumnsMatchesCsv(state, "panel", csvFile);
-    }
-
-
     @When("I send action {string} from actor {string} to entity {string}")
     public void sendActionToEntity(String actionName, String actorId, String targetId) throws IOException, InterruptedException {
         try {
@@ -184,11 +177,6 @@ public class ArchiveSteps {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Then("assert that `get_panel_names` is array {string} from json")
-    public void assertThatGet_panel_namesReturns(String arg0) {
-        assertReturnedPanelNamesIsIn(state,arg0);
     }
 }
 

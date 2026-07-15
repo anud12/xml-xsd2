@@ -240,29 +240,6 @@ public class StateAssertions {
             }
         }
     }
-
-    public static void assertReturnedPanelNamesIsIn(ArchiveState state, String arg) {
-        try {
-            var objectMapper = new ObjectMapper();
-            List<String> expectedNames = objectMapper.reader().readValue(arg, ArrayList.class);
-            var runtimeInteropJava = state.runtimeInteropJava.get();
-
-            String[] nameArray = runtimeInteropJava.get_panel_names().getStringArray(0);
-            List<String> resultNames = Arrays.asList(nameArray);
-            if (!(expectedNames.containsAll(resultNames)) || !(resultNames.containsAll(expectedNames))) {
-                StringBuilder msg = new StringBuilder();
-                msg.append("Unable to match result get_panel_names");
-                msg.append("Expected : ").append(expectedNames.stream().collect(Collectors.joining(",", "[", "]"))).append("\n");
-                msg.append("Actual:").append(resultNames.stream().collect(Collectors.joining(",", "[", "]"))).append("\n");
-                throw new AssertionError(msg.toString());
-            }
-
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 }
 
 
