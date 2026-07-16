@@ -1,8 +1,8 @@
 // @ts-nocheck
 export default (hostApi) => {
-  const { number } = hostApi;
+  const { number } = hostApi.runtime;
 
-  hostApi.registerContainer({
+  hostApi.runtime.registerContainer({
     id: "bag-1",
     sizeX: {
       value: number.of(20),
@@ -14,7 +14,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.registerContainer({
+  hostApi.runtime.registerContainer({
     id: "chest-grid-1",
     sizeX: {
       value: number.of(6),

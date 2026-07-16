@@ -1,11 +1,11 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const {number, string} = hostApi;
+  const {number, string} = hostApi.runtime;
 
-  const filter = hostApi.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id")));
+  const filter = hostApi.runtime.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id")));
   const key = string.of("key")
 
-  hostApi.setEntity(string.of("entity_id"), {
+  hostApi.runtime.setEntity(string.of("entity_id"), {
     numberMap: {
       "key": number.of(0)
     },
@@ -14,7 +14,7 @@ export default (hostApi) => {
     }
   })
 
-  hostApi.registerEffect({
+  hostApi.runtime.registerEffect({
     name: "key-modify-if-par",
     prepare: (context, input) => {
       const output = context.getEntityBy(filter).get(number.of(0)).flatMap(v => {
@@ -22,7 +22,7 @@ export default (hostApi) => {
       })
         .map(v => v.modulo(number.of(2))
           .isEqualTo(number.of(0)));
-      return output.orElse(hostApi.condition.of(false));
+      return output.orElse(hostApi.runtime.condition.of(false));
     },
     apply:(context, output) => {
       output.ifTrue(() => {
@@ -34,10 +34,10 @@ export default (hostApi) => {
     }
   })
 
-  hostApi.registerEffect({
+  hostApi.runtime.registerEffect({
     name: "event",
     reoccurAfterMs: (context, executionCount, input, output) => {
-      return hostApi.maybe.of(number.of(10));
+      return hostApi.runtime.maybe.of(number.of(10));
     },
     prepare: (context, input) => {
       /** Value must be condition expression, returned by prepare function */
@@ -63,9 +63,9 @@ export default (hostApi) => {
     }
   })
 
-  hostApi.emitEvent("event", {});
+  hostApi.runtime.emitEvent("event", {});
 
-  hostApi.registerPanel({
+  hostApi.ui.registerPanel({
     id: "center",
     size: {
       height: number.of(100),
@@ -83,10 +83,10 @@ export default (hostApi) => {
       type: "entityNumberValue",
       align: "center",
     },
-    background: hostApi.texture.of("texture.exr")
+    background: hostApi.ui.texture.of("texture.exr")
   })
 
-  hostApi.registerPanel({
+  hostApi.ui.registerPanel({
     id: "isModifiedPanel",
     size: {
       height: number.of(100),
@@ -104,6 +104,6 @@ export default (hostApi) => {
       type: "entityTextValue",
       align: "center",
     },
-    background: hostApi.texture.of("texture.exr")
+    background: hostApi.ui.texture.of("texture.exr")
   })
 }

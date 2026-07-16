@@ -1,27 +1,27 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-    const {number, string} = hostApi;
-    hostApi.registerAction({
+    const {number, string} = hostApi.runtime;
+    hostApi.runtime.registerAction({
         name: "action",
         apply: (context) => {
-            hostApi.log("___From module action fired line___")
+            hostApi.runtime.log("___From module action fired line___")
             context.emitEffect("effect", {})
         }
     });
 
-    hostApi.registerEffect({
+    hostApi.runtime.registerEffect({
         name: "effect",
 
         prepare: () => {
-            hostApi.log("___From module effect prepare fired line___")
+            hostApi.runtime.log("___From module effect prepare fired line___")
             return {}
         },
         apply: () => {
-            hostApi.log("___From module effect fired line___")
+            hostApi.runtime.log("___From module effect fired line___")
         }
     })
 
-    hostApi.registerPanel({
+    hostApi.ui.registerPanel({
         id: "center",
         size: {
             height: number.of(100),
@@ -37,6 +37,6 @@ export default (hostApi) => {
             type: "emitAction",
             actionName: string.of("action")
         },
-        background: hostApi.texture.of("texture.exr")
+        background: hostApi.ui.texture.of("texture.exr")
     })
 }

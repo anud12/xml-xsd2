@@ -1,7 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const {number, string} = hostApi;
-  hostApi.registerPanel({
+  const {number, string} = hostApi.runtime;
+  hostApi.ui.registerPanel({
     id: "panel_entity",
     size: {
       height: number.of(100),
@@ -9,10 +9,10 @@ export default (hostApi) => {
     },
     content: {
       type: "entityTextValue",
-      entityId: hostApi.string.of("entityId"),
+      entityId: hostApi.runtime.string.of("entityId"),
       name: string.of("playerName"),
       align: "center"
     },
-    background: hostApi.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.exr"),
   })
 }

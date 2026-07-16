@@ -1,9 +1,9 @@
 /** @type {ModuleEntrypoint} */
-export default ({string, ...hostApi}) => {
-  hostApi.registerAction({
+export default (hostApi) => {
+  hostApi.runtime.registerAction({
     name:"action",
     apply: () => {
-      hostApi.log("action called")
+      hostApi.runtime.log("action called")
     }
   })
 }

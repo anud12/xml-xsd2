@@ -1,12 +1,12 @@
 /** @type {ModuleEntrypoint} */
-export default ({string, ...hostApi}) => {
-  hostApi.registerAction({
+export default (hostApi) => {
+  hostApi.runtime.registerAction({
     name:"second action",
     apply: () => {
     }
   })
 
-  hostApi.registerAction({
+  hostApi.runtime.registerAction({
     name:"second second action",
     apply: (context) => {
 

@@ -1,9 +1,10 @@
 import { greet, add } from './helpers.js';
 
 /** @type {ModuleEntrypoint} */
-export default ({string, ...hostApi}) => {
+export default (hostApi) => {
+  const {string} = hostApi.runtime;
   const name = greet("World");
-  hostApi.log("Hello " + name);
+  hostApi.runtime.log("Hello " + name);
   const sum = add(2, 3);
-  hostApi.log("2 + 3 = " + sum);
+  hostApi.runtime.log("2 + 3 = " + sum);
 }

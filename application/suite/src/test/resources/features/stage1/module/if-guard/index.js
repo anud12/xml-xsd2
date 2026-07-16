@@ -1,7 +1,7 @@
 /** @type {ModuleEntrypoint} */
-export default ({string, ...hostApi}) => {
+export default (hostApi) => {
   if(false) {
-    hostApi.log("if guard loaded");
+    hostApi.runtime.log("if guard loaded");
   }
 
 }

@@ -1,7 +1,7 @@
 /** @type {ModuleEntrypoint} */
-export default ({string, ...hostApi}) => {
-  const {number} = hostApi;
-  hostApi.registerPanel({
+export default (hostApi) => {
+  const {number} = hostApi.runtime;
+  hostApi.ui.registerPanel({
     id: "panel",
     anchor: {
       x: number.of(0.5),
@@ -17,9 +17,9 @@ export default ({string, ...hostApi}) => {
       height: number.of(0),
       width: number.of(0)
     },
-    background: hostApi.texture.of("modules/texture.exr"),
+    background: hostApi.ui.texture.of("modules/texture.exr"),
   })
-  hostApi.registerPanel({
+  hostApi.ui.registerPanel({
     id: "panel_2",
     anchor: {
       x: number.of(0.5),
@@ -35,6 +35,6 @@ export default ({string, ...hostApi}) => {
       height: number.of(0),
       width: number.of(0)
     },
-    background: hostApi.texture.of("modules/texture.exr"),
+    background: hostApi.ui.texture.of("modules/texture.exr"),
   })
 }

@@ -1,7 +1,7 @@
 // @ts-nocheck
 export default (hostApi) => {
-  const { string } = hostApi;
-  hostApi.registerContainer({
+  const { string } = hostApi.runtime;
+  hostApi.runtime.registerContainer({
     id: "bag-1",
     entities: [
       string.of("sword-1"),

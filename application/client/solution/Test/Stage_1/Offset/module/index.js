@@ -1,7 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const {number} = hostApi;
-  hostApi.registerPanel({
+  const {number} = hostApi.runtime;
+  hostApi.ui.registerPanel({
     id: "top",
     size: {
       height: number.of(10),
@@ -17,10 +17,10 @@ export default (hostApi) => {
       left: number.of(0),
       right: number.of(0),
     },
-    background: hostApi.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.exr"),
   })
 
-  hostApi.registerPanel({
+  hostApi.ui.registerPanel({
     id: "left",
     size: {
       height: number.of(10),
@@ -36,10 +36,10 @@ export default (hostApi) => {
       left: number.of(-100),
       right: number.of(-100),
     },
-    background: hostApi.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.exr"),
   })
 
-  hostApi.registerPanel({
+  hostApi.ui.registerPanel({
     id: "bottom",
     size: {
       height: number.of(10),
@@ -55,10 +55,10 @@ export default (hostApi) => {
       left: number.of(0),
       right: number.of(0),
     },
-    background: hostApi.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.exr"),
   })
 
-  hostApi.registerPanel({
+  hostApi.ui.registerPanel({
     id: "right",
     size: {
       height: number.of(10),
@@ -74,6 +74,6 @@ export default (hostApi) => {
       left: number.of(100),
       right: number.of(100),
     },
-    background: hostApi.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.exr"),
   })
 }

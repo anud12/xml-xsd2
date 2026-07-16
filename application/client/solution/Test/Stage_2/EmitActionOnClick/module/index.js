@@ -1,21 +1,21 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const {number, string} = hostApi;
-  hostApi.registerAction({
+  const {number, string} = hostApi.runtime;
+  hostApi.runtime.registerAction({
     name:"action",
     apply: () => {
-        hostApi.log("___From module action fired line___")
+        hostApi.runtime.log("___From module action fired line___")
     }
   });
 
-    hostApi.registerAction({
+    hostApi.runtime.registerAction({
         name:"childAction",
         apply: () => {
-            hostApi.log("___From module childAction fired line___")
+            hostApi.runtime.log("___From module childAction fired line___")
         }
     });
 
-  hostApi.registerPanel({
+  hostApi.ui.registerPanel({
     id: "center",
     size: {
       height: number.of(100),
@@ -31,7 +31,7 @@ export default (hostApi) => {
           type:"emitAction",
           actionName: string.of("action")
       },
-    background: hostApi.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.exr"),
       children: [
         {
             id: "child",
@@ -45,7 +45,7 @@ export default (hostApi) => {
                 height: number.of(10),
                 width: number.of(10),
             },
-            background: hostApi.texture.of("texture_2.exr"),
+            background: hostApi.ui.texture.of("texture_2.exr"),
             onClick: {
                 type:"emitAction",
                 actionName: string.of("childAction")
