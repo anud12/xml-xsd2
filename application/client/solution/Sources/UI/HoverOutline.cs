@@ -29,7 +29,7 @@ public partial class HoverOutline :Control {
                 var files = RuntimeInterop.GetFileFromArchive();
                 if (files.TryGetValue(h.Texture, out var imageData)) {
                     Image img = new Image();
-                    img.LoadExrFromBuffer(imageData);
+                    img.LoadPngFromBuffer(imageData);
                     NinePatchRect.Texture = ImageTexture.CreateFromImage(img);
                     NinePatchRect.TextureFilter = TextureFilterEnum.Nearest;
                     NinePatchRect.DrawCenter = false;

@@ -1,4 +1,4 @@
-﻿using GdUnit4;
+using GdUnit4;
 using NewGameProject.Runtime;
 
 namespace NewGameProject.Tests.XUnit;

@@ -1,4 +1,4 @@
-﻿using GdUnit4;
+using GdUnit4;
 using Godot;
 
 namespace NewGameProject.Tests.XUnit;

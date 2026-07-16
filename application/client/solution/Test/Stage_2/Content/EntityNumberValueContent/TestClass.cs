@@ -17,7 +17,7 @@ public class TestClass : Steps {
     public async Task Given_panel_it_should_have_content_from_entity_number_value() {
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
-            .AddFileToArchive("module/texture.exr", "texture.exr")
+            .AddFileToArchive("module/texture.png", "texture.png")
             .EnsureDllAccessible()
             .ProcessArchive();
 

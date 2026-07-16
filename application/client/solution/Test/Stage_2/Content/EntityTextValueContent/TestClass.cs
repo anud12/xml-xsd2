@@ -18,7 +18,7 @@ public class TestClass : Steps {
         // I create a module from the first folder
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
-            .AddFileToArchive("module/texture.exr", "texture.exr")
+            .AddFileToArchive("module/texture.png", "texture.png")
             .EnsureDllAccessible()
             .ProcessArchive();
 
@@ -38,7 +38,7 @@ public class TestClass : Steps {
         AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
             .IsNonNull()
             .HasContentText("textValue");
-        
+
         AssertScreenshot("expected.png");
     }
 }

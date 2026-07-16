@@ -77,7 +77,7 @@ public partial class Panel : Godot.Panel {
             var Files = RuntimeInterop.GetFileFromArchive();
             if (Files.TryGetValue(panel.Background, out var imageData)) {
                 Image img = new Image();
-                img.LoadExrFromBuffer(imageData);
+                img.LoadPngFromBuffer(imageData);
                 TextureFilter = TextureFilterEnum.Nearest;
                 AddThemeStyleboxOverride("panel", new StyleBoxTexture {
                     Texture = ImageTexture.CreateFromImage(img),

@@ -11,7 +11,7 @@ export default (hostApi) => {
       x: number.of(0.5),
       y: number.of(0.5),
     },
-    background: hostApi.ui.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.png"),
     children: [
       {
         id: "child",
@@ -19,7 +19,7 @@ export default (hostApi) => {
           height: number.of(10),
           width: number.of(10),
         },
-        background: hostApi.ui.texture.of("texture_2.exr")
+        background: hostApi.ui.texture.of("texture_2.png")
       },
       {
         id: "child_2",
@@ -27,7 +27,7 @@ export default (hostApi) => {
           height: number.of(10),
           width: number.of(10),
         },
-        background: hostApi.ui.texture.of("texture_2.exr")
+        background: hostApi.ui.texture.of("texture_2.png")
       },
     ]
   })

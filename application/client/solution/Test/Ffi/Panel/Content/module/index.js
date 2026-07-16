@@ -12,6 +12,6 @@ export default (hostApi) => {
       value: string.of("Content"),
       align: "center"
     },
-    background: hostApi.ui.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.png"),
   })
 }

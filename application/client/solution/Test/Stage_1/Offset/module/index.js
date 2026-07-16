@@ -17,7 +17,7 @@ export default (hostApi) => {
       left: number.of(0),
       right: number.of(0),
     },
-    background: hostApi.ui.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.png"),
   })
 
   hostApi.ui.registerPanel({
@@ -36,7 +36,7 @@ export default (hostApi) => {
       left: number.of(-100),
       right: number.of(-100),
     },
-    background: hostApi.ui.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.png"),
   })
 
   hostApi.ui.registerPanel({
@@ -55,7 +55,7 @@ export default (hostApi) => {
       left: number.of(0),
       right: number.of(0),
     },
-    background: hostApi.ui.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.png"),
   })
 
   hostApi.ui.registerPanel({
@@ -74,6 +74,6 @@ export default (hostApi) => {
       left: number.of(100),
       right: number.of(100),
     },
-    background: hostApi.ui.texture.of("texture.exr"),
+    background: hostApi.ui.texture.of("texture.png"),
   })
 }
