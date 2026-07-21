@@ -10,34 +10,38 @@ namespace NewGameProject.UI;
 /// </summary>
 public class ContainerListView
 {
-    public string ContainerId { get; }
-    public Runtime.PanelTemplateDelegate Template { get; }
-    public Runtime.PanelContent[]? TemplateResults { get; }
+    readonly ContainerListViewContent _content;
 
-    public ContainerListView(string containerId, Runtime.PanelTemplateDelegate template)
+    public ContainerListView(ContainerListViewContent content)
     {
-        ContainerId = containerId;
-        Template = template;
-        TemplateResults = null;
-    }
-
-    public ContainerListView(string containerId, Runtime.PanelTemplateDelegate template, Runtime.PanelContent[]? templateResults)
-    {
-        ContainerId = containerId;
-        Template = template;
-        TemplateResults = templateResults;
+        _content = content;
     }
 
     public string[] GetEntityIds()
     {
-        var container = ContainerInterop.GetContainerById(ContainerId);
+        var container = ContainerInterop.GetContainerById(_content.ContainerId);
         return container.Entities;
     }
 
     public Runtime.PanelContent? GetContentForEntity(int index)
     {
-        if (TemplateResults != null && index >= 0 && index < TemplateResults.Length)
-            return TemplateResults[index];
+        if (_content.TemplateResults != null && index >= 0 && index < _content.TemplateResults.Length)
+            return _content.TemplateResults[index];
         return null;
+    }
+
+    public Godot.Panel CreateItemPanel(string entityId, int index)
+    {
+        return _content.Template?.Invoke(entityId, index) ?? DefaultItemPanel(entityId, index);
+    }
+
+    static Godot.Panel DefaultItemPanel(string entityId, int index)
+    {
+        return new Panel(new Runtime.Panel
+        {
+            Id = $"item_{index}",
+            Size = new Runtime.Size { Width = 80f, Height = 40f },
+            Content = new Runtime.ConstantTextContent(entityId, "center")
+        });
     }
 }

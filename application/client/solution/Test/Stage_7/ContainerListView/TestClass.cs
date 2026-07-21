@@ -35,6 +35,7 @@ public class TestClass : Steps
             await runner.SimulateFrames(1);
             var panel = rootNode.GetNode<Panel>(idList[0]);
             Assertions.AssertThat(panel).IsNotNull();
+
         }
         catch (Exception e)
         {

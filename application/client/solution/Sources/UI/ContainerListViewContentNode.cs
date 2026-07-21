@@ -53,7 +53,7 @@ public partial class ContainerListViewContentNode : Control
             }
             else
             {
-                var childPanel = _listView.Template(entityIds[i], i);
+                var childPanel = _listView.CreateItemPanel(entityIds[i], i);
                 _boxContainer.AddChild(childPanel);
                 childPanel.SetOwner(this);
             }

@@ -75,11 +75,7 @@ public partial class Panel : Godot.Panel {
         }
 
         if (panel.Content is ContainerListViewContent containerListViewContent) {
-            var template = containerListViewContent.Template ?? DefaultListViewTemplate(panel);
-            var listView = new ContainerListView(
-                containerListViewContent.ContainerId,
-                template,
-                containerListViewContent.TemplateResults);
+            var listView = new ContainerListView(containerListViewContent);
             AddChild(new ContainerListViewContentNode(listView, containerListViewContent.Vertical));
         }
 
