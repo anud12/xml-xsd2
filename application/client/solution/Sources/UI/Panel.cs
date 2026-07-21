@@ -75,8 +75,7 @@ public partial class Panel : Godot.Panel {
         }
 
         if (panel.Content is ContainerListViewContent containerListViewContent) {
-            var listView = new ContainerListView(containerListViewContent);
-            AddChild(new ContainerListViewContentNode(listView, containerListViewContent.Vertical));
+            AddChild(new ContainerListViewContentNode(containerListViewContent, containerListViewContent.Vertical));
         }
 
         if (panel.Background != null) {
