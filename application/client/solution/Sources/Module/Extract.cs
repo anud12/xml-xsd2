@@ -51,4 +51,12 @@ static class Extract
 
         return null;
     }
+
+    internal static bool? Bool(JsonElement elem, string prop)
+    {
+        if (elem.TryGetProperty(prop, out var p) && (p.ValueKind == JsonValueKind.True || p.ValueKind == JsonValueKind.False))
+            return p.GetBoolean();
+
+        return null;
+    }
 }

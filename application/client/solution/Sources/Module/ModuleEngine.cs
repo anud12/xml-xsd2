@@ -1,5 +1,7 @@
 using System.Text;
 using Jint;
+using Jint.Native;
+using NewGameProject.Runtime;
 
 namespace NewGameProject.Module;
 
@@ -13,6 +15,19 @@ public static class ModuleEngine
         engine.SetValue("__host_registerPanel", new Action<string>(json =>
         {
             PanelCollector.Register(json);
+        }));
+
+        engine.SetValue("__host_getContainerEntityIds", new Func<string, string[]>(id =>
+        {
+            try
+            {
+                var container = ContainerInterop.GetContainerById(id);
+                return container.Entities;
+            }
+            catch
+            {
+                return Array.Empty<string>();
+            }
         }));
 
         engine.Execute(HostApiSetup.Script);

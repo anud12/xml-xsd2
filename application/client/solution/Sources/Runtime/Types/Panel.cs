@@ -142,3 +142,26 @@ public class EntityNumberValueContent : PanelContent
         EntityId = entityId;
     }
 }
+
+public delegate Godot.Panel PanelTemplateDelegate(string entityId, int index);
+
+public class ContainerListViewContent : PanelContent
+{
+    public string ContainerId { get; set; }
+    public bool Vertical { get; set; }
+    public PanelTemplateDelegate? Template { get; set; }
+    public PanelContent[]? TemplateResults { get; set; }
+
+    public ContainerListViewContent(string containerId, bool vertical = true)
+    {
+        ContainerId = containerId;
+        Vertical = vertical;
+    }
+
+    public ContainerListViewContent(string containerId, PanelTemplateDelegate template, bool vertical = true)
+    {
+        ContainerId = containerId;
+        Template = template;
+        Vertical = vertical;
+    }
+}

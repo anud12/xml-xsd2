@@ -35,6 +35,45 @@ static class ContentParser
             return name != null ? new Runtime.EntityNumberValueContent(name, align, entityId) : null;
         }
 
+        if (type == "containerListView")
+        {
+            var containerId = Extract.String(elem, "containerId");
+            if (containerId != null)
+            {
+                var vertical = Extract.Bool(elem, "vertical") ?? true;
+                var content = new Runtime.ContainerListViewContent(containerId, vertical);
+
+                if (elem.TryGetProperty("__templateResults", out var results) && results.ValueKind == JsonValueKind.Array)
+                {
+                    var parsedResults = new List<Runtime.PanelContent>();
+                    foreach (var item in results.EnumerateArray())
+                    {
+                        if (item.ValueKind == JsonValueKind.String)
+                        {
+                            var jsonStr = item.GetString();
+                            if (jsonStr != null)
+                            {
+                                using var doc = JsonDocument.Parse(jsonStr);
+                                var parsed = Parse(doc.RootElement);
+                                if (parsed != null)
+                                    parsedResults.Add(parsed);
+                            }
+                        }
+                    }
+                    if (parsedResults.Count > 0)
+                        content.TemplateResults = parsedResults.ToArray();
+                }
+
+                return content;
+            }
+        }
+
         return null;
+    }
+
+    internal static Runtime.PanelContent? ParseJson(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return Parse(doc.RootElement);
     }
 }

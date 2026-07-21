@@ -1,0 +1,6 @@
+{
+  "id": "container-list-view-template-test",
+  "version": "1.0.0",
+  "name": "ContainerListView Template Test Module",
+  "entry": "index.js"
+}

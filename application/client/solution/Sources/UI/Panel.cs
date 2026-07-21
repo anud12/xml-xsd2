@@ -1,6 +1,7 @@
 using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
 using NewGameProject.Runtime;
+using NewGameProject.UI;
 using Vector2 = Godot.Vector2;
 
 public partial class Panel : Godot.Panel {
@@ -71,6 +72,15 @@ public partial class Panel : Godot.Panel {
 
         if (panel.Content is EntityNumberValueContent entityNumberValueContent) {
             AddChild(new EntityNumberValueContentNode(entityNumberValueContent));
+        }
+
+        if (panel.Content is ContainerListViewContent containerListViewContent) {
+            var template = containerListViewContent.Template ?? DefaultListViewTemplate(panel);
+            var listView = new ContainerListView(
+                containerListViewContent.ContainerId,
+                template,
+                containerListViewContent.TemplateResults);
+            AddChild(new ContainerListViewContentNode(listView, containerListViewContent.Vertical));
         }
 
         if (panel.Background != null) {
@@ -169,5 +179,17 @@ public partial class Panel : Godot.Panel {
             }
 
         }
+    }
+
+    private static NewGameProject.Runtime.PanelTemplateDelegate DefaultListViewTemplate(NewGameProject.Runtime.Panel parentPanel) {
+        return (entityId, index) => {
+            var p = new Panel(new NewGameProject.Runtime.Panel {
+                Id = $"item_{index}",
+                Size = new NewGameProject.Runtime.Size { Width = 80f, Height = 40f },
+                Background = parentPanel.Background,
+                Content = new ConstantTextContent(entityId, "center")
+            });
+            return p;
+        };
     }
 }
