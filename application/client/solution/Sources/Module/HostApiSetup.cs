@@ -10,15 +10,12 @@ var hostApi = {
         texture: { of: function(p) { return p; } },
         registerPanel: function(p) {
             if (p.content && p.content.type === ""containerListView"" && typeof p.content.template === ""function"") {
-                var templateFn = p.content.template;
                 var containerId = p.content.containerId;
                 var vertical = p.content.vertical !== undefined ? p.content.vertical : true;
-                var entityIds = __host_getContainerEntityIds(containerId);
                 var templateResults = [];
+                var entityIds = __host_getContainerEntityIds(containerId);
                 for (var i = 0; i < entityIds.length; i++) {
-                    var entityId = entityIds[i];
-                    var entity = { id: entityId };
-                    var result = templateFn(entity, i);
+                    var result = p.content.template({ id: entityIds[i] }, i);
                     templateResults.push(JSON.stringify(result));
                 }
                 var contentCopy = {};

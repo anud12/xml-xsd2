@@ -47,12 +47,12 @@ export default (hostApi) => {
       type: "containerListView",
       containerId: string.of("items-container"),
       vertical: true,
-        template: (entity, index) => ({
-          entityId: entity.id,
-          name: string.of("value"),
-          type: "entityNumberValue",
-          align: "center",
-        })
+      template: (entity, index) => ({
+        entityId: entity.id,
+        name: string.of("value"),
+        type: "entityNumberValue",
+        align: "center",
+      })
     }
   });
 }
