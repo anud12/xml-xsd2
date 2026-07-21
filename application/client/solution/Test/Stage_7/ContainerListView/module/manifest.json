@@ -1,0 +1,6 @@
+{
+  "id": "container-list-view-test",
+  "version": "1.0.0",
+  "name": "ContainerListView Test Module",
+  "entry": "index.js"
+}
