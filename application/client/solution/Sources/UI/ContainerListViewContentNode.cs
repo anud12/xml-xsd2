@@ -15,18 +15,18 @@ public partial class ContainerListViewContentNode : Control
 
     public bool Vertical { get; }
 
-    public ContainerListViewContentNode(Runtime.ContainerListViewContent content, bool vertical = true)
+    public ContainerListViewContentNode(Runtime.ContainerListViewContent content)
     {
         Name = "containerListView";
         _content = content;
-        Vertical = vertical;
+        Vertical = content.Vertical;
 
         SetAnchorsPreset(LayoutPreset.FullRect);
 
         _boxContainer = new BoxContainer
         {
             Name = "boxContainer",
-            Vertical = vertical
+            Vertical = Vertical
         };
         _boxContainer.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(_boxContainer);
