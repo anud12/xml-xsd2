@@ -92,9 +92,9 @@ public partial class Panel : Godot.Panel {
             return;
         }
 
-        // Same type — update in place
+        // Same type — update in place via polymorphism
         if (_contentNode.GetType() == ContentNodeForType(content)) {
-            UpdateContentNodeInPlace(_contentNode, content);
+            ((IContentNode)_contentNode).UpdateContent(content);
             return;
         }
 
@@ -130,23 +130,6 @@ public partial class Panel : Godot.Panel {
             ContainerListViewContent c => new ContainerListViewContentNode(c),
             _ => null
         };
-    }
-
-    static void UpdateContentNodeInPlace(Control node, PanelContent content) {
-        if (node is ConstantTextContentNode ctcn && content is ConstantTextContent ctc)
-            ctcn.Text = ctc.Value;
-
-        if (node is ConstantNumberContentNode cncn && content is ConstantNumberContent cnc)
-            cncn.Text = cnc.Value.ToString();
-
-        if (node is EntityTextValueContentNode etvcn && content is EntityTextValueContent etvc)
-            etvcn.Text = RuntimeInterop.GetEntityTextMapValue(etvc.EntityId, etvc.Name);
-
-        if (node is EntityNumberValueContentNode envcn && content is EntityNumberValueContent envc)
-            envcn.Text = RuntimeInterop.GetEntityNumberMapValue(envc.EntityId, envc.Name);
-
-        if (node is ContainerListViewContentNode clvcn && content is ContainerListViewContent clvc)
-            clvcn.Refresh();
     }
 
     void UpdateChildren(NewGameProject.Runtime.Panel panel) {

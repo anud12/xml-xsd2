@@ -1,7 +1,8 @@
 using Godot;
 using NewGameProject.Runtime;
+using NewGameProject.UI;
 
-public partial class EntityNumberValueContentNode : RichTextLabel {
+public partial class EntityNumberValueContentNode : RichTextLabel, IContentNode {
     
     private EntityNumberValueContent content;
     
@@ -56,6 +57,11 @@ public partial class EntityNumberValueContentNode : RichTextLabel {
                 SetVerticalAlignment(VerticalAlignment.Bottom);
                 break;
         }
+    }
+
+    public void UpdateContent(NewGameProject.Runtime.PanelContent content) {
+        if (content is EntityNumberValueContent envc)
+            Text = RuntimeInterop.GetEntityNumberMapValue(envc.EntityId, envc.Name);
     }
 
     public override void _Process(double delta) {

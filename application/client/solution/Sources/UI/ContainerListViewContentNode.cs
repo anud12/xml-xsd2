@@ -8,7 +8,7 @@ namespace NewGameProject.UI;
 /// The container for all children is a BoxContainer whose orientation is controlled
 /// by the <see cref="Vertical"/> flag.
 /// </summary>
-public partial class ContainerListViewContentNode : Control
+public partial class ContainerListViewContentNode : Control, IContentNode
 {
     private readonly Runtime.ContainerListViewContent _content;
     private readonly BoxContainer _boxContainer;
@@ -31,6 +31,10 @@ public partial class ContainerListViewContentNode : Control
         _boxContainer.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(_boxContainer);
         MouseFilter = MouseFilterEnum.Pass;
+    }
+
+    public void UpdateContent(PanelContent content) {
+        Refresh();
     }
 
     public void Refresh()

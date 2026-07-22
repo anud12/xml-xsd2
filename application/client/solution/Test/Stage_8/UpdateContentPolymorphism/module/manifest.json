@@ -1,0 +1,6 @@
+{
+  "id": "update-content-test",
+  "version": "1.0.0",
+  "name": "Update Content Test",
+  "entry": "index.js"
+}
