@@ -9,7 +9,7 @@ public partial class ConstantNumberContentNode : RichTextLabel, IContentNode {
         SetJustificationFlags(TextServer.JustificationFlag.None);
         SetAnchorsPreset(LayoutPreset.FullRect);
         ApplyAlignment(content.Align);
-        Text = content.Value.ToString();
+        UpdateContent(content);
         MouseFilter = MouseFilterEnum.Pass;
     }
 

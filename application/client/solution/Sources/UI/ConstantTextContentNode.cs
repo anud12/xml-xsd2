@@ -9,12 +9,12 @@ public partial class ConstantTextContentNode : RichTextLabel, IContentNode {
         SetJustificationFlags(TextServer.JustificationFlag.None);
         SetAnchorsPreset(LayoutPreset.FullRect);
         ApplyAlignment(content.Align);
-        Text = content.Value;
         MouseFilter = MouseFilterEnum.Pass;
+        UpdateContent(content);
     }
 
     public void UpdateContent(NewGameProject.Runtime.PanelContent content) {
-        if (content is NewGameProject.Runtime.ConstantTextContent ctc)
+        if (content is NewGameProject.Runtime.ConstantTextContent ctc) 
             Text = ctc.Value;
     }
 

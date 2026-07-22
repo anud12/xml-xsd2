@@ -33,36 +33,63 @@ public partial class ContainerListViewContentNode : Control, IContentNode
         MouseFilter = MouseFilterEnum.Pass;
     }
 
-    public void UpdateContent(PanelContent content) {
-        Refresh();
-    }
-
-    public void Refresh()
+    public void UpdateContent(PanelContent content)
     {
-        foreach (Node child in _boxContainer.GetChildren())
-        {
-            _boxContainer.RemoveChild(child);
-            child.QueueFree();
-        }
-
         var entityIds = GetEntityIds();
-        for (int i = 0; i < entityIds.Length; i++)
+        var existingChildren = _boxContainer.GetChildren();
+
+        // Update existing children in place
+        int existingCount = existingChildren.Count;
+        for (int i = 0; i < Math.Min(existingCount, entityIds.Length); i++)
         {
-            var entityId = entityIds[i];
+            var childPanel = (Panel)existingChildren[i];
             var panelContent = GetContentForEntity(i);
 
             if (panelContent != null)
             {
-                var childPanel = CreateChildPanel(entityId, i, panelContent);
-                _boxContainer.AddChild(childPanel);
-                childPanel.SetOwner(this);
+                childPanel.Update(new Runtime.Panel
+                {
+                    Id = $"item_{i}",
+                    Size = new Runtime.Size { Width = 80f, Height = 40f },
+                    Content = panelContent
+                });
             }
             else
             {
-                var childPanel = CreateItemPanel(entityId, i);
-                _boxContainer.AddChild(childPanel);
-                childPanel.SetOwner(this);
+                childPanel.Update(new Runtime.Panel
+                {
+                    Id = $"item_{i}",
+                    Size = new Runtime.Size { Width = 80f, Height = 40f },
+                    Content = new Runtime.ConstantTextContent(entityIds[i], "center")
+                });
             }
+        }
+
+        // Add new children for new entities
+        for (int i = existingCount; i < entityIds.Length; i++)
+        {
+            var entityId = entityIds[i];
+            var panelContent = GetContentForEntity(i);
+
+            Panel childPanel;
+            if (panelContent != null)
+            {
+                childPanel = CreateChildPanel(entityId, i, panelContent);
+            }
+            else
+            {
+                childPanel = CreateItemPanel(entityId, i);
+            }
+
+            _boxContainer.AddChild(childPanel);
+            childPanel.SetOwner(this);
+        }
+
+        // Remove excess children
+        for (int i = entityIds.Length; i < existingCount; i++)
+        {
+            _boxContainer.RemoveChild(existingChildren[i]);
+            existingChildren[i].QueueFree();
         }
     }
 
@@ -104,6 +131,6 @@ public partial class ContainerListViewContentNode : Control, IContentNode
 
     public override void _Ready()
     {
-        Refresh();
+        UpdateContent(_content);
     }
 }

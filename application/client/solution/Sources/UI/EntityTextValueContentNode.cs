@@ -14,8 +14,8 @@ public partial class EntityTextValueContentNode : RichTextLabel, IContentNode {
         SetJustificationFlags(TextServer.JustificationFlag.None);
         SetAnchorsPreset(LayoutPreset.FullRect);
         ApplyAlignment(content.Align);
-        Text = RuntimeInterop.GetEntityTextMapValue(content.EntityId, content.Name);
         MouseFilter = MouseFilterEnum.Pass;
+        UpdateContent(content);
     }
 
     private void ApplyAlignment(string align) {
@@ -60,8 +60,11 @@ public partial class EntityTextValueContentNode : RichTextLabel, IContentNode {
     }
 
     public void UpdateContent(NewGameProject.Runtime.PanelContent content) {
-        if (content is EntityTextValueContent etvc)
+        if (content is EntityTextValueContent etvc) {
+            this.content = etvc;
             Text = RuntimeInterop.GetEntityTextMapValue(etvc.EntityId, etvc.Name);
+        }
+            
     }
 
     public override void _Process(double delta) {

@@ -1,0 +1,6 @@
+{
+  "id": "reconcile-test",
+  "version": "1.0.0",
+  "name": "Reconcile Test",
+  "entry": "index.js"
+}
