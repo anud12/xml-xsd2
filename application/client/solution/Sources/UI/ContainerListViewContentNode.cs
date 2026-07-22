@@ -38,59 +38,58 @@ public partial class ContainerListViewContentNode : Control, IContentNode
         var entityIds = GetEntityIds();
         var existingChildren = _boxContainer.GetChildren();
 
-        // Update existing children in place
-        int existingCount = existingChildren.Count;
-        for (int i = 0; i < Math.Min(existingCount, entityIds.Length); i++)
+        UpdateExistingChildren(existingChildren, entityIds);
+        AddNewChildren(existingChildren.Count, entityIds);
+        RemoveExcessChildren(existingChildren, entityIds.Length);
+    }
+
+    void UpdateExistingChildren(Godot.Collections.Array<Node> existingChildren, string[] entityIds)
+    {
+        for (int i = 0; i < Math.Min(existingChildren.Count, entityIds.Length); i++)
         {
             var childPanel = (Panel)existingChildren[i];
-            var panelContent = GetContentForEntity(i);
-
-            if (panelContent != null)
-            {
-                childPanel.Update(new Runtime.Panel
-                {
-                    Id = $"item_{i}",
-                    Size = new Runtime.Size { Width = 80f, Height = 40f },
-                    Content = panelContent
-                });
-            }
-            else
-            {
-                childPanel.Update(new Runtime.Panel
-                {
-                    Id = $"item_{i}",
-                    Size = new Runtime.Size { Width = 80f, Height = 40f },
-                    Content = new Runtime.ConstantTextContent(entityIds[i], "center")
-                });
-            }
+            UpdateChildPanel(childPanel, entityIds[i], i);
         }
+    }
 
-        // Add new children for new entities
+    void UpdateChildPanel(Panel childPanel, string entityId, int index)
+    {
+        var panelContent = GetContentForEntity(index);
+        var content = panelContent ?? new Runtime.ConstantTextContent(entityId, "center");
+
+        childPanel.Update(new Runtime.Panel
+        {
+            Id = $"item_{index}",
+            Size = new Runtime.Size { Width = 80f, Height = 40f },
+            Content = content
+        });
+    }
+
+    void AddNewChildren(int existingCount, string[] entityIds)
+    {
         for (int i = existingCount; i < entityIds.Length; i++)
         {
-            var entityId = entityIds[i];
-            var panelContent = GetContentForEntity(i);
-
-            Panel childPanel;
-            if (panelContent != null)
-            {
-                childPanel = CreateChildPanel(entityId, i, panelContent);
-            }
-            else
-            {
-                childPanel = CreateItemPanel(entityId, i);
-            }
-
+            var childPanel = CreatePanelForEntity(entityIds[i], i);
             _boxContainer.AddChild(childPanel);
             childPanel.SetOwner(this);
         }
+    }
 
-        // Remove excess children
-        for (int i = entityIds.Length; i < existingCount; i++)
+    void RemoveExcessChildren(Godot.Collections.Array<Node> existingChildren, int desiredCount)
+    {
+        for (int i = desiredCount; i < existingChildren.Count; i++)
         {
             _boxContainer.RemoveChild(existingChildren[i]);
             existingChildren[i].QueueFree();
         }
+    }
+
+    Panel CreatePanelForEntity(string entityId, int index)
+    {
+        var panelContent = GetContentForEntity(index);
+        if (panelContent != null)
+            return CreateChildPanel(entityId, index, panelContent);
+        return CreateItemPanel(entityId, index);
     }
 
     string[] GetEntityIds()
