@@ -1,30 +1,26 @@
-// @ts-nocheck
+/** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.runtime.registerEntity({
-    id: "item-a",
+  hostApi.runtime.setEntity(string.of("item-a"), {
     numberMap: {
       value: number.of(1),
     },
   });
 
-  hostApi.runtime.registerEntity({
-    id: "item-b",
+  hostApi.runtime.setEntity(string.of("item-b"),{
     numberMap: {
       value: number.of(2),
     },
   });
 
-  hostApi.runtime.registerEntity({
-    id: "item-c",
+  hostApi.runtime.setEntity(string.of("item-c"), {
     numberMap: {
       value: number.of(3),
     },
   });
 
-  hostApi.runtime.registerContainer({
-    id: "items-container",
+  hostApi.runtime.setContainer(string.of("items-container"),{
     entities: [
       string.of("item-a"),
       string.of("item-b"),
@@ -47,11 +43,20 @@ export default (hostApi) => {
       type: "containerListView",
       containerId: string.of("items-container"),
       vertical: true,
+      align: "center",
       template: (entity, index) => ({
-        entityId: entity.id,
-        name: string.of("value"),
-        type: "entityNumberValue",
-        align: "center",
+        id:`entity_${index}`,
+        size: {
+          height: number.of(50),
+          width: number.of(100)
+        },
+        background:  hostApi.ui.texture.of("texture2.png"),
+        content: {
+          entityId: entity.getId(),
+          name: string.of("value"),
+          type: "entityNumberValue",
+          align: "center",
+        }
       })
     }
   });

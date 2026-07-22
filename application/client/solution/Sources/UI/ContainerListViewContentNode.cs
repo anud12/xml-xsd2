@@ -17,7 +17,7 @@ public partial class ContainerListViewContentNode : Control, IContentNode
 
     public ContainerListViewContentNode(Runtime.ContainerListViewContent content)
     {
-        Name = "containerListView";
+        Name = "content";
         _content = content;
         Vertical = content.Vertical;
 
@@ -54,14 +54,18 @@ public partial class ContainerListViewContentNode : Control, IContentNode
 
     void UpdateChildPanel(Panel childPanel, string entityId, int index)
     {
-        var panelContent = GetContentForEntity(index);
-        var content = panelContent ?? new Runtime.ConstantTextContent(entityId, "center");
+        var templatePanel = GetTemplatePanelForEntity(index);
+        if (templatePanel != null)
+        {
+            childPanel.Update(templatePanel.Value);
+            return;
+        }
 
         childPanel.Update(new Runtime.Panel
         {
             Id = $"item_{index}",
             Size = new Runtime.Size { Width = 80f, Height = 40f },
-            Content = content
+            Content = new Runtime.ConstantTextContent(entityId, "center")
         });
     }
 
@@ -86,9 +90,9 @@ public partial class ContainerListViewContentNode : Control, IContentNode
 
     Panel CreatePanelForEntity(string entityId, int index)
     {
-        var panelContent = GetContentForEntity(index);
-        if (panelContent != null)
-            return CreateChildPanel(entityId, index, panelContent);
+        var templatePanel = GetTemplatePanelForEntity(index);
+        if (templatePanel != null)
+            return new Panel(templatePanel.Value) { Name = templatePanel.Value.Id, UniqueNameInOwner = true };
         return CreateItemPanel(entityId, index);
     }
 
@@ -98,7 +102,7 @@ public partial class ContainerListViewContentNode : Control, IContentNode
         return container.Entities;
     }
 
-    Runtime.PanelContent? GetContentForEntity(int index)
+    Runtime.Panel? GetTemplatePanelForEntity(int index)
     {
         if (_content.TemplateResults != null && index >= 0 && index < _content.TemplateResults.Length)
             return _content.TemplateResults[index];
@@ -107,24 +111,11 @@ public partial class ContainerListViewContentNode : Control, IContentNode
 
     Panel CreateItemPanel(string entityId, int index)
     {
-        if (_content.Template != null)
-            return (Panel)_content.Template(entityId, index);
-
         return new Panel(new Runtime.Panel
         {
             Id = $"item_{index}",
             Size = new Runtime.Size { Width = 80f, Height = 40f },
             Content = new Runtime.ConstantTextContent(entityId, "center")
-        });
-    }
-
-    static Panel CreateChildPanel(string entityId, int index, Runtime.PanelContent content)
-    {
-        return new Panel(new Runtime.Panel
-        {
-            Id = $"item_{index}",
-            Size = new Runtime.Size { Width = 80f, Height = 40f },
-            Content = content
         });
     }
 

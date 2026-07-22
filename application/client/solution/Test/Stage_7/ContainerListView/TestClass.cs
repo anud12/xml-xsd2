@@ -1,9 +1,7 @@
-using System.Runtime.ExceptionServices;
 using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
 using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
-using NewGameProject.UI;
 using Vector2 = Godot.Vector2;
 
 namespace GdUnit4.Examples.Basics.Setup.Test.Stage_7.ContainerListView;
@@ -22,6 +20,7 @@ public class TestClass : Steps
             AddFileToArchive("module/index.js", "index.js")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .AddFileToArchive("module/texture.png", "texture.png")
+                .AddFileToArchive("module/texture2.png", "texture2.png")
                 .EnsureDllAccessible()
                 .ProcessArchive();
 
@@ -35,7 +34,15 @@ public class TestClass : Steps
             await runner.SimulateFrames(1);
             var panel = rootNode.GetNode<Panel>(idList[0]);
             Assertions.AssertThat(panel).IsNotNull();
-
+            AssertPanelThat(panel)
+                .HasContainerListViewContent(content => {
+                    content.IsVertical();
+                    content.HasTemplates(
+                        assertPanel => assertPanel.HasContentText("1"),
+                        assertPanel => assertPanel.HasContentText("2"),
+                        assertPanel => assertPanel.HasContentText("3")
+                    );
+                });
         }
         catch (Exception e)
         {

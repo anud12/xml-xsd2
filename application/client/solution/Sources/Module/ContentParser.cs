@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NewGameProject.Runtime;
 
 namespace NewGameProject.Module;
 
@@ -45,7 +46,7 @@ static class ContentParser
 
                 if (elem.TryGetProperty("__templateResults", out var results) && results.ValueKind == JsonValueKind.Array)
                 {
-                    var parsedResults = new List<Runtime.PanelContent>();
+                    var parsedResults = new List<Runtime.Panel>();
                     foreach (var item in results.EnumerateArray())
                     {
                         if (item.ValueKind == JsonValueKind.String)
@@ -53,10 +54,9 @@ static class ContentParser
                             var jsonStr = item.GetString();
                             if (jsonStr != null)
                             {
-                                using var doc = JsonDocument.Parse(jsonStr);
-                                var parsed = Parse(doc.RootElement);
-                                if (parsed != null)
-                                    parsedResults.Add(parsed);
+                                var parsed = ParsePanel(jsonStr);
+                                if (parsed.HasValue)
+                                    parsedResults.Add(parsed.Value);
                             }
                         }
                     }
@@ -75,5 +75,57 @@ static class ContentParser
     {
         using var doc = JsonDocument.Parse(json);
         return Parse(doc.RootElement);
+    }
+
+    internal static Runtime.Panel? ParsePanel(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        var id = Extract.String(root, "id");
+        if (id == null)
+            return null;
+
+        var panel = new Runtime.Panel
+        {
+            Id = id,
+            Background = Extract.String(root, "background"),
+        };
+
+        if (root.TryGetProperty("anchor", out var anchorElem) && anchorElem.ValueKind == JsonValueKind.Object)
+        {
+            panel.Anchor = new Runtime.Vector2
+            {
+                X = (float)(Extract.Double(anchorElem, "x") ?? 0.5),
+                Y = (float)(Extract.Double(anchorElem, "y") ?? 0.5),
+            };
+        }
+
+        if (root.TryGetProperty("offset", out var offsetElem) && offsetElem.ValueKind == JsonValueKind.Object)
+        {
+            panel.Offset = new Runtime.Offset
+            {
+                top = (float)(Extract.Double(offsetElem, "top") ?? 0),
+                bottom = (float)(Extract.Double(offsetElem, "bottom") ?? 0),
+                left = (float)(Extract.Double(offsetElem, "left") ?? 0),
+                right = (float)(Extract.Double(offsetElem, "right") ?? 0),
+            };
+        }
+
+        if (root.TryGetProperty("size", out var sizeElem) && sizeElem.ValueKind == JsonValueKind.Object)
+        {
+            panel.Size = new Runtime.Size
+            {
+                Width = (float)(Extract.Double(sizeElem, "width") ?? 80),
+                Height = (float)(Extract.Double(sizeElem, "height") ?? 40),
+            };
+        }
+
+        if (root.TryGetProperty("content", out var contentElem) && contentElem.ValueKind == JsonValueKind.Object)
+        {
+            panel.Content = Parse(contentElem);
+        }
+
+        return panel;
     }
 }

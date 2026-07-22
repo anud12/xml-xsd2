@@ -141,7 +141,7 @@ export type ContainerListViewComponent = {
   containerId: StringExpression
   /** When `true` (default), children stack vertically. When `false`, they stack horizontally. */
   vertical?: boolean
-  template:(entity:Entity, index:number) => PanelContent
+  template:(entity:Entity, index:number) => PanelOptions
 }
 
 /**

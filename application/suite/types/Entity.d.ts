@@ -38,6 +38,7 @@ export type EntityExpression = {
 }
 
 export type Entity = {
+  getId:() => StringExpression,
   getText: (key: StringExpression) => MaybeExpression<StringExpression>,
   getNumber: (key: StringExpression) => MaybeExpression<NumberExpression>,
   getTextKeys: () => ListExpression<string>,

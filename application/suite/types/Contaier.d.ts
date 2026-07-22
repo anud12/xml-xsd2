@@ -21,6 +21,8 @@ export type ContainerCreationArguments = {
   sizeX?: { value: NumberExpression, outOfBounds: OutOfBoundsRule }
   /** Optional size bounds along the y-axis */
   sizeY?: { value: NumberExpression, outOfBounds: OutOfBoundsRule }
+  
+  entities: Array<StringExpression>
 }
 
 export type ContainerExpressionApi = {
