@@ -43,6 +43,7 @@ public class TestClass : Steps
                         assertPanel => assertPanel.HasContentText("3")
                     );
                 });
+            AssertScreenshot("expected.png");
         }
         catch (Exception e)
         {

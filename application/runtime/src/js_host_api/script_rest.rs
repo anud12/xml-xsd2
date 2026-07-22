@@ -20,6 +20,7 @@ pub fn host_api_script_rest() -> String {
         host_api_script_panel,
         host_api_script_create_entity,
         host_api_script_set_entity,
+        host_api_script_set_container,
         host_api_script_register_entity,
         host_api_script_register_container,
     };
@@ -33,8 +34,10 @@ pub fn host_api_script_rest() -> String {
     parts.push(host_api_script_panel().to_string());
     parts.push(
         host_api_script_create_entity().to_string());
-    parts.push(
+        parts.push(
         host_api_script_set_entity().to_string());
+    parts.push(
+        host_api_script_set_container().to_string());
     parts.push(
         host_api_script_register_entity().to_string());
     parts.push(

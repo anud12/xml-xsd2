@@ -89,7 +89,7 @@ static class ContentParser
         var panel = new Runtime.Panel
         {
             Id = id,
-            Background = Extract.String(root, "background"),
+            Background = ExtractTexture(root),
         };
 
         if (root.TryGetProperty("anchor", out var anchorElem) && anchorElem.ValueKind == JsonValueKind.Object)
@@ -127,5 +127,21 @@ static class ContentParser
         }
 
         return panel;
+    }
+
+    static string? ExtractTexture(JsonElement elem)
+    {
+        var direct = Extract.String(elem, "background");
+        if (direct != null)
+            return direct;
+
+        if (elem.TryGetProperty("background", out var bg) && bg.ValueKind == JsonValueKind.Object)
+        {
+            var name = Extract.String(bg, "name");
+            if (name != null)
+                return name;
+        }
+
+        return null;
     }
 }

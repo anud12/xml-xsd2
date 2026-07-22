@@ -63,6 +63,39 @@ pub(super) fn host_api_script_register_entity()
     },"#
 }
 
+pub(super) fn host_api_script_set_container()
+    -> &'static str
+{
+    r#"setContainer(id, data) {
+        try {
+            var resolvedId = typeof id === 'object' ? id.value : id;
+            globalThis.__containerData =
+                globalThis.__containerData || {};
+            if (typeof resolvedId === 'string' && data
+                && typeof data === 'object') {
+                data.id = resolvedId;
+                globalThis.__containerData[resolvedId] = data;
+                var out = {id: resolvedId};
+                if (data.entities) {
+                    out.entities = data.entities.map(function(e) { return String(e); });
+                }
+                if (data.textMap) out.textMap = data.textMap;
+                if (data.numberMap) out.numberMap = data.numberMap;
+                if (data.getX) out.getX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getX) : {};
+                if (data.getY) out.getY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getY) : {};
+                if (data.getSpanX) out.getSpanX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanX) : {};
+                if (data.getSpanY) out.getSpanY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanY) : {};
+                if (data.sizeX) out.sizeX = data.sizeX;
+                if (data.sizeY) out.sizeY = data.sizeY;
+                var serialized = JSON.stringify(out);
+                globalThis.__registeredContainers =
+                    globalThis.__registeredContainers || [];
+                globalThis.__registeredContainers.push(serialized);
+            }
+        } catch(e) { /* ignore */ }
+    },"#
+}
+
 pub(super) fn host_api_script_register_container()
     -> &'static str
 {

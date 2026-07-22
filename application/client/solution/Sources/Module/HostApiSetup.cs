@@ -15,7 +15,8 @@ var hostApi = {
                 var templateResults = [];
                 var entityIds = __host_getContainerEntityIds(containerId);
                 for (var i = 0; i < entityIds.length; i++) {
-                    var result = p.content.template({ id: entityIds[i] }, i);
+                    var entityId = entityIds[i];
+                    var result = p.content.template({ getId: function(e) { return function() { return e; }; }(entityId) }, i);
                     templateResults.push(JSON.stringify(result));
                 }
                 var contentCopy = {};
@@ -39,9 +40,13 @@ var hostApi = {
         number: { of: function(n) { return n; } },
         string: { of: function(s) { return s; } },
         setEntity: function(id, data) {
-            if (typeof id === ""string"") __registeredEntities[id] = data;
+            var resolvedId = typeof id === ""object"" ? id.value : id;
+            if (typeof resolvedId === ""string"") __registeredEntities[resolvedId] = data;
         },
-        setContainer: function() {},
+        setContainer: function(id, data) {
+            var resolvedId = typeof id === ""object"" ? id.value : id;
+            if (typeof resolvedId === ""string"") __registeredContainers[resolvedId] = data;
+        },
         registerEffect: function() {},
         registerAction: function() {},
         registerContainer: function(c) {
