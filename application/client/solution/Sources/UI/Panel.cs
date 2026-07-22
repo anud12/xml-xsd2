@@ -98,11 +98,16 @@ public partial class Panel : Godot.Panel {
             return;
         }
 
-        // Different type — replace
+        // Different type — replace in the same position
+        var index = _contentNode.GetIndex();
+        var newNode = CreateContentNode(content);
         RemoveChild(_contentNode);
         _contentNode.QueueFree();
-        _contentNode = CreateContentNode(content);
-        if (_contentNode != null) AddChild(_contentNode);
+        _contentNode = newNode;
+        if (_contentNode != null) {
+            AddChild(_contentNode);
+            MoveChild(_contentNode, index);
+        }
     }
 
     static Type ContentNodeForType(PanelContent content) {
