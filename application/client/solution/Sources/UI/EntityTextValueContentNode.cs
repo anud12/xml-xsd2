@@ -14,6 +14,7 @@ public partial class EntityTextValueContentNode : RichTextLabel {
         SetAnchorsPreset(LayoutPreset.FullRect);
         ApplyAlignment(content.Align);
         Text = RuntimeInterop.GetEntityTextMapValue(content.EntityId, content.Name);
+        MouseFilter = MouseFilterEnum.Pass;
     }
 
     private void ApplyAlignment(string align) {

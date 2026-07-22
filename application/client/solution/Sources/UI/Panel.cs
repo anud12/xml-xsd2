@@ -9,6 +9,7 @@ public partial class Panel : Godot.Panel {
     HoverOutline? _hoverOutline;
     BoxContainer? _gridOrder;
     List<BoxContainer>? _tracks;
+    Control? _contentNode;
 
 
     public NewGameProject.Runtime.Panel ChildPanel {
@@ -58,26 +59,8 @@ public partial class Panel : Godot.Panel {
 
     public void Update(NewGameProject.Runtime.Panel panel) {
         _panel = panel;
+        UpdateContentNode(panel.Content);
 
-        // --- content nodes ---
-        ClearContentChildren();
-
-        if (panel.Content is ConstantTextContent ctc)
-            AddChild(new ConstantTextContentNode(ctc));
-
-        if (panel.Content is EntityTextValueContent etvc)
-            AddChild(new EntityTextValueContentNode(etvc));
-
-        if (panel.Content is ConstantNumberContent cnc)
-            AddChild(new ConstantNumberContentNode(cnc));
-
-        if (panel.Content is EntityNumberValueContent envc)
-            AddChild(new EntityNumberValueContentNode(envc));
-
-        if (panel.Content is ContainerListViewContent clvc)
-            AddChild(new ContainerListViewContentNode(clvc));
-
-        // --- background ---
         if (panel.Background != null) {
             var files = RuntimeInterop.GetFileFromArchive();
             if (files.TryGetValue(panel.Background, out var imageData)) {
@@ -90,10 +73,75 @@ public partial class Panel : Godot.Panel {
             }
         }
 
-        // --- children grid ---
         UpdateChildren(panel);
+    }
 
-        SetChildrenMouseIgnore();
+    void UpdateContentNode(PanelContent? content) {
+        if (content == null) {
+            if (_contentNode != null) {
+                RemoveChild(_contentNode);
+                _contentNode.QueueFree();
+                _contentNode = null;
+            }
+            return;
+        }
+
+        if (_contentNode == null) {
+            _contentNode = CreateContentNode(content);
+            if (_contentNode != null) AddChild(_contentNode);
+            return;
+        }
+
+        // Same type — update in place
+        if (_contentNode.GetType() == ContentNodeForType(content)) {
+            UpdateContentNodeInPlace(_contentNode, content);
+            return;
+        }
+
+        // Different type — replace
+        RemoveChild(_contentNode);
+        _contentNode.QueueFree();
+        _contentNode = CreateContentNode(content);
+        if (_contentNode != null) AddChild(_contentNode);
+    }
+
+    static Type ContentNodeForType(PanelContent content) {
+        return content switch {
+            ConstantTextContent => typeof(ConstantTextContentNode),
+            EntityTextValueContent => typeof(EntityTextValueContentNode),
+            ConstantNumberContent => typeof(ConstantNumberContentNode),
+            EntityNumberValueContent => typeof(EntityNumberValueContentNode),
+            ContainerListViewContent => typeof(ContainerListViewContentNode),
+            _ => typeof(Control)
+        };
+    }
+
+    Control? CreateContentNode(PanelContent content) {
+        return content switch {
+            ConstantTextContent c => new ConstantTextContentNode(c),
+            EntityTextValueContent e => new EntityTextValueContentNode(e),
+            ConstantNumberContent n => new ConstantNumberContentNode(n),
+            EntityNumberValueContent n => new EntityNumberValueContentNode(n),
+            ContainerListViewContent c => new ContainerListViewContentNode(c),
+            _ => null
+        };
+    }
+
+    static void UpdateContentNodeInPlace(Control node, PanelContent content) {
+        if (node is ConstantTextContentNode ctcn && content is ConstantTextContent ctc)
+            ctcn.Text = ctc.Value;
+
+        if (node is ConstantNumberContentNode cncn && content is ConstantNumberContent cnc)
+            cncn.Text = cnc.Value.ToString();
+
+        if (node is EntityTextValueContentNode etvcn && content is EntityTextValueContent etvc)
+            etvcn.Text = RuntimeInterop.GetEntityTextMapValue(etvc.EntityId, etvc.Name);
+
+        if (node is EntityNumberValueContentNode envcn && content is EntityNumberValueContent envc)
+            envcn.Text = RuntimeInterop.GetEntityNumberMapValue(envc.EntityId, envc.Name);
+
+        if (node is ContainerListViewContentNode clvcn && content is ContainerListViewContent clvc)
+            clvcn.Refresh();
     }
 
     void UpdateChildren(NewGameProject.Runtime.Panel panel) {
@@ -138,18 +186,6 @@ public partial class Panel : Godot.Panel {
         }
     }
 
-    void ClearContentChildren() {
-        foreach (Node child in GetChildren()) {
-            if (child.Name == "content" || child is ConstantTextContentNode ||
-                child is EntityTextValueContentNode || child is ConstantNumberContentNode ||
-                child is EntityNumberValueContentNode || child is ContainerListViewContentNode) {
-                RemoveChild(child);
-                child.QueueFree();
-            }
-        }
-    }
-
-
     public override void _GuiInput(InputEvent @event) {
         if (@event is InputEventMouseButton mouseEvent) {
             if (mouseEvent.Pressed && mouseEvent.ButtonIndex == MouseButton.Left) {
@@ -168,12 +204,4 @@ public partial class Panel : Godot.Panel {
     public override void _EnterTree() { }
 
     public override void _Process(double delta) { }
-
-    void SetChildrenMouseIgnore() {
-        MouseFilter = MouseFilterEnum.Pass;
-        foreach (Node child in GetChildren()) {
-            if (child is Control controlChild)
-                controlChild.MouseFilter = MouseFilterEnum.Pass;
-        }
-    }
 }

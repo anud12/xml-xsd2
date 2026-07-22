@@ -30,6 +30,7 @@ public partial class ContainerListViewContentNode : Control
         };
         _boxContainer.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(_boxContainer);
+        MouseFilter = MouseFilterEnum.Pass;
     }
 
     public void Refresh()

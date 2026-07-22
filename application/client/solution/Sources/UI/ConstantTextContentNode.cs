@@ -9,6 +9,7 @@ public partial class ConstantTextContentNode : RichTextLabel {
         SetAnchorsPreset(LayoutPreset.FullRect);
         ApplyAlignment(content.Align);
         Text = content.Value;
+        MouseFilter = MouseFilterEnum.Pass;
     }
 
     private void ApplyAlignment(string align) {
