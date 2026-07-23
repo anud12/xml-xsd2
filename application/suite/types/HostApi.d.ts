@@ -12,6 +12,7 @@ import {RegisterActionFunction} from "./action";
 import {RegisterPanelFunction} from "./ui/Panel";
 import {TextureApi} from "./texture/TextureApi";
 import {EntityCreationArguments} from "./Entity";
+import {RegisterAnimationFunction, GetAnimationFunction} from "./animation/AnimationRegistration";
 
 export type HostApi = {
   ui: {
@@ -37,6 +38,8 @@ export type HostApi = {
 
     registerEffect: RegisterEffectFunction,
     registerAction: RegisterActionFunction,
+    registerAnimation: RegisterAnimationFunction,
+    getAnimation: GetAnimationFunction,
 
     emitEvent: <T>(eventName: string, arguments: T) => void
     log:(string:string) => void;

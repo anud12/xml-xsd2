@@ -1,7 +1,8 @@
 import {NumberExpression} from "../primitives/numberExpression";
-import {TextureResource} from "../texture/TextureResource";
+import {SpriteResource} from "../texture/SpriteResource";
 import {StringExpression} from "../primitives/stringExpression";
 import {Entity, EntityExpression} from "../Entity";
+import {AnimationRegistrationArguments} from "../animation/AnimationRegistration";
 
 /**
  * Callback signature for registering a panel with the UI host.
@@ -39,8 +40,8 @@ export type PanelOptions = {
   };
   /** Panel dimensions in logical units. */
   size: { width: NumberExpression; height: NumberExpression };
-  /** Background texture applied to the panel. */
-  background: TextureResource;
+  /** Background sprite or animation applied to the panel. */
+  background: SpriteResource | AnimationRegistrationArguments;
   /** Content component rendered inside the panel. */
   content?: PanelContent
   /** Handler invoked when the panel is clicked. */
@@ -48,7 +49,7 @@ export type PanelOptions = {
   /** Hover state configuration. */
   hover?: {
     /** Texture shown on hover. */
-    texture: TextureResource;
+    texture: SpriteResource;
     /** Border thickness in logical units. */
     thickness: number;
   };
