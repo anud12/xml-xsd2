@@ -55,6 +55,16 @@ export default (hostApi) => {
 
   hostApi.runtime.emitEvent("repeat", {});
 
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("hover.png"), {
+    frames: [
+      { sprite: hostApi.ui.texture.getSpritePNG("hover.png"), gtu: hostApi.runtime.number.of(10) },
+    ],
+  });
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture.png"), {
+    frames: [
+      { sprite: hostApi.ui.texture.getSpritePNG("texture.png"), gtu: hostApi.runtime.number.of(10) },
+    ],
+  });
   hostApi.ui.registerPanel({
     id: "center",
     size: {

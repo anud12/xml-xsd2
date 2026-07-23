@@ -28,6 +28,16 @@ export default (hostApi) => {
     ],
   });
 
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture.png"), {
+    frames: [
+      { sprite: hostApi.ui.texture.getSpritePNG("texture.png"), gtu: hostApi.runtime.number.of(10) },
+    ],
+  });
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture2.png"), {
+    frames: [
+      { sprite: hostApi.ui.texture.getSpritePNG("texture2.png"), gtu: hostApi.runtime.number.of(10) },
+    ],
+  });
   hostApi.ui.registerPanel({
     id: "list-panel",
     size: {

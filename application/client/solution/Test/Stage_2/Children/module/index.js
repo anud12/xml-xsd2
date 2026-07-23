@@ -1,6 +1,16 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const { number } = hostApi.runtime;
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture.png"), {
+    frames: [
+      { sprite: hostApi.ui.texture.getSpritePNG("texture.png"), gtu: hostApi.runtime.number.of(10) },
+    ],
+  });
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture_2.png"), {
+    frames: [
+      { sprite: hostApi.ui.texture.getSpritePNG("texture_2.png"), gtu: hostApi.runtime.number.of(10) },
+    ],
+  });
   hostApi.ui.registerPanel({
     id: "center",
     size: {
