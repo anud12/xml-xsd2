@@ -137,9 +137,24 @@ static class ContentParser
 
         if (elem.TryGetProperty("background", out var bg) && bg.ValueKind == JsonValueKind.Object)
         {
-            var name = Extract.String(bg, "name");
-            if (name != null)
-                return name;
+            if (bg.TryGetProperty("frames", out var frames) && frames.ValueKind == JsonValueKind.Array
+                && frames.GetArrayLength() > 0)
+            {
+                var firstFrame = frames[0];
+                if (firstFrame.ValueKind == JsonValueKind.Object && firstFrame.TryGetProperty("sprite", out var sprite))
+                {
+                    if (sprite.ValueKind == JsonValueKind.String)
+                        return sprite.GetString();
+                    if (sprite.ValueKind == JsonValueKind.Object && sprite.TryGetProperty("name", out var spriteName))
+                    {
+                        return spriteName.GetString();
+                    }
+                }
+            }
+
+            var nameVal = Extract.String(bg, "name");
+            if (nameVal != null)
+                return nameVal;
         }
 
         return null;

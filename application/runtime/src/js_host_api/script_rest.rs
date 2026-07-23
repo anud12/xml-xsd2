@@ -11,7 +11,36 @@ pub fn host_api_script_log() -> &'static str {
         } catch(e) { }
     }, number: { of: function(n) { return n; } },
     string: { of: function(s) { return s; } },
-    texture: { of: function(t) { return t; } }"#
+    texture: {
+        of: function(t) { return t; },
+        getAnimation: function(name) {
+            var resolvedName = typeof name === 'object' ? name.value : name;
+            if (globalThis.__registeredAnimations
+                && globalThis.__registeredAnimations[resolvedName]) {
+                return globalThis.__registeredAnimations[resolvedName];
+            }
+            return null;
+        }
+    },"#
+}
+
+pub fn host_api_script_animation() -> &'static str {
+    r#"registerAnimation(name, args) {
+        globalThis.__registeredAnimations =
+            globalThis.__registeredAnimations || {};
+        var resolvedName = typeof name === 'object' ? name.value : name;
+        if (typeof resolvedName === 'string') {
+            globalThis.__registeredAnimations[resolvedName] = args;
+        }
+    },
+    getAnimation(name) {
+        var resolvedName = typeof name === 'object' ? name.value : name;
+        if (globalThis.__registeredAnimations
+            && globalThis.__registeredAnimations[resolvedName]) {
+            return globalThis.__registeredAnimations[resolvedName];
+        }
+        return null;
+    },"#
 }
 
 pub fn host_api_script_rest() -> String {
@@ -44,6 +73,7 @@ pub fn host_api_script_rest() -> String {
         host_api_script_register_container().to_string());
     parts.push(host_api_script_entity_filter().to_string());
     parts.push(host_api_script_log().to_string());
+    parts.push(host_api_script_animation().to_string());
     let mut s = parts.join("");
     s.push_str(" }");
     s

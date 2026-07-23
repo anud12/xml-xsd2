@@ -4,5 +4,4 @@ import {AnimationRegistrationArguments} from "../animation/AnimationRegistration
 
 export type TextureApi = {
   getAnimation: (name: StringExpression) => AnimationRegistrationArguments;
-  getSpritePNG: (path: string) => SpriteResource;
 }

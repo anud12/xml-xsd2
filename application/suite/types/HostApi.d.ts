@@ -11,6 +11,7 @@ import {TextMapExpressionApi} from "./textMap";
 import {RegisterActionFunction} from "./action";
 import {RegisterPanelFunction} from "./ui/Panel";
 import {TextureApi} from "./texture/TextureApi";
+import {SpriteResource} from "./texture/SpriteResource";
 import {EntityCreationArguments} from "./Entity";
 import {RegisterAnimationFunction, GetAnimationFunction} from "./animation/AnimationRegistration";
 
@@ -18,6 +19,7 @@ export type HostApi = {
   ui: {
     registerPanel: RegisterPanelFunction,
     texture: TextureApi,
+    getSpritePNG: (path: string) => SpriteResource,
   },
   runtime: {
     condition: ConditionExpressionApi,

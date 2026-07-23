@@ -57,12 +57,12 @@ export default (hostApi) => {
 
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("hover"), {
     frames: [
-      { sprite: hostApi.ui.texture.getSpritePNG("hover.png"), gtu: hostApi.runtime.number.of(10) },
+      { sprite: hostApi.ui.getSpritePNG("hover.png"), gtu: hostApi.runtime.number.of(10) },
     ],
   });
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
-      { sprite: hostApi.ui.texture.getSpritePNG("texture.png"), gtu: hostApi.runtime.number.of(10) },
+      { sprite: hostApi.ui.getSpritePNG("texture.png"), gtu: hostApi.runtime.number.of(10) },
     ],
   });
   hostApi.ui.registerPanel({

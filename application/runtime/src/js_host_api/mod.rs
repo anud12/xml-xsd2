@@ -26,6 +26,8 @@ pub struct Declarations {
     pub containers: Vec<String>,
     #[serde(default)]
     pub pending_effects: Vec<String>,
+    #[serde(default)]
+    pub animations: HashMap<String, serde_json::Value>,
 }
 
 pub fn install_host_api(ctx: &Context) -> Result<()> {

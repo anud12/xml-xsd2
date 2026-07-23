@@ -7,7 +7,8 @@ pub(super) fn extract_declarations_script() -> String {
                 events: [], actions: [], functions: [],
                 entities: [], creators: {{}}, emits: {{}},
                 panels: [], entity_data: {{}},
-                containers: [], pending_effects: []
+                containers: [], pending_effects: [],
+                animations: {{}}
             }};
             {}
             out.logs = globalThis.__logs || [];
@@ -37,6 +38,8 @@ pub(super) fn extract_declarations_script() -> String {
                         && typeof pe.name === 'string')
                         ? pe.name : String(pe);
                 }});
+            out.animations =
+                globalThis.__registeredAnimations || {{}};
             return JSON.stringify(out);
         }})()"#,
         extract_map_items()

@@ -3,12 +3,12 @@ export default (hostApi) => {
   const { number } = hostApi.runtime;
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
-      { sprite: hostApi.ui.texture.getSpritePNG("texture.png"), gtu: hostApi.runtime.number.of(10) },
+      { sprite: hostApi.ui.getSpritePNG("texture.png"), gtu: hostApi.runtime.number.of(10) },
     ],
   });
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture_2"), {
     frames: [
-      { sprite: hostApi.ui.texture.getSpritePNG("texture_2.png"), gtu: hostApi.runtime.number.of(10) },
+      { sprite: hostApi.ui.getSpritePNG("texture_2.png"), gtu: hostApi.runtime.number.of(10) },
     ],
   });
   hostApi.ui.registerPanel({
