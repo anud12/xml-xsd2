@@ -1,17 +1,21 @@
 using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
 using NewGameProject.Runtime;
+using NewGameProject.UI;
 using Vector2 = Godot.Vector2;
 
 public partial class Panel : Godot.Panel {
-    private NewGameProject.Runtime.Panel panel;
-    private HoverOutline _hoverOutline;
+    NewGameProject.Runtime.Panel _panel;
+    HoverOutline? _hoverOutline;
+    BoxContainer? _gridOrder;
+    List<BoxContainer>? _tracks;
+    Control? _contentNode;
 
 
     public NewGameProject.Runtime.Panel ChildPanel {
         get {
-            if (panel.Children != null && panel.Children.Length > 0) return panel.Children[0];
-            return panel;
+            if (_panel.Children != null && _panel.Children.Length > 0) return _panel.Children[0];
+            return _panel;
         }
     }
 
@@ -19,7 +23,7 @@ public partial class Panel : Godot.Panel {
         Name = panel.Id;
         UniqueNameInOwner = true;
         Owner = GetParent();
-        this.panel = panel;
+        _panel = panel;
         AnchorTop = panel.Anchor.Y;
         AnchorBottom = panel.Anchor.Y;
         AnchorLeft = panel.Anchor.X;
@@ -31,51 +35,35 @@ public partial class Panel : Godot.Panel {
         SetCustomMinimumSize(new Vector2(panel.Size.Width, panel.Size.Height));
         GrowHorizontal = GrowDirection.Both;
         GrowVertical = GrowDirection.Both;
-        // ClipContents = true;
-
 
         if (panel.Hover.HasValue) {
             _hoverOutline = new HoverOutline(panel.Hover);
             _hoverOutline.Visible = false;
-            MouseEntered += () =>  _hoverOutline.Visible = true;
+            MouseEntered += () => _hoverOutline.Visible = true;
             MouseExited += () => _hoverOutline.Visible = false;
             Resized += () => _hoverOutline.Resize();
             AddChild(_hoverOutline);
             _hoverOutline.Resize();
         }
 
-        // Debug: print incoming native panel values to help diagnose anchor/size mapping issues
         GD.Print(
             $"DEBUG Panel: id={panel.Id} anchor=({panel.Anchor.X},{panel.Anchor.Y}) pivot=({panel.Pivot.X},{panel.Pivot.Y}) offset=({panel.Offset.top},{panel.Offset.bottom},{panel.Offset.left},{panel.Offset.right}) size=({panel.Size.Width},{panel.Size.Height}) background={(panel.Background ?? "null")}");
 
-        // Debug: print OnClick handler info
-        if (panel.OnClick.HasValue) {
+        if (panel.OnClick.HasValue)
             GD.Print($"DEBUG Panel OnClick: id={panel.Id} actionName={panel.OnClick.Value.ActionName}");
-        }
-        else {
+        else
             GD.Print($"DEBUG Panel OnClick: id={panel.Id} NONE");
-        }
 
-        //if panel.Content is instance of ConstantTextContent, add a RichTextLabel
-        if (panel.Content is ConstantTextContent constantTextContent) {
-            AddChild(new ConstantTextContentNode(constantTextContent));
-        }
+        Update(panel);
+    }
 
-        if (panel.Content is EntityTextValueContent entityTextValueContent) {
-            AddChild(new EntityTextValueContentNode(entityTextValueContent));
-        }
-
-        if (panel.Content is ConstantNumberContent constantNumberContent) {
-            AddChild(new ConstantNumberContentNode(constantNumberContent));
-        }
-
-        if (panel.Content is EntityNumberValueContent entityNumberValueContent) {
-            AddChild(new EntityNumberValueContentNode(entityNumberValueContent));
-        }
+    public void Update(NewGameProject.Runtime.Panel panel) {
+        _panel = panel;
+        UpdateContentNode(panel.Content);
 
         if (panel.Background != null) {
-            var Files = RuntimeInterop.GetFileFromArchive();
-            if (Files.TryGetValue(panel.Background, out var imageData)) {
+            var files = RuntimeInterop.GetFileFromArchive();
+            if (files.TryGetValue(panel.Background, out var imageData)) {
                 Image img = new Image();
                 img.LoadPngFromBuffer(imageData);
                 TextureFilter = TextureFilterEnum.Nearest;
@@ -85,89 +73,123 @@ public partial class Panel : Godot.Panel {
             }
         }
 
-
-        if (panel.Children != null) {
-            var gridOrderContainer = new BoxContainer {
-                Name = "gridOrder",
-                Vertical = false,
-            };
-            gridOrderContainer.AddThemeConstantOverride("separation", 0);
-            AddChild(gridOrderContainer);
-
-            var numberOfTracks = panel.Layout?.Columns?.Length ?? 1;
-
-            var tracks = new List<BoxContainer>();
-            foreach (var i in Enumerable.Range(0, numberOfTracks)) {
-                var trackElement = new BoxContainer {
-                    Name = "track_" + i,
-                    Vertical = true,
-                };
-                trackElement.AddThemeConstantOverride("separation", 0);
-                tracks.Add(trackElement);
-                gridOrderContainer.AddChild(trackElement);
-            }
-
-            for (int i = 0; i < panel.Children.Length; i++) {
-                var child = panel.Children[i];
-                var p = new Panel(child) {
-                    Name = child.Id,
-                    UniqueNameInOwner = true
-                };
-                tracks.ElementAt(i % numberOfTracks).AddChild(p);
-                p.SetOwner(this);
-            }
-        }
-
-        SetChildrenMouseIgnore();
+        UpdateChildren(panel);
     }
 
+    void UpdateContentNode(PanelContent? content) {
+        if (content == null) {
+            if (_contentNode != null) {
+                RemoveChild(_contentNode);
+                _contentNode.QueueFree();
+                _contentNode = null;
+            }
+            return;
+        }
+
+        if (_contentNode == null) {
+            _contentNode = CreateContentNode(content);
+            if (_contentNode != null) AddChild(_contentNode);
+            return;
+        }
+
+        // Same type — update in place via polymorphism
+        if (_contentNode.GetType() == ContentNodeForType(content)) {
+            ((IContentNode)_contentNode).UpdateContent(content);
+            return;
+        }
+
+        // Different type — replace in the same position
+        var index = _contentNode.GetIndex();
+        var newNode = CreateContentNode(content);
+        RemoveChild(_contentNode);
+        _contentNode.QueueFree();
+        _contentNode = newNode;
+        if (_contentNode != null) {
+            AddChild(_contentNode);
+            MoveChild(_contentNode, index);
+        }
+    }
+
+    static Type ContentNodeForType(PanelContent content) {
+        return content switch {
+            ConstantTextContent => typeof(ConstantTextContentNode),
+            EntityTextValueContent => typeof(EntityTextValueContentNode),
+            ConstantNumberContent => typeof(ConstantNumberContentNode),
+            EntityNumberValueContent => typeof(EntityNumberValueContentNode),
+            ContainerListViewContent => typeof(ContainerListViewContentNode),
+            _ => typeof(Control)
+        };
+    }
+
+    Control? CreateContentNode(PanelContent content) {
+        return content switch {
+            ConstantTextContent c => new ConstantTextContentNode(c),
+            EntityTextValueContent e => new EntityTextValueContentNode(e),
+            ConstantNumberContent n => new ConstantNumberContentNode(n),
+            EntityNumberValueContent n => new EntityNumberValueContentNode(n),
+            ContainerListViewContent c => new ContainerListViewContentNode(c),
+            _ => null
+        };
+    }
+
+    void UpdateChildren(NewGameProject.Runtime.Panel panel) {
+        if (_gridOrder != null) {
+            RemoveChild(_gridOrder);
+            _gridOrder.QueueFree();
+            _gridOrder = null;
+        }
+        _tracks = null;
+
+        if (panel.Children == null)
+            return;
+
+        _gridOrder = new BoxContainer {
+            Name = "gridOrder",
+            Vertical = false,
+        };
+        _gridOrder.AddThemeConstantOverride("separation", 0);
+        AddChild(_gridOrder);
+
+        var numberOfTracks = panel.Layout?.Columns?.Length ?? 1;
+        _tracks = new List<BoxContainer>();
+
+        foreach (var i in Enumerable.Range(0, numberOfTracks)) {
+            var track = new BoxContainer {
+                Name = "track_" + i,
+                Vertical = true,
+            };
+            track.AddThemeConstantOverride("separation", 0);
+            _tracks.Add(track);
+            _gridOrder.AddChild(track);
+        }
+
+        for (int i = 0; i < panel.Children.Length; i++) {
+            var child = panel.Children[i];
+            var p = new Panel(child) {
+                Name = child.Id,
+                UniqueNameInOwner = true
+            };
+            _tracks[i % numberOfTracks].AddChild(p);
+            p.SetOwner(this);
+        }
+    }
 
     public override void _GuiInput(InputEvent @event) {
-        // Check if the event is a mouse button click
         if (@event is InputEventMouseButton mouseEvent) {
-            // .Pressed ensures we trigger on 'down', and Mask checks for Left Click
             if (mouseEvent.Pressed && mouseEvent.ButtonIndex == MouseButton.Left) {
-                var actionName = panel.OnClick?.ActionName;
+                var actionName = _panel.OnClick?.ActionName;
                 if (actionName != null) {
-                    GD.Print($"{panel.Id}: Emitting action: {actionName}");
+                    GD.Print($"{_panel.Id}: Emitting action: {actionName}");
                     RuntimeInterop.emitAction(actionName);
                 }
-
-                // Optional: Stop the event from bubbling up to parent nodes
                 GetViewport().SetInputAsHandled();
             }
         }
     }
 
-    private void _MouseEnter() {
-        _hoverOutline.Visible = true;
-    }
+    public override void _Ready() { }
 
-    private void _MouseExit() {
-        _hoverOutline.Visible = false;
-    }
+    public override void _EnterTree() { }
 
-    // Called when the node enters the scene tree for the first time.
-    public override void _Ready() {
-    }
-
-    public override void _EnterTree() {
-    }
-
-    // Called every frame. 'delta' is the elapsed time since the previous frame.
-    public override void _Process(double delta) {
-    }
-    
-    private void SetChildrenMouseIgnore() {
-        MouseFilter = MouseFilterEnum.Pass;
-        foreach (Node child in GetChildren())
-        {
-            // If the child is a Control UI element, ignore its mouse events
-            if (child is Control controlChild)
-            {
-                controlChild.MouseFilter = MouseFilterEnum.Pass;
-            }
-
-        }
-    }
+    public override void _Process(double delta) { }
 }

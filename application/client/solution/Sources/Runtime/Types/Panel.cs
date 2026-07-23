@@ -142,3 +142,16 @@ public class EntityNumberValueContent : PanelContent
         EntityId = entityId;
     }
 }
+
+public class ContainerListViewContent : PanelContent
+{
+    public string ContainerId { get; set; }
+    public bool Vertical { get; set; }
+    public Panel[]? TemplateResults { get; set; }
+
+    public ContainerListViewContent(string containerId, bool vertical = true)
+    {
+        ContainerId = containerId;
+        Vertical = vertical;
+    }
+}

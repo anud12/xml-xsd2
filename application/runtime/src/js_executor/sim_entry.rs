@@ -50,6 +50,7 @@ var hostApi={
     registerContainer:h.registerContainer,
     registerEntity:h.registerEntity,
     setEntity:h.setEntity,
+    setContainer:h.setContainer,
     log:h.log,
     entity:h.entity,
     maybe:{

@@ -1,6 +1,7 @@
 using Godot;
+using NewGameProject.UI;
 
-public partial class ConstantTextContentNode : RichTextLabel {
+public partial class ConstantTextContentNode : RichTextLabel, IContentNode {
     public ConstantTextContentNode(NewGameProject.Runtime.ConstantTextContent content) {
         Name = "content";
         FitContent = true;
@@ -8,7 +9,13 @@ public partial class ConstantTextContentNode : RichTextLabel {
         SetJustificationFlags(TextServer.JustificationFlag.None);
         SetAnchorsPreset(LayoutPreset.FullRect);
         ApplyAlignment(content.Align);
-        Text = content.Value;
+        MouseFilter = MouseFilterEnum.Pass;
+        UpdateContent(content);
+    }
+
+    public void UpdateContent(NewGameProject.Runtime.PanelContent content) {
+        if (content is NewGameProject.Runtime.ConstantTextContent ctc) 
+            Text = ctc.Value;
     }
 
     private void ApplyAlignment(string align) {

@@ -1,6 +1,7 @@
 using Godot;
+using NewGameProject.UI;
 
-public partial class ConstantNumberContentNode : RichTextLabel {
+public partial class ConstantNumberContentNode : RichTextLabel, IContentNode {
     public ConstantNumberContentNode(NewGameProject.Runtime.ConstantNumberContent content) {
         Name = "content";
         FitContent = true;
@@ -8,7 +9,13 @@ public partial class ConstantNumberContentNode : RichTextLabel {
         SetJustificationFlags(TextServer.JustificationFlag.None);
         SetAnchorsPreset(LayoutPreset.FullRect);
         ApplyAlignment(content.Align);
-        Text = content.Value.ToString();
+        UpdateContent(content);
+        MouseFilter = MouseFilterEnum.Pass;
+    }
+
+    public void UpdateContent(NewGameProject.Runtime.PanelContent content) {
+        if (content is NewGameProject.Runtime.ConstantNumberContent cnc)
+            Text = cnc.Value.ToString();
     }
 
     private void ApplyAlignment(string align) {

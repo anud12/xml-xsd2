@@ -1,7 +1,8 @@
 using Godot;
 using NewGameProject.Runtime;
+using NewGameProject.UI;
 
-public partial class EntityNumberValueContentNode : RichTextLabel {
+public partial class EntityNumberValueContentNode : RichTextLabel, IContentNode {
     
     private EntityNumberValueContent content;
     
@@ -13,7 +14,8 @@ public partial class EntityNumberValueContentNode : RichTextLabel {
         SetJustificationFlags(TextServer.JustificationFlag.None);
         SetAnchorsPreset(LayoutPreset.FullRect);
         ApplyAlignment(content.Align);
-        Text = RuntimeInterop.GetEntityNumberMapValue(content.EntityId, content.Name);
+        MouseFilter = MouseFilterEnum.Pass;
+        UpdateContent(content);
     }
 
     private void ApplyAlignment(string align) {
@@ -54,6 +56,13 @@ public partial class EntityNumberValueContentNode : RichTextLabel {
                 SetHorizontalAlignment(HorizontalAlignment.Right);
                 SetVerticalAlignment(VerticalAlignment.Bottom);
                 break;
+        }
+    }
+
+    public void UpdateContent(NewGameProject.Runtime.PanelContent content) {
+        if (content is EntityNumberValueContent envc) {
+            this.content = envc;
+            Text = RuntimeInterop.GetEntityNumberMapValue(envc.EntityId, envc.Name);
         }
     }
 
