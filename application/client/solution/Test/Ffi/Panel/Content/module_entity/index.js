@@ -13,6 +13,6 @@ export default (hostApi) => {
       name: string.of("playerName"),
       align: "center"
     },
-    background: hostApi.ui.texture.of("texture.png"),
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png")),
   })
 }

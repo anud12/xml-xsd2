@@ -13,9 +13,9 @@ export default (hostApi) => {
       left: number.of(100),
       right: number.of(100),
     },
-    background: hostApi.ui.texture.of("texture.png"),
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png")),
     hover: {
-      texture: hostApi.ui.texture.of("hover.png"),
+      texture: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("hover.png")),
       thickness: 10,
     },
   })

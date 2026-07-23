@@ -1,6 +1,8 @@
 import {SpriteResource} from "./SpriteResource";
+import {StringExpression} from "../primitives/stringExpression";
+import {AnimationRegistrationArguments} from "../animation/AnimationRegistration";
 
 export type TextureApi = {
-  of: (path: string) => SpriteResource;
+  getAnimation: (name: StringExpression) => AnimationRegistrationArguments;
   getSpritePNG: (path: string) => SpriteResource;
 }

@@ -38,7 +38,7 @@ export default (hostApi) => {
       x: number.of(0.5),
       y: number.of(0.5),
     },
-    background: hostApi.ui.texture.of("texture.png"),
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png")),
     content: {
       type: "containerListView",
       containerId: string.of("items-container"),
@@ -50,7 +50,7 @@ export default (hostApi) => {
           height: number.of(50),
           width: number.of(100)
         },
-        background:  hostApi.ui.texture.of("texture2.png"),
+        background:  hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture2.png")),
         content: {
           entityId: entity.getId(),
           name: string.of("value"),

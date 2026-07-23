@@ -7,6 +7,6 @@ export default (hostApi) => {
       height: number.of(100),
       width: number.of(100)
     },
-    background: hostApi.ui.texture.of("texture.png"),
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png")),
   })
 }

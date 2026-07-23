@@ -7,9 +7,9 @@ export default (hostApi) => {
       height: number.of(100),
       width: number.of(100)
     },
-    background: hostApi.ui.texture.of("texture.png"),
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png")),
     hover: {
-      texture: hostApi.ui.texture.of("hover.png"),
+      texture: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("hover.png")),
       thickness: 5,
     },
   })
@@ -19,6 +19,6 @@ export default (hostApi) => {
       height: number.of(100),
       width: number.of(100)
     },
-    background: hostApi.ui.texture.of("texture.png"),
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png")),
   })
 }

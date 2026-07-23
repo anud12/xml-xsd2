@@ -31,7 +31,7 @@ export default (hostApi) => {
           type:"emitAction",
           actionName: string.of("action")
       },
-    background: hostApi.ui.texture.of("texture.png"),
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png")),
       children: [
         {
             id: "child",
@@ -45,7 +45,7 @@ export default (hostApi) => {
                 height: number.of(10),
                 width: number.of(10),
             },
-            background: hostApi.ui.texture.of("texture_2.png"),
+            background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture_2.png")),
             onClick: {
                 type:"emitAction",
                 actionName: string.of("childAction")
