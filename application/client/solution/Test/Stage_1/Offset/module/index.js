@@ -1,7 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number} = hostApi.runtime;
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture.png"), {
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.texture.getSpritePNG("texture.png"), gtu: hostApi.runtime.number.of(10) },
     ],
@@ -22,7 +22,7 @@ export default (hostApi) => {
       left: number.of(0),
       right: number.of(0),
     },
-    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png")),
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture")),
   })
 
   hostApi.ui.registerPanel({
@@ -41,7 +41,7 @@ export default (hostApi) => {
       left: number.of(-100),
       right: number.of(-100),
     },
-    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png")),
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture")),
   })
 
   hostApi.ui.registerPanel({
@@ -60,7 +60,7 @@ export default (hostApi) => {
       left: number.of(0),
       right: number.of(0),
     },
-    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png")),
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture")),
   })
 
   hostApi.ui.registerPanel({
@@ -79,6 +79,6 @@ export default (hostApi) => {
       left: number.of(100),
       right: number.of(100),
     },
-    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png")),
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture")),
   })
 }

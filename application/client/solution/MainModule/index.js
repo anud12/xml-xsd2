@@ -55,12 +55,12 @@ export default (hostApi) => {
 
   hostApi.runtime.emitEvent("repeat", {});
 
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("hover.png"), {
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("hover"), {
     frames: [
       { sprite: hostApi.ui.texture.getSpritePNG("hover.png"), gtu: hostApi.runtime.number.of(10) },
     ],
   });
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture.png"), {
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.texture.getSpritePNG("texture.png"), gtu: hostApi.runtime.number.of(10) },
     ],
@@ -84,10 +84,10 @@ export default (hostApi) => {
       align: "top",
     },
     hover: {
-      texture: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("hover.png")),
+      texture: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("hover")),
       thickness: 5,
     },
-    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png"))
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture"))
   })
 
 
@@ -110,9 +110,9 @@ export default (hostApi) => {
       align: "center",
     },
     hover: {
-      texture: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("hover.png")),
+      texture: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("hover")),
       thickness: 10,
     },
-    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture.png"))
+    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture"))
   })
 }
