@@ -24,14 +24,14 @@ export type AnimationRegistrationArguments = {
 export type RegisterAnimationFunction = (name: StringExpression, arguments: AnimationRegistrationArguments) => void;
 
 /**
- * Duration configuration for retrieving an animation.
+ * Options configuration for retrieving an animation.
  */
-export type AnimationDuration = {
-  /** The duration of each frame in the animation. */
+export type AnimationOptions = {
+  /** The duration of the animation in game time units. */
   duration: NumberExpression;
 };
 
 /**
  * Callback signature for retrieving a registered animation by name and duration.
  */
-export type GetAnimationFunction = (name: StringExpression, animationDuration: AnimationDuration) => AnimationRegistrationArguments;
+export type GetAnimationFunction = (name: StringExpression, options: AnimationOptions) => AnimationRegistrationArguments;
