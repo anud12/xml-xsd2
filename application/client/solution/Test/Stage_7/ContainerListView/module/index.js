@@ -30,12 +30,12 @@ export default (hostApi) => {
 
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
-      { sprite: hostApi.ui.getSpritePNG("texture.png"), gtu: hostApi.runtime.number.of(10) },
+      { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture2"), {
     frames: [
-      { sprite: hostApi.ui.getSpritePNG("texture2.png"), gtu: hostApi.runtime.number.of(10) },
+      { sprite: hostApi.ui.getSpritePNG("texture2.png") },
     ],
   });
   hostApi.ui.registerPanel({
