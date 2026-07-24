@@ -43,6 +43,6 @@ export default (hostApi) => {
             type: "emitAction",
             actionName: string.of("action")
         },
-        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"))
+        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), hostApi.runtime.number.of(1))
     })
 }

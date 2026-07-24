@@ -17,6 +17,6 @@ export default (hostApi) => {
       value: string.of("Content"),
       align: "center"
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), hostApi.runtime.number.of(1)),
   })
 }

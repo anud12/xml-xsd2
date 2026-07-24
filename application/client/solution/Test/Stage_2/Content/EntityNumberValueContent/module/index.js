@@ -23,7 +23,7 @@ export default (hostApi) => {
       x: number.of(0.5),
       y: number.of(0.5),
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), hostApi.runtime.number.of(1)),
     content: {
       align: "center",
       entityId: string.of("entity_id"),

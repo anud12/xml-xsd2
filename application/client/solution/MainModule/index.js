@@ -84,10 +84,10 @@ export default (hostApi) => {
       align: "top",
     },
     hover: {
-      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
+      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover"), hostApi.runtime.number.of(1)),
       thickness: 5,
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"))
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), hostApi.runtime.number.of(1))
   })
 
 
@@ -110,9 +110,9 @@ export default (hostApi) => {
       align: "center",
     },
     hover: {
-      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
+      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover"), hostApi.runtime.number.of(1)),
       thickness: 10,
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"))
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), hostApi.runtime.number.of(1))
   })
 }

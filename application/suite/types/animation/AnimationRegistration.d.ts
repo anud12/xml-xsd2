@@ -1,4 +1,5 @@
 import {StringExpression} from "../primitives/stringExpression";
+import {NumberExpression} from "../primitives/numberExpression";
 import {SpriteResource} from "../texture/SpriteResource";
 
 export type AnimationFrame = {
@@ -11,4 +12,4 @@ export type AnimationRegistrationArguments = {
 
 export type RegisterAnimationFunction = (name: StringExpression, arguments: AnimationRegistrationArguments) => void;
 
-export type GetAnimationFunction = (name: StringExpression) => AnimationRegistrationArguments;
+export type GetAnimationFunction = (name: StringExpression, animationDurationInGameTimeUnits: NumberExpression) => AnimationRegistrationArguments;

@@ -25,7 +25,7 @@ pub fn host_api_script_animation() -> &'static str {
             globalThis.__registeredAnimations[resolvedName] = args;
         }
     },
-    getAnimation(name) {
+    getAnimation(name, animationDurationInGameTimeUnits) {
         var resolvedName = typeof name === 'object' ? name.value : name;
         if (globalThis.__registeredAnimations
             && globalThis.__registeredAnimations[resolvedName]) {

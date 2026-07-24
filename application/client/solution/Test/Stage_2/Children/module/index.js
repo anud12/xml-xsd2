@@ -21,7 +21,7 @@ export default (hostApi) => {
       x: number.of(0.5),
       y: number.of(0.5),
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), hostApi.runtime.number.of(1)),
     children: [
       {
         id: "child",
@@ -29,7 +29,7 @@ export default (hostApi) => {
           height: number.of(10),
           width: number.of(10),
         },
-        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture_2"))
+        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture_2"), hostApi.runtime.number.of(1))
       },
       {
         id: "child_2",
@@ -37,7 +37,7 @@ export default (hostApi) => {
           height: number.of(10),
           width: number.of(10),
         },
-        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture_2"))
+        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture_2"), hostApi.runtime.number.of(1))
       },
     ]
   })
