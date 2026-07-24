@@ -12,4 +12,8 @@ export type AnimationRegistrationArguments = {
 
 export type RegisterAnimationFunction = (name: StringExpression, arguments: AnimationRegistrationArguments) => void;
 
-export type GetAnimationFunction = (name: StringExpression, animationDurationInGameTimeUnits: NumberExpression) => AnimationRegistrationArguments;
+export type AnimationDuration = {
+  duration: NumberExpression;
+};
+
+export type GetAnimationFunction = (name: StringExpression, animationDuration: AnimationDuration) => AnimationRegistrationArguments;

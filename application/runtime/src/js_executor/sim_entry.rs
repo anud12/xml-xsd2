@@ -42,7 +42,7 @@ var hostApi={
       of:function(p){return p;}
     },
     getSpritePNG:function(p){return p;},
-    getAnimation:function(name,animationDurationInGameTimeUnits){
+    getAnimation:function(name,animationDuration){
       var resolvedName=typeof name==='object'?name.value:name;
       if(__registeredAnimations[resolvedName]){
         return __registeredAnimations[resolvedName];
@@ -68,7 +68,7 @@ var hostApi={
         __registeredAnimations[resolvedName]=args;
       }
     },
-    getAnimation:function(name,animationDurationInGameTimeUnits){
+    getAnimation:function(name,animationDuration){
       var resolvedName=typeof name==='object'?name.value:name;
       if(__registeredAnimations[resolvedName]){
         return __registeredAnimations[resolvedName];
