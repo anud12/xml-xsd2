@@ -88,7 +88,7 @@ export default (hostApi) => {
       type: "entityNumberValue",
       align: "center",
     },
-    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture"))
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"))
   })
 
   hostApi.ui.registerPanel({
@@ -109,6 +109,6 @@ export default (hostApi) => {
       type: "entityTextValue",
       align: "center",
     },
-    background: hostApi.ui.texture.getAnimation(hostApi.runtime.string.of("texture"))
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"))
   })
 }

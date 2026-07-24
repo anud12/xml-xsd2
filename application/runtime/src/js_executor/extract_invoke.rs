@@ -6,16 +6,16 @@ var __registeredAnimations={};
 var hostApi={
   ui:{
     texture:{
-      of:function(p){return p;},
-      getAnimation:function(name){
-        var resolvedName=typeof name==='object'?name.value:name;
-        if(__registeredAnimations[resolvedName]){
-          return __registeredAnimations[resolvedName];
-        }
-        return null;
-      }
+      of:function(p){return p;}
     },
     getSpritePNG:function(p){return p;},
+    getAnimation:function(name){
+      var resolvedName=typeof name==='object'?name.value:name;
+      if(__registeredAnimations[resolvedName]){
+        return __registeredAnimations[resolvedName];
+      }
+      return null;
+    },
     registerPanel:h.registerPanel
   },
   runtime:{

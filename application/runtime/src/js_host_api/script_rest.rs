@@ -12,15 +12,7 @@ pub fn host_api_script_log() -> &'static str {
     }, number: { of: function(n) { return n; } },
     string: { of: function(s) { return s; } },
     texture: {
-        of: function(t) { return t; },
-        getAnimation: function(name) {
-            var resolvedName = typeof name === 'object' ? name.value : name;
-            if (globalThis.__registeredAnimations
-                && globalThis.__registeredAnimations[resolvedName]) {
-                return globalThis.__registeredAnimations[resolvedName];
-            }
-            return null;
-        }
+        of: function(t) { return t; }
     },"#
 }
 

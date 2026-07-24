@@ -20,6 +20,7 @@ export type HostApi = {
     registerPanel: RegisterPanelFunction,
     texture: TextureApi,
     getSpritePNG: (path: string) => SpriteResource,
+    getAnimation: GetAnimationFunction,
   },
   runtime: {
     condition: ConditionExpressionApi,
