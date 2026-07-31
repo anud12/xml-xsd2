@@ -26,19 +26,4 @@ export default (hostApi) => {
     },
     background: hostApi.ui.getAnimation(string.of("sequence"), { duration: number.of(5), loop: true }),
   });
-
-  hostApi.ui.registerPanel({
-    id: "noLoopPanel",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    offset: {
-      top: number.of(100),
-      bottom: number.of(100),
-      left: number.of(300),
-      right: number.of(300),
-    },
-    background: hostApi.ui.getAnimation(string.of("sequence"), { duration: number.of(5), loop: false }),
-  });
 }

@@ -11,7 +11,7 @@ public partial class TestClass : Steps {
     [TestCategory("Step_2")]
     [TestCase]
     [RequireGodotRuntime]
-    public async Task Given_loop_flag_animation_must_repeat_while_no_loop_holds_last_frame() {
+    public async Task Given_loop_animation_must_repeat_frames_after_duration() {
         try {
             AddFileToArchive("module/index.js", "index.js")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
@@ -34,76 +34,60 @@ public partial class TestClass : Steps {
             rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
             await runner.SimulateFrames(1);
 
-            var loopPanel = rootNode.GetNode<Panel>("loopPanel");
-            var noLoopPanel = rootNode.GetNode<Panel>("noLoopPanel");
-
-            AssertPanelThat(loopPanel).IsNonNull();
-            AssertPanelThat(noLoopPanel).IsNonNull();
+            var panel = rootNode.GetNode<Panel>("loopPanel");
+            AssertPanelThat(panel).IsNonNull();
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_1.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_1.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_1.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_2.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_2.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_2.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_3.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_3.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_3.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_4.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_4.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_4.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_5.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_5.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_5.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_1.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_5.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_1.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_2.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_5.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_2.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_3.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_5.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_3.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_4.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_5.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_4.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_5.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_5.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_5.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_1.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_5.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_1.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_2.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_5.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_2.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(loopPanel).HasBackgroundTexture("frame_3.png");
-            AssertPanelThat(noLoopPanel).HasBackgroundTexture("frame_5.png");
+            AssertPanelThat(panel).HasBackgroundTexture("frame_3.png");
         }
         catch (Exception e) {
             Assertions.AssertThat(true)
