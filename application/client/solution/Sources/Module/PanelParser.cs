@@ -24,6 +24,32 @@ static class PanelParser
             Background = ExtractTextureFromSprite(e, "background")
         };
 
+        if (e.TryGetProperty("background", out var bgVal) && bgVal.ValueKind == JsonValueKind.Object
+            && bgVal.TryGetProperty("frames", out var frames) && frames.ValueKind == JsonValueKind.Array
+            && frames.GetArrayLength() > 0)
+        {
+            var framePaths = new List<string>();
+            foreach (var frame in frames.EnumerateArray())
+            {
+                if (frame.ValueKind == JsonValueKind.Object && frame.TryGetProperty("sprite", out var sprite))
+                {
+                    if (sprite.ValueKind == JsonValueKind.String)
+                        framePaths.Add(sprite.GetString() ?? "");
+                    else if (sprite.ValueKind == JsonValueKind.Object && sprite.TryGetProperty("name", out var spriteName))
+                        framePaths.Add(spriteName.GetString() ?? "");
+                }
+            }
+            if (framePaths.Count > 0)
+            {
+                var duration = Extract.Int(bgVal, "duration") ?? 1;
+                p.BackgroundAnimation = new Runtime.AnimationSequence
+                {
+                    Frames = framePaths.ToArray(),
+                    DurationTicks = duration
+                };
+            }
+        }
+
         if (e.TryGetProperty("anchor", out var a))
             p.Anchor = new Runtime.Vector2
             { X = Extract.Float(a, "x") ?? 0f, Y = Extract.Float(a, "y") ?? 0f };

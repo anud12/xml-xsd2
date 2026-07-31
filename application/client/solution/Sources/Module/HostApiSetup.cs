@@ -15,7 +15,14 @@ var hostApi = {
         getAnimation: function(name, animationDuration) {
             var resolvedName = typeof name === ""object"" ? name.value : name;
             if (__registeredAnimations[resolvedName]) {
-                return __registeredAnimations[resolvedName];
+                var result = {};
+                for (var k in __registeredAnimations[resolvedName]) {
+                    result[k] = __registeredAnimations[resolvedName][k];
+                }
+                if (animationDuration && animationDuration.duration) {
+                    result.duration = animationDuration.duration;
+                }
+                return result;
             }
             return null;
         },

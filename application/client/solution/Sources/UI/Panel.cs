@@ -191,5 +191,33 @@ public partial class Panel : Godot.Panel {
 
     public override void _EnterTree() { }
 
-    public override void _Process(double delta) { }
+    private int _animationTick = 0;
+
+    public override void _Process(double delta) {
+        if (_panel.BackgroundAnimation != null) {
+            var anim = _panel.BackgroundAnimation;
+            _animationTick++;
+            int ticksPerFrame = anim.DurationTicks / anim.Frames.Length;
+            int frameIndex = Math.Min(((_animationTick - 1) / Math.Max(ticksPerFrame, 1)), anim.Frames.Length - 1);
+            string currentFrame = anim.Frames[frameIndex];
+            if (_panel.Background != currentFrame) {
+                _panel.Background = currentFrame;
+                UpdateBackgroundTexture(currentFrame);
+            }
+        }
+    }
+
+    private void UpdateBackgroundTexture(string texturePath) {
+        if (texturePath != null) {
+            var files = RuntimeInterop.GetFileFromArchive();
+            if (files.TryGetValue(texturePath, out var imageData)) {
+                Image img = new Image();
+                img.LoadPngFromBuffer(imageData);
+                TextureFilter = TextureFilterEnum.Nearest;
+                AddThemeStyleboxOverride("panel", new StyleBoxTexture {
+                    Texture = ImageTexture.CreateFromImage(img),
+                });
+            }
+        }
+    }
 }

@@ -176,5 +176,23 @@ public partial class Steps {
             action.Invoke(new AssertContainerListViewContent(content, $"{path}/content"));
             return this;
         }
+
+        /// <summary>
+        /// Asserts that the panel's background texture matches the expected texture path.
+        /// </summary>
+        /// <param name="expectedTexture">The expected texture filename resolved from the animation's first frame.</param>
+        /// <returns>This instance for chaining.</returns>
+        /// <example>
+        /// AssertPanelThat(panel)
+        ///     .HasBackgroundTexture("frame_1.png");
+        /// </example>
+        public AssertPanel HasBackgroundTexture(string expectedTexture) {
+            var ffiPanel = RuntimeInterop.GetPanelById(panel.Name);
+            Assertions.AssertThat(ffiPanel.Background)
+                .OverrideFailureMessage(
+                    $"Panel at \"{path}\" background texture is not equal to \"{expectedTexture}\" but is \"{ffiPanel.Background}\"")
+                .IsEqual(expectedTexture);
+            return this;
+        }
     }
 }

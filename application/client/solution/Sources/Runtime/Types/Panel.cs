@@ -20,6 +20,7 @@ public struct Panel
     public PanelOnClickHandler? OnClick;
     public PanelContent? Content;
     public Hover? Hover;
+    public AnimationSequence? BackgroundAnimation;
 }
 
 public struct Layout
@@ -154,4 +155,10 @@ public class ContainerListViewContent : PanelContent
         ContainerId = containerId;
         Vertical = vertical;
     }
+}
+
+public class AnimationSequence
+{
+    public string[] Frames { get; set; }
+    public int DurationTicks { get; set; }
 }
