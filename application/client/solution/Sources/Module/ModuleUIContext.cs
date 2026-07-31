@@ -27,6 +27,15 @@ public class ModuleUIContext
 
     public Runtime.Panel[] GetAllPanels() => _panels.Values.ToArray();
 
+    public void UpdatePanelBackground(string id, string background)
+    {
+        if (_panels.TryGetValue(id, out var p))
+        {
+            p.Background = background;
+            _panels[id] = p;
+        }
+    }
+
     public Dictionary<string, byte[]> GetArchiveFiles()
         => new(_archiveFiles);
 
