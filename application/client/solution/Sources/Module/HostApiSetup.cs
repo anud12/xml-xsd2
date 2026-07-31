@@ -22,6 +22,9 @@ var hostApi = {
                 if (animationDuration && animationDuration.duration) {
                     result.duration = animationDuration.duration;
                 }
+                if (animationDuration && animationDuration.loop !== undefined) {
+                    result.loop = animationDuration.loop;
+                }
                 return result;
             }
             return null;

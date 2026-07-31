@@ -42,10 +42,12 @@ static class PanelParser
             if (framePaths.Count > 0)
             {
                 var duration = Extract.Int(bgVal, "duration") ?? 1;
+                var loop = Extract.Bool(bgVal, "loop") ?? false;
                 p.BackgroundAnimation = new Runtime.AnimationSequence
                 {
                     Frames = framePaths.ToArray(),
-                    DurationTicks = duration
+                    DurationTicks = duration,
+                    Loop = loop
                 };
             }
         }
