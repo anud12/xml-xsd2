@@ -201,7 +201,8 @@ public partial class Panel : Godot.Panel {
                 _animationTick = (int)elapsedUnits;
                 var anim = _panel.BackgroundAnimation;
                 int ticksPerFrame = anim.DurationTicks / anim.Frames.Length;
-                int frameIndex = Math.Min(((_animationTick - 1) / Math.Max(ticksPerFrame, 1)), anim.Frames.Length - 1);
+                int rawIndex = (_animationTick - 1) / Math.Max(ticksPerFrame, 1);
+                int frameIndex = anim.Loop ? rawIndex % anim.Frames.Length : Math.Min(rawIndex, anim.Frames.Length - 1);
                 string currentFrame = anim.Frames[frameIndex];
                 if (_panel.Background != currentFrame) {
                     _panel.Background = currentFrame;

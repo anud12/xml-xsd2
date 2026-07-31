@@ -1,0 +1,6 @@
+{
+  "id": "loop-animation-module",
+  "version": "1.0.0",
+  "name": "Loop Animation Module",
+  "entry": "index.js"
+}

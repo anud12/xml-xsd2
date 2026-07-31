@@ -161,4 +161,5 @@ public class AnimationSequence
 {
     public string[] Frames { get; set; }
     public int DurationTicks { get; set; }
+    public bool Loop { get; set; }
 }

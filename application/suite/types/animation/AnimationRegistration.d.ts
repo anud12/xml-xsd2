@@ -29,6 +29,8 @@ export type RegisterAnimationFunction = (name: StringExpression, arguments: Anim
 export type AnimationOptions = {
   /** The duration of the animation in game time units. */
   duration: NumberExpression;
+  /** Whether the animation should loop when the duration is exceeded. */
+  loop?: boolean;
 };
 
 /**
