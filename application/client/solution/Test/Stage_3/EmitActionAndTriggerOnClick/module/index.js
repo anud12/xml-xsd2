@@ -21,6 +21,12 @@ export default (hostApi) => {
         }
     })
 
+    hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+        frames: [
+          { sprite: hostApi.ui.getSpritePNG("texture.png") },
+        ],
+      });
+
     hostApi.ui.registerPanel({
         id: "center",
         size: {
@@ -37,6 +43,6 @@ export default (hostApi) => {
             type: "emitAction",
             actionName: string.of("action")
         },
-        background: hostApi.ui.texture.of("texture.png")
+        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) })
     })
 }

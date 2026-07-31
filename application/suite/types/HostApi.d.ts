@@ -11,13 +11,26 @@ import {TextMapExpressionApi} from "./textMap";
 import {RegisterActionFunction} from "./action";
 import {RegisterPanelFunction} from "./ui/Panel";
 import {TextureApi} from "./texture/TextureApi";
+import {SpriteResource} from "./texture/SpriteResource";
 import {EntityCreationArguments} from "./Entity";
+import {RegisterAnimationFunction, GetAnimationFunction} from "./animation/AnimationRegistration";
 
+/**
+ * The top-level host API surface exposed to modules.
+ */
 export type HostApi = {
+  /** UI-related APIs for panels, textures, and animations. */
   ui: {
+    /** Registers a new panel with the UI host. */
     registerPanel: RegisterPanelFunction,
+    /** Texture utility functions. */
     texture: TextureApi,
+    /** Returns a sprite resource reference for the given PNG file path. */
+    getSpritePNG: (path: string) => SpriteResource,
+    /** Returns the animation registration for the given name and duration configuration. */
+    getAnimation: GetAnimationFunction,
   },
+  /** Runtime APIs for entities, containers, effects, actions, and events. */
   runtime: {
     condition: ConditionExpressionApi,
     number: NumberExpressionApi,
@@ -31,14 +44,24 @@ export type HostApi = {
     entity: EntityExpressionApi,
     container: ContainerExpressionApi,
 
+    /** Sets entity fields (numberMap, textMap) by entity ID. */
     setEntity: (entityId: StringExpression, arguments: EntityCreationArguments) => void;
 
+    /** Sets container fields by container ID. */
     setContainer: (containerId: StringExpression, arguments: ContainerCreationArguments) => void;
 
+    /** Registers an effect handler in the runtime. */
     registerEffect: RegisterEffectFunction,
+    /** Registers an action handler in the runtime. */
     registerAction: RegisterActionFunction,
+    /** Registers an animation with the given name and frame definitions. */
+    registerAnimation: RegisterAnimationFunction,
+    /** Returns the animation registration for the given name and duration configuration. */
+    getAnimation: GetAnimationFunction,
 
+    /** Emits a named event with arbitrary payload. */
     emitEvent: <T>(eventName: string, arguments: T) => void
+    /** Logs a string message to the runtime log. */
     log:(string:string) => void;
   }
 }

@@ -5,9 +5,20 @@ static class HostApiSetup
     internal const string Script = @"
 var __registeredEntities = {};
 var __registeredContainers = {};
+var __registeredAnimations = {};
 var hostApi = {
     ui: {
-        texture: { of: function(p) { return p; } },
+        texture: {
+            of: function(p) { return p; }
+        },
+        getSpritePNG: function(p) { return p; },
+        getAnimation: function(name, animationDuration) {
+            var resolvedName = typeof name === ""object"" ? name.value : name;
+            if (__registeredAnimations[resolvedName]) {
+                return __registeredAnimations[resolvedName];
+            }
+            return null;
+        },
         registerPanel: function(p) {
             if (p.content && p.content.type === ""containerListView"" && typeof p.content.template === ""function"") {
                 var containerId = p.content.containerId;
@@ -49,6 +60,19 @@ var hostApi = {
         },
         registerEffect: function() {},
         registerAction: function() {},
+        registerAnimation: function(name, args) {
+            var resolvedName = typeof name === ""object"" ? name.value : name;
+            if (typeof resolvedName === ""string"") {
+                __registeredAnimations[resolvedName] = args;
+            }
+        },
+        getAnimation: function(name, animationDuration) {
+            var resolvedName = typeof name === ""object"" ? name.value : name;
+            if (__registeredAnimations[resolvedName]) {
+                return __registeredAnimations[resolvedName];
+            }
+            return null;
+        },
         registerContainer: function(c) {
             if (c && typeof c === ""object"" && typeof c.id === ""string"") {
                 __registeredContainers[c.id] = c;

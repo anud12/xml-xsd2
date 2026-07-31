@@ -1,5 +1,5 @@
-import {TextureResource} from "./TextureResource";
-
+/**
+ * The texture utility API.
+ */
 export type TextureApi = {
-  of: (path: string) => TextureResource
 }

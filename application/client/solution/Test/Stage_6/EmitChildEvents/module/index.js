@@ -65,6 +65,11 @@ export default (hostApi) => {
 
   hostApi.runtime.emitEvent("event", {});
 
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+    frames: [
+      { sprite: hostApi.ui.getSpritePNG("texture.png") },
+    ],
+  });
   hostApi.ui.registerPanel({
     id: "center",
     size: {
@@ -83,7 +88,7 @@ export default (hostApi) => {
       type: "entityNumberValue",
       align: "center",
     },
-    background: hostApi.ui.texture.of("texture.png")
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) })
   })
 
   hostApi.ui.registerPanel({
@@ -104,6 +109,6 @@ export default (hostApi) => {
       type: "entityTextValue",
       align: "center",
     },
-    background: hostApi.ui.texture.of("texture.png")
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) })
   })
 }

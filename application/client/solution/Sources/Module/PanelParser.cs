@@ -21,7 +21,7 @@ static class PanelParser
         var p = new Runtime.Panel
         {
             Id = Extract.String(e, "id") ?? "",
-            Background = Extract.String(e, "background")
+            Background = ExtractTextureFromSprite(e, "background")
         };
 
         if (e.TryGetProperty("anchor", out var a))
@@ -41,7 +41,7 @@ static class PanelParser
 
         if (e.TryGetProperty("hover", out var h) && h.ValueKind == JsonValueKind.Object)
         {
-            var t = Extract.String(h, "texture");
+            var t = ExtractTextureFromSprite(h, "texture");
             if (t != null)
                 p.Hover = new Runtime.Hover
                 { Texture = t, Thickness = Extract.Int(h, "thickness") ?? 0 };
@@ -72,5 +72,36 @@ static class PanelParser
         }
 
         return p;
+    }
+
+    static string? ExtractTextureFromSprite(JsonElement e, string prop)
+    {
+        var direct = Extract.String(e, prop);
+        if (direct != null)
+            return direct;
+
+        if (e.TryGetProperty(prop, out var val) && val.ValueKind == JsonValueKind.Object)
+        {
+            if (val.TryGetProperty("frames", out var frames) && frames.ValueKind == JsonValueKind.Array
+                && frames.GetArrayLength() > 0)
+            {
+                var firstFrame = frames[0];
+                if (firstFrame.ValueKind == JsonValueKind.Object && firstFrame.TryGetProperty("sprite", out var sprite))
+                {
+                    if (sprite.ValueKind == JsonValueKind.String)
+                        return sprite.GetString();
+                    if (sprite.ValueKind == JsonValueKind.Object && sprite.TryGetProperty("name", out var spriteName))
+                    {
+                        return spriteName.GetString();
+                    }
+                }
+            }
+
+            var name = Extract.String(val, "name");
+            if (name != null)
+                return name;
+        }
+
+        return null;
     }
 }

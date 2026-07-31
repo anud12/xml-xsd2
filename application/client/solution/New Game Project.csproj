@@ -136,7 +136,9 @@
     <TypeScriptCompile Include="node_modules\suite\types\textMap.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\texture\index.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\texture\TextureApi.d.ts" />
-    <TypeScriptCompile Include="node_modules\suite\types\texture\TextureResource.d.ts" />
+
+    <TypeScriptCompile Include="node_modules\suite\types\texture\SpriteResource.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\animation\AnimationRegistration.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\ui\Box.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\ui\index.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\ui\Panel.d.ts" />

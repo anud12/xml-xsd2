@@ -1,6 +1,16 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const { number } = hostApi.runtime;
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+    frames: [
+      { sprite: hostApi.ui.getSpritePNG("texture.png") },
+    ],
+  });
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture_2"), {
+    frames: [
+      { sprite: hostApi.ui.getSpritePNG("texture_2.png") },
+    ],
+  });
   hostApi.ui.registerPanel({
     id: "center",
     size: {
@@ -11,7 +21,7 @@ export default (hostApi) => {
       x: number.of(0.5),
       y: number.of(0.5),
     },
-    background: hostApi.ui.texture.of("texture.png"),
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
     children: [
       {
         id: "child",
@@ -19,7 +29,7 @@ export default (hostApi) => {
           height: number.of(10),
           width: number.of(10),
         },
-        background: hostApi.ui.texture.of("texture_2.png")
+        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture_2"), { duration: hostApi.runtime.number.of(1) })
       },
       {
         id: "child_2",
@@ -27,7 +37,7 @@ export default (hostApi) => {
           height: number.of(10),
           width: number.of(10),
         },
-        background: hostApi.ui.texture.of("texture_2.png")
+        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture_2"), { duration: hostApi.runtime.number.of(1) })
       },
     ]
   })
