@@ -1,0 +1,46 @@
+using GdUnit4.Examples.Basics.Setup.Sources.UI;
+using Godot;
+using NewGameProject.Runtime;
+using NewGameProject.Tests.XUnit;
+using Vector2 = Godot.Vector2;
+
+namespace GdUnit4.Examples.Basics.Setup.Test.Stage_2.SpriteMap;
+
+[TestSuite]
+public partial class TestClass : Steps {
+    [TestCategory("Step_2")]
+    [TestCase]
+    [RequireGodotRuntime]
+    public async Task Given_panel_with_spriteMapTIFF_it_should_compose_from_layer_bindings() {
+        try {
+            AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/manifest.json", "manifest.json")
+                .AddFileToArchive("module/skins/border_top.png", "skins/border_top.png")
+                .AddFileToArchive("module/skins/border_bottom.png", "skins/border_bottom.png")
+                .AddFileToArchive("module/skins/texture.png", "skins/texture.png")
+                .AddFileToArchive("module/maps/idle_frame1.tiff", "maps/idle_frame1.tiff")
+                .EnsureDllAccessible()
+                .ProcessArchive();
+
+            var scene = LoadTestScene();
+            var rootNode = new RootNode();
+
+            scene.AddChild(rootNode);
+            rootNode.SetSize(new Vector2() {
+                X = 1000,
+                Y = 1000
+            });
+            rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
+            await runner.SimulateFrames(1);
+
+            var panel = rootNode.GetNode<Panel>("characterPanel");
+            AssertPanelThat(panel).IsNonNull();
+            AssertPanelThat(panel).ViewportMatches("composed.png");
+        }
+        catch (Exception e) {
+            Assertions.AssertThat(true)
+                .OverrideFailureMessage($"Error: {e.Message}\n{e.StackTrace}")
+                .IsFalse();
+        }
+    }
+}
