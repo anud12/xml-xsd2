@@ -30,8 +30,6 @@ public partial class TestClass : Steps {
             });
             rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
             await runner.SimulateFrames(1);
-            
-            DebugSaveScreenshot("debug.png");
 
             var panel = rootNode.GetNode<Panel>("characterPanel");
             AssertPanelThat(panel).IsNonNull();
