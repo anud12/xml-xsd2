@@ -215,7 +215,7 @@ public partial class Steps {
             var globalPos = panel.GetGlobalRect().Position;
             var size = panel.GetGlobalRect().Size;
 
-            using var cropped = fullImage.GetRegion(new Rect2(globalPos, size));
+            using var cropped = fullImage.GetRegion(new Rect2I((int)globalPos.X, (int)globalPos.Y, (int)size.X, (int)size.Y));
 
             var baseDir = Path.GetDirectoryName(callerPath);
             var fullExpectedPath = Path.Combine(baseDir, relativeImagePath);
@@ -257,10 +257,12 @@ public partial class Steps {
 
             expectedImg.Dispose();
 
-            Assertions.AssertBool(equal)
-                .OverrideFailureMessage(
-                    $"Panel at \"{path}\" screenshot mismatch! Actual: \"{actualPath}\" vs Expected: \"{relativeImagePath}\"")
-                .IsTrue();
+            if (!equal) {
+                Assertions.AssertBool(equal)
+                    .OverrideFailureMessage(
+                        $"Panel at \"{path}\" screenshot mismatch! Actual: \"{actualPath}\" vs Expected: \"{relativeImagePath}\"")
+                    .IsTrue();
+            }
 
             File.Delete(actualPath);
             return this;
