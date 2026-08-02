@@ -16,13 +16,13 @@ static class SpriteMapCpu
                 return null;
             }
 
-            (int w, int h, ushort[,] rMap, ushort[,] gMap, byte[,] bMap) = result.Value;
+            (int w, int h, ushort[,] rMap, ushort[,] gMap, byte[,] bMap, byte[,] aMap) = result.Value;
 
             var composed = Godot.Image.CreateEmpty(w, h, false, Godot.Image.Format.Rgba8);
             byte[] composedData = new byte[w * h * 4];
 
             // Multi-layer compositing: each layer draws across the full map and is alpha-blended.
-            // With a single layer, this degenerates to the original behavior.
+            // The TIFF A channel modulates each layer's alpha before blending.
             for (int layer = 0; layer < skins.Length; layer++)
             {
                 var skin = skins[layer];
@@ -51,6 +51,11 @@ static class SpriteMapCpu
                         byte sb = sData[sIdx + 2];
                         byte sa = sData[sIdx + 3];
 
+                        // Modulate skin alpha by TIFF mask alpha
+                        byte maskA = aMap[py, px];
+                        float maskAlpha = maskA / 255f;
+                        float effectiveAlpha = (sa / 255f) * maskAlpha;
+
                         int idx = (py * w + px) * 4;
                         byte dr = composedData[idx];
                         byte dg = composedData[idx + 1];
@@ -58,7 +63,7 @@ static class SpriteMapCpu
                         byte da = composedData[idx + 3];
 
                         // Alpha blend: src over dst
-                        float as_ = sa / 255f;
+                        float as_ = effectiveAlpha;
                         float ad = da / 255f;
                         float aout = as_ + ad * (1 - as_);
 
@@ -84,7 +89,7 @@ static class SpriteMapCpu
         }
     }
 
-    static (int w, int h, ushort[,] rMap, ushort[,] gMap, byte[,] bMap)? ParseTiff(byte[] data, bool le)
+    static (int w, int h, ushort[,] rMap, ushort[,] gMap, byte[,] bMap, byte[,] aMap)? ParseTiff(byte[] data, bool le)
     {
         int ifdOffset = ReadI32(data, 4, le);
         int numEntries = ReadI16(data, ifdOffset, le);
@@ -133,6 +138,7 @@ static class SpriteMapCpu
         ushort[,] rMap = new ushort[h, w];
         ushort[,] gMap = new ushort[h, w];
         byte[,] bMap = new byte[h, w];
+        byte[,] aMap = new byte[h, w];
 
         for (int py = 0; py < h; py++)
         {
@@ -144,14 +150,16 @@ static class SpriteMapCpu
                 ushort r = ReadU16(data, pOff, le);
                 ushort g = ReadU16(data, pOff + 2, le);
                 ushort b = ReadU16(data, pOff + 4, le);
+                ushort a = ReadU16(data, pOff + 6, le);
 
                 rMap[py, px] = r;
                 gMap[py, px] = g;
                 bMap[py, px] = (byte)(b >> 8);
+                aMap[py, px] = (byte)(a >> 8);
             }
         }
 
-        return (w, h, rMap, gMap, bMap);
+        return (w, h, rMap, gMap, bMap, aMap);
     }
 
     static ushort ReadU16(byte[] d, int o, bool le)
