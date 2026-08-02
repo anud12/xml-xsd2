@@ -21,50 +21,56 @@ static class SpriteMapCpu
             var composed = Godot.Image.CreateEmpty(w, h, false, Godot.Image.Format.Rgba8);
             byte[] composedData = new byte[w * h * 4];
 
-            for (int py = 0; py < h; py++)
+            // Multi-layer compositing: each layer draws across the full map and is alpha-blended.
+            // With a single layer, this degenerates to the original behavior.
+            for (int layer = 0; layer < skins.Length; layer++)
             {
-                for (int px = 0; px < w; px++)
+                var skin = skins[layer];
+                if (skin == null) continue;
+
+                int sw = skin.GetWidth();
+                int sh = skin.GetHeight();
+                if (sw == 0 || sh == 0) continue;
+
+                byte[] sData = skin.GetData();
+                if (sData == null) continue;
+
+                for (int py = 0; py < h; py++)
                 {
-                    int pixelIdx = py * w + px;
-                    float u = w > 1 ? rMap[py, px] / (float)(w - 1) : 0f;
-                    float v = h > 1 ? gMap[py, px] / (float)(h - 1) : 0f;
-                    int bVal = bMap[py, px];
-
-                    int idx = pixelIdx * 4;
-                    int skinIdxVal = System.Math.Clamp(bVal, 0, skins.Length - 1);
-
-                    var skin = skins[skinIdxVal];
-                    if (skin == null)
+                    for (int px = 0; px < w; px++)
                     {
-                        composedData[idx] = 255;
-                        composedData[idx + 1] = 255;
-                        composedData[idx + 2] = 255;
-                        composedData[idx + 3] = 0;
-                        continue;
+                        float u = w > 1 ? rMap[py, px] / (float)(w - 1) : 0f;
+                        float v = h > 1 ? gMap[py, px] / (float)(h - 1) : 0f;
+
+                        int sx = System.Math.Clamp((int)(u * (sw - 1)), 0, sw - 1);
+                        int sy = System.Math.Clamp((int)(v * (sh - 1)), 0, sh - 1);
+
+                        int sIdx = (sy * sw + sx) * 4;
+                        byte sr = sData[sIdx];
+                        byte sg = sData[sIdx + 1];
+                        byte sb = sData[sIdx + 2];
+                        byte sa = sData[sIdx + 3];
+
+                        int idx = (py * w + px) * 4;
+                        byte dr = composedData[idx];
+                        byte dg = composedData[idx + 1];
+                        byte db = composedData[idx + 2];
+                        byte da = composedData[idx + 3];
+
+                        // Alpha blend: src over dst
+                        float as_ = sa / 255f;
+                        float ad = da / 255f;
+                        float aout = as_ + ad * (1 - as_);
+
+                        if (aout > 0)
+                        {
+                            float aoutInv = 1f / aout;
+                            composedData[idx]     = (byte)System.Math.Clamp(((sr * as_ + dr * ad * (1 - as_)) * aoutInv), 0, 255);
+                            composedData[idx + 1] = (byte)System.Math.Clamp(((sg * as_ + dg * ad * (1 - as_)) * aoutInv), 0, 255);
+                            composedData[idx + 2] = (byte)System.Math.Clamp(((sb * as_ + db * ad * (1 - as_)) * aoutInv), 0, 255);
+                            composedData[idx + 3] = (byte)System.Math.Clamp(aout * 255, 0, 255);
+                        }
                     }
-
-                    int sw = skin.GetWidth();
-                    int sh = skin.GetHeight();
-                    if (sw == 0 || sh == 0) continue;
-
-                    int sx = System.Math.Clamp((int)(u * (sw - 1)), 0, sw - 1);
-                    int sy = System.Math.Clamp((int)(v * (sh - 1)), 0, sh - 1);
-
-                    byte[] sData = skin.GetData();
-                    if (sData == null)
-                    {
-                        composedData[idx] = 255;
-                        composedData[idx + 1] = 255;
-                        composedData[idx + 2] = 255;
-                        composedData[idx + 3] = 0;
-                        continue;
-                    }
-
-                    int sIdx = (sy * sw + sx) * 4;
-                    composedData[idx] = sData[sIdx];
-                    composedData[idx + 1] = sData[sIdx + 1];
-                    composedData[idx + 2] = sData[sIdx + 2];
-                    composedData[idx + 3] = sData[sIdx + 3];
                 }
             }
 
