@@ -1,9 +1,12 @@
 using System.Text.Json;
+using NewGameProject.Runtime;
 
 namespace NewGameProject.Module;
 
 static class PanelParser
 {
+    static MapLayerBinding[]? _lastSpriteMapLayers;
+
     public static bool TryParse(string json, out Runtime.Panel panel)
     {
         panel = default;
@@ -37,6 +40,14 @@ static class PanelParser
                         framePaths.Add(sprite.GetString() ?? "");
                     else if (sprite.ValueKind == JsonValueKind.Object && sprite.TryGetProperty("name", out var spriteName))
                         framePaths.Add(spriteName.GetString() ?? "");
+                    else if (sprite.ValueKind == JsonValueKind.Object && sprite.TryGetProperty("__spriteMap", out var isMap) && isMap.GetBoolean())
+                    {
+                        // This is a sprite map — extract map path and layer bindings for GPU composition
+                        var mapPath = ResolveSpriteMap(sprite, out var layers);
+                        framePaths.Add(mapPath);
+                        if (layers != null && layers.Length > 0 && _lastSpriteMapLayers == null)
+                            _lastSpriteMapLayers = layers;
+                    }
                 }
             }
             if (framePaths.Count > 0)
@@ -47,8 +58,10 @@ static class PanelParser
                 {
                     Frames = framePaths.ToArray(),
                     DurationTicks = duration,
-                    Loop = loop
+                    Loop = loop,
+                    SpriteMapLayers = _lastSpriteMapLayers
                 };
+                _lastSpriteMapLayers = null;
             }
         }
 
@@ -100,6 +113,28 @@ static class PanelParser
         }
 
         return p;
+    }
+
+    static string ResolveSpriteMap(JsonElement spriteObj, out MapLayerBinding[]? layers)
+    {
+        var mapPath = Extract.String(spriteObj, "map") ?? "";
+        layers = null;
+
+        if (spriteObj.TryGetProperty("layers", out var layersArr) && layersArr.ValueKind == JsonValueKind.Array)
+        {
+            var layerList = new List<MapLayerBinding>();
+            foreach (var layerEl in layersArr.EnumerateArray())
+            {
+                layerList.Add(new MapLayerBinding
+                {
+                    TiffLayerName = Extract.String(layerEl, "layer") ?? "",
+                    SkinPath = Extract.String(layerEl, "texture") ?? "",
+                });
+            }
+            layers = layerList.ToArray();
+        }
+
+        return mapPath;
     }
 
     static string? ExtractTextureFromSprite(JsonElement e, string prop)

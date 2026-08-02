@@ -4,14 +4,6 @@ export default (hostApi) => {
   
   const layerBindings = [
     {
-      layer: "top_border",
-      texture: hostApi.ui.getSpritePNG("skins/border_top.png"),
-    },
-    {
-      layer: "bottom_border",
-      texture: hostApi.ui.getSpritePNG("skins/border_bottom.png"),
-    },
-    {
       layer: "center",
       texture: hostApi.ui.getSpritePNG("skins/texture.png"),
     },
@@ -26,8 +18,8 @@ export default (hostApi) => {
   hostApi.ui.registerPanel({
     id: "characterPanel",
     size: {
-      height: number.of(30),
-      width: number.of(30),
+      height: number.of(10),
+      width: number.of(10),
     },
     offset: {
       top: number.of(50),

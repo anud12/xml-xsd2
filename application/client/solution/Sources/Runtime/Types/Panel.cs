@@ -162,4 +162,11 @@ public class AnimationSequence
     public string[] Frames { get; set; }
     public int DurationTicks { get; set; }
     public bool Loop { get; set; }
+    public MapLayerBinding[]? SpriteMapLayers { get; set; }
+}
+
+public struct MapLayerBinding
+{
+    public string TiffLayerName;
+    public string SkinPath;
 }

@@ -35,7 +35,7 @@ public partial class TestClass : Steps {
 
             var panel = rootNode.GetNode<Panel>("characterPanel");
             AssertPanelThat(panel).IsNonNull();
-            AssertPanelThat(panel).ViewportMatches("composed.png");
+            AssertPanelThat(panel).ViewportMatches("skins/texture.png");
         }
         catch (Exception e) {
             Assertions.AssertThat(true)
