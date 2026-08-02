@@ -4,14 +4,14 @@ using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
 using Vector2 = Godot.Vector2;
 
-namespace GdUnit4.Examples.Basics.Setup.Test.Stage_2.SpriteMap;
+namespace GdUnit4.Examples.Basics.Setup.Test.Stage_2.SpriteMap.MultiLayerOverlap;
 
 [TestSuite]
 public partial class TestClass : Steps {
     [TestCategory("Step_2")]
     [TestCase]
     [RequireGodotRuntime]
-    public async Task Given_panel_with_spriteMapTIFF_it_should_compose_from_layer_bindings() {
+    public async Task Given_panel_with_multi_layer_overlap_map_it_should_compose_correctly() {
         try {
             AddFileToArchive("module/index.js", "index.js")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
@@ -30,6 +30,8 @@ public partial class TestClass : Steps {
             });
             rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
             await runner.SimulateFrames(1);
+            
+            DebugSaveScreenshot("debug.png");
 
             var panel = rootNode.GetNode<Panel>("characterPanel");
             AssertPanelThat(panel).IsNonNull();

@@ -15,8 +15,6 @@ public partial class TestClass : Steps {
         try {
             AddFileToArchive("module/index.js", "index.js")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
-                .AddFileToArchive("module/skins/border_top.png", "skins/border_top.png")
-                .AddFileToArchive("module/skins/border_bottom.png", "skins/border_bottom.png")
                 .AddFileToArchive("module/skins/texture.png", "skins/texture.png")
                 .AddFileToArchive("module/maps/idle_frame1.tiff", "maps/idle_frame1.tiff")
                 .EnsureDllAccessible()

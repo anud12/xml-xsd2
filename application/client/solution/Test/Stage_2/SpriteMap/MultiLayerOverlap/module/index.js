@@ -1,15 +1,15 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
-
+  
   const layerBindings = [
     {
       layer: "center",
       texture: hostApi.ui.getSpritePNG("skins/texture.png"),
     },
     {
-      layer: "border",
-      texture: hostApi.ui.getSpritePNG("skins/border_top.png"),
+      layer: "half",
+      texture: hostApi.ui.getSpritePNG("skins/texture.png"),
     },
   ];
 
@@ -18,7 +18,7 @@ export default (hostApi) => {
       { sprite: hostApi.ui.spriteMapTIFF("maps/idle_frame1.tiff", layerBindings) },
     ],
   });
-
+  
   hostApi.ui.registerPanel({
     id: "characterPanel",
     size: {
