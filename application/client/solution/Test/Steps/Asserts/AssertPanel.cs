@@ -228,10 +228,10 @@ public partial class Steps {
                 return this;
             }
 
-            var actualName = DateTime.Now.ToFileTimeUtc() + "_actual_panel.png";
-            var actualPath = Path.Combine(baseDir, actualName);
-            var globalActualPath = ProjectSettings.GlobalizePath(actualPath);
-            cropped.SavePng(globalActualPath);
+            var tempDir = Path.GetTempPath();
+            var actualName = $"actual_panel_{DateTime.Now.Ticks}.png";
+            var actualPath = Path.Combine(tempDir, actualName);
+            cropped.SavePng(actualPath);
 
             var expectedImg = new Image();
             expectedImg.LoadPngFromBuffer(File.ReadAllBytes(fullExpectedPath));
