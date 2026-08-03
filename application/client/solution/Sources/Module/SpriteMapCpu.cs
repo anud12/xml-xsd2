@@ -18,7 +18,6 @@ namespace NewGameProject.Module;
 /// Channel meaning (TIFF mask):
 ///   R — U coordinate (0..width-1), normalized by the map's own width.
 ///   G — V coordinate (0..height-1), normalized by the map's own height.
-///   B — Skin index selector (high byte), 0 = first skin layer, 1 = second, etc.
 ///   A — Per-pixel mask alpha (high byte), modulates each layer's alpha before blending.
 ///
 /// Each layer is drawn across the full map then alpha-blended (src-over).
@@ -38,7 +37,7 @@ static class SpriteMapCpu
                 return null;
             }
 
-            (int w, int h, ushort[,] rMap, ushort[,] gMap, byte[,] bMap, byte[,] aMap) = result.Value;
+            (int w, int h, ushort[,] rMap, ushort[,] gMap, byte[,] aMap) = result.Value;
 
             var composed = Godot.Image.CreateEmpty(w, h, false, Godot.Image.Format.Rgba8);
             byte[] composedData = new byte[w * h * 4];
@@ -111,7 +110,7 @@ static class SpriteMapCpu
         }
     }
 
-    static (int w, int h, ushort[,] rMap, ushort[,] gMap, byte[,] bMap, byte[,] aMap)? ParseTiff(byte[] data, bool le)
+    static (int w, int h, ushort[,] rMap, ushort[,] gMap, byte[,] aMap)? ParseTiff(byte[] data, bool le)
     {
         int ifdOffset = ReadI32(data, 4, le);
         int numEntries = ReadI16(data, ifdOffset, le);
@@ -159,7 +158,6 @@ static class SpriteMapCpu
 
         ushort[,] rMap = new ushort[h, w];
         ushort[,] gMap = new ushort[h, w];
-        byte[,] bMap = new byte[h, w];
         byte[,] aMap = new byte[h, w];
 
         for (int py = 0; py < h; py++)
@@ -171,17 +169,15 @@ static class SpriteMapCpu
 
                 ushort r = ReadU16(data, pOff, le);
                 ushort g = ReadU16(data, pOff + 2, le);
-                ushort b = ReadU16(data, pOff + 4, le);
                 ushort a = ReadU16(data, pOff + 6, le);
 
                 rMap[py, px] = r;
                 gMap[py, px] = g;
-                bMap[py, px] = (byte)(b >> 8);
                 aMap[py, px] = (byte)(a >> 8);
             }
         }
 
-        return (w, h, rMap, gMap, bMap, aMap);
+        return (w, h, rMap, gMap, aMap);
     }
 
     static ushort ReadU16(byte[] d, int o, bool le)

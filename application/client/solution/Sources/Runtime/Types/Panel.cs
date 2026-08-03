@@ -157,6 +157,11 @@ public class ContainerListViewContent : PanelContent
     }
 }
 
+/// <summary>
+/// Defines an animated background sequence of frames.
+/// When <see cref="SpriteMapLayers"/> is set, each frame is a path to a TIFF sprite map
+/// rather than a plain PNG image.
+/// </summary>
 public class AnimationSequence
 {
     public string[] Frames { get; set; }
@@ -165,8 +170,25 @@ public class AnimationSequence
     public MapLayerBinding[]? SpriteMapLayers { get; set; }
 }
 
+/// <summary>
+/// Binds one Photoshop layer from the TIFF to a skin texture.
+///
+/// The TIFF must be a 16-bit unsigned integer RGBA image with Photoshop-compatible
+/// metadata (layer names stored in the PSD IFD). Each layer in the PSD corresponds to
+/// one <see cref="TiffLayerName"/>. The R and G channels of that layer hold 16-bit
+/// integer UV coordinates; the A channel holds per-pixel mask alpha.
+///
+/// The skin texture (<see cref="SkinPath"/>) must be a standard 8-bit RGBA PNG.
+/// </summary>
 public struct MapLayerBinding
 {
+    /// <summary>
+    /// Name of the Photoshop layer inside the TIFF/PSD file. Must match exactly.
+    /// </summary>
     public string TiffLayerName;
+
+    /// <summary>
+    /// Archive path to the 8-bit RGBA PNG skin texture for this layer.
+    /// </summary>
     public string SkinPath;
 }
