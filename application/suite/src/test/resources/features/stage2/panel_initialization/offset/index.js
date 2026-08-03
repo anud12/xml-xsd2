@@ -17,7 +17,7 @@ export default (hostApi) => {
       height: number.of(0),
       width: number.of(0)
     },
-    background: hostApi.ui.texture.of("modules/texture.exr"),
+    background: { frames: [{ sprite: hostApi.ui.getSpritePNG("modules/texture.exr") }] },
   })
   hostApi.ui.registerPanel({
     id: "panel_2",
@@ -35,6 +35,6 @@ export default (hostApi) => {
       height: number.of(0),
       width: number.of(0)
     },
-    background: hostApi.ui.texture.of("modules/texture.exr"),
+    background: { frames: [{ sprite: hostApi.ui.getSpritePNG("modules/texture.exr") }] },
   })
 }
