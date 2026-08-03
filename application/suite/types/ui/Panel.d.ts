@@ -40,8 +40,8 @@ export type PanelOptions = {
   };
   /** Panel dimensions in logical units. */
   size: { width: NumberExpression; height: NumberExpression };
-  /** Background animation applied to the panel. */
-  background: AnimationRegistrationArguments;
+  /** Background — either a direct sprite resource path or a full animation registration. */
+  background: SpriteResource | AnimationRegistrationArguments;
   /** Content component rendered inside the panel. */
   content?: PanelContent
   /** Handler invoked when the panel is clicked. */

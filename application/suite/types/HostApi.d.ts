@@ -29,6 +29,10 @@ export type HostApi = {
     getSpritePNG: (path: string) => SpriteResource,
     /** Returns the animation registration for the given name and duration configuration. */
     getAnimation: GetAnimationFunction,
+    /** Returns a texture resource reference for the given file path. */
+    texture: {
+      of: (path: string) => SpriteResource;
+    },
   },
   /** Runtime APIs for entities, containers, effects, actions, and events. */
   runtime: {
