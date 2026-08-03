@@ -5,9 +5,10 @@ import {SpriteMap, MapLayerBinding} from "./SpriteMap";
  */
 export type TextureApi = {
   /**
-   * Creates a sprite map from a TIFF file with layer-to-skin bindings.
-   * Each pixel in a TIFF layer uses R as U and G as V coordinates into the bound skin PNG.
-   */
+    * Creates a sprite map from a 16-bit integer TIFF file with layer-to-skin bindings.
+    * The TIFF must have Photoshop-compatible layer metadata. R/G channels encode UV
+    * coordinates (0..mapSize-1), A is per-pixel mask alpha. Skin textures are 8-bit RGBA PNGs.
+    */
   spriteMapTIFF: (mapPath: string, layers: MapLayerBinding[]) => SpriteMap;
 
   /**
