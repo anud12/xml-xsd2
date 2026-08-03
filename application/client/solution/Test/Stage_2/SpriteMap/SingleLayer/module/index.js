@@ -5,7 +5,7 @@ export default (hostApi) => {
   const layerBindings = [
     {
       layer: "center",
-      texture: hostApi.ui.getSpritePNG("skins/texture.png"),
+      texture: hostApi.ui.getSpritePNG("texture/texture.png"),
     },
   ];
 
