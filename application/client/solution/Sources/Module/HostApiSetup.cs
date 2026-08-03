@@ -9,10 +9,17 @@ var __registeredAnimations = {};
 var hostApi = {
     ui: {
         getSpritePNG: function(p) { return p; },
-        /// Create a sprite-map frame from a 16-bit integer TIFF mask and 8-bit PNG skin textures.
-        /// The TIFF must be 16-bit unsigned integer per channel (RGBA), little-endian, uncompressed.
-        /// The PNG skins must be standard 8-bit RGBA.
-        /// R/G channels encode UV coordinates (0..mapSize-1), B selects skin index, A is mask alpha.
+        /**
+         * Create a sprite-map frame from a 16-bit integer TIFF mask and 8-bit PNG skin textures.
+         *
+         * @param {string} mapPath - Archive path to the TIFF mask file.
+         *   Must be 16-bit unsigned integer per channel (RGBA), little-endian, uncompressed.
+         *   R/G channels encode UV coordinates (0..mapSize-1), A is per-pixel mask alpha.
+         *   The TIFF must contain Photoshop-compatible layer metadata (PSD IFD).
+         * @param {{layer: string, texture: string}[]} layers - Layer bindings.
+         *   Each entry maps a Photoshop layer name to an 8-bit RGBA PNG skin texture path.
+         * @returns {{__spriteMap: boolean, map: string, layers: array}}
+         */
         spriteMapTIFF: function(mapPath, layers) {
             var layerArr = [];
             for (var i = 0; i < layers.length; i++) {
