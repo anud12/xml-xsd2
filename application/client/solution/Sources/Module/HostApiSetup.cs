@@ -8,10 +8,17 @@ var __registeredContainers = {};
 var __registeredAnimations = {};
 var hostApi = {
     ui: {
-        texture: {
-            of: function(p) { return p; }
-        },
         getSpritePNG: function(p) { return p; },
+        spriteMapTIFF: function(mapPath, layers) {
+            var layerArr = [];
+            for (var i = 0; i < layers.length; i++) {
+                layerArr.push({
+                    layer: layers[i].layer,
+                    texture: layers[i].texture
+                });
+            }
+            return { __spriteMap: true, map: mapPath, layers: layerArr };
+        },
         getAnimation: function(name, animationDuration) {
             var resolvedName = typeof name === ""object"" ? name.value : name;
             if (__registeredAnimations[resolvedName]) {

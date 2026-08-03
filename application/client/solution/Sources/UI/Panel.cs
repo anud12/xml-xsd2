@@ -11,6 +11,8 @@ public partial class Panel : Godot.Panel {
     BoxContainer? _gridOrder;
     List<BoxContainer>? _tracks;
     Control? _contentNode;
+    Godot.Image? _mapImage;
+    int _mapFrameIndex = 0;
 
 
     public NewGameProject.Runtime.Panel ChildPanel {
@@ -75,6 +77,56 @@ public partial class Panel : Godot.Panel {
         }
 
         UpdateChildren(panel);
+
+        if (panel.BackgroundAnimation?.SpriteMapLayers != null)
+        {
+            SetupSpriteMapShader(panel);
+        }
+    }
+
+    void SetupSpriteMapShader(NewGameProject.Runtime.Panel panel)
+    {
+        var files = RuntimeInterop.GetFileFromArchive();
+        var anim = panel.BackgroundAnimation;
+        var layers = anim.SpriteMapLayers!;
+
+        // Load map image from first frame
+        var mapPath = anim.Frames[0];
+        if (!files.TryGetValue(mapPath, out var mapData))
+        {
+            RuntimeInterop.Log($"Sprite map: missing TIFF file \"{mapPath}\" for panel \"{panel.Id}\".");
+            return;
+        }
+
+        // Load skin textures
+        var skins = new Godot.Image[layers.Length];
+        for (int i = 0; i < layers.Length; i++)
+        {
+            if (!files.TryGetValue(layers[i].SkinPath, out var skinData))
+            {
+                RuntimeInterop.Log($"Sprite map: missing skin file \"{layers[i].SkinPath}\" for panel \"{panel.Id}\".");
+            }
+            else
+            {
+                var img = new Image();
+                img.LoadPngFromBuffer(skinData);
+                skins[i] = img;
+            }
+        }
+
+        // Compose 8-bit image from 16-bit TIFF map + skins
+        _mapImage = SpriteMapCpu.ComposeSpriteMap(mapData, skins);
+        foreach (var s in skins)
+            s?.Dispose();
+
+        if (_mapImage == null || _mapImage.GetWidth() == 0)
+            return;
+
+        TextureFilter = TextureFilterEnum.Nearest;
+        AddThemeStyleboxOverride("panel", new StyleBoxTexture
+        {
+            Texture = ImageTexture.CreateFromImage(_mapImage),
+        });
     }
 
     void UpdateContentNode(PanelContent? content) {
@@ -195,21 +247,79 @@ public partial class Panel : Godot.Panel {
     private int _animationTick = 0;
 
     public override void _Process(double delta) {
-        if (_panel.BackgroundAnimation != null) {
-            long elapsedUnits = RuntimeInterop.GetElapsedTimeUnits();
-            if (elapsedUnits > _animationTick) {
-                _animationTick = (int)elapsedUnits;
-                var anim = _panel.BackgroundAnimation;
-                int ticksPerFrame = anim.DurationTicks / anim.Frames.Length;
-                int rawIndex = (_animationTick - 1) / Math.Max(ticksPerFrame, 1);
-                int frameIndex = anim.Loop ? rawIndex % anim.Frames.Length : Math.Min(rawIndex, anim.Frames.Length - 1);
-                string currentFrame = anim.Frames[frameIndex];
-                if (_panel.Background != currentFrame) {
-                    _panel.Background = currentFrame;
-                    ModuleContextProvider.Context.UpdatePanelBackground(_panel.Id, currentFrame);
-                    UpdateBackgroundTexture(currentFrame);
-                }
+        if (_panel.BackgroundAnimation == null)
+            return;
+
+        long elapsedUnits = RuntimeInterop.GetElapsedTimeUnits();
+        if (elapsedUnits <= _animationTick)
+            return;
+
+        _animationTick = (int)elapsedUnits;
+        var anim = _panel.BackgroundAnimation;
+        int ticksPerFrame = anim.DurationTicks / anim.Frames.Length;
+        int rawIndex = (_animationTick - 1) / Math.Max(ticksPerFrame, 1);
+        int frameIndex = anim.Loop ? rawIndex % anim.Frames.Length : Math.Min(rawIndex, anim.Frames.Length - 1);
+
+        if (anim.SpriteMapLayers != null)
+        {
+            // Sprite map: re-compose for this frame
+            string currentFrame = anim.Frames[frameIndex];
+            if (_mapFrameIndex != frameIndex)
+            {
+                _mapFrameIndex = frameIndex;
+                UpdateMapTexture(currentFrame, anim.SpriteMapLayers);
             }
+        }
+        else
+        {
+            // Standard PNG frames
+            string currentFrame = anim.Frames[frameIndex];
+            if (_panel.Background != currentFrame)
+            {
+                _panel.Background = currentFrame;
+                ModuleContextProvider.Context.UpdatePanelBackground(_panel.Id, currentFrame);
+                UpdateBackgroundTexture(currentFrame);
+            }
+        }
+    }
+
+    void UpdateMapTexture(string mapPath, MapLayerBinding[] layers)
+    {
+        var files = RuntimeInterop.GetFileFromArchive();
+        if (!files.TryGetValue(mapPath, out var mapData))
+        {
+            RuntimeInterop.Log($"Sprite map: missing TIFF file \"{mapPath}\" for panel \"{_panel.Id}\".");
+            return;
+        }
+
+        var skins = new Godot.Image[layers.Length];
+        for (int i = 0; i < layers.Length; i++)
+        {
+            if (!files.TryGetValue(layers[i].SkinPath, out var skinData))
+            {
+                RuntimeInterop.Log($"Sprite map: missing skin file \"{layers[i].SkinPath}\" for panel \"{_panel.Id}\".");
+            }
+            else
+            {
+                var img = new Image();
+                img.LoadPngFromBuffer(skinData);
+                skins[i] = img;
+            }
+        }
+
+        var composed = SpriteMapCpu.ComposeSpriteMap(mapData, skins);
+        foreach (var s in skins)
+            s?.Dispose();
+
+        if (composed != null)
+        {
+            if (_mapImage != null)
+                _mapImage.Dispose();
+            _mapImage = composed;
+            AddThemeStyleboxOverride("panel", new StyleBoxTexture
+            {
+                Texture = ImageTexture.CreateFromImage(_mapImage),
+            });
         }
     }
 

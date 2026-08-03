@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
 using GdUnit4;
 using Godot;
 using NewGameProject.Runtime;
@@ -192,6 +195,76 @@ public partial class Steps {
                 .OverrideFailureMessage(
                     $"Panel at \"{path}\" background texture is not equal to \"{expectedTexture}\" but is \"{ffiPanel.Background}\"")
                 .IsEqual(expectedTexture);
+            return this;
+        }
+
+        /// <summary>
+        /// Asserts that the visible pixels of the panel match the expected reference image.
+        /// Captures the viewport, crops to the panel's global rectangle,
+        /// and compares pixel-by-pixel against the expected PNG.
+        /// </summary>
+        /// <param name="relativeImagePath">Path to the expected reference PNG, relative to this file.</param>
+        /// <param name="tolerance">Ratio of differing channels allowed (default 0.01 = 1%).</param>
+        public AssertPanel ViewportMatches(string relativeImagePath, float tolerance = 0.01f,
+            [CallerFilePath] string callerPath = "")
+        {
+            var viewport = panel.GetViewport();
+            var viewportTexture = viewport.GetTexture();
+            using var fullImage = viewportTexture.GetImage();
+
+            var globalPos = panel.GetGlobalRect().Position;
+            var size = panel.GetGlobalRect().Size;
+
+            using var cropped = fullImage.GetRegion(new Rect2I((int)globalPos.X, (int)globalPos.Y, (int)size.X, (int)size.Y));
+
+            var baseDir = Path.GetDirectoryName(callerPath);
+            var fullExpectedPath = Path.Combine(baseDir, relativeImagePath);
+
+            if (!File.Exists(fullExpectedPath))
+            {
+                Assertions.AssertBool(false)
+                    .OverrideFailureMessage($"Reference image not found at: {fullExpectedPath}")
+                    .IsTrue();
+                return this;
+            }
+
+            var tempDir = Path.GetTempPath();
+            var actualName = $"actual_panel_{DateTime.Now.Ticks}.png";
+            var actualPath = Path.Combine(tempDir, actualName);
+            cropped.SavePng(actualPath);
+
+            var expectedImg = new Image();
+            expectedImg.LoadPngFromBuffer(File.ReadAllBytes(fullExpectedPath));
+
+            bool equal = false;
+            if (cropped.GetWidth() != expectedImg.GetWidth() || cropped.GetHeight() != expectedImg.GetHeight())
+            {
+                equal = false;
+            }
+            else
+            {
+                int diffChannels = 0;
+                var actualData = cropped.GetData();
+                var expectedData = expectedImg.GetData();
+                for (int i = 0; i < actualData.Length; i++)
+                {
+                    if (Math.Abs(actualData[i] - expectedData[i]) > 1)
+                        diffChannels++;
+                }
+                double diffRatio = (double)diffChannels / actualData.Length;
+                equal = diffRatio <= tolerance;
+            }
+
+            expectedImg.Dispose();
+
+            if (!equal) {
+                Assertions.AssertBool(equal)
+                    .OverrideFailureMessage(
+                        $"Panel at \"{path}\" screenshot mismatch! Actual: \"{actualPath}\" vs Expected: \"{relativeImagePath}\"")
+                    .IsTrue();
+            }
+
+            File.Delete(actualPath);
             return this;
         }
     }

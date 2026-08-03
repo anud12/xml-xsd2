@@ -10,8 +10,8 @@ import {NumberMapExpressionApi} from "./numberMap";
 import {TextMapExpressionApi} from "./textMap";
 import {RegisterActionFunction} from "./action";
 import {RegisterPanelFunction} from "./ui/Panel";
-import {TextureApi} from "./texture/TextureApi";
 import {SpriteResource} from "./texture/SpriteResource";
+import {SpriteMap, MapLayerBinding} from "./texture/SpriteMap";
 import {EntityCreationArguments} from "./Entity";
 import {RegisterAnimationFunction, GetAnimationFunction} from "./animation/AnimationRegistration";
 
@@ -23,8 +23,8 @@ export type HostApi = {
   ui: {
     /** Registers a new panel with the UI host. */
     registerPanel: RegisterPanelFunction,
-    /** Texture utility functions. */
-    texture: TextureApi,
+    /** Creates a sprite map from a TIFF file with layer-to-texture bindings. */
+    spriteMapTIFF: (mapPath: string, layers: MapLayerBinding[]) => SpriteMap,
     /** Returns a sprite resource reference for the given PNG file path. */
     getSpritePNG: (path: string) => SpriteResource,
     /** Returns the animation registration for the given name and duration configuration. */

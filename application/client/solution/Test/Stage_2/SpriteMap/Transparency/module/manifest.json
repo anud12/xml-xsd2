@@ -1,0 +1,6 @@
+{
+  "id": "spritemap-module",
+  "version": "1.0.0",
+  "name": "SpriteMap Module",
+  "entry": "index.js"
+}
