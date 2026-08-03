@@ -42,7 +42,7 @@ static class PanelParser
                         framePaths.Add(spriteName.GetString() ?? "");
                     else if (sprite.ValueKind == JsonValueKind.Object && sprite.TryGetProperty("__spriteMap", out var isMap) && isMap.GetBoolean())
                     {
-                        // This is a sprite map — extract map path and layer bindings for GPU composition
+                        // This is a sprite map — extract map path and layer bindings for CPU composition
                         var mapPath = ResolveSpriteMap(sprite, out var layers);
                         framePaths.Add(mapPath);
                         if (layers != null && layers.Length > 0 && _lastSpriteMapLayers == null)

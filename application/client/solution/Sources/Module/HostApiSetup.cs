@@ -8,10 +8,21 @@ var __registeredContainers = {};
 var __registeredAnimations = {};
 var hostApi = {
     ui: {
-        texture: {
-            of: function(p) { return p; }
-        },
         getSpritePNG: function(p) { return p; },
+        /// Create a sprite-map frame from a 16-bit integer TIFF mask and 8-bit PNG skin textures.
+        /// The TIFF must be 16-bit unsigned integer per channel (RGBA), little-endian, uncompressed.
+        /// The PNG skins must be standard 8-bit RGBA.
+        /// R/G channels encode UV coordinates (0..mapSize-1), B selects skin index, A is mask alpha.
+        spriteMapTIFF: function(mapPath, layers) {
+            var layerArr = [];
+            for (var i = 0; i < layers.length; i++) {
+                layerArr.push({
+                    layer: layers[i].layer,
+                    texture: layers[i].texture
+                });
+            }
+            return { __spriteMap: true, map: mapPath, layers: layerArr };
+        },
         getAnimation: function(name, animationDuration) {
             var resolvedName = typeof name === ""object"" ? name.value : name;
             if (__registeredAnimations[resolvedName]) {

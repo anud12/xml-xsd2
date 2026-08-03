@@ -93,13 +93,20 @@ public partial class Panel : Godot.Panel {
         // Load map image from first frame
         var mapPath = anim.Frames[0];
         if (!files.TryGetValue(mapPath, out var mapData))
+        {
+            RuntimeInterop.Log($"Sprite map: missing TIFF file \"{mapPath}\" for panel \"{panel.Id}\".");
             return;
+        }
 
         // Load skin textures
         var skins = new Godot.Image[layers.Length];
         for (int i = 0; i < layers.Length; i++)
         {
-            if (files.TryGetValue(layers[i].SkinPath, out var skinData))
+            if (!files.TryGetValue(layers[i].SkinPath, out var skinData))
+            {
+                RuntimeInterop.Log($"Sprite map: missing skin file \"{layers[i].SkinPath}\" for panel \"{panel.Id}\".");
+            }
+            else
             {
                 var img = new Image();
                 img.LoadPngFromBuffer(skinData);
@@ -280,12 +287,19 @@ public partial class Panel : Godot.Panel {
     {
         var files = RuntimeInterop.GetFileFromArchive();
         if (!files.TryGetValue(mapPath, out var mapData))
+        {
+            RuntimeInterop.Log($"Sprite map: missing TIFF file \"{mapPath}\" for panel \"{_panel.Id}\".");
             return;
+        }
 
         var skins = new Godot.Image[layers.Length];
         for (int i = 0; i < layers.Length; i++)
         {
-            if (files.TryGetValue(layers[i].SkinPath, out var skinData))
+            if (!files.TryGetValue(layers[i].SkinPath, out var skinData))
+            {
+                RuntimeInterop.Log($"Sprite map: missing skin file \"{layers[i].SkinPath}\" for panel \"{_panel.Id}\".");
+            }
+            else
             {
                 var img = new Image();
                 img.LoadPngFromBuffer(skinData);

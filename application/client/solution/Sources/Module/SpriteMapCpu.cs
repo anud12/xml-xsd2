@@ -2,6 +2,28 @@ using Godot;
 
 namespace NewGameProject.Module;
 
+/// <summary>
+/// CPU-based sprite map composition from 16-bit integer TIFF masks and 8-bit PNG skin textures.
+///
+/// TIFF mask requirements:
+///   - Must be 16-bit unsigned integer (UInt16) per channel — not floating-point, not 8-bit.
+///   - 4 channels: R, G, B, A (RGBA).
+///   - Little-endian byte order (II header).
+///   - Uncompressed (compression = 1).
+///   - RowsPerStrip is optional; strips are read row-by-row.
+///
+/// PNG skin texture requirements:
+///   - Standard 8-bit RGBA PNG.
+///
+/// Channel meaning (TIFF mask):
+///   R — U coordinate (0..width-1), normalized by the map's own width.
+///   G — V coordinate (0..height-1), normalized by the map's own height.
+///   B — Skin index selector (high byte), 0 = first skin layer, 1 = second, etc.
+///   A — Per-pixel mask alpha (high byte), modulates each layer's alpha before blending.
+///
+/// Each layer is drawn across the full map then alpha-blended (src-over).
+/// Layers are composited in order: earlier layers are behind later layers.
+/// </summary>
 static class SpriteMapCpu
 {
     public static Godot.Image? ComposeSpriteMap(byte[] tiffData, Godot.Image[] skins)

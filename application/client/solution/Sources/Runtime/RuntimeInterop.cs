@@ -192,6 +192,8 @@ public static class RuntimeInterop
 
     public static bool HasLogger => userLogCallback != null;
 
+    public static void Log(string message) => userLogCallback?.Invoke(message);
+
     public static void ClearLogger()
     {
         userLogCallback = null;
