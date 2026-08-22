@@ -1,13 +1,13 @@
 using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
 
-namespace GdUnit4.Examples.Basics.Setup.Test.Stage_8.Autonomy.Wait;
+namespace GdUnit4.Examples.Basics.Setup.Test.Stage_8.Behavior.Wait;
 
 [TestSuite]
 public partial class TestClass : Steps {
     [TestCategory("Stage_8")]
     [TestCase]
-    public void Given_autonomy_with_wait_it_should_run_action_wait_action_in_order() {
+    public void Given_behavior_with_wait_it_should_run_action_wait_action_in_order() {
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()

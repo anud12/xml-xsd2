@@ -3,11 +3,11 @@ use crate::js_runtime::{create_runtime, create_context};
 use crate::js_host_api::install_host_api;
 use super::sim_entry::{select_entry_source, eval_entry_in_ctx};
 
-const AUTONOMY_SCRIPTS_JS: &str = r#"(function(total, prevScripts){
+const BEHAVIOR_SCRIPTS_JS: &str = r#"(function(total, prevScripts){
   globalThis.__logs = [];
-  globalThis.__autonomyScripts = prevScripts || {};
-  const defs = globalThis.__autonomyDefinitions || {};
-  const atts = globalThis.__autonomies || {};
+  globalThis.__behaviorScripts = prevScripts || {};
+  const defs = globalThis.__behaviorDefinitions || {};
+  const atts = globalThis.__behaviors || {};
   const acts = globalThis.__registeredActions || [];
   function findAction(name) {
     for (let i = 0; i < acts.length; i++) {
@@ -19,13 +19,15 @@ const AUTONOMY_SCRIPTS_JS: &str = r#"(function(total, prevScripts){
   }
   for (const entityId in atts) {
     const handle = atts[entityId];
-    const def = handle && defs[handle.name];
+    const handleName = typeof handle.name === 'object'
+      ? handle.name.value : handle.name;
+    const def = handleName && defs[handleName];
     if (!def) continue;
     const branch = def.priority && def.priority[0];
     const rule = branch && branch.utility && branch.utility[0];
     if (!rule || !Array.isArray(rule.steps)) continue;
-    const st = globalThis.__autonomyScripts[entityId]
-      || (globalThis.__autonomyScripts[entityId]
+    const st = globalThis.__behaviorScripts[entityId]
+      || (globalThis.__behaviorScripts[entityId]
          = { stepIdx: 0, waitUntil: null });
     const steps = rule.steps;
     while (st.stepIdx < steps.length) {
@@ -48,14 +50,14 @@ const AUTONOMY_SCRIPTS_JS: &str = r#"(function(total, prevScripts){
       }
     }
   }
-  globalThis.__autonomyResult = {
+  globalThis.__behaviorResult = {
     logs: globalThis.__logs || [],
-    scripts: globalThis.__autonomyScripts
+    scripts: globalThis.__behaviorScripts
   };
-  return globalThis.__autonomyResult;
+  return globalThis.__behaviorResult;
 })"#;
 
-pub fn process_autonomy_scripts(
+pub fn process_behavior_scripts(
     files: &std::collections::HashMap<String, String>,
     total: i64,
 ) -> Result<()> {
@@ -113,14 +115,14 @@ pub fn process_autonomy_scripts(
     install_host_api(&ctx)?;
     let source = select_entry_source(files);
     eval_entry_in_ctx(&ctx, &source)?;
-    let prev = crate::state::autonomy_scripts()
+    let prev = crate::state::behavior_scripts()
         .lock().unwrap().clone();
     let script = format!(
         "JSON.stringify(({})({}, {}))",
-        AUTONOMY_SCRIPTS_JS, total, prev);
-    eval_with_detail(&ctx, "autonomy scripts", script)?;
+        BEHAVIOR_SCRIPTS_JS, total, prev);
+    eval_with_detail(&ctx, "behavior scripts", script)?;
     let raw = ctx.with(|c| c.eval::<String, _>(
-        "JSON.stringify(globalThis.__autonomyResult)"))?;
+        "JSON.stringify(globalThis.__behaviorResult)"))?;
     let res: serde_json::Value = serde_json::from_str(&raw)?;
     if let Some(logs) = res.get("logs").and_then(|l| l.as_array()) {
         for l in logs {
@@ -128,9 +130,8 @@ pub fn process_autonomy_scripts(
         }
     }
     if let Some(scripts) = res.get("scripts") {
-        *crate::state::autonomy_scripts().lock().unwrap() =
+        *crate::state::behavior_scripts().lock().unwrap() =
             scripts.to_string();
     }
     Ok(())
 }
-

@@ -2,7 +2,7 @@
 export default (hostApi) => {
     const {number, string} = hostApi.runtime;
     hostApi.runtime.registerAction({
-        name: "action",
+        name: string.of("action"),
         apply: (context) => {
             hostApi.runtime.log("___From module action fired line___")
             context.emitEffect("effect", {})

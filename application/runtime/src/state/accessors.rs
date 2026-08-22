@@ -84,9 +84,9 @@ pub fn archive_files() -> &'static Mutex<HashMap<String, String>> {
 pub fn set_archive_files(map: HashMap<String, String>) {
     *archive_files().lock().unwrap() = map;
 }
-pub fn autonomy_scripts() -> &'static Mutex<String> {
-    super::persisted_flag(); unsafe { super::AUTONOMY_SCRIPTS.expect("autonomy scripts initialized") }
+pub fn behavior_scripts() -> &'static Mutex<String> {
+    super::persisted_flag(); unsafe { super::BEHAVIOR_SCRIPTS.expect("behavior scripts initialized") }
 }
-pub fn set_autonomy_scripts(json: String) {
-    *autonomy_scripts().lock().unwrap() = json;
+pub fn set_behavior_scripts(json: String) {
+    *behavior_scripts().lock().unwrap() = json;
 }

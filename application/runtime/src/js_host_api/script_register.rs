@@ -32,6 +32,7 @@ pub(super) fn host_api_script_register_block(
     s.push_str(" let owner = n; ");
     s.push_str("scanFn(ev.prepare, owner); ");
     s.push_str("scanFn(ev.apply, owner); ");
-    s.push_str("} catch(e) { /* ignore */ } },");
+    s.push_str("} catch(e) { /* ignore */ } ");
+    s.push_str("return { name: ev.name }; },");
     s
 }

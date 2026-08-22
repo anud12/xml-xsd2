@@ -62,13 +62,13 @@ pub extern "C" fn runtime_run_iteration(elapsed_units: i64) -> i64 {
     helpers::log(
         "runtime_run_iteration, RETURNED from process_scheduled_effects");
 
-    helpers::log("runtime_run_iteration, CALLING process_autonomy_scripts");
-    if let Err(e) = crate::js_executor::process_autonomy_scripts(
+    helpers::log("runtime_run_iteration, CALLING process_behavior_scripts");
+    if let Err(e) = crate::js_executor::process_behavior_scripts(
         &files_map, total) {
         helpers::log(&format!(
-            "Failed to process autonomy scripts: {:?}", e));
+            "Failed to process behavior scripts: {:?}", e));
     }
-    helpers::log("runtime_run_iteration, RETURNED from process_autonomy_scripts");
+    helpers::log("runtime_run_iteration, RETURNED from process_behavior_scripts");
 
     {
         let nd = crate::state::last_entity_number_data()

@@ -12,9 +12,9 @@ import {RegisterActionFunction} from "./action";
 import {RegisterPanelFunction} from "./ui/Panel";
 import {SpriteResource} from "./texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "./texture/SpriteMap";
-import {EntityCreationArguments} from "./Entity";
+import {EntityCreationArguments, EntityReference} from "./Entity";
 import {RegisterAnimationFunction, GetAnimationFunction} from "./animation/AnimationRegistration";
-import {AutonomyApi} from "./autonomy";
+import {BehaviorApi} from "./behavior";
 
 /**
  * The top-level host API surface exposed to modules.
@@ -46,7 +46,7 @@ export type HostApi = {
     container: ContainerExpressionApi,
 
     /** Sets entity fields (numberMap, textMap) by entity ID. */
-    setEntity: (entityId: StringExpression, arguments: EntityCreationArguments) => void;
+    setEntity: (entityId: StringExpression, arguments: EntityCreationArguments) => EntityReference;
 
     /** Sets container fields by container ID. */
     setContainer: (containerId: StringExpression, arguments: ContainerCreationArguments) => void;
@@ -65,9 +65,7 @@ export type HostApi = {
     /** Logs a string message to the runtime log. */
     log:(string:string) => void;
 
-    /** Creates and registers a reactive autonomy state machine. */
-    autonomy: AutonomyApi["autonomy"];
-    /** Attaches an autonomy to an entity. */
-    setAutonomy: AutonomyApi["setAutonomy"];
+    /** Creates and registers a reactive behavior state machine. */
+    registerBehavior: BehaviorApi["registerBehavior"];
   }
 }

@@ -76,8 +76,7 @@ var hostApi={
       return null;
     },
     log:h.log,
-    autonomy:h.autonomy,
-    setAutonomy:h.setAutonomy,
+    registerBehavior:h.registerBehavior,
     entity:h.entity,
     maybe:{
         of:function(v){return{value:v};},

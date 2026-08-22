@@ -2,14 +2,14 @@
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
   hostApi.runtime.registerAction({
-    name:"action",
+    name: string.of("action"),
     apply: () => {
         hostApi.runtime.log("___From module action fired line___")
     }
   });
 
     hostApi.runtime.registerAction({
-        name:"childAction",
+        name: string.of("childAction"),
         apply: () => {
             hostApi.runtime.log("___From module childAction fired line___")
         }

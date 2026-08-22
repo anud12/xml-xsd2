@@ -2,20 +2,14 @@
 export default (hostApi) => {
   const {number, string, condition} = hostApi.runtime;
 
-  hostApi.runtime.setEntity(string.of("guard"), {
-    textMap: {
-      "state": string.of("idle")
-    }
-  });
-
-  hostApi.runtime.registerAction({
-    name: "first",
+  const first = hostApi.runtime.registerAction({
+    name: string.of("first"),
     apply: () => {
       hostApi.runtime.log("___action-exists first action fired___");
     }
   });
 
-  hostApi.runtime.autonomy({
+  hostApi.runtime.registerBehavior({
     name: string.of("action-exists-behavior"),
     priority: [
       {
@@ -26,7 +20,7 @@ export default (hostApi) => {
             label: "sequence",
             score: () => number.of(1),
             do: (ctx) => [
-              ctx.action(string.of("first")),
+              ctx.action(first.name),
               ctx.action(string.of("missing"))
             ]
           }

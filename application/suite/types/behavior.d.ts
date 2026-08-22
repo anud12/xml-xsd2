@@ -4,7 +4,7 @@ import { ConditionExpression } from "./primitives/conditionExpression";
 import { Entity } from "./Entity";
 
 /**
- * A single atomic step within an autonomy rule's execution script.
+ * A single atomic step within a behavior rule's execution script.
  *
  * The script is a pure declaration of what happens: the executor runs
  * the steps in order, with `wait` steps suspending across ticks.
@@ -14,9 +14,9 @@ import { Entity } from "./Entity";
  * own executor state, e.g. an in-flight move); `wait` steps suspend
  * the script for the given duration in game time units.
  */
-export type AutonomyStep =
+export type BehaviorStep =
   | {
-      /** Execute a named action (which may invoke effects internally). */
+      /** The action name to execute. */
       action: StringExpression;
       /** Arbitrary payload passed to the action at emit time. */
       payload?: Record<string, any>;
@@ -33,10 +33,10 @@ export type AutonomyStep =
  * (queries, state, rng) is deliberately out of reach.
  */
 export type DoContext = {
-  /** Declare a step that executes the named action. */
-  action: (name: StringExpression, payload?: Record<string, any>) => AutonomyStep;
+  /** Declare a step that executes the action. */
+  action: (name: StringExpression, payload?: Record<string, any>) => BehaviorStep;
   /** Declare a step that waits for the given duration. */
-  wait: (duration: NumberExpression) => AutonomyStep;
+  wait: (duration: NumberExpression) => BehaviorStep;
 };
 
 /**
@@ -51,7 +51,7 @@ export type UtilityRule = {
    */
   score: (entity: Entity) => NumberExpression;
   /** Builds the execution script for this rule. */
-  do: (ctx: DoContext) => AutonomyStep[];
+  do: (ctx: DoContext) => BehaviorStep[];
 };
 
 /**
@@ -69,36 +69,37 @@ export type PriorityRule = {
 };
 
 /**
- * A node in the autonomy behavior graph.
+ * A node in the behavior graph.
  *
  * - `priority`: ordered branches; first true `condition` wins, then its
  *   `utility` resolves. Rule-based conflict resolution (short-circuit).
  * - `utility`: all rules scored, best score wins (argmax; ties broken
  *   by array order). Utility AI.
  */
-export type AutonomyNode =
+export type BehaviorNode =
   | { priority: PriorityRule[] }
   | { utility: UtilityRule[] };
 
 /**
- * An opaque handle to a registered autonomy.
- * Attach to entities via `setAutonomy`.
+ * A reference to a registered behavior.
+ * Attach to entities via the `behavior` field in `setEntity` arguments.
  */
-export type Autonomy = {
-  readonly name: string;
+export type BehaviorReference = {
+  /** The name expression used to register this behavior. */
+  readonly name: StringExpression;
 };
 
 /**
- * API for creating autonomy graphs and attaching them to entities.
+ * API for creating behavior graphs and attaching them to entities.
  *
- * Exposed as `hostApi.runtime.autonomy` / `hostApi.runtime.setAutonomy`
- * inside module scripts.
+ * Exposed as `hostApi.runtime.registerBehavior` inside module scripts.
+ * Attach to entities via the `behavior` field in `setEntity` arguments.
  */
-export type AutonomyApi = {
+export type BehaviorApi = {
   /**
-   * Create and register an autonomy from a declarative definition.
+   * Create and register a behavior from a declarative definition.
    *
-   * Autonomy — per-entity decision making.
+   * Behavior — per-entity decision making.
    *
    * Paradigm: a **blackboard system** (entity = shared blackboard:
    * numberMap/textMap) whose control shell is a **dataflow rule graph**:
@@ -129,18 +130,9 @@ export type AutonomyApi = {
    * - the node is well-formed (priority/utility shapes)
    * - `label` is present on every rule
    *
-   * @param definition - Declarative autonomy definition: a name plus
+   * @param definition - Declarative behavior definition: a name plus
    *   the behavior graph root (`priority` or `utility`).
-   * @returns Opaque autonomy handle for `setAutonomy`.
+   * @returns BehaviorReference for the `behavior` field in `setEntity`.
    */
-  autonomy: (definition: { name: StringExpression } & AutonomyNode) => Autonomy;
-
-  /**
-   * Attach an autonomy to an entity by ID.
-   * Replaces any autonomy previously attached to that entity.
-   *
-   * @param entityId - The entity to attach the autonomy to.
-   * @param autonomy - Autonomy handle from `autonomy`.
-   */
-  setAutonomy: (entityId: StringExpression, autonomy: Autonomy) => void;
+  registerBehavior: (definition: { name: StringExpression } & BehaviorNode) => BehaviorReference;
 };

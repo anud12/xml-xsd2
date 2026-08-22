@@ -1,31 +1,31 @@
-pub fn host_api_script_autonomy() -> &'static str {
-    r#"autonomy(definition) {
+pub fn host_api_script_behavior() -> &'static str {
+    r#"registerBehavior(definition) {
         if (!definition || typeof definition !== 'object') {
-            throw new Error('autonomy: missing definition');
+            throw new Error('behavior: missing definition');
         }
         var resolvedName = typeof definition.name === 'object'
             ? definition.name.value : definition.name;
         if (typeof resolvedName !== 'string' || resolvedName === '') {
-            throw new Error('autonomy: missing name');
+            throw new Error('behavior: missing name');
         }
-        globalThis.__autonomyDefinitions =
-            globalThis.__autonomyDefinitions || {};
-        if (resolvedName in globalThis.__autonomyDefinitions) {
-            throw new Error('autonomy: duplicate name '
+        globalThis.__behaviorDefinitions =
+            globalThis.__behaviorDefinitions || {};
+        if (resolvedName in globalThis.__behaviorDefinitions) {
+            throw new Error('behavior: duplicate name '
                 + resolvedName);
         }
         function checkUtilityRule(rule, owner) {
             if (!rule || typeof rule !== 'object'
                 || typeof rule.label !== 'string') {
-                throw new Error('autonomy: utility rule missing label in '
+                throw new Error('behavior: utility rule missing label in '
                     + owner);
             }
             if (typeof rule.score !== 'function') {
-                throw new Error('autonomy: ' + rule.label
+                throw new Error('behavior: ' + rule.label
                     + ' missing score in ' + owner);
             }
             if (typeof rule.do !== 'function') {
-                throw new Error('autonomy: ' + rule.label
+                throw new Error('behavior: ' + rule.label
                     + ' missing do in ' + owner);
             }
             var doCtx = {
@@ -38,7 +38,7 @@ pub fn host_api_script_autonomy() -> &'static str {
             };
             var steps = rule.do(doCtx);
             if (!Array.isArray(steps)) {
-                throw new Error('autonomy: ' + rule.label
+                throw new Error('behavior: ' + rule.label
                     + ' do must return a step array in ' + owner);
             }
             var registered = globalThis.__registeredActions || [];
@@ -47,23 +47,21 @@ pub fn host_api_script_autonomy() -> &'static str {
                 if (!st || typeof st !== 'object'
                     || (st.action === undefined && st.wait === undefined)) {
                     throw new Error(
-                        'autonomy: invalid step in ' + rule.label);
+                        'behavior: invalid step in ' + rule.label);
                 }
                 if (st.action !== undefined) {
-                    var actionName = typeof st.action === 'object'
-                        ? st.action.value : st.action;
                     var found = false;
                     for (var a = 0; a < registered.length; a++) {
                         var act = registered[a];
                         if (act && typeof act === 'object'
-                            && act.name === actionName) {
+                            && act.name === st.action) {
                             found = true;
                             break;
                         }
                     }
                     if (!found) {
-                        throw new Error('autonomy: action '
-                            + actionName + ' not registered in '
+                        throw new Error('behavior: action '
+                            + st.action + ' not registered in '
                             + rule.label);
                     }
                 }
@@ -73,16 +71,16 @@ pub fn host_api_script_autonomy() -> &'static str {
         function checkPriorityRule(rule, owner) {
             if (!rule || typeof rule !== 'object'
                 || typeof rule.label !== 'string') {
-                throw new Error('autonomy: priority rule missing label in '
+                throw new Error('behavior: priority rule missing label in '
                     + owner);
             }
             if (typeof rule.condition !== 'function') {
-                throw new Error('autonomy: ' + rule.label
+                throw new Error('behavior: ' + rule.label
                     + ' missing condition in ' + owner);
             }
             if (!Array.isArray(rule.utility)
                 || rule.utility.length === 0) {
-                throw new Error('autonomy: ' + rule.label
+                throw new Error('behavior: ' + rule.label
                     + ' utility must be a non-empty array in ' + owner);
             }
             for (var u = 0; u < rule.utility.length; u++) {
@@ -92,7 +90,7 @@ pub fn host_api_script_autonomy() -> &'static str {
         if (Array.isArray(definition.priority)) {
             if (definition.priority.length === 0) {
                 throw new Error(
-                    'autonomy: priority must be a non-empty array');
+                    'behavior: priority must be a non-empty array');
             }
             for (var p = 0; p < definition.priority.length; p++) {
                 checkPriorityRule(definition.priority[p], 'priority');
@@ -100,29 +98,16 @@ pub fn host_api_script_autonomy() -> &'static str {
         } else if (Array.isArray(definition.utility)) {
             if (definition.utility.length === 0) {
                 throw new Error(
-                    'autonomy: utility must be a non-empty array');
+                    'behavior: utility must be a non-empty array');
             }
             for (var u = 0; u < definition.utility.length; u++) {
                 checkUtilityRule(definition.utility[u], 'utility');
             }
         } else {
             throw new Error(
-                'autonomy: definition must declare priority or utility');
+                'behavior: definition must declare priority or utility');
         }
-        globalThis.__autonomyDefinitions[resolvedName] = definition;
-        return { name: resolvedName };
-    },
-    setAutonomy(entityId, autonomy) {
-        var resolvedId = typeof entityId === 'object'
-            ? entityId.value : entityId;
-        if (typeof resolvedId !== 'string' || resolvedId === '') {
-            throw new Error('setAutonomy: missing entity id');
-        }
-        if (!autonomy || typeof autonomy !== 'object'
-            || typeof autonomy.name !== 'string') {
-            throw new Error('setAutonomy: not an autonomy handle');
-        }
-        globalThis.__autonomies = globalThis.__autonomies || {};
-        globalThis.__autonomies[resolvedId] = autonomy;
+        globalThis.__behaviorDefinitions[resolvedName] = definition;
+        return { name: definition.name };
     }"#
 }

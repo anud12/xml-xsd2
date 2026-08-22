@@ -44,7 +44,14 @@ pub(super) fn host_api_script_set_entity()
         if (typeof id === 'string' && data
             && typeof data === 'object') {
             globalThis.__entityData[id] = data;
+            if (data.behavior !== undefined) {
+                globalThis.__behaviors =
+                    globalThis.__behaviors || {};
+                globalThis.__behaviors[id] =
+                    { name: data.behavior };
+            }
         }
+        return { name: id };
     },"#
 }
 

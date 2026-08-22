@@ -9,8 +9,8 @@ pub(super) fn extract_declarations_script() -> String {
                 panels: [], entity_data: {{}},
                 containers: [], pending_effects: [],
                 animations: {{}},
-                autonomy_definitions: {{}},
-                autonomy_attachments: {{}}
+                behavior_definitions: {{}},
+                behavior_attachments: {{}}
             }};
             {}
             out.logs = globalThis.__logs || [];
@@ -42,12 +42,14 @@ pub(super) fn extract_declarations_script() -> String {
                 }});
             out.animations =
                 globalThis.__registeredAnimations || {{}};
-            out.autonomy_definitions =
-                globalThis.__autonomyDefinitions || {{}};
-            var attachments = globalThis.__autonomies || {{}};
+            out.behavior_definitions =
+                globalThis.__behaviorDefinitions || {{}};
+            var attachments = globalThis.__behaviors || {{}};
             for (var aid in attachments) {{
-                out.autonomy_attachments[aid] =
-                    attachments[aid].name;
+                var ref = attachments[aid];
+                out.behavior_attachments[aid] =
+                    (ref.name && typeof ref.name === 'object')
+                        ? ref.name.value : ref.name;
             }}
             return JSON.stringify(out);
         }})()"#,

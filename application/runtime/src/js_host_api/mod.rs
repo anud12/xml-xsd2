@@ -1,4 +1,4 @@
-pub mod script_autonomy;
+pub mod script_behavior;
 pub mod script_emit;
 pub mod script_register;
 pub mod script_panel_entity;
@@ -30,9 +30,9 @@ pub struct Declarations {
     #[serde(default)]
     pub animations: HashMap<String, serde_json::Value>,
     #[serde(default)]
-    pub autonomy_definitions: HashMap<String, serde_json::Value>,
+    pub behavior_definitions: HashMap<String, serde_json::Value>,
     #[serde(default)]
-    pub autonomy_attachments: HashMap<String, String>,
+    pub behavior_attachments: HashMap<String, String>,
 }
 
 pub fn install_host_api(ctx: &Context) -> Result<()> {
