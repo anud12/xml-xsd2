@@ -43,7 +43,7 @@
         <DisplayName>FullyQualifiedName</DisplayName>
         
         <!-- Capture stdout from test cases -->
-        <CaptureStdOut>false</CaptureStdOut>
+        <CaptureStdOut>true</CaptureStdOut>
         
         <!-- Compilation timeout for large projects (milliseconds) -->
         <CompileProcessTimeout>20000</CompileProcessTimeout>

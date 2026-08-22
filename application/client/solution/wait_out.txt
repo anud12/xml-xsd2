@@ -1,0 +1,300 @@
+  Determining projects to restore...
+E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj : warning NU1902: Package 'SixLabors.ImageSharp' 3.1.7 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-rxmq-m78w-7wmc [E:\workspace\xml-xsd2\application\client\solution\New Game Project.sln]
+  All projects are up-to-date for restore.
+  Building Rust runtime (cargo)...
+EXEC : warning : unused import: `convert_store_values` [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\mod.rs:33:37
+     |
+  33 | pub use simulate::{simulate_action, convert_store_values};
+     |                                     ^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_imports)]` on by default
+  
+EXEC : warning : unused import: `pending_effects::process_pending_effects` [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\mod.rs:34:9
+     |
+  34 | pub use pending_effects::process_pending_effects;
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : unused import: `scheduled_effects::process_scheduled_effects` [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\mod.rs:35:9
+     |
+  35 | pub use scheduled_effects::process_scheduled_effects;
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : unused import: `autonomy_scripts::process_autonomy_scripts` [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\mod.rs:36:9
+     |
+  36 | pub use autonomy_scripts::process_autonomy_scripts;
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : unused import: `clear::*` [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\state\mod.rs:9:31
+    |
+  9 | pub use accessors::*; pub use clear::*; pub use export::*;
+    |                               ^^^^^^^^
+  
+EXEC : warning : function `build_effect_context_pending` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\context_builders.rs:13:8
+     |
+  13 | pub fn build_effect_context_pending(ctx: &Context) {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` on by default
+  
+EXEC : warning : function `build_effect_context_scheduled` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\context_builders.rs:17:8
+     |
+  17 | pub fn build_effect_context_scheduled(ctx: &Context) {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `build_effect_context_impl` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\context_builders.rs:21:4
+     |
+  21 | fn build_effect_context_impl(ctx: &Context, kind: &str) {
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `sync_entity_data` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\context_builders.rs:37:8
+     |
+  37 | pub fn sync_entity_data(ctx: &Context) {
+     |        ^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `process_pending_effects` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\pending_effects.rs:12:8
+     |
+  12 | pub fn process_pending_effects(
+     |        ^^^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `process_scheduled_effects` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\scheduled_effects.rs:12:8
+     |
+  12 | pub fn process_scheduled_effects(
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : constant `AUTONOMY_SCRIPTS_JS` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\autonomy_scripts.rs:6:7
+    |
+  6 | const AUTONOMY_SCRIPTS_JS: &str = r#"(function(total, prevScripts){
+    |       ^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `process_autonomy_scripts` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\autonomy_scripts.rs:58:8
+     |
+  58 | pub fn process_autonomy_scripts(
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : constant `PREPARE_JS` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\js_strings_effect.rs:3:7
+    |
+  3 | const PREPARE_JS: &str = r#"(function(){
+    |       ^^^^^^^^^^
+  
+EXEC : warning : constant `APPLY_JS` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\js_strings_effect.rs:12:7
+     |
+  12 | const APPLY_JS: &str = r#"(function(){
+     |       ^^^^^^^^
+  
+EXEC : warning : constant `REOCCUR_JS` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\js_strings_effect.rs:21:7
+     |
+  21 | const REOCCUR_JS: &str = r#"(function() {
+     |       ^^^^^^^^^^
+  
+EXEC : warning : function `call_effect_prepare` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\js_strings_effect.rs:37:8
+     |
+  37 | pub fn call_effect_prepare(ctx: &Context) {
+     |        ^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `call_effect_apply` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\js_strings_effect.rs:41:8
+     |
+  41 | pub fn call_effect_apply(ctx: &Context) {
+     |        ^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `eval_reoccur_interval` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\js_strings_effect.rs:45:8
+     |
+  45 | pub fn eval_reoccur_interval(ctx: &Context) -> f64 {
+     |        ^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `lookup_effect` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\entity_sync.rs:3:8
+    |
+  3 | pub fn lookup_effect(ctx: &Context, name: &str) -> bool {
+    |        ^^^^^^^^^^^^^
+  
+EXEC : warning : function `sync_entity_store` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\entity_sync.rs:17:8
+     |
+  17 | pub fn sync_entity_store(ctx: &Context) {
+     |        ^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `sync_entity_data_with_initial` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\entity_sync.rs:35:8
+     |
+  35 | pub fn sync_entity_data_with_initial(ctx: &Context) {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `sync_entity_data_map` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\entity_sync_map.rs:3:4
+    |
+  3 | fn sync_entity_data_map(
+    |    ^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `build_entity_entry` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\entity_sync_map.rs:16:4
+     |
+  16 | fn build_entity_entry(
+     |    ^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `sync_entity_data_back` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\entity_sync_back.rs:3:8
+    |
+  3 | pub fn sync_entity_data_back(ctx: &Context) {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `apply_entity_data_update` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\entity_sync_back.rs:14:4
+     |
+  14 | fn apply_entity_data_update(
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `apply_number_and_text_maps` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\entity_sync_back.rs:24:4
+     |
+  24 | fn apply_number_and_text_maps(
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `collect_logs` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\entity_sync_back.rs:48:8
+     |
+  48 | pub fn collect_logs(ctx: &Context) {
+     |        ^^^^^^^^^^^^
+  
+EXEC : warning : constant `PENDING_CTX_JS_P1` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\pending_ctx_p1.rs:3:7
+    |
+  3 | const PENDING_CTX_JS_P1: &str = r#"(function() {
+    |       ^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `get_part1` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\pending_ctx_p1.rs:47:8
+     |
+  47 | pub fn get_part1() -> &'static str { PENDING_CTX_JS_P1 }
+     |        ^^^^^^^^^
+  
+EXEC : warning : constant `PENDING_CTX_JS_P2` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\pending_ctx_p2.rs:3:7
+    |
+  3 | const PENDING_CTX_JS_P2: &str = r#", get: function(index) {
+    |       ^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `get_part2` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\pending_ctx_p2.rs:63:8
+     |
+  63 | pub fn get_part2() -> &'static str { PENDING_CTX_JS_P2 }
+     |        ^^^^^^^^^
+  
+EXEC : warning : constant `PENDING_CTX_JS_P3` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\pending_ctx_p3.rs:3:7
+    |
+  3 | const PENDING_CTX_JS_P3: &str = r#",map:function(cb){
+    |       ^^^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `get_part3` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\pending_ctx_p3.rs:47:8
+     |
+  47 | pub fn get_part3() -> &'static str { PENDING_CTX_JS_P3 }
+     |        ^^^^^^^^^
+  
+EXEC : warning : constant `SCHED_CTX_JS_P1` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\scheduled_ctx_p1.rs:3:7
+    |
+  3 | const SCHED_CTX_JS_P1: &str = r#"(function() {
+    |       ^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `get_part1` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\scheduled_ctx_p1.rs:33:8
+     |
+  33 | pub fn get_part1() -> &'static str { SCHED_CTX_JS_P1 }
+     |        ^^^^^^^^^
+  
+EXEC : warning : constant `SCHED_CTX_JS_P2` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\scheduled_ctx_p2.rs:3:7
+    |
+  3 | const SCHED_CTX_JS_P2: &str = r#", get: function(index) {
+    |       ^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `get_part2` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\scheduled_ctx_p2.rs:63:8
+     |
+  63 | pub fn get_part2() -> &'static str { SCHED_CTX_JS_P2 }
+     |        ^^^^^^^^^
+  
+EXEC : warning : constant `SCHED_CTX_JS_P3` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\scheduled_ctx_p3.rs:3:7
+    |
+  3 | const SCHED_CTX_JS_P3: &str = r#",map:function(cb){
+    |       ^^^^^^^^^^^^^^^
+  
+EXEC : warning : function `get_part3` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+    --> src\js_executor\scheduled_ctx_p3.rs:47:8
+     |
+  47 | pub fn get_part3() -> &'static str { SCHED_CTX_JS_P3 }
+     |        ^^^^^^^^^
+  
+EXEC : warning : function `get_invoke_js` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\sim_invoke.rs:1:8
+    |
+  1 | pub fn get_invoke_js() -> &'static str {
+    |        ^^^^^^^^^^^^^
+  
+EXEC : warning : function `get_invoke_js` is never used [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+   --> src\js_executor\sim_invoke.rs:1:8
+    |
+  1 | pub fn get_invoke_js() -> &'static str {
+    |        ^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+  
+EXEC : warning : `xml-xsd2` (bin "xml-xsd2") generated 41 warnings (run `cargo fix --bin "xml-xsd2"` to apply 5 suggestions) [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+EXEC : warning : `xml-xsd2` (lib) generated 1 warning [E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj]
+      Finished `release` profile [optimized] target(s) in 0.14s
+  Copying Rust runtime DLL to client folder...
+  Ensuring TypeScript is installed (local)...
+  
+  up to date in 787ms
+  Validating JS files with tsc (tsconfig.json)...
+E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj : warning NU1902: Package 'SixLabors.ImageSharp' 3.1.7 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-rxmq-m78w-7wmc
+  New Game Project -> E:\workspace\xml-xsd2\application\client\solution\.godot\mono\temp\bin\Debug\New Game Project.dll
+Test run for E:\workspace\xml-xsd2\application\client\solution\.godot\mono\temp\bin\Debug\New Game Project.dll (.NETCoreApp,Version=v9.0)
+VSTest version 17.13.0 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Runtime output does not contain a line containing: "___wait-test first action fired___"
+  Failed GdUnit4.Examples.Basics.Setup.Test.Stage_8.Autonomy.Wait.TestClass.Given_autonomy_with_wait_it_should_run_action_wait_action_in_order [115 ms]
+  Error Message:
+   Runtime output does not contain a line containing: "___wait-test first action fired___"
+  Stack Trace:
+     at NewGameProject.Tests.XUnit.Steps.AssertRuntimeOutputContains(String expected) in E:\workspace\xml-xsd2\application\client\solution\Test\Steps\AssertRuntimeOutputContains.cs:line 12
+   at GdUnit4.Examples.Basics.Setup.Test.Stage_8.Autonomy.Wait.TestClass.Given_autonomy_with_wait_it_should_run_action_wait_action_in_order() in E:\workspace\xml-xsd2\application\client\solution\Test\Stage_8\Autonomy\Wait\TestClass.cs:line 24
+
+  Standard Output Messages:
+ DEBUG AddFileToArchive: callerPath=E:\workspace\xml-xsd2\application\client\solution\Test\Stage_8\Autonomy\Wait\TestClass.cs
+DEBUG AddFileToArchive: argFilePathToBeAdded=module/index.js
+DEBUG AddFileToArchive: sourcePath=E:\workspace\xml-xsd2\application\client\solution\Test\Stage_8\Autonomy\Wait\module\index.js
+DEBUG AddFileToArchive: File.Exists=True
+DEBUG AddFileToArchive: callerPath=E:\workspace\xml-xsd2\application\client\solution\Test\Stage_8\Autonomy\Wait\TestClass.cs
+DEBUG AddFileToArchive: argFilePathToBeAdded=module/manifest.json
+DEBUG AddFileToArchive: sourcePath=E:\workspace\xml-xsd2\application\client\solution\Test\Stage_8\Autonomy\Wait\module\manifest.json
+DEBUG AddFileToArchive: File.Exists=True
+
+Html test results file : E:\workspace\xml-xsd2\application\client\solution\TestResults\test-result.html
+WARNING: Overwriting results file: E:\workspace\xml-xsd2\application\client\solution\TestResults\test-result.trx
+Results File: E:\workspace\xml-xsd2\application\client\solution\TestResults\test-result.trx
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 115 ms - New Game Project.dll (net9.0)

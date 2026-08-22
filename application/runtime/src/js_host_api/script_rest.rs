@@ -66,6 +66,8 @@ pub fn host_api_script_rest() -> String {
     parts.push(host_api_script_entity_filter().to_string());
     parts.push(host_api_script_log().to_string());
     parts.push(host_api_script_animation().to_string());
+    parts.push(
+        super::script_autonomy::host_api_script_autonomy().to_string());
     let mut s = parts.join("");
     s.push_str(" }");
     s

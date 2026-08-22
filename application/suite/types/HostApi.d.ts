@@ -14,6 +14,7 @@ import {SpriteResource} from "./texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "./texture/SpriteMap";
 import {EntityCreationArguments} from "./Entity";
 import {RegisterAnimationFunction, GetAnimationFunction} from "./animation/AnimationRegistration";
+import {AutonomyApi} from "./autonomy";
 
 /**
  * The top-level host API surface exposed to modules.
@@ -63,5 +64,10 @@ export type HostApi = {
     emitEvent: <T>(eventName: string, arguments: T) => void
     /** Logs a string message to the runtime log. */
     log:(string:string) => void;
+
+    /** Creates and registers a reactive autonomy state machine. */
+    autonomy: AutonomyApi["autonomy"];
+    /** Attaches an autonomy to an entity. */
+    setAutonomy: AutonomyApi["setAutonomy"];
   }
 }

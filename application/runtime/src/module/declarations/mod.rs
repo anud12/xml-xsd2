@@ -45,6 +45,12 @@ fn log_actions_and_panels(dec: &Declarations) {
     for p in dec.panels.iter() {
         runtime_log!("panel: {}", p);
     }
+    for name in dec.autonomy_definitions.keys() {
+        runtime_log!("autonomy registered: {}", name);
+    }
+    for (entity, name) in dec.autonomy_attachments.iter() {
+        runtime_log!("autonomy attached: {} -> {}", entity, name);
+    }
 }
 
 fn set_state_from_declarations(dec: &Declarations) {

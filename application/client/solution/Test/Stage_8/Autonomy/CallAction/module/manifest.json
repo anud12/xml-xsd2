@@ -1,0 +1,6 @@
+{
+  "id": "autonomy-test",
+  "version": "1.0.0",
+  "name": "Autonomy Test Module",
+  "entry": "index.js"
+}

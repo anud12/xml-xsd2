@@ -4,6 +4,7 @@
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>NewGameProject</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
 
@@ -13,6 +14,8 @@
     <PackageReference Include="gdUnit4.api" Version="5.1.0-rc3" />
     <PackageReference Include="gdUnit4.test.adapter" Version="3.0.0" />
     <PackageReference Include="Jint" Version="4.1.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
   </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -37,6 +40,16 @@
     <Content Include="Features\**\*.feature">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="MainModule\frame_1.png" />
+    <Content Include="MainModule\frame_1.png.import" />
+    <Content Include="MainModule\frame_2.png" />
+    <Content Include="MainModule\frame_2.png.import" />
+    <Content Include="MainModule\frame_3.png" />
+    <Content Include="MainModule\frame_3.png.import" />
+    <Content Include="MainModule\frame_4.png" />
+    <Content Include="MainModule\frame_4.png.import" />
+    <Content Include="MainModule\frame_5.png" />
+    <Content Include="MainModule\frame_5.png.import" />
     <Content Include="MainModule\hover.png" />
     <Content Include="Tests\Cases\**\*.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -51,7 +64,21 @@
     <Content Include="Test\Ffi\Panel\Content\module\texture.png.import" />
     <Content Include="Test\Stage_1\readme.md" />
     <Content Include="Test\Stage_2\Hover\module\hover.png" />
+    <Content Include="Test\Stage_2\SpriteMap\MultiLayerOverlap\module\index.js" />
+    <Content Include="Test\Stage_2\SpriteMap\MultiLayerOverlap\module\manifest.json" />
+    <Content Include="Test\Stage_2\SpriteMap\MultiLayerOverlap\module\maps\idle_frame1.tiff" />
+    <Content Include="Test\Stage_2\SpriteMap\MultiLayerOverlap\module\skins\texture.png" />
+    <Content Include="Test\Stage_2\SpriteMap\MultiLayerOverlap\module\skins\texture.png.import" />
+    <Content Include="Test\Stage_2\SpriteMap\MultiLayerOverlap\texture.png" />
+    <Content Include="Test\Stage_2\SpriteMap\MultiLayerOverlap\texture.png.import" />
+    <Content Include="Test\Stage_2\SpriteMap\module\maps\idle_frame1.tiff" />
     <Content Include="Test\Stage_2\readme.md" />
+    <Content Include="Test\Stage_2\SpriteMap\Rotated\expected.png" />
+    <Content Include="Test\Stage_2\SpriteMap\Rotated\expected.png.import" />
+    <Content Include="Test\Stage_2\SpriteMap\texture.png" />
+    <Content Include="Test\Stage_2\SpriteMap\texture.png.import" />
+    <Content Include="Test\Stage_2\SpriteMap\Transparency\expected.png" />
+    <Content Include="Test\Stage_2\SpriteMap\Transparency\expected.png.import" />
     <Content Include="Test\Stage_3\readme.md" />
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\index.js" />
     <Content Include="Test\Stage_4\EntityTextValueUpdate\module\manifest.json" />

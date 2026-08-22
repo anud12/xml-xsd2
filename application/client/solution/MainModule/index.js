@@ -62,7 +62,13 @@ export default (hostApi) => {
   });
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
-      { sprite: hostApi.ui.getSpritePNG("texture.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_1.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_2.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_4.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
     ],
   });
   hostApi.ui.registerPanel({
@@ -87,7 +93,7 @@ export default (hostApi) => {
       texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover"), { duration: hostApi.runtime.number.of(1) }),
       thickness: 5,
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) })
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(5), loop:true })
   })
 
 
@@ -113,6 +119,6 @@ export default (hostApi) => {
       texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover"), { duration: hostApi.runtime.number.of(1) }),
       thickness: 10,
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) })
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(30), loop:true })
   })
 }

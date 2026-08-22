@@ -1,0 +1,51 @@
+JSON.stringify(((function(total, prevScripts){
+  globalThis.__logs = [];
+  globalThis.__autonomyScripts = prevScripts || {};
+  const defs = globalThis.__autonomyDefinitions || {};
+  const atts = globalThis.__autonomies || {};
+  const acts = globalThis.__registeredActions || [];
+  function findAction(name) {
+    for (let i = 0; i < acts.length; i++) {
+      const a = acts[i];
+      if (a && typeof a === 'object'
+          && typeof a.name === 'string' && a.name === name) return a;
+    }
+    return null;
+  }
+  for (const entityId in atts) {
+    const handle = atts[entityId];
+    const def = handle && defs[handle.name];
+    if (!def) continue;
+    const branch = def.priority && def.priority[0];
+    const rule = branch && branch.utility && branch.utility[0];
+    if (!rule || !Array.isArray(rule.steps)) continue;
+    const st = globalThis.__autonomyScripts[entityId]
+      || (globalThis.__autonomyScripts[entityId]
+         = { stepIdx: 0, waitUntil: null });
+    const steps = rule.steps;
+    while (st.stepIdx < steps.length) {
+      const step = steps[st.stepIdx];
+      if (step && step.wait !== undefined) {
+        if (st.waitUntil === null) {
+          st.waitUntil = total + Number(step.wait);
+        }
+        if (total < st.waitUntil) break;
+        st.waitUntil = null;
+        st.stepIdx++;
+      } else if (step && step.action !== undefined) {
+        const act = findAction(step.action);
+        if (act && typeof act.apply === 'function') {
+          try { act.apply({}); } catch (e) {}
+        }
+        st.stepIdx++;
+      } else {
+        st.stepIdx++;
+      }
+    }
+  }
+  globalThis.__autonomyResult = {
+    logs: globalThis.__logs || [],
+    scripts: globalThis.__autonomyScripts
+  };
+  return globalThis.__autonomyResult;
+}))(2, {"guard":{"stepIdx":1,"waitUntil":2}}))
