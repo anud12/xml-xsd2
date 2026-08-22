@@ -9,6 +9,7 @@ export default (hostApi) => {
     }
   });
 
+  
   hostApi.runtime.registerBehavior({
     name: string.of("action-exists-behavior"),
     priority: [
