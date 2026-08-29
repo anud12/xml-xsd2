@@ -1,6 +1,6 @@
-pub mod script_behavior;
 pub mod script_emit;
 pub mod script_register;
+pub mod script_ui;
 pub mod script_panel_entity;
 pub mod script_rest;
 mod script_extract;
@@ -29,10 +29,6 @@ pub struct Declarations {
     pub pending_effects: Vec<String>,
     #[serde(default)]
     pub animations: HashMap<String, serde_json::Value>,
-    #[serde(default)]
-    pub behavior_definitions: HashMap<String, serde_json::Value>,
-    #[serde(default)]
-    pub behavior_attachments: HashMap<String, String>,
 }
 
 pub fn install_host_api(ctx: &Context) -> Result<()> {

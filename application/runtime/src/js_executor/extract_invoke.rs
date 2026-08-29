@@ -35,7 +35,6 @@ var hostApi={
         __registeredAnimations[resolvedName]=args;
       }
     },
-    registerBehavior:h.registerBehavior,
     getAnimation:function(name,animationDuration){
       var resolvedName=typeof name==='object'?name.value:name;
       if(__registeredAnimations[resolvedName]){

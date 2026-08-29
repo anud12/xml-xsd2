@@ -86,6 +86,10 @@ static class PanelParser
             if (t != null)
                 p.Hover = new Runtime.Hover
                 { Texture = t, Thickness = Extract.Int(h, "thickness") ?? 0 };
+            if (Extract.String(h, "emitAction") is { } ea)
+                p.HoverEmitAction = ea;
+            p.HoverStopPropagation = Extract.Bool(h, "stopPropagation") ?? false;
+            p.HoverBackground = Extract.String(h, "background");
         }
 
         if (e.TryGetProperty("onClick", out var c) && c.ValueKind == JsonValueKind.Object)
@@ -106,10 +110,21 @@ static class PanelParser
 
         if (e.TryGetProperty("children", out var ch) && ch.ValueKind == JsonValueKind.Array)
         {
+            // Children may be nested panel objects (parsed inline) or ids of
+            // panels registered earlier in the module (linked after all
+            // panels are parsed in ToPanels).
             var children = new List<Runtime.Panel>();
+            var childIds = new List<string>();
             foreach (var child in ch.EnumerateArray())
-                children.Add(Parse(child));
+            {
+                if (child.ValueKind == JsonValueKind.Object)
+                    children.Add(Parse(child));
+                else if (child.ValueKind == JsonValueKind.String)
+                    childIds.Add(child.GetString() ?? "");
+            }
             p.Children = children.ToArray();
+            if (childIds.Count > 0)
+                p.ChildIds = childIds.ToArray();
         }
 
         return p;

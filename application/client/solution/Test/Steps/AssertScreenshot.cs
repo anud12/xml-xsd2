@@ -1,4 +1,13 @@
-using System;using System.IO;using System.Linq;using System.Runtime.CompilerServices;using GdUnit4;using Godot;namespace NewGameProject.Tests.XUnit;public partial class Steps{    public void AssertScreenshot(string relativeImagePath, float tolerance = 0.01f,        [CallerFilePath] string callerPath = "")    {        var actualName = DateTime.Now.ToFileTimeUtc() + "_actual.png";        var actualPath = DebugSaveScreenshot(actualName, callerPath);        string baseDir = Path.GetDirectoryName(callerPath);        string fullExpectedPath = Path.Combine(baseDir, relativeImagePath);        string godotPath = ProjectSettings.LocalizePath(fullExpectedPath);        // Ensure expected exists        if (!File.Exists(fullExpectedPath))        {            Assertions.AssertBool(false).OverrideFailureMessage($"Reference not found at: {fullExpectedPath}").IsTrue();            return;        }                bool equal = false;
+using System;using System.IO;using System.Linq;using System.Runtime.CompilerServices;using GdUnit4;using Godot;namespace NewGameProject.Tests.XUnit;public partial class Steps{    public void AssertScreenshot(string relativeImagePath, float tolerance = 0.01f,        [CallerFilePath] string callerPath = "")    {        var actualName = DateTime.Now.ToFileTimeUtc() + "_actual.png";        var actualPath = DebugSaveScreenshot(actualName, callerPath);        string baseDir = Path.GetDirectoryName(callerPath);        string fullExpectedPath = Path.Combine(baseDir, relativeImagePath);        string godotPath = ProjectSettings.LocalizePath(fullExpectedPath);                // Reference-generation mode: when the expected image is missing,
+        // save the current capture as the new reference and pass.
+        if (!File.Exists(fullExpectedPath))
+        {
+            Directory.CreateDirectory(baseDir);
+            File.Copy(actualPath, fullExpectedPath);
+            GD.Print($"[refgen] created reference {fullExpectedPath}");
+            File.Delete(actualPath);
+            return;
+        }                bool equal = false;
         try
         {
             var actualImg = new Image();

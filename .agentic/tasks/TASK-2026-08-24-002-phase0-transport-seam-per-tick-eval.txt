@@ -1,0 +1,81 @@
+TASK: TASK-2026-08-24-002
+CREATED: 2026-08-24
+SOURCE: ui-div-layer-implementation.txt
+PRIORITY: high
+STATUS: PENDING
+DEPENDS_ON: TASK-2026-08-24-001
+ESTIMATE: half-day (~3-4 hours)
+
+## Title
+Phase 0 (transport): formalize the transport seam + per-tick UI evaluation in QuickJS
+
+## Description
+Plan reference: plans/ui-div-layer.md, Phase 0 ("Define the transport interface; implement for
+QuickJS") and the Architecture section (".ui/ui/ depends only on a transport seam
+(registerNode, emitDelta, readClientState, resolveResource) that each engine implements. The
+DAG/registry/state logic lives once and is shared by QuickJS and any future engine.").
+
+Task 001 proved the spine with stubbed transport. This task makes the transport seam formal,
+and moves UI evaluation to run PER TICK (each runtime_run_iteration) inside the persistent
+QuickJS context instead of only at module-extraction time.
+
+Work items:
+1. application/ui/ui/ (canonical, engine-agnostic):
+   - host.js: expose hostApi.ui.div / hostApi.ui.text (and the seams registerNode/emitDelta/
+     readClientState/resolveResource) built ON TOP of a transport object the host engine
+     injects (e.g. globalThis.__uiTransport). The .ui layer must not know it is QuickJS.
+   - registry.js: node registry with mandatory-id enforcement (throw on missing/duplicate id),
+     per-tick evaluation entry point (uiTick()) that re-runs node value expressions, diffs
+     against the last evaluated snapshot BY ID, and calls transport.emitDelta(delta).
+   - Per-tick model per specification/user-interface/rendering.md "Evaluation Tick": same id +
+     changed -> update; new id -> add; missing id -> remove.
+   - Node values for text accept a constant string OR an expression function that is re-run
+     each tick (this is what makes it real-time; full ui.state binding lands in task 005).
+2. application/runtime (QuickJS engine implements the transport):
+   - Keep ONE persistent UI QuickJS context (the sim runtime already persists across
+     iterations — see src/js_executor/sim_entry.rs / sim_store.rs / process_pending_effects
+     flow in src/ffi_mod/misc/run_iteration/mod.rs). Load application/ui/ui/*.js into it once
+     (bundle like the module sources; the runtime currently ships no .ui files — read them from
+     disk next to the crate or embed via include_str!/include_dir!, decide during
+     implementation and document the choice).
+   - Implement the transport in Rust: registerNode (accepts a serialized node from JS into the
+     UI state store from task 001), emitDelta (applies Add/Update/Remove to the store and
+     marks ui_dirty), readClientState (stub returning per-client values — real implementation
+     with the C# client comes with tasks 004-005; for now return {}), resolveResource (name ->
+     archive file bytes path lookup; the archive file map already exists in
+     crate::state::set_archive_files / last_file_rows).
+   - Hook uiTick() into runtime_run_iteration (src/ffi_mod/misc/run_iteration/mod.rs): after
+     process_behavior_scripts, evaluate the UI DAG and emit the delta.
+   - Declarations pipeline: the load-time registration path from task 001 should feed the same
+     persistent context (module registration happens at archive processing, evaluation happens
+     per tick) so a module's UI persists for the life of the runtime.
+3. C# side:
+   - Game.cs loop: after each RunIteration, if runtime_ui_dirty() is true, fetch the delta
+     (JSON) and hand it to the delta applier from task 001. The applier must now handle the
+     full Add/Update/Remove delta set (task 001 may already; verify).
+4. Tests:
+   - Rust: a test that registers a module with a text node bound to a function expression
+     (e.g. () => hostApi.runtime.number... or a plain () => "tick-" + counter), runs N
+     iterations, and asserts the delta sequence contains Updates with the new values.
+   - application/ui/test/: engine-agnostic node tests for registry.js (id enforcement, diff
+     semantics: add/update/remove) runnable under node.
+
+Constraints:
+- Do NOT edit the three restricted directories (client Test/, suite features/, suite java tests/).
+- .ui code stays engine-agnostic: no rquickjs/C# references in application/ui/ui/*.js.
+
+## Acceptance Criteria
+- application/ui/ui/host.js + registry.js exist and are loaded by the QuickJS engine; the .ui
+  layer contains no engine-specific code (grep for "rquickjs", "Godot", "Jint" in
+  application/ui/ui/ returns nothing).
+- cargo test passes: per-tick evaluation produces id-keyed deltas for changed values only
+  (unchanged nodes produce no delta entries).
+- dotnet build passes; the running client reflects a per-tick value change within one 40 ms
+  iteration without any C# per-frame entity-value polling (the spine's text updates via delta,
+  not via GetEntity*MapValue calls).
+- application/ui/test/ tests pass under node and cover: mandatory id, duplicate id rejection,
+  add/update/remove diff cases.
+
+## Dependencies
+- Depends on TASK-2026-08-24-001 (spine): needs the UI state store, FFI fetch/dirty seam, and
+  the C# delta applier that this task reuses and extends.

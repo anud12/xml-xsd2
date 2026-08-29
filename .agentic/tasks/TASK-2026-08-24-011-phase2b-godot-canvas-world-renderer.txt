@@ -1,0 +1,105 @@
+TASK: TASK-2026-08-24-011
+CREATED: 2026-08-24
+SOURCE: ui-div-layer-implementation.txt
+PRIORITY: high
+STATUS: PENDING
+DEPENDS_ON: TASK-2026-08-24-010
+ESTIMATE: half-day (~3-4 hours)
+
+## Title
+Phase 2b (Godot spatial layer): Canvas node renderer — SubViewport/Node2D/Camera2D, room terrain + units + portal markers, pan/zoom
+
+## Description
+Plan reference: plans/ui-div-layer.md, Phase 2b bullet 3 (Renderer) and the deliverable
+("a full-rect world canvas shows the active room's terrain + units (correct under rotation);
+portal markers render on edges; drag pans, wheel zooms; a minimap (room graph) node click
+re-centers the main camera onto that room") + Verification item 4.
+
+The canvas delta now carries everything (room snapshot, portals, unit positions, camera —
+task 010). This task builds the SPATIAL LAYER in Godot that does not exist today (no
+Node2D/Camera2D/Sprite2D anywhere in the client yet — the "map" today is only a sprite-map
+texture on a panel background via SpriteMapCpu.cs).
+
+Resolved open question: v1 world rendering = static sprite per unit from room container data
+(no unit animations, selection boxes, or fog).
+
+Work items (application/client/solution/Sources/UI/ — new files, the existing renderer files
+stay):
+1. WorldCanvas.cs — the Godot renderer for the Canvas node kind (replaces the stub from
+   task 010). It is the ONE node kind that breaks the Control-only hierarchy:
+   - Mounts a SubViewport (with its own World2D) + root Node2D + Camera2D as children, sized
+     to the geometry the div layout assigned (the hosting division's Control positions/clips
+     it — the canvas must respect parent resize/clip like any Control: use a Control host
+     wrapper containing the SubViewport).
+   - Camera: position from camera.x/y (world space), zoom from camera.zoom (Camera2D.Zoom),
+     applied on every delta Update.
+2. Room terrain renderer (Node2D child):
+   - Draw the active room as a textured convex polygon: take room.points (LOCAL, centered on
+     origin), apply the room transform origin + R(rotation) to get world-space vertices.
+   - Terrain texture: map the terrain name to a resource; v1 uses the existing SpriteMapCpu
+     composition (map TIFF + skin layers, the Panel.cs SetupSpriteMapShader path) to produce
+     an ImageTexture, then UV-map it onto the polygon — for v1 a single ImageTexture on a
+     Polygon2D (Godot 4: Polygon2D with color + optional texture via a shader, or a
+     MeshInstance2D with an ArrayMesh triangulated from the convex points) positioned by the
+     transform. Keep it simple: convex polygon -> fan triangulation from vertex 0 is valid.
+     If SpriteMapCpu texture mapping proves fiddly within the timebox, v1 fallback: solid
+     color per terrain name + log note; the texture mapping then becomes a follow-up note
+     (do NOT silently drop the requirement — flag it).
+3. Unit sprites (Node2D children):
+   - For each unit in the room snapshot (entity id + local x/y from task 010's payload),
+     place a Sprite2D (static sprite per unit — v1 scope) at origin + R(rotation) * localPos.
+     Sprite resource: per-unit named resource if provided by the container data, else a
+     default dot/placeholder texture. No facing/animation in v1.
+4. Portal markers (Node2D children):
+   - For each portal whose from or to room == active room: compute the edge segment
+     (points[edge] -> points[(edge+1) % n]), mark the range t0..t1 span with a distinct
+     visual (colored line segment or small markers at the t0/t1 points). Both endpoints of a
+     portal pair may render; that's fine for v1.
+5. Interaction (client-side, per rendering.md — the runtime never sees input):
+   - Drag on the canvas -> pan camera (mutate local camera; then push it back to the runtime
+     per-client state via the ui.state camera setter FFI from task 010 so it is authoritative
+     and minimap/other clients can read it).
+   - Wheel -> zoom (same push-back path).
+   - Minimap: a small div in a sidebar hosting room nodes (v1: one Label/Button per room in a
+     grid); clicking a room node invokes the minimap ui.action -> recenter camera on that
+     room (camera.room = clicked room, x/y = room.origin, keep zoom).
+6. Reconciliation: the reconciler (task 006) handles Canvas Add/Update/Remove — on Update
+   with a different room id, rebuild the room/units/portals subtrees; same room, changed
+   units -> in-place sprite position updates (match by entity id).
+7. Tests:
+   - C#-side: this is UI — verification is primarily visual + scripted. Add a minimal
+     non-restricted GdUnit4 test scene IF one exists outside Test/ (check Scenes/ — there is
+     a ManualTest.tscn; a manual test script there is acceptable and NOT restricted).
+     Script: declare 2 rooms + 1 portal via a scratch module, assert the WorldCanvas built,
+     room polygon vertex count, unit sprite count, portal marker presence, camera recenter
+     via minimap action changes Camera2D position.
+   - cargo test: no Rust changes expected (task 010's payload is the contract) — if the
+     payload is missing something (e.g. terrain skin paths for SpriteMapCpu), extend task-010's
+     snapshot and re-run its tests.
+
+Constraints:
+- Do NOT edit the three restricted directories (a ManualTest-based scripted check is allowed —
+  it lives in Scenes/, not Test/).
+- The spatial layer is new Godot node types in Sources/UI/ — do not modify the legacy
+  Panel/content-node files.
+- Keep the renderer dumb: all geometry (room transform, unit world positions) is computed in
+  the runtime delta OR trivially in Godot from the delta's local data (transform math may
+  live in Godot — the plan's data model is what matters; document which side computes world
+  positions and keep it consistent).
+
+## Acceptance Criteria
+- A full-rect ui.canvas in a test module renders: the active room as a polygon at its
+  origin/rotation (rotation visually correct — a rotated room is visibly rotated), units as
+  sprites at transformed local positions, portal range markers on the correct edge span.
+- Drag pans the camera, wheel zooms (Camera2D), and camera state round-trips through the
+  runtime's per-client ui.state (delta shows the updated camera after input).
+- Minimap room click re-centers the main camera onto that room (camera delta: room + x/y
+  updated).
+- Room switch at runtime (effect changes the active room via ui.action, or a new room is
+  setRoom'd and selected) is reflected within one tick without restarting the scene.
+- dotnet build passes; cargo test still passes; git diff shows no changes under the
+  restricted directories.
+
+## Dependencies
+- Depends on TASK-2026-08-24-010: needs the canvas delta payload (room snapshot, portals,
+  units, camera) and the per-client camera state/actions.

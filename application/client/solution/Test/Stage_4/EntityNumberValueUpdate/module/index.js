@@ -8,29 +8,18 @@ export default (hostApi) => {
     }
   })
 
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+  hostApi.runtime.registerAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.ui.registerPanel({
-    id: "center",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    offset: {
-      top: number.of(50),
-      bottom: number.of(50),
-      left: number.of(50),
-      right: number.of(50),
-    },
-    content: {
-      entityId: string.of("entity_id"),
-      name: string.of("numberKey"),
-      type: "entityNumberValue",
-      align: "center",
-    },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) })
-  })
+  hostApi.ui.window("center", {
+    width: 100,
+    height: 100,
+    anchor: "center",
+    align: "center",
+    background: hostApi.ui.getAnimation(string.of("texture"), { duration: number.of(1) }),
+  }, [
+    hostApi.ui.field("content", { entity: "entity_id", map: "number", name: "numberKey", fallback: "0" }),
+  ])
 }

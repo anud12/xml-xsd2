@@ -76,7 +76,6 @@ var hostApi={
       return null;
     },
     log:h.log,
-    registerBehavior:h.registerBehavior,
     entity:h.entity,
     maybe:{
         of:function(v){return{value:v};},

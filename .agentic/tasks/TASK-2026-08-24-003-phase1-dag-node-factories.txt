@@ -1,0 +1,82 @@
+TASK: TASK-2026-08-24-003
+CREATED: 2026-08-24
+SOURCE: ui-div-layer-implementation.txt
+PRIORITY: high
+STATUS: PENDING
+DEPENDS_ON: TASK-2026-08-24-002
+ESTIMATE: half-day (~3-4 hours)
+
+## Title
+Phase 1 (dag.js core): node types Window/Division/Text/Field/Image + mandatory ids
+
+## Description
+Plan reference: plans/ui-div-layer.md, "The UI model: everything is a division" (node kinds +
+factory signatures) and Phase 1 ("dag.js: node types Window, Division, Text, Field, Image;
+factory functions ui.window/ui.div/ui.text/ui.field/ui.image; mandatory ids").
+
+This task builds the complete node factory layer in the canonical .ui layer, without the grid
+layout engine yet (layout lands in task 004) and without live entity binding wiring (field
+lands in task 005). Resolved open question: the ui.image leaf IS kept.
+
+Work items (application/ui/ui/dag.js + types):
+1. Node model. Every node kind has a MANDATORY stable id (declared at load, never changes —
+   it is the reconciliation key). Node kinds:
+   - ui.window(id, options, children): top-level positioned window; never nested in a
+     division. Options: position, size, clip, scale, anchor, background, border. Windows are
+     NOT laid out by the grid manager (they are absolute).
+   - ui.div(options, children): the only layout node. Options: layout (optional — default
+     "column"; see task 004), background (static SpriteResource string OR animation reference
+     { name, duration, loop } — same shape as today's PanelParser.cs ExtractTexture path),
+     border, padding, clip; per-child coordinate-escape fields x/y/anchor/align (task 004
+     consumes them).
+   - ui.text(value): leaf; value is a constant string or an expression (function re-run per
+     tick, already supported by registry.js from task 002).
+   - ui.field(entity, map, name, { fallback }): leaf that declares a binding to an entity map
+     field. entity = entity id / EntityExpression / state reference; map = "text" | "number";
+     name = field key; fallback default "". For THIS task the field node is declarative only —
+     it serializes its binding target so the runtime can resolve values; the live per-tick
+     invalidation wiring is task 005.
+   - ui.image(name): leaf; static texture reference (named resource resolved via the
+     transport's resolveResource).
+2. Canonical types (application/ui/types/): ui.d.ts (facade), window.d.ts, division.d.ts,
+   text.d.ts, field.d.ts (and image). These supersede — but do not yet delete —
+   application/suite/types/ui/Panel.d.ts and specification/types/todo/user-interface/*.ts
+   (retirement is Phase 3, task 013).
+3. Wire the factories through the transport:
+   - application/ui/ui/host.js: add ui.window / ui.field / ui.image next to ui.div / ui.text.
+   - Rust (application/runtime/src/ui/): extend the UiNode model + serde with the new kinds
+     and their options (window positioning, field binding {entity, map, name, fallback}, image
+     resource name). The delta format must carry full node state so a renderer can rebuild any
+     node from a single Add/Update message.
+   - The declarations/registration path from task 001/002 must accept modules using all five
+     factories.
+4. C# side (application/client/solution/Sources/UI/):
+   - Extend the delta applier + node renderers: window -> a Control with position/size/anchor;
+     image -> a TextureRect resolving the resource from the archive (RuntimeInterop's
+     GetFileFromArchive pattern in Panel.cs shows how archive PNGs are loaded); field renders
+     its fallback for now. Div painting options (background static/animation, border, padding)
+     may be deferred to task 006 if time-boxed — but background (static + animation) must at
+     least be represented in the delta so no rework is needed.
+5. Tests:
+   - application/ui/test/: dag.js factory tests — id mandatory (throws without id), duplicate
+     id rejection, each factory emits the right serialized node, window-not-nestable-in-div
+     rule (enforced at declaration: a ui.window inside a div's children throws).
+   - Rust: round-trip test — module declares one of each node kind, fetched UI state JSON
+     round-trips all kinds with correct fields.
+
+Constraints:
+- Do NOT edit the three restricted directories.
+- Do not break the old Jint panel path (still used by existing modules) — additive only.
+
+## Acceptance Criteria
+- All five factories exist in application/ui/ui/ and are typed in application/ui/types/;
+  engine-agnostic (no engine-specific imports).
+- cargo test passes with a round-trip test covering all node kinds.
+- dotnet build passes; the C# applier renders a window + div + text + image (from archive
+  PNG) + field (showing fallback) declared by a test module without errors.
+- application/ui/test/ factory tests pass under node.
+- git diff shows no changes under the restricted directories.
+
+## Dependencies
+- Depends on TASK-2026-08-24-002: needs the registry/diff/transport plumbing that dag.js
+  factories plug into.

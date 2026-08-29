@@ -1,0 +1,97 @@
+TASK: TASK-2026-08-24-009
+CREATED: 2026-08-24
+SOURCE: ui-div-layer-implementation.txt
+PRIORITY: high
+STATUS: PENDING
+DEPENDS_ON: TASK-2026-08-24-008
+ESTIMATE: half-day (~3-4 hours)
+
+## Title
+Phase 2b (Layer A): Room/Portal data model in Rust state + setRoom/setPortal host API + declaration pipeline
+
+## Description
+Plan reference: plans/ui-div-layer.md, "Data Model: the Map (single map, room graph,
+runtime-extensible)" and Phase 2b bullet 1 ("Data model (Layer A): add Room/Portal declaration
+types — Rust state (src/state), declaration application (src/module/declarations),
+setRoom/setPortal host API (both engines' host scripts), and manifest/declaration plumbing").
+
+This task is DATA ONLY — no rendering (the canvas node comes in task 010). Rooms and portals
+are first-class declarations flowing through the same declaration + per-tick evaluation +
+id-reconciliation pipeline as entities/containers, which makes them runtime-mutable and
+delta-synced automatically (the plan's load-bearing decision).
+
+Data model (verbatim from the plan):
+- Room { id, terrain, origin {x, y}, rotation, points: [{x, y} x n] }
+  * points are LOCAL to the room; (0,0) is the room's origin = the room's CENTER.
+  * points must be an ordered CONVEX polygon (validated at declaration: all consecutive edge
+    cross-products share a sign; reject non-convex with a clear error log).
+  * world transform: world_point = origin + R(rotation) * local_point (rotation in radians
+    about the origin).
+  * Edge i is implicit: points[i] -> points[(i+1) % n].
+- Portal { id, from: { room, edge, range {t0, t1} }, to: { room, edge, range {t0, t1} } }
+  * edge = index into the room's points; range = 0..1 span along the edge.
+  * Validate: edge indices in range, 0 <= t0 < t1 <= 1, from.room / to.room exist at
+    declaration time (or defer to first use with a logged warning — decide, document, test).
+
+Work items:
+1. Rust state (application/runtime/src/state/):
+   - Add ROOMS: HashMap<String, Room> and PORTALS: HashMap<String, Portal> alongside the
+     existing LAST_ENTITY_DATA / LAST_CONTAINERS pattern (src/state/mod.rs + accessors.rs +
+     clear.rs). Room/Portal are plain serde structs (put them in a new src/state/rooms.rs or
+     a shared types module).
+2. Declarations pipeline (application/runtime/src/module/declarations/ + src/js_host_api/):
+   - Extend the Declarations struct (src/js_host_api/mod.rs) with rooms: Vec<Room> +
+     portals: Vec<Portal>; extend the extraction script (script_extract.rs) to read
+     globalThis.__registeredRooms / __registeredPortals (same pattern as containers).
+   - apply_declarations (src/module/declarations/mod.rs) -> store into state (mirroring
+     state_updates::append_panels_to_cache / set_last_containers), with convexity + portal
+     validation and runtime_log! entries.
+3. Host API (QuickJS engine of record — src/js_host_api/script_rest.rs + the host builders in
+   src/js_executor/sim_entry.rs / sim_invoke.rs / extract_invoke.rs, keeping all four in
+   lockstep as task 001/002 did):
+   - hostApi.runtime.setRoom(id, { terrain, origin, rotation, points }) and
+     hostApi.runtime.setPortal(id, { from, to }) — push into __registeredRooms /
+     __registeredPortals at load time.
+   - RUNTIME mutability (the point of the declaration model): setRoom/setPortal must also work
+     during effect apply() at iteration time, updating the persistent state (like
+     runtime_set_entity_*_map_value does for entities). Expose the same functions to the sim
+     context so an effect can extend the map at runtime.
+   - The C#/Jint host (application/client/solution/Sources/Module/HostApiSetup.cs) gets the
+     same two no-op-ish stubs so old modules that call them don't crash — but note the Jint
+     path is retired in task 013; keep this stub minimal (the plan says "both engines' host
+     scripts" for completeness).
+4. FFI surface for the renderer (consumed by task 010):
+   - runtime_get_rooms() / runtime_get_portals() -> JSON pointers (c_char + free via
+     runtime_free_string, same convention as existing FFI), OR include rooms/portals in the
+     UI delta/state fetch. Choose one, document it; a dedicated getter JSON is simplest for v1.
+   - Rooms/portals changed at runtime must be observable: a dirty flag or inclusion in the
+     next delta fetch (extend the task-001/002 fetch seam).
+5. Tests (cargo test — the validator's gate):
+   - Declaration: a module zip/source declaring one room (4-point convex quad, rotation
+     PI/4) + one portal round-trips through process_archive into state; fetched JSON matches.
+   - Convexity: a non-convex points list is rejected with an error log, state unchanged.
+   - Portal validation: out-of-range edge index and t0 >= t1 rejected.
+   - Runtime mutation: an effect calling setRoom("room-2", ...) during an iteration adds the
+     room to state; it is visible in the next fetch and persists across iterations.
+
+Constraints:
+- Do NOT edit the three restricted directories.
+- No rendering in this task — Rust data + host API + tests only.
+- Entities/containers semantics untouched: room-local getX/getY positioning is a renderer
+  concern (task 010); here containers keep their existing shape.
+
+## Acceptance Criteria
+- Room/Portal types exist in Rust state with serde round-trip; cargo test passes all listed
+  tests (declaration, convexity rejection, portal validation, runtime mutation).
+- setRoom/setPortal are callable from module load AND from effect apply at iteration time in
+  the QuickJS engine (test proves the latter).
+- The FFI getter returns rooms+portals as JSON; a C#-side compile check is not required yet
+  (task 010 consumes it), but the symbol is exported in src/ffi_mod.rs.
+- git diff: no changes under the restricted directories; no renderer changes.
+
+## Dependencies
+- Depends on TASK-2026-08-24-008 (keeps phase ordering: Phase 2 complete before 2b). The Rust
+  work itself only strictly needs task 002's UI context plumbing; the dependency on 008 is for
+  pipeline-ordering discipline, not a technical blocker — it MAY be started earlier if the
+  sprint scheduler allows, but must not merge before 006 is merged (it touches the same
+  host-script files).

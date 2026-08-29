@@ -1,0 +1,91 @@
+TASK: TASK-2026-08-24-005
+CREATED: 2026-08-24
+SOURCE: ui-div-layer-implementation.txt
+PRIORITY: high
+STATUS: PENDING
+DEPENDS_ON: TASK-2026-08-24-004
+ESTIMATE: half-day (~3-4 hours)
+
+## Title
+Phase 1 (real-time binding): ui.state (actor/declare/value) + ui.field live binding with per-(entity, map, name) invalidation
+
+## Description
+Plan reference: plans/ui-div-layer.md, "Real-time binding (from the user-interface spec)"
+section, Phase 1 ("state.js: per-client ui.state ... field leaf: declarative entity-map
+binding with per-(entity, map, name) invalidation") and the Phase 1 deliverable ("a real-time
+ui.field bound to state.actor that updates within a tick when an effect mutates the entity —
+no C# FFI value polling"). Specs: specification/user-interface/ui-state.md,
+specification/user-interface/rendering.md.
+
+This is the real-time proof point: values flow QuickJS -> delta; C# never polls.
+
+Work items:
+1. application/ui/ui/state.js (new):
+   - hostApi.ui.state API per ui-state.md: state.actor (the client's entity reference),
+     state.declare(name) (named slot holding entity/container/absent), state.value(name)
+     (reference another module's slot), narrowing accessors (asEntity, asContainer,
+     isPresent), and ui.action.register(...) for per-client state mutators (set-value effect
+     shape). State is PER CLIENT: the .ui layer must keep one state slot table per client
+     (client id from the transport's readClientState); single-client for now, but the data
+     structure is per-client from day one.
+   - ui.field wiring: at uiTick(), for each field node resolve its binding
+     (entity, map "text"|"number", name, fallback) against per-client state + runtime data,
+     and produce the display string. No formatting — raw value, numbers as-is.
+2. Rust (application/runtime/src/ui/ + src/js_host_api/ + src/state/):
+   - The QuickJS UI context must be able to READ live entity map values per tick. The entity
+     data already lives in Rust state (last_entity_data / last_entity_number_data — see
+     src/state/mod.rs, accessors in src/state/accessors.rs, and the existing FFI reads in
+     src/ffi_mod/misc/get_entity_text_map_value.rs / get_entity_number_map_value.rs). Expose a
+     readClientState transport implementation: inject a JS-visible host function
+     (e.g. __uiTransport.entityValue(entityId, map, name)) backed by the Rust state, so
+     field resolution happens inside QuickJS evaluation.
+   - Per-(entity, map, name) invalidation: track which field bindings were resolved last tick
+     and their inputs; a field whose (entity, map, name, resolved value) is unchanged emits no
+     delta. When a mutating effect changes entity data between ticks (the repeat effect in
+     MainModule increments "key" each tick — perfect test subject), only affected field nodes
+     appear in the delta.
+   - Client identity: single client = client id "local" (or the first/only client); readClientState
+     returns { clientId: "local", actor: <main entity id>, values: {...} }. The actor entity
+     for v1: configurable via a simple convention (e.g. the first entity declared, or a
+     ui.setActor host call) — document the choice. Per-client values are mutated from C# via a
+     new FFI entry (runtime_set_ui_state_value(client, name, value)) for ui.action mutators.
+   - ui.action.register: registered actions become callable from C# (extend the existing
+     runtime_emit_action path, src/ffi_mod/misc/emit_action.rs, or a dedicated
+     runtime_ui_action(client, name) FFI) and mutate per-client state in QuickJS.
+3. C# side (application/client/solution/Sources/):
+   - The field node renderer simply paints the value string carried in the delta (it already
+     does for text) — verify no per-frame polling: after this task, field nodes must not call
+     RuntimeInterop.Get/ReadEntity*MapValue. (The legacy *ContentNode classes still poll —
+     they stay alive for the old panel path until task 013; that is expected and acceptable.)
+   - Wire the new ui-state FFI (set state value / invoke ui action) into RuntimeInterop.cs.
+4. Tests:
+   - Rust integration test (the Phase 1 deliverable check): a module sets an entity numberMap
+     key = 0, registers a repeatable effect incrementing it each iteration (mirror
+     MainModule's "repeat" effect), and declares ui.field bound to it. Assert: iteration N's
+     delta contains an Update for the field node with value N; unchanged siblings produce no
+     delta entries.
+   - application/ui/test/: state.js tests under node with a mock transport — declare/value,
+     narrowing (asEntity on absent -> fallback), isPresent, ui.action set-value mutation,
+     per-client isolation (two client ids -> independent slots).
+   - C# (non-restricted area only if needed — a plain dotnet unit test in the solution's
+     existing test layout outside Test/, or rely on the Rust test): value appears via delta.
+
+Constraints:
+- Do NOT edit the three restricted directories.
+- field resolution must stay inside the QuickJS evaluation (Rust provides raw values; JS does
+  the binding math) to keep .ui engine-agnostic.
+
+## Acceptance Criteria
+- cargo test passes including the real-time field test: a ui.field bound to an entity value
+  updated by a repeatable effect emits an Update delta within the same tick the effect fires;
+  nodes whose inputs did not change emit nothing.
+- application/ui/test/ state.js tests pass under node, including per-client isolation.
+- dotnet build passes; with a MainModule-like module running, the field-driven panel updates
+  every tick with zero calls to GetEntity*MapValue/ReadEntity*Value from the new UI path
+  (verifiable by grep of the new renderer + log).
+- ui.action: a registered set-value action invoked from C# mutates per-client state and the
+  next tick's delta reflects it.
+
+## Dependencies
+- Depends on TASK-2026-08-24-004 (and transitively 002/003): needs the per-tick evaluation
+  loop, the field node declaration, and the delta pipeline.

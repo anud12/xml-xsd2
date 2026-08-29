@@ -8,9 +8,7 @@ pub(super) fn extract_declarations_script() -> String {
                 entities: [], creators: {{}}, emits: {{}},
                 panels: [], entity_data: {{}},
                 containers: [], pending_effects: [],
-                animations: {{}},
-                behavior_definitions: {{}},
-                behavior_attachments: {{}}
+                animations: {{}}
             }};
             {}
             out.logs = globalThis.__logs || [];
@@ -42,15 +40,6 @@ pub(super) fn extract_declarations_script() -> String {
                 }});
             out.animations =
                 globalThis.__registeredAnimations || {{}};
-            out.behavior_definitions =
-                globalThis.__behaviorDefinitions || {{}};
-            var attachments = globalThis.__behaviors || {{}};
-            for (var aid in attachments) {{
-                var ref = attachments[aid];
-                out.behavior_attachments[aid] =
-                    (ref.name && typeof ref.name === 'object')
-                        ? ref.name.value : ref.name;
-            }}
             return JSON.stringify(out);
         }})()"#,
         extract_map_items()

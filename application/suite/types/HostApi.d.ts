@@ -12,9 +12,11 @@ import {RegisterActionFunction} from "./action";
 import {RegisterPanelFunction} from "./ui/Panel";
 import {SpriteResource} from "./texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "./texture/SpriteMap";
-import {EntityCreationArguments, EntityReference} from "./Entity";
-import {RegisterAnimationFunction, GetAnimationFunction} from "./animation/AnimationRegistration";
-import {BehaviorApi} from "./behavior";
+import {EntityCreationArguments} from "./Entity";
+import {RegisterAnimationFunction, GetAnimationFunction, AnimationRegistrationArguments} from "./animation/AnimationRegistration";
+import {AutonomyApi} from "./autonomy";
+import {BehaviorApi, BehaviorReference} from "./behavior";
+import {AlignOption} from "./ui/Panel";
 
 /**
  * The top-level host API surface exposed to modules.
@@ -30,6 +32,16 @@ export type HostApi = {
     getSpritePNG: (path: string) => SpriteResource,
     /** Returns the animation registration for the given name and duration configuration. */
     getAnimation: GetAnimationFunction,
+    /** Creates a window/panel node with options and nested children; returns its id. */
+    window: (id: string, options: UiWindowOptions, children?: any[]) => string,
+    /** Creates a constant text node; returns its id. */
+    text: (id: string, content: string) => string,
+    /** Creates an entity-bound field node; returns its id. */
+    field: (id: string, options: UiFieldOptions) => string,
+    /** Creates a layout (row/column) div node with children; returns its id. */
+    div: (id: string, options: UiDivOptions, children?: any[]) => string,
+    /** Creates a container list-view node rendered from a per-entity template. */
+    container: (id: string, options: UiContainerOptions, template: (entity: any, index: number) => any[]) => any,
   },
   /** Runtime APIs for entities, containers, effects, actions, and events. */
   runtime: {
@@ -46,7 +58,7 @@ export type HostApi = {
     container: ContainerExpressionApi,
 
     /** Sets entity fields (numberMap, textMap) by entity ID. */
-    setEntity: (entityId: StringExpression, arguments: EntityCreationArguments) => EntityReference;
+    setEntity: (entityId: StringExpression, arguments: EntityCreationArguments) => void;
 
     /** Sets container fields by container ID. */
     setContainer: (containerId: StringExpression, arguments: ContainerCreationArguments) => void;
@@ -65,7 +77,48 @@ export type HostApi = {
     /** Logs a string message to the runtime log. */
     log:(string:string) => void;
 
-    /** Creates and registers a reactive behavior state machine. */
+    /** Registers a reactive autonomy state machine on an entity. */
+    setAutonomy: AutonomyApi["setAutonomy"];
+
+    /** Registers a behavior graph and returns a reference attachable via setEntity. */
     registerBehavior: BehaviorApi["registerBehavior"];
   }
 }
+
+/** Options accepted by the high-level `hostApi.ui.window` builder. */
+export type UiWindowOptions = {
+  width?: number;
+  height?: number;
+  x?: number;
+  y?: number;
+  anchor?: string | { x: number; y: number };
+  background?: string | AnimationRegistrationArguments | { name: string; duration?: number; loop?: boolean };
+  align?: AlignOption;
+  onHover?: {
+    texture?: string;
+    background?: string;
+    thickness?: number;
+    emitAction?: string;
+    stopPropagation?: boolean;
+  };
+  onClick?: string;
+};
+
+/** Options accepted by the high-level `hostApi.ui.field` builder. */
+export type UiFieldOptions = {
+  entity: string;
+  map: "text" | "number";
+  name: string;
+  fallback?: string;
+};
+
+/** Options accepted by the high-level `hostApi.ui.div` builder. */
+export type UiDivOptions = {
+  layout: "row" | "column";
+};
+
+/** Options accepted by the high-level `hostApi.ui.container` builder. */
+export type UiContainerOptions = {
+  container: string;
+  vertical?: boolean;
+};

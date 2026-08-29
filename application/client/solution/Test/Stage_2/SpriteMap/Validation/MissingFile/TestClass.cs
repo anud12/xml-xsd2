@@ -19,16 +19,7 @@ public partial class TestClass : Steps {
                 .EnsureDllAccessible()
                 .ProcessArchive();
 
-            var scene = LoadTestScene();
-            var rootNode = new RootNode();
-
-            scene.AddChild(rootNode);
-            rootNode.SetSize(new Vector2() {
-                X = 1000,
-                Y = 1000
-            });
-            rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
-            await runner.SimulateFrames(1);
+            var scene = await AttachUiScene();
 
             AssertRuntimeOutputContains("missing.tiff");
         }

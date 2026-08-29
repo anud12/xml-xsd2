@@ -1,0 +1,74 @@
+TASK: TASK-2026-08-24-008
+CREATED: 2026-08-24
+SOURCE: ui-div-layer-implementation.txt
+PRIORITY: medium
+STATUS: PENDING
+DEPENDS_ON: TASK-2026-08-24-007
+ESTIMATE: half-day (~3-4 hours)
+
+## Title
+Phase 2 (migration, spec for human): migrate Test/Stage_* UI modules to ui.div composition
+
+## Description
+Plan reference: plans/ui-div-layer.md, Phase 2 deliverable and Verification item 3
+("migrate MainModule + Test/Stage_* UI modules to ui.div; confirm visuals, hover, z-order").
+
+**IMPORTANT CONSTRAINT: `E:\workspace\xml-xsd2\application\client\solution\Test\` is a
+restricted directory — agents are NOT allowed to edit it.** This task file is a SPECIFICATION
+for a human implementer with permissions, in the same style as the existing
+TASK-2026-05-25-002/003 entries. An agent picking this up must NOT touch that directory; it
+should produce the migration spec/patch for human review instead.
+
+Context: MainModule is already migrated (TASK-2026-08-24-007) and serves as the reference
+pattern. Every Stage_* and Ffi/* test module under
+application/client/solution/Test/ that calls hostApi.ui.registerPanel(...) (grep count today:
+~40 modules across Stage_1..Stage_7, Ffi/Panel/*) must be migrated to ui.div composition so
+the GdUnit4 stage tests keep validating identical visuals.
+
+Migration rules per module (derive the ui.div equivalent from the registerPanel call):
+- PanelOptions.id -> ui.window or ui.div id (panels with children/absolute placement become
+  windows; content-only panels become a div inside a default full-rect window — follow the
+  MainModule pattern from TASK-007).
+- size/offset/anchor -> window position/size + coordinate-escape (x/y + anchor/align) on the
+  div, reproducing the exact screen rect the PanelOptions produced (top/bottom/left/right
+  offset model -> concrete pixels).
+- content types map as:
+    constant / constantNumber      -> ui.text(value)
+    entityTextValue                -> ui.field(id, entity, "text", name, { fallback: "" })
+    entityNumberValue              -> ui.field(id, entity, "number", name, { fallback: "" })
+    containerListView (template)   -> a ui.div whose children are generated per container
+      entity at declaration time (the template is a JS function — call it per entity id from
+      __host_getContainerEntityIds-equivalent in the QuickJS host; if the Rust host does not
+      yet expose container ids to UI declaration, add a readClientState-style host function
+      __uiTransport.containerEntityIds(containerId) in this task's Rust work — that part is
+      agent-doable in application/runtime and should be split out as a sub-commit).
+- background/hover/onClick/layout.children -> the same options on ui.div / ui.window (already
+  supported after TASK-006).
+- The TestClass.cs assertion files (AssertPanel etc.) live in the restricted Test/ directory:
+  where they assert on legacy panel structure, the human must update assertions to the new
+  node ids/types. List every TestClass.cs that will need assertion updates in the migration
+  checklist (grep "HasContentText|AssertPanel" under Test/).
+
+Deliverable (human): a branch `task/TASK-2026-08-24-008` containing the migrated modules +
+updated assertions, with every existing stage test still passing (dotnet test from
+application/client/solution as run by test/java_tests.rs). The migration is
+migrate-not-delete: no stage is removed; visuals, hover, and z-order are identical.
+
+Acceptance checklist for the human:
+- [ ] grep -r "registerPanel" application/client/solution/Test/ returns zero hits
+- [ ] dotnet test (full stage suite) passes with no skipped tests
+- [ ] cargo test from application/runtime still passes (if Rust host additions were made for
+      containerListView id lookup)
+- [ ] No assertion was weakened to make a test pass (diff review of TestClass.cs files)
+
+## Acceptance Criteria
+- (Agent-verifiable part) A migration checklist document exists (write it to
+  .agentic/tasks/ or the branch notes — NOT under Test/) listing every module under
+  Test/ that needs migration, its registerPanel call, and its ui.div translation, plus the
+  list of TestClass.cs files needing assertion updates.
+- (Human-verifiable part) After the human applies the migration: all stage tests pass,
+  registerPanel is gone from Test/, visuals/hover/z-order confirmed identical per stage.
+
+## Dependencies
+- Depends on TASK-2026-08-24-007: MainModule is the reference migration and must be complete
+  first so the pattern is proven.

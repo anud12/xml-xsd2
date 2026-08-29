@@ -1,0 +1,96 @@
+TASK: TASK-2026-08-24-004
+CREATED: 2026-08-24
+SOURCE: ui-div-layer-implementation.txt
+PRIORITY: high
+STATUS: PENDING
+DEPENDS_ON: TASK-2026-08-24-003
+ESTIMATE: half-day (~3-4 hours)
+
+## Title
+Phase 1 (layout): single grid layout manager with flex shorthand + coordinate-escape
+
+## Description
+Plan reference: plans/ui-div-layer.md, "Layout: a single grid manager" and "Coordinate-escape
+(out-of-flow)" sections, and Phase 1 ("grid layout algorithm (columns/rows tracks with
+min/max/scale, gap, placement order; flex shorthand "row"/"column"/number) + coordinate-escape
+(x/y + anchor/align out-of-flow placement)").
+
+The layout engine lives in .ui (engine-agnostic JS) and produces, per div, the resolved
+geometry of every child (x, y, width, height in logical units relative to the div's content
+box). The Rust runtime runs it during uiTick() and ships the resolved geometry in node
+updates; renderers (C# Godot now, others later) just apply numbers. This mirrors the plan's
+architecture: expression evaluation + layout in the runtime layer, rendering in the client.
+
+Work items:
+1. application/ui/ui/layout.js (new; imported by dag.js/registry.js):
+   - ONE grid algorithm. Track model: columns/rows arrays of track objects { min, max, scale }
+     (plan uses "scale"; existing suite TrackDefinition uses "weight" — canonical name is
+     scale per the plan; accept weight as an alias for backward-read compatibility if trivial,
+     otherwise scale only).
+   - Shorthand desugaring (resolved open question #4 — confirm these exact semantics in tests):
+       layout: "column" (DEFAULT for a bare div) -> one column, children stack vertically
+       layout: "row" -> N equal columns (N = max(1, child count)), children flow left-to-right
+                    and wrap to additional rows (flex-row wrap semantics)
+       layout: 4 (number) -> 4 equal columns, children flow and wrap (inventory grid)
+       layout: { columns: [{min:80},{scale:1}], gap: 4 } -> full track definition; rows are
+               implicit (auto rows sized to content) when not given.
+   - gap (single number or { row, column }); per-track align (from the todo spec: start/end,
+     keep the richer alignment set if cheap, but start/end + stretch is the v1 floor);
+     placement order = declaration order.
+   - Coordinate-escape: a child specifying x AND/OR y is OUT OF FLOW — the layout manager
+     skips it (does not count it, does not size the parent for it) and instead resolves:
+       anchor (9-point on the parent's content box; default top-left),
+       align  (9-point point on the child that aligns to the parent anchor; default top-left),
+       then x/y displacement applied after alignment.
+     Presence of x/y is the signal; out-of-flow children ignore flow hints (colSpan etc.),
+     z-order = declaration order, overflow clipped by parent clip.
+2. Rust (application/runtime/src/ui/):
+   - Run layout.js inside the QuickJS UI context during uiTick() (it is plain JS — evaluate it
+     there and read back the resolved geometry as JSON), then attach resolved
+     { x, y, width, height } to each node in the delta. No Rust re-implementation of layout.
+   - UiNode model: add resolved geometry field + parent id (renderers need parent-relative
+     coordinates; the C# applier converts to scene coordinates by walking parents).
+3. C# side (application/client/solution/Sources/UI/):
+   - Rework the div renderer into ONE division renderer: a Godot Control that places its child
+     Controls at the resolved geometry (anchors/offsets from the delta). In-flow children get
+     grid-resolved rects; out-of-flow children get anchor/align/x/y-resolved rects. The old
+     5 *ContentNode classes are NOT touched yet (retirement is Phase 3, task 013) — the new
+     division renderer coexists.
+   - Background painting for divs (static PNG path + animation reference {name, duration,
+     loop} via the existing registerAnimation/AnimationSequence machinery — Panel.cs
+     SetupSpriteMapShader/UpdateMapTexture shows the current patterns) if it was deferred in
+     task 003.
+4. Tests (the heart of this task — layout math must be exact and deterministic):
+   - application/ui/test/layout.test.js (node-runnable, engine-agnostic):
+     * "column" default: 3 text children stack vertically, full width.
+     * "row" with 4 children in a 400-wide div: 4 equal 100-wide columns.
+     * "row" wrap: 5 children, div wide enough for 3 -> row 1 = 3, row 2 = 2.
+     * layout: 4 inventory grid: 6 children -> rows of 4 then 2.
+     * { columns: [{min:80},{scale:1}], gap: 4 }: 300-wide div -> col0=80, gap 4,
+       col1=216; two children land correctly.
+     * min caps: track min is never shrunk below min; scale distributes remainder.
+     * coordinate-escape: child with { x: 10, y: 20, anchor: "center", align: "center" } in a
+       200x100 div lands at the expected rect; it does NOT affect sibling layout or parent
+       sizing; z-order preserved.
+   - Rust: integration test asserting the delta carries resolved geometry for a nested
+     window -> div(column) -> [div(row), text] tree.
+
+Constraints:
+- Do NOT edit the three restricted directories.
+- Layout must be deterministic (no floating-point drift surprises: pick a rounding rule —
+  round to integer logical units at the end — and test it).
+
+## Acceptance Criteria
+- application/ui/ui/layout.js implements the single grid manager + coordinate-escape per the
+  spec above; .ui stays engine-agnostic.
+- All listed application/ui/test/ layout cases pass under node.
+- cargo test passes: nested tree's delta contains correct resolved geometry (spot-check the
+  {min:80, scale:1} case and one out-of-flow child).
+- dotnet build passes; a Godot test module with a 2-column label|value div and one
+  center-anchored out-of-flow overlay renders with children at the expected pixel positions
+  (visual + a GdUnit-free scripted check via the delta log).
+- A bare ui.div({}, children) lays out as "column" (default confirmed).
+
+## Dependencies
+- Depends on TASK-2026-08-24-003: needs the node factories + Rust UiNode model it extends with
+  resolved geometry.

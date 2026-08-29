@@ -1,0 +1,18 @@
+Implement the div-composed UI layer plan: plans/ui-div-layer.md
+
+The plan is approved and final. Implement it phase by phase (Phase 0 through Phase 3):
+
+- Phase 0: Engine of record + transport + spine. Use Rust/QuickJS as the UI evaluation engine of record (the plan's recommendation). Define the transport seam and prove the spine: one ui.div containing one ui.text flowing QuickJS -> delta -> Godot node.
+- Phase 1: The division model in .ui (application/ui/): dag.js (Window/Division/Text/Field/Image nodes, factories ui.window/ui.div/ui.text/ui.field/ui.image), single grid layout manager with flex shorthand ("column"/"row"/number/full track object, default "column"), coordinate-escape (x/y + anchor/align out-of-flow), per-tick evaluation + id diff -> delta, per-client ui.state.
+- Phase 2: Godot renderer backend as a dumb delta renderer (reconcile by id); migrate MainModule to the new API.
+- Phase 2b: World view canvas node + Room/Portal data model (Layer A): Room { id, terrain, origin, rotation, points[] } convex local coords, Portal { from/to edge index + range t0..t1 }, setRoom/setPortal host API, Godot Canvas node (SubViewport/Node2D/Camera2D).
+- Phase 2c: Portal crossing as a per-tick effect (Layer B).
+- Phase 3: Packaging/lifecycle cleanup, retire the old Jint UI host panel path and superseded type contracts.
+
+Open questions in the plan were resolved as follows: engine of record = Rust/QuickJS; .ui = application/ui/ top-level; keep ui.image leaf; layout shorthand as specified; world rendering v1 = static sprite per unit from room container data; portal crossing = teleport (no transition animation).
+
+IMPORTANT CONSTRAINTS (from the repo's agentic rules):
+- Do NOT edit E:\workspace\xml-xsd2\application\client\solution\Test\
+- Do NOT edit E:\workspace\xml-xsd2\application\suite\src\test\resources\features\
+- Do NOT edit E:\workspace\xml-xsd2\application\suite\src\test\java\com\example\tests\
+- Validation is cargo test from application/runtime (plus dotnet build for the C# client and the suite Maven build where relevant).

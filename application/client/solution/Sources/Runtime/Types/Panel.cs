@@ -17,10 +17,14 @@ public struct Panel
     public Size Size;
     public Layout? Layout;
     public Panel[]? Children;
+    public string[]? ChildIds;
     public PanelOnClickHandler? OnClick;
     public PanelContent? Content;
     public Hover? Hover;
+    public string? HoverEmitAction;
+    public bool HoverStopPropagation;
     public AnimationSequence? BackgroundAnimation;
+    public string? HoverBackground;
 }
 
 public struct Layout

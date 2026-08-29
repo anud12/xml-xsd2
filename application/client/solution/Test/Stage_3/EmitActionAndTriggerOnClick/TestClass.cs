@@ -12,40 +12,28 @@ public partial class TestClass : Steps {
     [TestCase]
     [RequireGodotRuntime]
     public async Task Given_panel_it_should_emit_action_on_click_and_trigger_effect() {
-        // I create a module from the first folder
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .AddFileToArchive("module/texture.png", "texture.png")
             .EnsureDllAccessible()
             .ProcessArchive();
 
+        var scene = await AttachUiScene();
 
-        var scene = LoadTestScene();
-        var rootNode = new RootNode();
-        var idList = RuntimeInterop.GetPanelIds();
+        var center = scene.Window("center");
+        Assertions.AssertThat(center).IsNotNull();
 
-        scene.AddChild(rootNode);
-        rootNode.SetSize(new Vector2() {
-            X = 1000,
-            Y = 1000
-        });
-        rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
-                await runner.SimulateFrames(1);
-
-
-        AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
-            .IsPositionEqual(0, 0);
-
+        var pos = center.GlobalPosition + new Vector2(1, 1);
         var mouseEvent = new InputEventMouseButton() {
-            Position = new Vector2(51, 51),
-            GlobalPosition = new Vector2(51, 51),
+            Position = pos,
+            GlobalPosition = pos,
             ButtonIndex = MouseButton.Left,
             Pressed = true,
             ButtonMask = MouseButtonMask.Left
         };
         runner.Scene().GetViewport().PushInput(mouseEvent);
         await runner.SimulateFrames(1);
-        
+
         mouseEvent = (InputEventMouseButton)mouseEvent.Duplicate();
         mouseEvent.Pressed = false;
         runner.Scene().GetViewport().PushInput(mouseEvent);
@@ -53,18 +41,18 @@ public partial class TestClass : Steps {
         AssertRuntimeOutputContains("___From module action fired line___");
         AssertRuntimeOutputContainsNot("___From module effect prepare fired line___");
         AssertRuntimeOutputContainsNot("___From module effect fired line___");
-        
-        
+
+
         RuntimeInterop.RunIteration();
-        
+
         AssertRuntimeOutputContains("___From module effect prepare fired line___");
         AssertRuntimeOutputContains("___From module effect fired line___");
 
         ClearOutput();
-        
+
         RuntimeInterop.RunIteration();
-        
-        
+
+
         AssertRuntimeOutputContainsNot("___From module effect prepare fired line___");
         AssertRuntimeOutputContainsNot("___From module effect fired line___");
 

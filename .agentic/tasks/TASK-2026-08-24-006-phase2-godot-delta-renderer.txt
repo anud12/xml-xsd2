@@ -1,0 +1,81 @@
+TASK: TASK-2026-08-24-006
+CREATED: 2026-08-24
+SOURCE: ui-div-layer-implementation.txt
+PRIORITY: high
+STATUS: PENDING
+DEPENDS_ON: TASK-2026-08-24-005
+ESTIMATE: half-day (~3-4 hours)
+
+## Title
+Phase 2 (renderer): Godot becomes a dumb delta renderer — one division renderer replaces the 5 content types (coexistence mode)
+
+## Description
+Plan reference: plans/ui-div-layer.md, Phase 2 ("Rework Sources/UI/ into a dumb delta
+renderer: reconcile Godot nodes by id (create/update/destroy). Replace the 5 *ContentNode
+classes + ContentParser with ONE division renderer... Keep Panel.Update()/IContentNode.
+UpdateContent() as the in-place path until the division node supersedes it.").
+
+Tasks 001-005 built the pipeline; the C# applier so far renders the new node kinds in a
+minimal way. This task hardens the C# renderer into the definitive "dumb delta renderer":
+reconcile by id, apply resolved geometry, paint divs (background static + animation, border,
+padding, clip, hover, onClick), render windows with position/size/anchor/scale/clip — with the
+old Jint panel path still running side by side (retirement is task 013).
+
+Work items (application/client/solution/Sources/UI/ + Scenes/):
+1. Reconciler: a UiSceneReconciler that owns the node tree built from deltas. API:
+   ApplyDelta(delta): for each Add -> build the Godot node subtree from the serialized node
+   (window/div/text/field/image); Update -> in-place property update (no re-create); Remove ->
+   QueueFree + bookkeeping. Node identity = node id (a Dictionary<string, Control> registry).
+   The reconciler must be idempotent and safe against duplicate/stale deltas.
+2. Division renderer (the ONE layout node in Godot): a Control subclass that:
+   - places children at resolved geometry from the delta (in-flow: grid rects; out-of-flow:
+     anchor/align/x/y already resolved by the runtime — the Godot side only applies numbers,
+     NO layout math in C#);
+   - paints background: static PNG path (archive lookup via the existing GetFileFromArchive
+     pattern) and animation references { name, duration, loop } using the existing
+     AnimationSequence/SpriteMapCpu machinery (Panel.cs _Process/SetupSpriteMapShader/
+     UpdateMapTexture is the reference implementation — extract the reusable parts into a
+     shared helper rather than duplicating);
+   - border + padding (inner inset for children), clip (ClipContents), hover
+     ({ texture, thickness } -> reuse HoverOutline.cs), onClick -> runtime_emit_action
+     (existing RuntimeInterop.emitAction).
+3. Window renderer: positioned/sized Control with anchor + clip + scale (scaleFactor maps to
+   Godot scale or layout multiplier — pick one, test it); windows are top-level children of
+   the UI root, never nested under a div.
+4. Text/Field/Image renderers: text & field -> Label (value from delta, alignment from
+   options — reuse the ApplyAlignment table from EntityTextValueContentNode.cs); image ->
+   TextureRect (resource via archive, stretching mode per specification/user-interface/
+   rendering.md "Resources" — default fill).
+5. Scenes/Game.cs: mount the UiSceneReconciler root under the Game node (FullRect). The 40 ms
+   loop thread pushes deltas; apply them on the main thread (queue + drain in _Process, or
+   Godot Callable from the thread — follow whichever pattern the codebase already uses; the
+   existing thread only calls FFI, main-thread work happens in scene code).
+6. Resource loading: all texture names resolve through the archive file map (files shipped in
+   the module zip — MainModule's frame_1..5.png + hover.png pattern). Missing resource ->
+   log warning + platform default (per rendering.md), never crash.
+
+Constraints:
+- Do NOT edit the three restricted directories.
+- The OLD panel path (RootNode.cs building Godot.Panel from Jint-parsed panels, *ContentNode
+  polling) stays functional until task 013. Gate the two paths so a scene can run either:
+  e.g. if the runtime reports any new-format UI nodes, the reconciler renders them; legacy
+  panels render as today. No visual regression on the legacy path.
+- NO per-frame entity value polling in the new path (grep check: the new renderer files must
+  not reference GetEntity*MapValue / ReadEntity*Value).
+
+## Acceptance Criteria
+- dotnet build passes.
+- A module using ui.window -> ui.div(column) -> [ div(row) with 3 fields, a 4-column
+  inventory grid of ui.image, one out-of-flow center-anchored div with a text ] renders
+  correctly in Godot: positions match the Rust-resolved geometry (log-compare or visual),
+  backgrounds animate, hover outline works, onClick emits the action.
+- Delta semantics: re-running iterations with unchanged values causes zero node re-creation
+  (reconciler log shows updates only for changed nodes); removing a child from the module's
+  children array removes the node next tick (conditional rendering by exclusion).
+- Legacy MainModule (registerPanel via Jint) still renders identically when loaded alone
+  (no-regression check).
+- git diff shows no changes under the restricted directories.
+
+## Dependencies
+- Depends on TASK-2026-08-24-005: needs the full delta content (resolved geometry from 004,
+  live field values + ui.action from 005) for the reconciler to apply.

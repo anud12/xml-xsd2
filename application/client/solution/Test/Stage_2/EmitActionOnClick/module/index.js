@@ -7,60 +7,35 @@ export default (hostApi) => {
         hostApi.runtime.log("___From module action fired line___")
     }
   });
-
-    hostApi.runtime.registerAction({
-        name: string.of("childAction"),
-        apply: () => {
-            hostApi.runtime.log("___From module childAction fired line___")
-        }
-    });
-
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+  hostApi.runtime.registerAction({
+    name: string.of("childAction"),
+    apply: () => {
+        hostApi.runtime.log("___From module childAction fired line___")
+    }
+  });
+  hostApi.runtime.registerAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture_2"), {
+  hostApi.runtime.registerAnimation(string.of("texture_2"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture_2.png") },
     ],
   });
-  hostApi.ui.registerPanel({
-    id: "center",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-      offset: {
-        top: number.of(50),
-          bottom: number.of(50),
-          left: number.of(50),
-          right: number.of(50),
-      },
-      onClick: {
-          type:"emitAction",
-          actionName: string.of("action")
-      },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
-      children: [
-        {
-            id: "child",
-            offset: {
-                top: number.of(10),
-                bottom: number.of(10),
-                left: number.of(10),
-                right: number.of(10),
-            },
-            size: {
-                height: number.of(10),
-                width: number.of(10),
-            },
-            background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture_2"), { duration: hostApi.runtime.number.of(1) }),
-            onClick: {
-                type:"emitAction",
-                actionName: string.of("childAction")
-            }
-        }
-      ]
-  })
+  hostApi.ui.window("center", {
+    width: 100,
+    height: 100,
+    background: hostApi.ui.getAnimation(string.of("texture"), { duration: number.of(1) }),
+    onClick: "action",
+  }, [
+    hostApi.ui.window("child", {
+      x: 20,
+      y: 20,
+      width: 10,
+      height: 10,
+      background: hostApi.ui.getAnimation(string.of("texture_2"), { duration: number.of(1) }),
+      onClick: "childAction",
+    }, [])
+  ])
 }

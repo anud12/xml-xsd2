@@ -20,19 +20,9 @@ public partial class TestClass : Steps {
             .ProcessArchive();
 
 
-        var scene = LoadTestScene();
-        var rootNode = new RootNode();
-        var idList = RuntimeInterop.GetPanelIds();
+        var scene = await AttachUiScene();
 
-        scene.AddChild(rootNode);
-        rootNode.SetSize(new Vector2() {
-            X = 1000,
-            Y = 1000
-        });
-        rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
-        await runner.SimulateFrames(1);
-
-        var assertions = AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
+        var assertions = scene.AssertPanelThat("center")
             .HasContentText("0");
 
 

@@ -18,7 +18,6 @@ pub fn clear_state() {
     *super::last_entity_number_data().lock().unwrap() = HashMap::new();
     *super::initial_entity_data().lock().unwrap() = HashMap::new();
     *super::last_containers().lock().unwrap() = Vec::new();
-    *super::behavior_scripts().lock().unwrap() = String::from("{}");
     super::elapsed_time_units().store(0, Ordering::SeqCst);
     super::persisted_flag().store(false, Ordering::SeqCst);
 }

@@ -15,18 +15,9 @@ export default (hostApi) => {
     ],
   });
 
-  hostApi.ui.registerPanel({
-    id: "characterPanel",
-    size: {
-      height: number.of(10),
-      width: number.of(10),
-    },
-    offset: {
-      top: number.of(50),
-      bottom: number.of(50),
-      left: number.of(50),
-      right: number.of(50),
-    },
+  hostApi.ui.window("characterPanel", {
+    width: 10,
+    height: 10,
     background: hostApi.ui.getAnimation(string.of("idle"), { duration: number.of(4), loop: true }),
-  });
+  }, [])
 }

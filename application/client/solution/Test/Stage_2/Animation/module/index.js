@@ -12,34 +12,19 @@ export default (hostApi) => {
     ],
   });
 
-
-  hostApi.ui.registerPanel({
-    id: "fastPanel",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    offset: {
-      top: number.of(100),
-      bottom: number.of(100),
-      left: number.of(100),
-      right: number.of(100),
-    },
+  hostApi.ui.window("fastPanel", {
+    width: 100,
+    height: 100,
+    x: 100,
+    y: 100,
     background: hostApi.ui.getAnimation(string.of("sequence"), { duration: number.of(5) }),
-  });
+  }, []);
 
-  hostApi.ui.registerPanel({
-    id: "slowPanel",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    offset: {
-      top: number.of(100),
-      bottom: number.of(100),
-      left: number.of(300),
-      right: number.of(300),
-    },
+  hostApi.ui.window("slowPanel", {
+    width: 100,
+    height: 100,
+    x: 300,
+    y: 100,
     background: hostApi.ui.getAnimation(string.of("sequence"), { duration: number.of(10) }),
-  });
+  }, []);
 }

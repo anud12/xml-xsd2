@@ -21,22 +21,11 @@ public class TestClass : Steps {
             .EnsureDllAccessible()
             .ProcessArchive();
 
-        var scene = LoadTestScene();
-        var rootNode = new RootNode();
-        var idList = RuntimeInterop.GetPanelIds();
+        var scene = await AttachUiScene();
 
-        scene.AddChild(rootNode);
-        rootNode.SetSize(new Vector2() {
-            X = 1000,
-            Y = 1000
-        });
-        rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
-                await runner.SimulateFrames(1);
-
-        AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
+        scene.AssertPanelThat("number-panel")
             .IsNonNull()
             .HasContentText("42");
-
         DebugSaveScreenshot("expected.png");
     }
 }
