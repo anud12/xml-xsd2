@@ -441,12 +441,6 @@ public partial class UiWindow : Control
         if (opts.ValueKind == JsonValueKind.Undefined
             || !opts.TryGetProperty("background", out var bg))
             return;
-        try
-        {
-            System.IO.File.AppendAllText(@"C:\Users\acriha\AppData\Local\Temp\opencode\dbg-anim.log",
-                $"[BG] {Name} bgRaw={bg.GetRawText()}\n");
-        }
-        catch { }
         if (bg.ValueKind == JsonValueKind.String)
         {
             var path = bg.GetString();
@@ -545,16 +539,12 @@ public partial class UiWindow : Control
         if (!force && elapsed <= _animLastElapsed) return;
         _animLastElapsed = elapsed;
 
-        try { System.IO.File.AppendAllText(@"C:\Users\acriha\AppData\Local\Temp\opencode\dbg-anim.log", $"[ANIM] {Name} animName={_animName} force={force} elapsed={elapsed}\n"); } catch { }
         var def = UiState.GetAnimation(_animName);
         if (!def.HasValue)
         {
             RuntimeInterop.Log($"ui: background animation '{_animName}' not registered");
-            try { System.IO.File.AppendAllText(@"C:\Users\acriha\AppData\Local\Temp\opencode\dbg-anim.log", $"[ANIM] {Name} NOT REGISTERED\n"); } catch { }
             return;
         }
-        int _dbgFrames = def.Value.TryGetProperty("frames", out var _f) && _f.ValueKind == JsonValueKind.Array ? _f.GetArrayLength() : -1;
-        try { System.IO.File.AppendAllText(@"C:\Users\acriha\AppData\Local\Temp\opencode\dbg-anim.log", $"[ANIM] {Name} registered, frames={_dbgFrames}\n"); } catch { }
         if (!def.Value.TryGetProperty("frames", out var frames) || frames.ValueKind != JsonValueKind.Array)
             return;
         if (def.Value.TryGetProperty("duration", out var dd) && dd.ValueKind == JsonValueKind.Number)
@@ -586,10 +576,8 @@ public partial class UiWindow : Control
         if (!files.TryGetValue(path, out var data))
         {
             RuntimeInterop.Log($"ui: animation frame not found in archive: {path}");
-            try { System.IO.File.AppendAllText(@"C:\Users\acriha\AppData\Local\Temp\opencode\dbg-anim.log", $"[ANIM] {Name} FRAME NOT FOUND: {path}\n"); } catch { }
             return;
         }
-        try { System.IO.File.AppendAllText(@"C:\Users\acriha\AppData\Local\Temp\opencode\dbg-anim.log", $"[ANIM] {Name} frame={path} size={data.Length}\n"); } catch { }
         var img = new Image();
         img.LoadPngFromBuffer(data);
         _animTexture = ImageTexture.CreateFromImage(img);

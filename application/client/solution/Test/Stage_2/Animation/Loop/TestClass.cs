@@ -29,55 +29,55 @@ public partial class TestClass : Steps {
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_1.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_1.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_2.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_2.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_3.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_3.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_4.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_4.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_5.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_5.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_1.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_1.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_2.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_2.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_3.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_3.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_4.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_4.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_5.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_5.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_1.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_1.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_2.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_2.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            scene.AssertPanelThat("loopPanel").HasBackgroundTexture("frame_3.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_3.png");
         }
         catch (Exception e) {
             Assertions.AssertThat(true)

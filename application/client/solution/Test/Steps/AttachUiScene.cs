@@ -46,45 +46,21 @@ public partial class Steps
     }
 
 #if DEBUG
-    bool _debugViewHeld;
-
     /// <summary>
-    /// Shows the runner window maximized and blocks the test run until a
-    /// key is pressed, keeping the scene visible for inspection.
+    /// Shows the runner window maximized for visual inspection during debug
+    /// runs. Non-blocking: the test run continues normally.
+    /// No-op when no debugger is attached (plain <c>dotnet test</c> runs).
     /// Debug-build only.
     /// </summary>
     public async Task DebugHoldView(Node scene)
     {
-        if (_debugViewHeld)
+        if (!System.Diagnostics.Debugger.IsAttached)
             return;
-        _debugViewHeld = true;
 
         runner.MaximizeView();
-        GD.Print("[debug] Scene is up — press any key to release the test run");
-        Console.WriteLine("[debug] Scene is up - press any key to release the test run");
-
-        var released = new TaskCompletionSource<bool>();
-        var capture = new Control { Name = "debug_key_capture" };
-        capture.MouseFilter = Control.MouseFilterEnum.Ignore;
-        // capture.GuiInput += @event =>
-        // {
-        //     if (@event is InputEventKey { Pressed: true, Echo: false })
-        //         released.TrySetResult(true);
-        // };
-        scene.AddChild(capture);
-
-        try
-        {
-            await runner.SimulateFrames(1);
-            capture.GrabFocus();
-            while (!released.Task.IsCompleted)
-                await runner.SimulateFrames(1);
-        }
-        finally
-        {
-            capture.QueueFree();
-        }
-        GD.Print("[debug] Hold released");
+        GD.Print("[debug] Scene is up");
+        Console.WriteLine("[debug] Scene is up");
+        await runner.SimulateFrames(1);
     }
 #endif
 }

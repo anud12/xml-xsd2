@@ -116,7 +116,6 @@ public static class PanelNodeStore
             var animName = !string.IsNullOrEmpty(p.Background) && _animations.ContainsKey(p.Background)
                 ? p.Background
                 : $"anim_{p.Id}";
-            try { System.IO.File.AppendAllText(@"C:\Users\acriha\AppData\Local\Temp\opencode\dbg-anim.log", $"[PNODE] {p.Id} bg={p.Background} animName={animName} frames={anim.Frames.Length}\n"); } catch { }
             var frameNames = new List<string>();
             var frameJsons = new List<string>();
             for (int i = 0; i < anim.Frames.Length; i++)
@@ -197,7 +196,6 @@ public static class PanelNodeStore
         Dictionary<string, object?> opts,
         List<string> children)
     {
-        try { System.IO.File.AppendAllText(@"C:\Users\acriha\AppData\Local\Temp\opencode\dbg-anim.log", $"[NODE] {p.Id} bgOpt={(opts.ContainsKey("background") ? System.Text.Json.JsonSerializer.Serialize(opts["background"]) : "none")}\n"); } catch { }
         if (p.Content is { } content)
         {
             switch (content)
@@ -343,7 +341,6 @@ public static class PanelNodeStore
     {
         if (archiveFiles.TryGetValue(frame, out var data))
             return data;
-        try { System.IO.File.AppendAllText(@"C:\Users\acriha\AppData\Local\Temp\opencode\dbg-anim.log", $"[RESOLVE] frame={frame} not in archive, trying JSON\n"); } catch { }
         if (string.IsNullOrEmpty(frame)) return null;
         try
         {
