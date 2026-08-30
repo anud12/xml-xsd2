@@ -13,7 +13,7 @@ import {RegisterPanelFunction} from "./ui/Panel";
 import {SpriteResource} from "./texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "./texture/SpriteMap";
 import {EntityCreationArguments} from "./Entity";
-import {RegisterAnimationFunction, GetAnimationFunction, AnimationRegistrationArguments} from "./animation/AnimationRegistration";
+import {RegisterAnimationFunction, GetAnimationFunction, AnimationRegistrationArguments, AnimationBackground} from "./animation/AnimationRegistration";
 import {AutonomyApi} from "./autonomy";
 import {BehaviorApi, BehaviorReference} from "./behavior";
 import {AlignOption} from "./ui/Panel";
@@ -36,7 +36,7 @@ export type HostApi = {
     spriteMapTIFF: (mapPath: string, layers: MapLayerBinding[]) => SpriteMap,
     /** Returns a sprite resource reference for the given PNG file path. */
     getSpritePNG: (path: string) => SpriteResource,
-    /** Returns the animation registration for the given name and duration configuration. */
+    /** Returns the animation registration for the given name. */
     getAnimation: GetAnimationFunction,
     /**
      * Creates a panel node: a positioned, backgrounded, interactive surface
@@ -88,7 +88,7 @@ export type HostApi = {
     registerAction: RegisterActionFunction,
     /** Registers an animation with the given name and frame definitions. */
     registerAnimation: RegisterAnimationFunction,
-    /** Returns the animation registration for the given name and duration configuration. */
+    /** Returns the animation registration for the given name. */
     getAnimation: GetAnimationFunction,
 
     /** Emits a named event with arbitrary payload. */
@@ -112,13 +112,13 @@ export type UiWindowOptions = {
   y?: number;
   anchor?: string | { x: number; y: number };
   /** Background animation; obtain via `hostApi.ui.getAnimation`. */
-  background?: AnimationRegistrationArguments;
+  background?: AnimationBackground;
   align?: AlignOption;
   onHover?: {
     /** Hover outline animation; obtain via `hostApi.ui.getAnimation`. */
     texture?: AnimationRegistrationArguments;
     /** Hover background-swap animation; obtain via `hostApi.ui.getAnimation`. */
-    background?: AnimationRegistrationArguments;
+    background?: AnimationBackground;
     thickness?: number;
     emitAction?: string;
     stopPropagation?: boolean;

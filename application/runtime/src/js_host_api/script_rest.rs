@@ -22,6 +22,12 @@ pub fn host_api_script_animation() -> &'static str {
             globalThis.__registeredAnimations || {};
         var resolvedName = typeof name === 'object' ? name.value : name;
         if (typeof resolvedName === 'string') {
+            if (!args || typeof args !== 'object' ||
+                typeof args.duration !== 'number') {
+                throw new Error(
+                    "registerAnimation '" + resolvedName +
+                    "': duration is required");
+            }
             globalThis.__registeredAnimations[resolvedName] = args;
         }
     },

@@ -4,10 +4,11 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
+    duration: hostApi.runtime.number.of(1),
   });
   hostApi.ui.panel("center", {
     width: 100,
     height: 100,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
   }, [])
 }

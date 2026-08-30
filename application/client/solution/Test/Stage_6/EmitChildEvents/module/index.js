@@ -75,6 +75,7 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
+    duration: number.of(1),
   });
   hostApi.ui.panel("center", {
     x: 200,
@@ -83,7 +84,7 @@ export default (hostApi) => {
     height: 100,
     anchor: "center",
     align: "center",
-    background: hostApi.ui.getAnimation(string.of("texture"), { duration: number.of(1) }),
+    background: hostApi.ui.getAnimation(string.of("texture")),
   }, [
     hostApi.ui.field("centerContent", { entity: "entity_id", map: "number", name: "key", fallback: "0" }),
   ])
@@ -95,7 +96,7 @@ export default (hostApi) => {
     height: 100,
     anchor: "center",
     align: "center",
-    background: hostApi.ui.getAnimation(string.of("texture"), { duration: number.of(1) }),
+    background: hostApi.ui.getAnimation(string.of("texture")),
   }, [
     hostApi.ui.field("isModifiedContent", { entity: "entity_id", map: "text", name: "isModified", fallback: "No" }),
   ])

@@ -59,6 +59,7 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("hover.png") },
     ],
+    duration: hostApi.runtime.number.of(1),
   });
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
@@ -70,6 +71,21 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("frame_4.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
     ],
+    duration: hostApi.runtime.number.of(5),
+    loop: true,
+  });
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("textureSlow"), {
+    frames: [
+      { sprite: hostApi.ui.getSpritePNG("frame_1.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_2.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_4.png") },
+      { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
+    ],
+    duration: hostApi.runtime.number.of(30),
+    loop: true,
   });
   hostApi.ui.panel("center", {
     x: 70,
@@ -77,10 +93,10 @@ export default (hostApi) => {
     width: 100,
     height: 100,
     onHover: {
-      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover"), { duration: hostApi.runtime.number.of(1) }),
+      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
       thickness: 5,
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(5), loop:true }),
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
   }, [
     hostApi.ui.field("centerContent", { entity: "entity_id", map: "number", name: "key", fallback: "0", align: "top" }),
   ])
@@ -92,10 +108,10 @@ export default (hostApi) => {
     width: 100,
     height: 100,
     onHover: {
-      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover"), { duration: hostApi.runtime.number.of(1) }),
+      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
       thickness: 10,
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(30), loop:true }),
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("textureSlow")),
   }, [
     hostApi.ui.field("isModifiedContent", { entity: "entity_id", map: "text", name: "isModified", fallback: "No", align: "center" }),
   ])

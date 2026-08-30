@@ -10,6 +10,8 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("frame_4.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
     ],
+    duration: number.of(5),
+    loop: true,
   });
 
   hostApi.ui.panel("loopPanel", {
@@ -17,6 +19,6 @@ export default (hostApi) => {
     height: 100,
     x: 100,
     y: 100,
-    background: hostApi.ui.getAnimation(string.of("sequence"), { duration: number.of(5), loop: true }),
+    background: hostApi.ui.getAnimation(string.of("sequence")),
   }, []);
 }

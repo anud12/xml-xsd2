@@ -10,11 +10,12 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
+    duration: number.of(1),
   });
   hostApi.ui.panel("number-panel", {
     width: 300,
     height: 300,
-    background: hostApi.ui.getAnimation(string.of("texture"), { duration: number.of(1) }),
+    background: hostApi.ui.getAnimation(string.of("texture")),
     align: "center",
   }, [
     hostApi.ui.field("content", { entity: "entity_id", map: "number", name: "numberKey", fallback: "0" }),

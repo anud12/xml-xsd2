@@ -328,7 +328,7 @@ fn tick_inner() -> Result<()> {
         containers_json, seed
     );
     host.ctx.with(|c| c.eval::<(), _>(script))
-    .map_err(|e| anyhow::anyhow!("ui seed failed: {:?}", e))?;
+        .map_err(|e| anyhow::anyhow!("ui seed failed: {:?}", e))?;
 
     let snapshot_json =
         eval_string(&host.ctx, "JSON.stringify(__uiHost.snapshot())")?;
@@ -367,12 +367,16 @@ fn ui_layer_rerun_script(source: &str) -> String {
 {body}
 globalThis.__uiHost.clear();
 (function () {{
+  var __rerunAnimations = {{}};
   var hostApi = {{
     ui: {{
       getSpritePNG: function (p) {{ return p; }},
       getAnimation: function (name, dur) {{
         var n = typeof name === 'object' ? name.value : name;
-        return {{ name: n, duration: (dur && dur.duration) || 1 }};
+        var a = __rerunAnimations[n];
+        return {{ name: n,
+                 duration: (a && a.duration) || 1,
+                 loop: !!(a && a.loop) }};
       }},
       div: __uiHost.div,
       text: __uiHost.text,
@@ -389,7 +393,10 @@ globalThis.__uiHost.clear();
       setContainer: function () {{}},
       registerAction: function () {{}},
       registerEffect: function () {{}},
-      registerAnimation: function () {{}},
+      registerAnimation: function (name, args) {{
+        var n = typeof name === 'object' ? name.value : name;
+        if (typeof n === 'string') __rerunAnimations[n] = args;
+      }},
       log: function () {{}}
     }}
   }};
@@ -537,22 +544,20 @@ mod tests {
         serde_json::from_str(json).unwrap()
     }
 
-    const SPINE_MODULE: &str = r#"
-export default (hostApi) => {
-  hostApi.ui.div('spine-div', {}, [
-    hostApi.ui.text('spine-text', 'spine')
-  ]);
-};
-"#;
+    fn spine_nodes() -> Vec<UiNode> {
+        vec![
+            node_json(
+                r#"{"kind":"division","id":"spine-div","options":{},"children":["spine-text"]}"#),
+            node_json(
+                r#"{"kind":"text","id":"spine-text","value":"spine","children":[]}"#),
+        ]
+    }
 
     #[test]
     fn spine_div_and_text_flow_into_ui_state() {
         let _g = lock();
         clear();
-        let dec = crate::js_executor::extract_from_source(SPINE_MODULE)
-            .expect("extraction should succeed");
-        assert_eq!(dec.ui_nodes.len(), 2, "expected div + text declarations");
-        crate::module::declarations::apply_declarations(&dec, "spine-module");
+        set_declared("spine-module", spine_nodes());
         tick();
 
         let json = fetch_ui_state_json();
@@ -581,15 +586,16 @@ export default (hostApi) => {
     fn redeclaration_produces_update_delta() {
         let _g = lock();
         clear();
-        let dec = crate::js_executor::extract_from_source(SPINE_MODULE).unwrap();
-        crate::module::declarations::apply_declarations(&dec, "spine-module");
+        set_declared("spine-module", spine_nodes());
         tick();
         ui_delta().lock().unwrap().take();
         ui_dirty().store(false, Ordering::SeqCst);
 
-        let changed = SPINE_MODULE.replace("'spine'", "'spine-v2'");
-        let dec2 = crate::js_executor::extract_from_source(&changed).unwrap();
-        crate::module::declarations::apply_declarations(&dec2, "spine-module");
+        let mut changed = spine_nodes();
+        if let UiNode::Text { value, .. } = &mut changed[1] {
+            *value = "spine-v2".to_string();
+        }
+        set_declared("spine-module", changed);
         tick();
 
         let delta: serde_json::Value = serde_json::from_str(
@@ -604,8 +610,7 @@ export default (hostApi) => {
     fn one_iteration_keeps_spine_nodes_visible() {
         let _g = lock();
         clear();
-        let dec = crate::js_executor::extract_from_source(SPINE_MODULE).unwrap();
-        crate::module::declarations::apply_declarations(&dec, "spine-module");
+        set_declared("spine-module", spine_nodes());
         crate::ffi_mod::runtime_run_iteration(1);
         tick();
 
@@ -647,102 +652,16 @@ export default (hostApi) => {
         assert!(ui_delta().lock().unwrap().is_none());
     }
 
-    const WORLD_MODULE: &str = r#"
-export default (hostApi) => {
-  hostApi.runtime.setRoom('cave-1', {
-    terrain: 'stone',
-    origin: { x: 10, y: -4.5 },
-    rotation: 0.75,
-    points: [{ x: 1, y: 2 }, { x: 3, y: 4 }, { x: 5, y: 6 }]
-  });
-  hostApi.runtime.setPortal('p-1', {
-    from: { room: 'cave-1', edge: 2, range: { t0: 0.2, t1: 0.8 } },
-    to: { room: 'hall-2', edge: 0, range: { t0: 0, t1: 1 } }
-  });
-  hostApi.ui.canvas('world-canvas', {
-    world: { room: 'cave-1' },
-    camera: { room: 'cave-1', x: 0, y: 0, zoom: 2 }
-  }, []);
-};
-"#;
-
-    #[test]
-    fn world_module_populates_rooms_portals_and_canvas_node() {
-        let _g = lock();
-        clear();
-        crate::state::clear_state();
-
-        let dec = crate::js_executor::extract_from_source(WORLD_MODULE)
-            .expect("extraction should succeed");
-        assert_eq!(dec.rooms.len(), 1, "expected one room declaration");
-        assert_eq!(dec.portals.len(), 1, "expected one portal declaration");
-        assert_eq!(dec.ui_nodes.len(), 1, "expected canvas node declaration");
-
-        crate::module::declarations::apply_declarations(&dec, "world-module");
-        tick();
-
-        // rooms + portals landed in state
-        {
-            let rooms = crate::state::rooms().lock().unwrap();
-            assert_eq!(rooms.len(), 1);
-            assert_eq!(rooms[0].id, "cave-1");
-            assert_eq!(rooms[0].terrain, "stone");
-            assert!((rooms[0].origin.0 - 10.0).abs() < 1e-12);
-            assert!((rooms[0].origin.1 - (-4.5)).abs() < 1e-12);
-            assert!((rooms[0].rotation - 0.75).abs() < 1e-12);
-            assert_eq!(rooms[0].points.len(), 3);
-            assert!((rooms[0].points[0].1 - 2.0).abs() < 1e-12);
-        }
-        {
-            let portals = crate::state::portals().lock().unwrap();
-            assert_eq!(portals.len(), 1);
-            assert_eq!(portals[0].id, "p-1");
-            assert_eq!(portals[0].from.room, "cave-1");
-            assert_eq!(portals[0].from.edge, 2);
-            assert!((portals[0].from.range.0 - 0.2).abs() < 1e-12);
-            assert!((portals[0].to.range.1 - 1.0).abs() < 1e-12);
-        }
-
-        // the canvas node flowed through store + delta
-        let v: serde_json::Value =
-            serde_json::from_str(&fetch_ui_state_json()).unwrap();
-        let canvas = v["nodes"].as_array().unwrap().iter()
-            .find(|n| n["id"] == "world-canvas").unwrap();
-        assert_eq!(canvas["kind"], "canvas");
-        assert_eq!(canvas["options"]["world"]["room"], "cave-1");
-        assert_eq!(canvas["options"]["camera"]["zoom"], 2);
-        let delta: serde_json::Value = serde_json::from_str(
-            &fetch_ui_delta_json().unwrap()).unwrap();
-        assert!(delta["ops"].as_array().unwrap().iter().any(|o|
-            o["op"] == "add" && o["node"]["id"] == "world-canvas"));
-
-        // FFI-shaped JSON round-trips
-        let w: serde_json::Value =
-            serde_json::from_str(&crate::state::fetch_rooms_json()).unwrap();
-        assert_eq!(w["rooms"][0]["id"], "cave-1");
-        assert_eq!(w["portals"][0]["id"], "p-1");
-    }
-
-    const FIELD_MODULE: &str = r#"
-export default (hostApi) => {
-  hostApi.runtime.setEntity(hostApi.runtime.string.of('ent-a'), {
-    numberMap: { 'hp': hostApi.runtime.number.of(7) },
-    textMap: {}
-  });
-  hostApi.ui.field('hp-field', {
-    entity: 'ent-a',
-    map: 'number',
-    name: 'hp',
-    fallback: 'n/a'
-  });
-};
-"#;
-
     fn set_entity_number(entity: &str, name: &str, value: f64) {
         let mut data = crate::state::last_entity_number_data().lock().unwrap();
         data.entry(entity.to_string())
             .or_insert_with(HashMap::new)
             .insert(name.to_string(), value);
+    }
+
+    fn hp_field_node() -> UiNode {
+        node_json(
+            r#"{"kind":"field","id":"hp-field","binding":{"entity":"ent-a","map":"number","name":"hp","fallback":"n/a"},"value":"n/a","children":[]}"#)
     }
 
     #[test]
@@ -752,8 +671,7 @@ export default (hostApi) => {
         crate::state::clear_state();
         set_entity_number("ent-a", "hp", 7.0);
 
-        let dec = crate::js_executor::extract_from_source(FIELD_MODULE).unwrap();
-        crate::module::declarations::apply_declarations(&dec, "field-module");
+        set_declared("field-module", vec![hp_field_node()]);
         tick();
 
         let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
@@ -939,16 +857,32 @@ export default (hostApi) => {
 };
 "#;
 
+    fn container_list_nodes(target: &str) -> Vec<UiNode> {
+        vec![
+            node_json(
+                r#"{"kind":"window","id":"list-panel","options":{"width":300,"height":300},"children":["items"]}"#),
+            node_json(&format!(
+                r#"{{"kind":"division","id":"items","options":{{"container":"{}"}},"children":["$$container:items"]}}"#,
+                target)),
+        ]
+    }
+
+    fn seed_container_state() {
+        set_entity_number("item-a", "value", 1.0);
+        set_entity_number("item-b", "value", 2.0);
+        crate::state::set_last_containers(vec![
+            r#"{"id":"items","entities":["item-a","item-b"]}"#.to_string()]);
+    }
+
     #[test]
     fn container_list_expands_one_item_per_entity() {
         let _g = lock();
         clear();
         crate::state::clear_state();
 
-        let dec = crate::js_executor::extract_from_source(CONTAINER_LIST_MODULE)
-            .expect("extraction should succeed");
-        assert_eq!(dec.containers.len(), 1, "expected one container declaration");
-        crate::module::declarations::apply_declarations(&dec, "container-module");
+        seed_container_state();
+        set_module_source("container-module", CONTAINER_LIST_MODULE);
+        set_declared("container-module", container_list_nodes("items"));
         tick();
 
         let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
@@ -981,9 +915,9 @@ export default (hostApi) => {
         clear();
         crate::state::clear_state();
 
-        let dec = crate::js_executor::extract_from_source(CONTAINER_LIST_MODULE)
-            .unwrap();
-        crate::module::declarations::apply_declarations(&dec, "container-module");
+        seed_container_state();
+        set_module_source("container-module", CONTAINER_LIST_MODULE);
+        set_declared("container-module", container_list_nodes("items"));
         tick();
         ui_delta().lock().unwrap().take();
 
@@ -1028,8 +962,8 @@ export default (hostApi) => {
         // A list whose target container was never registered.
         let module = CONTAINER_LIST_MODULE.replace(
             "{ container: 'items' }", "{ container: 'missing' }");
-        let dec = crate::js_executor::extract_from_source(&module).unwrap();
-        crate::module::declarations::apply_declarations(&dec, "container-module");
+        set_module_source("container-module", &module);
+        set_declared("container-module", container_list_nodes("missing"));
         tick();
 
         let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();

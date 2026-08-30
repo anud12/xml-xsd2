@@ -17,16 +17,18 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
+    duration: number.of(1),
   });
   hostApi.runtime.registerAnimation(string.of("texture_2"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture_2.png") },
     ],
+    duration: number.of(1),
   });
   hostApi.ui.panel("center", {
     width: 100,
     height: 100,
-    background: hostApi.ui.getAnimation(string.of("texture"), { duration: number.of(1) }),
+    background: hostApi.ui.getAnimation(string.of("texture")),
     onClick: "action",
   }, [
     hostApi.ui.panel("child", {
@@ -34,7 +36,7 @@ export default (hostApi) => {
       y: 20,
       width: 10,
       height: 10,
-      background: hostApi.ui.getAnimation(string.of("texture_2"), { duration: number.of(1) }),
+      background: hostApi.ui.getAnimation(string.of("texture_2")),
       onClick: "childAction",
     }, [])
   ])

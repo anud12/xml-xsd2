@@ -17,11 +17,12 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.spriteMapTIFF("maps/idle_frame1.tiff", layerBindings) },
     ],
+    duration: number.of(4), loop: true,
   });
   
   hostApi.ui.panel("characterPanel", {
     width: 10,
     height: 10,
-    background: hostApi.ui.getAnimation(string.of("idle"), { duration: number.of(4), loop: true }),
+    background: hostApi.ui.getAnimation(string.of("idle")),
   }, [])
 }

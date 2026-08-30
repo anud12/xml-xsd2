@@ -5,11 +5,12 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
+    duration: number.of(1),
   });
   hostApi.ui.panel("bottom-left", {
     width: 300,
     height: 300,
-    background: hostApi.ui.getAnimation(string.of("texture"), { duration: number.of(1) }),
+    background: hostApi.ui.getAnimation(string.of("texture")),
     align: "bottom-left",
   }, [
     hostApi.ui.text("content", "bottom-left"),

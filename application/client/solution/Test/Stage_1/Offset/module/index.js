@@ -4,33 +4,34 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
+    duration: hostApi.runtime.number.of(1),
   });
   hostApi.ui.panel("top", {
     width: 10,
     height: 10,
     x: 495,
     y: 395,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
   }, [])
   hostApi.ui.panel("left", {
     width: 10,
     height: 10,
     x: 395,
     y: 495,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
   }, [])
   hostApi.ui.panel("bottom", {
     width: 10,
     height: 10,
     x: 495,
     y: 595,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
   }, [])
   hostApi.ui.panel("right", {
     width: 10,
     height: 10,
     x: 595,
     y: 495,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
   }, [])
 }

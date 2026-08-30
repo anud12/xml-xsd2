@@ -64,6 +64,9 @@ var hostApi={
     registerAnimation:function(name,args){
       var resolvedName=typeof name==='object'?name.value:name;
       if(typeof resolvedName==='string'){
+        if(!args||typeof args!=='object'||typeof args.duration!=='number'){
+          throw new Error("registerAnimation '"+resolvedName+"': duration is required");
+        }
         __registeredAnimations[resolvedName]=args;
       }
     },

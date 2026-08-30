@@ -107,12 +107,6 @@ var hostApi = {
                 for (var k in __registeredAnimations[resolvedName]) {
                     result[k] = __registeredAnimations[resolvedName][k];
                 }
-                if (animationDuration && animationDuration.duration) {
-                    result.duration = animationDuration.duration;
-                }
-                if (animationDuration && animationDuration.loop !== undefined) {
-                    result.loop = animationDuration.loop;
-                }
                 return result;
             }
             return null;
@@ -450,6 +444,9 @@ var hostApi = {
         registerAnimation: function(name, args) {
             var resolvedName = typeof name === ""object"" ? name.value : name;
             if (typeof resolvedName === ""string"") {
+                if (!args || typeof args !== ""object"" || typeof args.duration !== ""number"") {
+                    throw new Error(""registerAnimation '"" + resolvedName + ""': duration is required"");
+                }
                 __registeredAnimations[resolvedName] = args;
             }
         },

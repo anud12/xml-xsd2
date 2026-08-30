@@ -58,14 +58,17 @@ pub fn extract_from_source(source: &str) -> Result<Declarations> {
     let transformed = transform_source(&bundled);
     let host_script = get_host_api_script();
     ctx.with(|c| {
-        c.eval::<(), _>(host_script.clone())
-    }).map_err(|e| anyhow!("host API eval failed: {}", e))?;
+        rquickjs::CaughtError::catch(&c, c.eval::<(), _>(host_script.clone()))
+            .map_err(|ce| ce.to_string())
+    }).map_err(|msg| anyhow!("host API eval failed: {}", msg))?;
     ctx.with(|c| {
-        c.eval::<(), _>(transformed.clone())
-    }).map_err(|e| anyhow!("module eval failed: {}", e))?;
+        rquickjs::CaughtError::catch(&c, c.eval::<(), _>(transformed.clone()))
+            .map_err(|ce| ce.to_string())
+    }).map_err(|msg| anyhow!("module eval failed: {}", msg))?;
     let invoke_js = super::extract_invoke::get_invoke_js();
     ctx.with(|c| {
-        c.eval::<(), _>(invoke_js.to_string())
-    }).map_err(|e| anyhow!("invoke eval failed: {}", e))?;
+        rquickjs::CaughtError::catch(&c, c.eval::<(), _>(invoke_js.to_string()))
+            .map_err(|ce| ce.to_string())
+    }).map_err(|msg| anyhow!("invoke eval failed: {}", msg))?;
     extract_declarations(&ctx)
 }

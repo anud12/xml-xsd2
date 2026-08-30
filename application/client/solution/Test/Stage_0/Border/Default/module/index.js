@@ -4,10 +4,11 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("border.png") },
     ],
+    duration: hostApi.runtime.number.of(1),
   });
   hostApi.ui.panel("default", {
     width: 120,
     height: 120,
-    border: { texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("border"), { duration: hostApi.runtime.number.of(1) }) },
+    border: { texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("border")) },
   });
 }

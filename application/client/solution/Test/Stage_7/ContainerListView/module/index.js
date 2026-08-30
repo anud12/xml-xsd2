@@ -17,9 +17,11 @@ export default (hostApi) => {
 
   hostApi.runtime.registerAnimation(string.of("texture"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("texture.png") }],
+    duration: number.of(1),
   });
   hostApi.runtime.registerAnimation(string.of("texture2"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("texture2.png") }],
+    duration: number.of(1),
   });
 
   hostApi.ui.panel("list-panel", {
@@ -27,14 +29,14 @@ export default (hostApi) => {
     height: 300,
     anchor: "center",
     align: "center",
-    background: hostApi.ui.getAnimation(string.of("texture"), { duration: number.of(1) }),
+    background: hostApi.ui.getAnimation(string.of("texture")),
   }, [
     hostApi.ui.container("items", { container: "items-container" },
       (entity) => [
         hostApi.ui.panel(entity.id, {
           width: 50,
           height: 50,
-          background: hostApi.ui.getAnimation(string.of("texture2"), { duration: number.of(1) }),
+          background: hostApi.ui.getAnimation(string.of("texture2")),
         }, [
           hostApi.ui.field(entity.id + ":value", {
             entity: entity.id,
