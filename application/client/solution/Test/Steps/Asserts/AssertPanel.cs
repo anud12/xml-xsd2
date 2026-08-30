@@ -13,13 +13,6 @@ namespace NewGameProject.Tests.XUnit;
 
 public partial class Steps {
     /// <summary>
-    /// Creates a fluent assertion wrapper for the given <see cref="Panel"/>.
-    /// </summary>
-    public AssertPanel AssertPanelThat(Panel panel) {
-        return new AssertPanel(panel);
-    }
-
-    /// <summary>
     /// Creates a fluent assertion wrapper for the given <see cref="UiWindow"/>.
     /// Accepts null (for negative-existence assertions via <c>IsNonNull</c>).
     /// </summary>
@@ -35,16 +28,6 @@ public partial class Steps {
         private readonly Node node;
         private UiWindow? window;
         private string path = "";
-
-        public AssertPanel(Panel panel) {
-            this.node = panel;
-            this.path = $"/{panel.Name}";
-        }
-
-        public AssertPanel(Panel panel, string path) {
-            this.node = panel;
-            this.path = path;
-        }
 
         public AssertPanel(UiWindow window) {
             this.window = window;
@@ -251,26 +234,6 @@ public partial class Steps {
                 }
                 actions[i].Invoke(new AssertPanel(child, $"{path}/{i}"));
             }
-            return this;
-        }
-
-        /// <summary>
-        /// Asserts that the node hosts a container list view, then invokes an
-        /// action with a <see cref="AssertContainerListViewContent"/> wrapper.
-        /// </summary>
-        public AssertPanel HasContainerListViewContent(
-            Action<AssertContainerListViewContent> action)
-        {
-            var content = node?.GetNodeOrNull<ContainerListViewContentNode>("content");
-            if (content is null)
-            {
-                Assertions.AssertThat(true)
-                    .OverrideFailureMessage(
-                        $"Node at \"{path}\" does not have a ContainerListViewContentNode named \"content\"")
-                    .IsFalse();
-                return this;
-            }
-            action.Invoke(new AssertContainerListViewContent(content, $"{path}/content"));
             return this;
         }
 
