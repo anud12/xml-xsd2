@@ -115,6 +115,16 @@ export type UiWindowOptions = {
     stopPropagation?: boolean;
   };
   onClick?: string;
+  /** Nine-patch border frame drawn around the panel; the center is hidden. */
+  border?: UiBorderOptions;
+};
+
+/** Nine-patch border options: the center region is never drawn. */
+export type UiBorderOptions = {
+  /** Patch margin (border thickness) in px, applied to all four sides. Defaults to 1. */
+  width?: number;
+  /** Archive path of the border PNG texture. */
+  texture: string;
 };
 
 /** Options accepted by the high-level `hostApi.ui.field` builder. */

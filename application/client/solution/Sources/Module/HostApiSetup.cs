@@ -68,6 +68,12 @@ var __panelEmit = function(id, options, children, forceSurface) {
         json.layout = typeof opts.layout === ""object"" ? opts.layout
             : (opts.layout === ""row"" ? { rowFirst: true } : { rowFirst: false });
     }
+    if (opts.border !== undefined && typeof opts.border === ""object"") {
+        json.border = {
+            width: opts.border.width !== undefined ? opts.border.width : 1,
+            texture: opts.border.texture !== undefined ? opts.border.texture : null
+        };
+    }
     json.children = children || [];
     __host_registerPanel(JSON.stringify(json));
     return id;

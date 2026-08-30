@@ -366,6 +366,96 @@ public partial class Steps {
         }
 
         /// <summary>
+        /// Asserts that the panel renders a nine-patch border with the expected
+        /// width (patch margin on all sides) and a hidden center.
+        /// </summary>
+        public AssertPanel HasBorder(int expectedWidth = 1) {
+            var border = window?.GetNodeOrNull<NinePatchRect>("border");
+            if (border is null || border.Texture is null) {
+                Assertions.AssertThat(true)
+                    .OverrideFailureMessage($"Panel at \"{path}\" does not have a nine-patch border")
+                    .IsFalse();
+                return this;
+            }
+            Assertions.AssertInt(border.PatchMarginLeft)
+                .OverrideFailureMessage(
+                    $"Panel at \"{path}\" border width is {border.PatchMarginLeft}, expected {expectedWidth}")
+                .IsEqual(expectedWidth);
+            Assertions.AssertBool(!border.DrawCenter)
+                .OverrideFailureMessage($"Panel at \"{path}\" border center is not hidden")
+                .IsTrue();
+            return this;
+        }
+
+        /// <summary>
+        /// Compares the node's rendered "border" NinePatchRect image against a
+        /// reference PNG, resizing the actual to the reference's dimensions
+        /// (nearest-neighbour). Fails if the reference is missing or the pixels
+        /// differ.
+        /// </summary>
+        public AssertPanel BorderMatches(string relativeImagePath,
+            [CallerFilePath] string callerPath = "")
+        {
+            var baseDir = Path.GetDirectoryName(callerPath);
+            var fullExpectedPath = Path.Combine(baseDir, relativeImagePath);
+            var border = window?.GetNodeOrNull<NinePatchRect>("border");
+            if (border is null)
+            {
+                Assertions.AssertBool(false)
+                    .OverrideFailureMessage($"Node at \"{path}\" has no rendered \"border\" NinePatchRect")
+                    .IsTrue();
+                return this;
+            }
+            var texture = border.Texture;
+            if (texture is null)
+            {
+                Assertions.AssertBool(false)
+                    .OverrideFailureMessage($"Node at \"{path}\" border NinePatchRect has no texture")
+                    .IsTrue();
+                return this;
+            }
+
+#if DEBUG
+            if (!File.Exists(fullExpectedPath))
+            {
+                texture.GetImage().SavePng(fullExpectedPath);
+                return this;
+            }
+#endif
+
+            using var expectedImg = new Image();
+            expectedImg.LoadPngFromBuffer(File.ReadAllBytes(fullExpectedPath));
+            var actualImg = texture.GetImage();
+            var expectedSize = new Vector2I(expectedImg.GetWidth(), expectedImg.GetHeight());
+            if (actualImg.GetWidth() != expectedSize.X
+                || actualImg.GetHeight() != expectedSize.Y)
+            {
+                actualImg.Resize(expectedSize.X, expectedSize.Y, Image.Interpolation.Nearest);
+            }
+
+            var tempDir = Path.GetTempPath();
+            var actualName = $"actual_border_{DateTime.Now.Ticks}.png";
+            var actualPath = Path.Combine(tempDir, actualName);
+            actualImg.SavePng(actualPath);
+
+            bool equal = actualImg.GetWidth() == expectedImg.GetWidth()
+                && actualImg.GetHeight() == expectedImg.GetHeight()
+                && actualImg.GetData().SequenceEqual(expectedImg.GetData());
+
+            actualImg.Dispose();
+
+            if (!equal)
+            {
+                Assertions.AssertBool(equal)
+                    .OverrideFailureMessage(
+                        $"Node at \"{path}\" border mismatch! Actual: \"{actualPath}\" vs Expected: \"{relativeImagePath}\"")
+                    .IsTrue();
+            }
+            File.Delete(actualPath);
+            return this;
+        }
+
+        /// <summary>
         /// Asserts that the node's background TextureRect exists and has a texture set.
         /// </summary>
         public AssertPanel HasBackgroundTexture() {

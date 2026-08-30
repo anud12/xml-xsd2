@@ -357,6 +357,7 @@ public partial class UiWindow : Control
         }
 
         ApplyBackground(opts);
+        ApplyBorder(opts);
     }
 
     void ApplyLayout(UiNodeData node)
@@ -365,6 +366,50 @@ public partial class UiWindow : Control
         _layoutSpec = UiGrid.UiGridLayoutSpec.Parse(opts);
         EnsureFlowContainer();
         ApplyBackground(opts);
+        ApplyBorder(opts);
+    }
+
+    /// options.border: a full-rect NinePatchRect frame around the node.
+    /// `width` is the patch margin (border thickness) applied to all four
+    /// sides (default 1 px), `texture` an archive PNG path. The center region
+    /// is never drawn (DrawCenter = false), so only the texture's frame shows.
+    void ApplyBorder(JsonElement opts)
+    {
+        if (opts.ValueKind == JsonValueKind.Undefined
+            || !opts.TryGetProperty("border", out var border)
+            || border.ValueKind != JsonValueKind.Object)
+            return;
+        if (!border.TryGetProperty("texture", out var t)
+            || t.ValueKind != JsonValueKind.String
+            || string.IsNullOrEmpty(t.GetString()))
+            return;
+        var path = t.GetString();
+        var width = 1;
+        if (border.TryGetProperty("width", out var w) && w.ValueKind == JsonValueKind.Number)
+            width = Math.Max(1, (int)w.GetDouble());
+
+        if (!RuntimeInterop.GetFileFromArchive().TryGetValue(path, out var data))
+        {
+            RuntimeInterop.Log($"ui: border texture not found in archive: {path}");
+            return;
+        }
+        var img = new Image();
+        img.LoadPngFromBuffer(data);
+        var rect = GetNodeOrNull<NinePatchRect>("border");
+        if (rect == null)
+        {
+            rect = new NinePatchRect { Name = "border" };
+            rect.MouseFilter = Control.MouseFilterEnum.Ignore;
+            AddChild(rect);
+            rect.SetAnchorsPreset(LayoutPreset.FullRect, true);
+        }
+        rect.Texture = ImageTexture.CreateFromImage(img);
+        rect.TextureFilter = TextureFilterEnum.Nearest;
+        rect.DrawCenter = false;
+        rect.PatchMarginLeft = width;
+        rect.PatchMarginRight = width;
+        rect.PatchMarginTop = width;
+        rect.PatchMarginBottom = width;
     }
 
     /// Pick and (re)configure the flow container for this node's layout:

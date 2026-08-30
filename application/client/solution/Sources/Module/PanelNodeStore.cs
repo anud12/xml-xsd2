@@ -178,6 +178,12 @@ public static class PanelNodeStore
             opts["onHover"] = hover;
         if (p.OnClick is { } oc)
             opts["onClick"] = oc.ActionName;
+        if (p.Border is { } border)
+            opts["border"] = new Dictionary<string, object?>
+            {
+                ["width"] = border.Width,
+                ["texture"] = border.Texture
+            };
 
         var children = (p.Children ?? Array.Empty<Runtime.Panel>())
             .Where(c => !string.IsNullOrEmpty(c.Id))

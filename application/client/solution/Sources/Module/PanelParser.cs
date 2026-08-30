@@ -102,6 +102,14 @@ static class PanelParser
             }
         }
 
+        if (e.TryGetProperty("border", out var bd) && bd.ValueKind == JsonValueKind.Object)
+        {
+            var bt = Extract.String(bd, "texture");
+            if (bt != null)
+                p.Border = new Runtime.Border
+                { Width = Extract.Int(bd, "width") ?? 1, Texture = bt };
+        }
+
         p.Surface = Extract.Bool(e, "surface") ?? false;
 
         if (e.TryGetProperty("content", out var ct) && ct.ValueKind == JsonValueKind.Object)
