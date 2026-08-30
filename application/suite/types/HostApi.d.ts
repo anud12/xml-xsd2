@@ -24,7 +24,12 @@ import {AlignOption} from "./ui/Panel";
 export type HostApi = {
   /** UI-related APIs for panels, textures, and animations. */
   ui: {
-    /** Registers a new panel with the UI host. */
+    /**
+     * Legacy full-options panel registration. Not provided by the C# Jint
+     * host (which exposes window/text/field/div/container instead); the
+     * declaration stays because the restricted suite fixture
+     * features/stage2/panel_initialization/offset/index.js still calls it.
+     */
     registerPanel: RegisterPanelFunction,
     /** Creates a sprite map from a TIFF file with layer-to-texture bindings. */
     spriteMapTIFF: (mapPath: string, layers: MapLayerBinding[]) => SpriteMap,
@@ -110,6 +115,7 @@ export type UiFieldOptions = {
   map: "text" | "number";
   name: string;
   fallback?: string;
+  align?: AlignOption;
 };
 
 /** Options accepted by the high-level `hostApi.ui.div` builder. */

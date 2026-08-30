@@ -15,11 +15,11 @@ public partial class Steps
     /// </summary>
     /// <remarks>
     /// In Debug builds run under a debugger (e.g. "Start" from Visual
-    /// Studio), the runner window is maximized and the test run is held
-    /// until a key is pressed, so the rendered scene stays visible for
-    /// inspection (see <see cref="DebugHoldView"/>). Plain <c>dotnet
-    /// test</c> runs (no debugger attached) skip the hold and finish
-    /// normally.
+    /// Studio), the runner window is maximized so the rendered scene is
+    /// visible while the test runs. After each test the window stays open
+    /// until a key is pressed (see the <c>[TearDown]</c> hold in
+    /// <c>DebugView.cs</c>). Plain <c>dotnet test</c> runs (no debugger
+    /// attached) skip both and finish normally.
     /// </remarks>
     /// <example>
     /// var scene = await AttachUiScene();
@@ -40,27 +40,8 @@ public partial class Steps
         root.Pump();
 #if DEBUG
         if (System.Diagnostics.Debugger.IsAttached)
-            await DebugHoldView(scene);
+            runner.MaximizeView();
 #endif
         return new AssertScene(root);
     }
-
-#if DEBUG
-    /// <summary>
-    /// Shows the runner window maximized for visual inspection during debug
-    /// runs. Non-blocking: the test run continues normally.
-    /// No-op when no debugger is attached (plain <c>dotnet test</c> runs).
-    /// Debug-build only.
-    /// </summary>
-    public async Task DebugHoldView(Node scene)
-    {
-        if (!System.Diagnostics.Debugger.IsAttached)
-            return;
-
-        runner.MaximizeView();
-        GD.Print("[debug] Scene is up");
-        Console.WriteLine("[debug] Scene is up");
-        await runner.SimulateFrames(1);
-    }
-#endif
 }

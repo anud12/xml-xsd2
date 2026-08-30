@@ -6,18 +6,11 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.ui.registerPanel({
-    id: "panel_entity",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    content: {
-      type: "entityTextValue",
-      entityId: hostApi.runtime.string.of("entityId"),
-      name: string.of("playerName"),
-      align: "center"
-    },
+  hostApi.ui.window("panel_entity", {
+    width: 100,
+    height: 100,
     background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
-  })
+  }, [
+    hostApi.ui.field("panel_entity-content", { entity: "entityId", map: "text", name: "playerName", fallback: "" }),
+  ])
 }

@@ -71,54 +71,32 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
     ],
   });
-  hostApi.ui.registerPanel({
-    id: "center",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    offset: {
-      top: number.of(70),
-      bottom: number.of(70),
-      left: number.of(70),
-      right: number.of(70),
-    },
-    content: {
-      entityId: string.of("entity_id"),
-      name: string.of("key"),
-      type: "entityNumberValue",
-      align: "top",
-    },
-    hover: {
-      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover"), { duration: hostApi.runtime.number.of(1) }),
+  hostApi.ui.window("center", {
+    x: 70,
+    y: 70,
+    width: 100,
+    height: 100,
+    onHover: {
+      texture: "hover.png",
       thickness: 5,
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(5), loop:true })
-  })
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(5), loop:true }),
+  }, [
+    hostApi.ui.field("centerContent", { entity: "entity_id", map: "number", name: "key", fallback: "0", align: "top" }),
+  ])
 
 
-  hostApi.ui.registerPanel({
-    id: "isModifiedPanel",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    offset: {
-      top: number.of(100),
-      bottom: number.of(100),
-      left: number.of(250),
-      right: number.of(250),
-    },
-    content: {
-      entityId: string.of("entity_id"),
-      name: string.of("isModified"),
-      type: "entityTextValue",
-      align: "center",
-    },
-    hover: {
-      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover"), { duration: hostApi.runtime.number.of(1) }),
+  hostApi.ui.window("isModifiedPanel", {
+    x: 250,
+    y: 100,
+    width: 100,
+    height: 100,
+    onHover: {
+      texture: "hover.png",
       thickness: 10,
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(30), loop:true })
-  })
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(30), loop:true }),
+  }, [
+    hostApi.ui.field("isModifiedContent", { entity: "entity_id", map: "text", name: "isModified", fallback: "No", align: "center" }),
+  ])
 }

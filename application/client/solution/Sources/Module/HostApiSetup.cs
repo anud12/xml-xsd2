@@ -98,14 +98,16 @@ var hostApi = {
         },
         field: function(id, binding) {
             var isNumber = binding && binding.map === ""number"";
+            var content = {
+                type: isNumber ? ""entityNumberValue"" : ""entityTextValue"",
+                name: binding ? binding.name : """",
+                entityId: binding ? binding.entity : """",
+                fallback: binding && typeof binding.fallback === ""string"" ? binding.fallback : """"
+            };
+            if (binding && typeof binding.align === ""string"") content.align = binding.align;
             __host_registerPanel(JSON.stringify({
                 id: id,
-                content: {
-                    type: isNumber ? ""entityNumberValue"" : ""entityTextValue"",
-                    name: binding ? binding.name : """",
-                    entityId: binding ? binding.entity : """",
-                    fallback: binding && typeof binding.fallback === ""string"" ? binding.fallback : """"
-                }
+                content: content
             }));
             return id;
         },
@@ -141,41 +143,14 @@ var hostApi = {
                     if (arr[k] != null) childIds.push(arr[k]);
                 }
             }
-            __host_registerPanel(JSON.stringify({
-                id: id,
-                content: { type: ""containerListView"", containerId: containerId, vertical: vertical },
-                children: childIds
-            }));
-            return id;
+                __host_registerPanel(JSON.stringify({
+                    id: id,
+                    content: { type: ""containerListView"", containerId: containerId, vertical: vertical },
+                    children: childIds
+                }));
+                return id;
+            }
         },
-        registerPanel: function(p) {
-            if (p.content && p.content.type === ""containerListView"" && typeof p.content.template === ""function"") {
-                var containerId = p.content.containerId;
-                var vertical = p.content.vertical !== undefined ? p.content.vertical : true;
-                var templateResults = [];
-                var entityIds = __host_getContainerEntityIds(containerId);
-                for (var i = 0; i < entityIds.length; i++) {
-                    var entityId = entityIds[i];
-                    var result = p.content.template({ getId: function(e) { return function() { return e; }; }(entityId) }, i);
-                    templateResults.push(JSON.stringify(result));
-                }
-                var contentCopy = {};
-                for (var k in p.content) {
-                    if (k !== ""template"") contentCopy[k] = p.content[k];
-                }
-                contentCopy.__templateResults = templateResults;
-                var panelCopy = {};
-                for (var key in p) {
-                    if (key === ""content"") panelCopy[key] = contentCopy;
-                    else panelCopy[key] = p[key];
-                }
-                __host_registerPanel(JSON.stringify(panelCopy));
-            }
-            else {
-                __host_registerPanel(JSON.stringify(p));
-            }
-        }
-    },
     runtime: {
         getEntityBy: function(filter) {
             var resolvedIds = [];

@@ -38,7 +38,6 @@ pub fn host_api_script_animation() -> &'static str {
 pub fn host_api_script_rest() -> String {
     use super::script_register::host_api_script_register_block;
     use super::script_panel_entity::{
-        host_api_script_panel,
         host_api_script_create_entity,
         host_api_script_set_entity,
         host_api_script_set_container,
@@ -52,7 +51,6 @@ pub fn host_api_script_rest() -> String {
         host_api_script_register_block("registerAction"));
     parts.push(
         host_api_script_register_block("registerEffect"));
-    parts.push(host_api_script_panel().to_string());
     parts.push(
         host_api_script_create_entity().to_string());
         parts.push(

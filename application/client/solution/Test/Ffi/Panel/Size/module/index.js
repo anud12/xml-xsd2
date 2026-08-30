@@ -6,12 +6,9 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.ui.registerPanel({
-    id: "center",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
+  hostApi.ui.window("center", {
+    width: 100,
+    height: 100,
     background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
   })
 }

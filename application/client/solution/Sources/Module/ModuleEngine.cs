@@ -29,19 +29,6 @@ public static class ModuleEngine
         engine.SetValue("__host_fileExists", new Func<string, bool>(path =>
             ArchiveFileSet.Contains(path)));
 
-        engine.SetValue("__host_getContainerEntityIds", new Func<string, string[]>(id =>
-        {
-            try
-            {
-                var container = ContainerInterop.GetContainerById(id);
-                return container.Entities;
-            }
-            catch
-            {
-                return Array.Empty<string>();
-            }
-        }));
-
         // Actions are executed C#-side: the apply function is captured in a
         // per-action Jint engine and dispatched via PanelNodeStore. The
         // native runtime does not understand stopPropagation, so the C#
@@ -54,8 +41,6 @@ public static class ModuleEngine
                 {
                     var sub = new Jint.Engine();
                     sub.SetValue("__host_registerPanel", new Action<string>(_ => { }));
-                    sub.SetValue("__host_getContainerEntityIds", new Func<string, string[]>(
-                        _ => Array.Empty<string>()));
                     sub.SetValue("__host_registerAction", new Action<string, JsValue>((n, f) => { }));
                     sub.SetValue("__host_emitEffect", new Action<string, JsValue>((n, d) => EffectStore.Emit(n, d)));
                     sub.SetValue("__host_log", new Action<string>(RuntimeInterop.Log));

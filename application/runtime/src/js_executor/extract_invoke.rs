@@ -15,8 +15,7 @@ var hostApi={
         return __registeredAnimations[resolvedName];
       }
       return null;
-    },
-    registerPanel:h.registerPanel
+    }
   },
   runtime:{
     string:{of:function(s){return s;}},
