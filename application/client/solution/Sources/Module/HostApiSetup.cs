@@ -6,6 +6,72 @@ static class HostApiSetup
 var __registeredEntities = {};
 var __registeredContainers = {};
 var __registeredAnimations = {};
+// Shared emitter for the merged panel builder. Surface options (x/y/width/
+// height/background/onHover/onClick/anchor, or the forced flag from the
+// window alias) mark the node as a positioned surface; layout marks it as a
+// flow container. A node may declare both.
+var __panelEmit = function(id, options, children, forceSurface) {
+    var opts = options || {};
+    var anchorMap = {
+        'top-left': [0, 0], 'top': [0.5, 0], 'top-right': [1, 0],
+        'left': [0, 0.5], 'center': [0.5, 0.5], 'right': [1, 0.5],
+        'bottom-left': [0, 1], 'bottom': [0.5, 1], 'bottom-right': [1, 1]
+    };
+    var hasSurface = forceSurface
+        || opts.x !== undefined || opts.y !== undefined
+        || opts.width !== undefined || opts.height !== undefined
+        || opts.background !== undefined || opts.onHover !== undefined
+        || opts.onClick !== undefined || opts.anchor !== undefined;
+    var json = { id: id };
+    if (hasSurface) {
+        var anchor = [0.5, 0.5];
+        if (opts.anchor) {
+            if (typeof opts.anchor === 'string' && anchorMap[opts.anchor]) {
+                anchor = anchorMap[opts.anchor];
+            } else if (typeof opts.anchor === 'object') {
+                anchor = [opts.anchor.x !== undefined ? opts.anchor.x : 0.5,
+                          opts.anchor.y !== undefined ? opts.anchor.y : 0.5];
+            }
+        }
+        var background = opts.background;
+        if (background && typeof background === ""object"" && typeof background.name === ""string"" && !background.frames) {
+            var anim = __registeredAnimations[background.name];
+            if (anim && anim.frames) {
+                var resolved = {
+                    name: background.name,
+                    duration: background.duration !== undefined ? background.duration : (anim.duration !== undefined ? anim.duration : 1),
+                    loop: background.loop !== undefined ? background.loop : (anim.loop !== undefined ? anim.loop : false),
+                    frames: anim.frames
+                };
+                background = resolved;
+            }
+        }
+        json.background = background;
+        json.surface = true;
+        json.size = { width: opts.width || 0, height: opts.height || 0 };
+        json.anchor = { x: anchor[0], y: anchor[1] };
+        json.offset = {
+            top: opts.y || 0, bottom: 0,
+            left: opts.x || 0,
+            right: opts.width ? (opts.width - (opts.x || 0)) : 0
+        };
+        json.hover = opts.onHover ? {
+            texture: opts.onHover.texture !== undefined ? opts.onHover.texture : null,
+            thickness: (opts.onHover.thickness !== undefined ? opts.onHover.thickness : 0),
+            background: opts.onHover.background !== undefined ? opts.onHover.background : null,
+            emitAction: opts.onHover.emitAction || null,
+            stopPropagation: opts.onHover.stopPropagation || false
+        } : null;
+        json.onClick = opts.onClick ? { type: ""emitAction"", actionName: opts.onClick } : null;
+    }
+    if (opts.layout !== undefined) {
+        json.layout = typeof opts.layout === ""object"" ? opts.layout
+            : (opts.layout === ""row"" ? { rowFirst: true } : { rowFirst: false });
+    }
+    json.children = children || [];
+    __host_registerPanel(JSON.stringify(json));
+    return id;
+};
 var hostApi = {
     ui: {
         getSpritePNG: function(p) { return p; },
@@ -39,55 +105,11 @@ var hostApi = {
             }
             return null;
         },
+        panel: function(id, options, children) {
+            return __panelEmit(id, options, children, false);
+        },
         window: function(id, options, children) {
-            var anchorMap = {
-                'top-left': [0, 0], 'top': [0.5, 0], 'top-right': [1, 0],
-                'left': [0, 0.5], 'center': [0.5, 0.5], 'right': [1, 0.5],
-                'bottom-left': [0, 1], 'bottom': [0.5, 1], 'bottom-right': [1, 1]
-            };
-            var anchor = [0.5, 0.5];
-            if (options && options.anchor) {
-                if (typeof options.anchor === 'string' && anchorMap[options.anchor]) {
-                    anchor = anchorMap[options.anchor];
-                } else if (typeof options.anchor === 'object') {
-                    anchor = [options.anchor.x !== undefined ? options.anchor.x : 0.5,
-                              options.anchor.y !== undefined ? options.anchor.y : 0.5];
-                }
-            }
-            var background = options && options.background;
-            if (background && typeof background === ""object"" && typeof background.name === ""string"" && !background.frames) {
-                var anim = __registeredAnimations[background.name];
-                if (anim && anim.frames) {
-                    var resolved = {
-                        name: background.name,
-                        duration: background.duration !== undefined ? background.duration : (anim.duration !== undefined ? anim.duration : 1),
-                        loop: background.loop !== undefined ? background.loop : (anim.loop !== undefined ? anim.loop : false),
-                        frames: anim.frames
-                    };
-                    background = resolved;
-                }
-            }
-            __host_registerPanel(JSON.stringify({
-                id: id,
-                background: background,
-                size: options ? { width: options.width || 0, height: options.height || 0 } : null,
-                anchor: { x: anchor[0], y: anchor[1] },
-                offset: options ? {
-                    top: options.y || 0, bottom: 0,
-                    left: options.x || 0,
-                    right: (options && options.width) ? (options.width - (options.x || 0)) : 0
-                } : null,
-                hover: options && options.onHover ? {
-                    texture: options.onHover.texture !== undefined ? options.onHover.texture : null,
-                    thickness: (options.onHover.thickness !== undefined ? options.onHover.thickness : 0),
-                    background: options.onHover.background !== undefined ? options.onHover.background : null,
-                    emitAction: options.onHover.emitAction || null,
-                    stopPropagation: options.onHover.stopPropagation || false
-                } : null,
-                onClick: options && options.onClick ? { type: ""emitAction"", actionName: options.onClick } : null,
-                children: children || []
-            }));
-            return id;
+            return __panelEmit(id, options, children, true);
         },
         text: function(id, value) {
             __host_registerPanel(JSON.stringify({
@@ -113,14 +135,7 @@ var hostApi = {
         },
         div: function(id, options, children) {
             var layout = options && options.layout ? options.layout : ""column"";
-            var layoutJson = typeof layout === ""object"" ? layout
-                : (layout === ""row"" ? { rowFirst: true } : { rowFirst: false });
-            __host_registerPanel(JSON.stringify({
-                id: id,
-                layout: layoutJson,
-                children: children || []
-            }));
-            return id;
+            return __panelEmit(id, { layout: layout }, children, false);
         },
         container: function(id, options, template) {
             var containerId = options && options.container;

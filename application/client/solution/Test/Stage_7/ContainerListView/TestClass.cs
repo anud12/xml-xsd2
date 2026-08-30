@@ -23,7 +23,7 @@ public partial class TestClass : Steps {
         var scene = await AttachUiScene();
 
         scene.AssertPanelThat("list-panel")
-            .HasChildDivNamed("items", c =>
+            .HasChildPanelNamed("items", c =>
                 c.IsVertical()
                     .HasLength(3)
                     .HasTemplates(

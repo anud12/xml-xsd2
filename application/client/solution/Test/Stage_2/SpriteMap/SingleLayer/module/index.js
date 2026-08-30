@@ -15,7 +15,7 @@ export default (hostApi) => {
     ],
   });
   
-  hostApi.ui.window("characterPanel", {
+  hostApi.ui.panel("characterPanel", {
     width: 10,
     height: 10,
     background: hostApi.ui.getAnimation(string.of("idle"), { duration: number.of(4), loop: true }),

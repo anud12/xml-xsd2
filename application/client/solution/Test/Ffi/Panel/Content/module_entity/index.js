@@ -6,7 +6,7 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.ui.window("panel_entity", {
+  hostApi.ui.panel("panel_entity", {
     width: 100,
     height: 100,
     background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),

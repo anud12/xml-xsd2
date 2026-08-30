@@ -263,28 +263,35 @@ public static class PanelNodeStore
                     break;
             }
         }
+        // Merged panel: a node declaring surface options (size/x/y/
+        // background/hover/click, or the explicit "surface" marker) renders as
+        // a positioned, backgrounded surface (Window), flowing its children
+        // when it also declares a layout. Surface-less nodes — with or without
+        // a layout — stay bare divisions.
+        var hasSurface = p.Surface
+            || opts.ContainsKey("width")
+            || opts.ContainsKey("height")
+            || opts.ContainsKey("x")
+            || opts.ContainsKey("y")
+            || opts.ContainsKey("background")
+            || opts.ContainsKey("onHover")
+            || opts.ContainsKey("onClick");
+
+        var optsJson = opts;
         if (p.Layout != null)
         {
             var rowFirst = p.Layout.Value.RowFirst ?? false;
-            var layoutOpts = new Dictionary<string, object?>(opts)
+            optsJson = new Dictionary<string, object?>(opts)
             {
                 ["layout"] = rowFirst ? "row" : "column"
-            };
-            return new UiNodeData
-            {
-                Id = p.Id,
-                Kind = UiNodeKind.Division,
-                Value = "",
-                OptionsJson = JsonSerializer.Serialize(layoutOpts),
-                Children = children
             };
         }
 
         return new UiNodeData
         {
             Id = p.Id,
-            Kind = UiNodeKind.Window,
-            OptionsJson = JsonSerializer.Serialize(opts),
+            Kind = hasSurface ? UiNodeKind.Window : UiNodeKind.Division,
+            OptionsJson = JsonSerializer.Serialize(optsJson),
             Children = children
         };
     }

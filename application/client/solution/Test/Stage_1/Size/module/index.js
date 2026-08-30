@@ -5,7 +5,7 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.ui.window("center", {
+  hostApi.ui.panel("center", {
     width: 200,
     height: 200,
     x: -50,

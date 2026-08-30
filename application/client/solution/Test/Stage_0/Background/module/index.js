@@ -6,13 +6,13 @@ export default (hostApi) => {
     ],
   });
   // Centered: top-left at the viewport center (500, 500).
-  hostApi.ui.window("panel", {
+  hostApi.ui.panel("panel", {
     width: 100,
     height: 100,
     background: { name: "texture", duration: 1 },
   }, [])
   // Covers the top-left quarter of panel — panel must still pass.
-  hostApi.ui.window("overlay", {
+  hostApi.ui.panel("overlay", {
     width: 50,
     height: 50,
     x: 500,
@@ -20,7 +20,7 @@ export default (hostApi) => {
     background: { name: "texture", duration: 1 },
   }, [])
   // No background: used by the negative "window without background" case.
-  hostApi.ui.window("plain", {
+  hostApi.ui.panel("plain", {
     width: 50,
     height: 50,
     x: 20,

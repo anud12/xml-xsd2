@@ -27,7 +27,7 @@ export default (hostApi) => {
         ],
       });
 
-    hostApi.ui.window("center", {
+    hostApi.ui.panel("center", {
         width: 100,
         height: 100,
         anchor: "center",

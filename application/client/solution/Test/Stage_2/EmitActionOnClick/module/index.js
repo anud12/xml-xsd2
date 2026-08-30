@@ -23,13 +23,13 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("texture_2.png") },
     ],
   });
-  hostApi.ui.window("center", {
+  hostApi.ui.panel("center", {
     width: 100,
     height: 100,
     background: hostApi.ui.getAnimation(string.of("texture"), { duration: number.of(1) }),
     onClick: "action",
   }, [
-    hostApi.ui.window("child", {
+    hostApi.ui.panel("child", {
       x: 20,
       y: 20,
       width: 10,

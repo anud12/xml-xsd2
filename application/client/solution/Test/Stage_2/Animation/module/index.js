@@ -12,7 +12,7 @@ export default (hostApi) => {
     ],
   });
 
-  hostApi.ui.window("fastPanel", {
+  hostApi.ui.panel("fastPanel", {
     width: 100,
     height: 100,
     x: 100,
@@ -20,7 +20,7 @@ export default (hostApi) => {
     background: hostApi.ui.getAnimation(string.of("sequence"), { duration: number.of(5) }),
   }, []);
 
-  hostApi.ui.window("slowPanel", {
+  hostApi.ui.panel("slowPanel", {
     width: 100,
     height: 100,
     x: 300,

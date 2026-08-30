@@ -6,28 +6,28 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.ui.window("top", {
+  hostApi.ui.panel("top", {
     x: 0,
     y: -100,
     width: 10,
     height: 10,
     background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
   })
-  hostApi.ui.window("left", {
+  hostApi.ui.panel("left", {
     x: -100,
     y: 0,
     width: 10,
     height: 10,
     background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
   })
-  hostApi.ui.window("bottom", {
+  hostApi.ui.panel("bottom", {
     x: 0,
     y: 100,
     width: 10,
     height: 10,
     background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
   })
-  hostApi.ui.window("right", {
+  hostApi.ui.panel("right", {
     x: 100,
     y: 0,
     width: 10,

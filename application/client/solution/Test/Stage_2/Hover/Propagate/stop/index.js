@@ -30,7 +30,7 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.ui.window("parent", {
+  hostApi.ui.panel("parent", {
     width: 100,
     height: 100,
     background: hostApi.ui.getAnimation(string.of("texture"), { duration: number.of(1) }),
@@ -38,7 +38,7 @@ export default (hostApi) => {
       emitAction: "parentHover",
     },
   }, [
-    hostApi.ui.window("child", {
+    hostApi.ui.panel("child", {
       width: 20,
       height: 20,
       x: 40,

@@ -35,7 +35,7 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.ui.window("center", {
+  hostApi.ui.panel("center", {
     width: 100,
     height: 100,
     anchor: "center",

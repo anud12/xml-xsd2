@@ -22,7 +22,7 @@ export default (hostApi) => {
     frames: [{ sprite: hostApi.ui.getSpritePNG("texture2.png") }],
   });
 
-  hostApi.ui.window("list-panel", {
+  hostApi.ui.panel("list-panel", {
     width: 300,
     height: 300,
     anchor: "center",
@@ -31,7 +31,7 @@ export default (hostApi) => {
   }, [
     hostApi.ui.container("items", { container: "items-container" },
       (entity) => [
-        hostApi.ui.window(entity.id, {
+        hostApi.ui.panel(entity.id, {
           width: 50,
           height: 50,
           background: hostApi.ui.getAnimation(string.of("texture2"), { duration: number.of(1) }),

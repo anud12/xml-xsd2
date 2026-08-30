@@ -11,7 +11,7 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.ui.window("hover", {
+  hostApi.ui.panel("hover", {
     width: 100,
     height: 100,
     onHover: {
@@ -20,7 +20,7 @@ export default (hostApi) => {
     },
     background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
   })
-  hostApi.ui.window("no-hover", {
+  hostApi.ui.panel("no-hover", {
     width: 100,
     height: 100,
     background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),

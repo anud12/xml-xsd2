@@ -25,6 +25,10 @@ public struct Panel
     public bool HoverStopPropagation;
     public AnimationSequence? BackgroundAnimation;
     public string? HoverBackground;
+
+    // Set by the panel/window builders to mark an explicit surface node even
+    // when no surface option (size/offset/background/hover/click) is present.
+    public bool Surface;
 }
 
 public struct Layout

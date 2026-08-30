@@ -11,7 +11,7 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.ui.window("top-right", {
+  hostApi.ui.panel("top-right", {
     width: 300,
     height: 300,
     background: hostApi.ui.getAnimation(string.of("texture"), { duration: number.of(1) }),

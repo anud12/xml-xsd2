@@ -1,6 +1,6 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.ui.window("base", {
+  hostApi.ui.panel("base", {
     width: 100,
     height: 100,
   }, [])

@@ -188,24 +188,69 @@ public partial class Steps {
         }
 
         /// <summary>
-        /// Asserts that the node contains a child division window with the specified name,
-        /// then invokes an action with a division assertion wrapper for nested assertions.
+        /// Asserts that the panel's flow container is a vertical (column) layout.
         /// </summary>
-        public AssertPanel HasChildDivNamed(string name, Action<AssertDiv> action) {
-            if (window is null) {
+        public AssertPanel IsVertical() {
+            var box = window?.GetNodeOrNull<BoxContainer>("box");
+            bool isVertical = box != null && box.Vertical;
+            Assertions.AssertBool(isVertical)
+                .OverrideFailureMessage($"Panel at \"{path}\" is not vertical")
+                .IsTrue();
+            return this;
+        }
+
+        /// <summary>
+        /// Asserts that the panel's flow container is a horizontal (row) layout.
+        /// </summary>
+        public AssertPanel IsHorizontal() {
+            var box = window?.GetNodeOrNull<BoxContainer>("box");
+            bool isHorizontal = box != null && !box.Vertical;
+            Assertions.AssertBool(isHorizontal)
+                .OverrideFailureMessage($"Panel at \"{path}\" is not horizontal")
+                .IsTrue();
+            return this;
+        }
+
+        /// <summary>
+        /// Asserts that the panel's flow container has the expected number of children.
+        /// </summary>
+        public AssertPanel HasLength(int expected) {
+            var flow = window?.FlowContainer();
+            if (flow is null) {
                 Assertions.AssertThat(true)
-                    .OverrideFailureMessage($"Node at \"{path}\" is null; cannot look up div \"{name}\"")
+                    .OverrideFailureMessage($"Panel at \"{path}\" has no flow container")
                     .IsFalse();
                 return this;
             }
-            var child = FindChildWindow(window, name);
-            if (child is null) {
+            Assertions.AssertInt(flow.GetChildCount())
+                .OverrideFailureMessage($"Panel at \"{path}\" has {flow.GetChildCount()} children, expected {expected}")
+                .IsEqual(expected);
+            return this;
+        }
+
+        /// <summary>
+        /// Asserts that each child of the panel's flow container matches the
+        /// corresponding assertion action.
+        /// </summary>
+        public AssertPanel HasTemplates(params Action<AssertPanel>[] actions) {
+            var flow = window?.FlowContainer();
+            if (flow is null) {
                 Assertions.AssertThat(true)
-                    .OverrideFailureMessage($"Node at \"{path}\" does not have a child div named \"{name}\"")
+                    .OverrideFailureMessage($"Panel at \"{path}\" has no flow container")
                     .IsFalse();
                 return this;
             }
-            action.Invoke(new AssertDiv(child, $"{path}/{name}"));
+            HasLength(actions.Length);
+            for (var i = 0; i < actions.Length; i++) {
+                var child = flow.GetChild(i) as UiWindow;
+                if (child is null) {
+                    Assertions.AssertThat(true)
+                        .OverrideFailureMessage($"Panel at \"{path}\" child {i} is not a UiWindow")
+                        .IsFalse();
+                    continue;
+                }
+                actions[i].Invoke(new AssertPanel(child, $"{path}/{i}"));
+            }
             return this;
         }
 
@@ -551,85 +596,6 @@ public partial class Steps {
             }
 
             File.Delete(actualPath);
-            return this;
-        }
-    }
-
-    /// <summary>
-    /// Fluent assertion helper for a division (layout container) window.
-    /// </summary>
-    public class AssertDiv {
-        private readonly UiWindow div;
-        private readonly string path;
-
-        public AssertDiv(UiWindow div, string path) {
-            this.div = div;
-            this.path = path;
-        }
-
-        /// <summary>
-        /// Asserts that the division is a vertical (column) layout.
-        /// </summary>
-        public AssertDiv IsVertical() {
-            var box = div.GetNodeOrNull<BoxContainer>("box");
-            bool isVertical = box != null && box.Vertical;
-            Assertions.AssertBool(isVertical)
-                .OverrideFailureMessage($"Division at \"{path}\" is not vertical")
-                .IsTrue();
-            return this;
-        }
-
-        /// <summary>
-        /// Asserts that the division is a horizontal (row) layout.
-        /// </summary>
-        public AssertDiv IsHorizontal() {
-            var box = div.GetNodeOrNull<BoxContainer>("box");
-            bool isHorizontal = box != null && !box.Vertical;
-            Assertions.AssertBool(isHorizontal)
-                .OverrideFailureMessage($"Division at \"{path}\" is not horizontal")
-                .IsTrue();
-            return this;
-        }
-
-        /// <summary>
-        /// Asserts that the division's flow container has the expected number of children.
-        /// </summary>
-        public AssertDiv HasLength(int expected) {
-            var flow = div.FlowContainer();
-            if (flow is null) {
-                Assertions.AssertThat(true)
-                    .OverrideFailureMessage($"Division at \"{path}\" has no flow container")
-                    .IsFalse();
-                return this;
-            }
-            Assertions.AssertInt(flow.GetChildCount())
-                .OverrideFailureMessage($"Division at \"{path}\" has {flow.GetChildCount()} children, expected {expected}")
-                .IsEqual(expected);
-            return this;
-        }
-
-        /// <summary>
-        /// Asserts that each child of the division matches the corresponding assertion action.
-        /// </summary>
-        public AssertDiv HasTemplates(params Action<AssertPanel>[] actions) {
-            var flow = div.FlowContainer();
-            if (flow is null) {
-                Assertions.AssertThat(true)
-                    .OverrideFailureMessage($"Division at \"{path}\" has no flow container")
-                    .IsFalse();
-                return this;
-            }
-            HasLength(actions.Length);
-            for (var i = 0; i < actions.Length; i++) {
-                var child = flow.GetChild(i) as UiWindow;
-                if (child is null) {
-                    Assertions.AssertThat(true)
-                        .OverrideFailureMessage($"Division at \"{path}\" child {i} is not a UiWindow")
-                        .IsFalse();
-                    continue;
-                }
-                actions[i].Invoke(new AssertPanel(child, $"{path}/{i}"));
-            }
             return this;
         }
     }

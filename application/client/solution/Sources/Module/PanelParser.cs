@@ -102,6 +102,8 @@ static class PanelParser
             }
         }
 
+        p.Surface = Extract.Bool(e, "surface") ?? false;
+
         if (e.TryGetProperty("content", out var ct) && ct.ValueKind == JsonValueKind.Object)
             p.Content = ContentParser.Parse(ct);
 

@@ -11,14 +11,14 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.ui.window("text-host", {
+  hostApi.ui.panel("text-host", {
     width: 100,
     height: 100,
   }, [
     hostApi.ui.text("text-content", "hello"),
   ])
 
-  hostApi.ui.window("field-host", {
+  hostApi.ui.panel("field-host", {
     width: 100,
     height: 100,
     x: 150,
@@ -26,7 +26,7 @@ export default (hostApi) => {
     hostApi.ui.field("field-text", { entity: "entity_id", map: "text", name: "textKey", fallback: "fallback" }),
   ])
 
-  hostApi.ui.window("number-host", {
+  hostApi.ui.panel("number-host", {
     width: 100,
     height: 100,
     x: 300,

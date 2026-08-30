@@ -14,12 +14,12 @@ export default (hostApi) => {
     }
   });
 
-  hostApi.ui.window("parent", {
+  hostApi.ui.panel("parent", {
     width: 100,
     height: 100,
     onClick: "stageAction",
   }, [
-    hostApi.ui.window("child", {
+    hostApi.ui.panel("child", {
       width: 10,
       height: 10,
       x: 10,

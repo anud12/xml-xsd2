@@ -1,6 +1,6 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.ui.window("parent", {
+  hostApi.ui.panel("parent", {
     width: 100,
     height: 100,
     background: "texture.png",
@@ -8,7 +8,7 @@ export default (hostApi) => {
       background: "hover.png",
     },
   }, [
-    hostApi.ui.window("child", {
+    hostApi.ui.panel("child", {
       width: 20,
       height: 20,
       x: 40,

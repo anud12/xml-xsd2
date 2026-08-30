@@ -71,7 +71,7 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
     ],
   });
-  hostApi.ui.window("center", {
+  hostApi.ui.panel("center", {
     x: 70,
     y: 70,
     width: 100,
@@ -86,7 +86,7 @@ export default (hostApi) => {
   ])
 
 
-  hostApi.ui.window("isModifiedPanel", {
+  hostApi.ui.panel("isModifiedPanel", {
     x: 250,
     y: 100,
     width: 100,

@@ -26,8 +26,9 @@ export type HostApi = {
   ui: {
     /**
      * Legacy full-options panel registration. Not provided by the C# Jint
-     * host (which exposes window/text/field/div/container instead); the
-     * declaration stays because the restricted suite fixture
+     * host (which exposes panel/text/field/container instead, with window
+     * and div as aliases of panel); the declaration stays because the
+     * restricted suite fixture
      * features/stage2/panel_initialization/offset/index.js still calls it.
      */
     registerPanel: RegisterPanelFunction,
@@ -37,13 +38,20 @@ export type HostApi = {
     getSpritePNG: (path: string) => SpriteResource,
     /** Returns the animation registration for the given name and duration configuration. */
     getAnimation: GetAnimationFunction,
-    /** Creates a window/panel node with options and nested children; returns its id. */
+    /**
+     * Creates a panel node: a positioned, backgrounded, interactive surface
+     * and/or a flow layout container for its children. Returns its id.
+     * A panel with neither a surface option (x/y/width/height/background/
+     * onHover/onClick/anchor) nor a layout is a bare grouping node.
+     */
+    panel: (id: string, options: UiPanelOptions, children?: any[]) => string,
+    /** Alias of `panel` that always declares a surface; returns its id. */
     window: (id: string, options: UiWindowOptions, children?: any[]) => string,
     /** Creates a constant text node; returns its id. */
     text: (id: string, content: string) => string,
     /** Creates an entity-bound field node; returns its id. */
     field: (id: string, options: UiFieldOptions) => string,
-    /** Creates a layout (row/column) div node with children; returns its id. */
+    /** Alias of `panel` limited to a layout container; returns its id. */
     div: (id: string, options: UiDivOptions, children?: any[]) => string,
     /** Creates a container list-view node rendered from a per-entity template. */
     container: (id: string, options: UiContainerOptions, template: (entity: any, index: number) => any[]) => any,
@@ -118,7 +126,26 @@ export type UiFieldOptions = {
   align?: AlignOption;
 };
 
-/** Options accepted by the high-level `hostApi.ui.div` builder. */
+/**
+ * Options accepted by the unified `hostApi.ui.panel` builder: the surface
+ * options of `window` and/or the layout of `div`. A panel declares both to
+ * be a backgrounded, positioned container that also flows its children.
+ */
+export type UiPanelOptions = UiWindowOptions & {
+  layout?:
+    | "row"
+    | "column"
+    | number
+    | {
+        rowFirst?: boolean;
+        reverse?: boolean;
+        columns?: Array<{ min?: number; max?: number; weight?: number; align?: "start" | "end" }>;
+        rows?: Array<{ min?: number; max?: number; weight?: number; align?: "start" | "end" }>;
+        gap?: { row?: number; column?: number };
+      };
+};
+
+/** Options accepted by the high-level `hostApi.ui.div` builder (alias of `panel`). */
 export type UiDivOptions = {
   layout: "row" | "column";
 };

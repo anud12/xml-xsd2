@@ -76,7 +76,7 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
   });
-  hostApi.ui.window("center", {
+  hostApi.ui.panel("center", {
     x: 200,
     y: 450,
     width: 100,
@@ -88,7 +88,7 @@ export default (hostApi) => {
     hostApi.ui.field("centerContent", { entity: "entity_id", map: "number", name: "key", fallback: "0" }),
   ])
 
-  hostApi.ui.window("isModifiedPanel", {
+  hostApi.ui.panel("isModifiedPanel", {
     x: 700,
     y: 450,
     width: 100,

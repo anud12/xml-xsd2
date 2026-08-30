@@ -10,7 +10,7 @@ public class TestClass : Steps {
     [TestCategory("Step_0")]
     [TestCase]
     [RequireGodotRuntime]
-    public async Task HasChildDivNamed_it_should_assert_orientation_length_and_templates() {
+    public async Task HasChildPanelNamed_it_should_assert_orientation_length_and_templates() {
         try {
             AddFileToArchive("module/index.js", "index.js")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
@@ -20,7 +20,7 @@ public class TestClass : Steps {
             var scene = await AttachUiScene();
 
             scene.AssertPanelThat("div-host")
-                .HasChildDivNamed("col-div", content => {
+                .HasChildPanelNamed("col-div", content => {
                     content.IsVertical();
                     content.HasLength(3);
                     content.HasTemplates(
@@ -42,7 +42,7 @@ public class TestClass : Steps {
     [TestCategory("Step_0")]
     [TestCase]
     [RequireGodotRuntime]
-    public async Task HasChildDivNamed_it_should_fail_for_wrong_orientation_length_and_templates() {
+    public async Task HasChildPanelNamed_it_should_fail_for_wrong_orientation_length_and_templates() {
         try {
             AddFileToArchive("module/index.js", "index.js")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
@@ -54,7 +54,7 @@ public class TestClass : Steps {
             // "row-div" is a row, so IsVertical must fail.
             bool orientThrew = false;
             try {
-                scene.AssertPanelThat("div-host").HasChildDivNamed("row-div", c => c.IsVertical());
+                scene.AssertPanelThat("div-host").HasChildPanelNamed("row-div", c => c.IsVertical());
             }
             catch (Exception) {
                 orientThrew = true;
@@ -67,7 +67,7 @@ public class TestClass : Steps {
             // "col-div" has 3 children; HasLength(5) must fail.
             bool lengthThrew = false;
             try {
-                scene.AssertPanelThat("div-host").HasChildDivNamed("col-div", c => c.HasLength(5));
+                scene.AssertPanelThat("div-host").HasChildPanelNamed("col-div", c => c.HasLength(5));
             }
             catch (Exception) {
                 lengthThrew = true;
@@ -80,7 +80,7 @@ public class TestClass : Steps {
             // "col-div" children are a/b/c; asserting "z" for the first must fail.
             bool templateThrew = false;
             try {
-                scene.AssertPanelThat("div-host").HasChildDivNamed("col-div", c =>
+                scene.AssertPanelThat("div-host").HasChildPanelNamed("col-div", c =>
                     c.HasTemplates(
                         p => p.HasContentText("z"),
                         p => p.HasContentText("b"),
