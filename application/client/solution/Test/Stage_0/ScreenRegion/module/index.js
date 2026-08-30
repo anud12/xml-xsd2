@@ -9,7 +9,7 @@ export default (hostApi) => {
   hostApi.ui.panel("panel", {
     width: 100,
     height: 100,
-    background: { name: "texture", duration: 1 },
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
   }, [])
   // Overlays the top-left quarter of panel — the region under the overlay
   // must show the overlay's background, not the panel's.
@@ -18,6 +18,6 @@ export default (hostApi) => {
     height: 50,
     x: 500,
     y: 500,
-    background: { name: "texture", duration: 1 },
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
   }, [])
 }

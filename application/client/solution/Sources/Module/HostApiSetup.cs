@@ -10,6 +10,13 @@ var __registeredAnimations = {};
 // height/background/onHover/onClick/anchor, or the forced flag from the
 // window alias) mark the node as a positioned surface; layout marks it as a
 // flow container. A node may declare both.
+// Backgrounds and hover visuals must be AnimationRegistrationArguments
+// ({ frames: [...] }), obtained from hostApi.ui.getAnimation — raw texture
+// paths and name references are rejected.
+var __isAnimation = function(v) {
+    return !!v && typeof v === ""object""
+        && Array.isArray(v.frames) && v.frames.length > 0;
+};
 var __panelEmit = function(id, options, children, forceSurface) {
     var opts = options || {};
     var anchorMap = {
@@ -33,20 +40,11 @@ var __panelEmit = function(id, options, children, forceSurface) {
                           opts.anchor.y !== undefined ? opts.anchor.y : 0.5];
             }
         }
-        var background = opts.background;
-        if (background && typeof background === ""object"" && typeof background.name === ""string"" && !background.frames) {
-            var anim = __registeredAnimations[background.name];
-            if (anim && anim.frames) {
-                var resolved = {
-                    name: background.name,
-                    duration: background.duration !== undefined ? background.duration : (anim.duration !== undefined ? anim.duration : 1),
-                    loop: background.loop !== undefined ? background.loop : (anim.loop !== undefined ? anim.loop : false),
-                    frames: anim.frames
-                };
-                background = resolved;
-            }
+        if (opts.background !== undefined) {
+            if (!__isAnimation(opts.background))
+                throw new Error(""panel '"" + id + ""': background must be an AnimationRegistrationArguments (use hostApi.ui.getAnimation)"");
+            json.background = opts.background;
         }
-        json.background = background;
         json.surface = true;
         json.size = { width: opts.width || 0, height: opts.height || 0 };
         json.anchor = { x: anchor[0], y: anchor[1] };
@@ -55,13 +53,19 @@ var __panelEmit = function(id, options, children, forceSurface) {
             left: opts.x || 0,
             right: opts.width ? (opts.width - (opts.x || 0)) : 0
         };
-        json.hover = opts.onHover ? {
-            texture: opts.onHover.texture !== undefined ? opts.onHover.texture : null,
-            thickness: (opts.onHover.thickness !== undefined ? opts.onHover.thickness : 0),
-            background: opts.onHover.background !== undefined ? opts.onHover.background : null,
-            emitAction: opts.onHover.emitAction || null,
-            stopPropagation: opts.onHover.stopPropagation || false
-        } : null;
+        if (opts.onHover) {
+            if (opts.onHover.texture !== undefined && !__isAnimation(opts.onHover.texture))
+                throw new Error(""panel '"" + id + ""': onHover.texture must be an AnimationRegistrationArguments (use hostApi.ui.getAnimation)"");
+            if (opts.onHover.background !== undefined && !__isAnimation(opts.onHover.background))
+                throw new Error(""panel '"" + id + ""': onHover.background must be an AnimationRegistrationArguments (use hostApi.ui.getAnimation)"");
+            json.hover = {
+                texture: opts.onHover.texture !== undefined ? opts.onHover.texture : null,
+                thickness: (opts.onHover.thickness !== undefined ? opts.onHover.thickness : 0),
+                background: opts.onHover.background !== undefined ? opts.onHover.background : null,
+                emitAction: opts.onHover.emitAction || null,
+                stopPropagation: opts.onHover.stopPropagation || false
+            };
+        }
         json.onClick = opts.onClick ? { type: ""emitAction"", actionName: opts.onClick } : null;
     }
     if (opts.layout !== undefined) {
@@ -69,6 +73,8 @@ var __panelEmit = function(id, options, children, forceSurface) {
             : (opts.layout === ""row"" ? { rowFirst: true } : { rowFirst: false });
     }
     if (opts.border !== undefined && typeof opts.border === ""object"") {
+        if (opts.border.texture !== undefined && !__isAnimation(opts.border.texture))
+            throw new Error(""panel '"" + id + ""': border.texture must be an AnimationRegistrationArguments (use hostApi.ui.getAnimation)"");
         json.border = {
             width: opts.border.width !== undefined ? opts.border.width : 1,
             texture: opts.border.texture !== undefined ? opts.border.texture : null

@@ -21,10 +21,21 @@ export type EntityExpressionApi = {
 }
 
 export type EntityCreationArguments = {
-  textMap?: Record<string, StringExpression>
-  numberMap?: Record<string, NumberExpression>
+  textMap?: Record<string, StringExpression | string>
+  numberMap?: Record<string, NumberExpression | number>
   /** Optional behavior reference attached to the entity. */
   behavior?: BehaviorReference | StringExpression
+}
+
+/** Runtime entity view passed to container position/span callbacks. */
+export type EntityProxy = {
+  id: string,
+  /** Number-map accessor; `orElse` falls back to the supplied default when the key is absent. */
+  number_map: { get: (key: string) => { orElse: <T>(defaultValue: T) => T } },
+  /** Text-map accessor. */
+  text_map: { get: (key: string) => string },
+  getNumber: (key: string) => number,
+  getText: (key: string) => string,
 }
 
 export type EntityExpressionType = {

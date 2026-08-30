@@ -659,8 +659,9 @@ public partial class UiWindow : Control
     }
 
     /// onClick: left-click press emits the named action. onHover: while
-    /// hovered the node's background is swapped (texture or solid color),
-    /// reverting on exit; an optional emitAction fires enter/exit.
+    /// hovered the node's background is swapped (the hover animation's first
+    /// frame) and/or a nine-patch outline is shown, reverting on exit; an
+    /// optional emitAction fires enter/exit.
     void WireInteractivity(UiNodeData node, JsonElement opts)
     {
         if (opts.ValueKind == JsonValueKind.Undefined) return;
@@ -691,17 +692,18 @@ public partial class UiWindow : Control
         if (hover.TryGetProperty("background", out var hb))
             ResolveHoverBackground(hb);
 
-        // Legacy hover: { texture, thickness } — a nine-patch outline that
-        // appears on mouse enter and hides on exit.
+        // Hover outline: { texture, thickness } — a nine-patch that appears on
+        // mouse enter and hides on exit. The texture arrives as an archive
+        // path (the first frame of the hover animation, aliased by the
+        // node store).
         if (hover.TryGetProperty("texture", out var htx)
-            && (htx.ValueKind == JsonValueKind.String
-                || htx.ValueKind == JsonValueKind.Object))
+            && htx.ValueKind == JsonValueKind.String)
         {
             var thickness = hover.TryGetProperty("thickness", out var th)
                 && th.ValueKind == JsonValueKind.Number
                 ? (int)th.GetDouble()
                 : 0;
-            EnsureHoverOutline(ResolveHoverTexturePath(htx), thickness);
+            EnsureHoverOutline(htx.GetString(), thickness);
         }
 
         if (!_hoverWired && (_hoverEmitAction != null || _hoverTexture != null || _hoverColor.HasValue || _hoverOutline != null))
@@ -731,52 +733,19 @@ public partial class UiWindow : Control
         }
     }
 
+    /// The hover background-swap texture: the node store passes the first
+    /// frame of the hover animation as an archive path.
     void ResolveHoverBackground(JsonElement hb)
     {
-        if (hb.ValueKind == JsonValueKind.String)
+        if (hb.ValueKind != JsonValueKind.String) return;
+        var path = hb.GetString();
+        if (!string.IsNullOrEmpty(path)
+            && RuntimeInterop.GetFileFromArchive().TryGetValue(path, out var data))
         {
-            var path = hb.GetString();
-            if (!string.IsNullOrEmpty(path)
-                && RuntimeInterop.GetFileFromArchive().TryGetValue(path, out var data))
-            {
-                var img = new Image();
-                img.LoadPngFromBuffer(data);
-                _hoverTexture = ImageTexture.CreateFromImage(img);
-            }
-            return;
+            var img = new Image();
+            img.LoadPngFromBuffer(data);
+            _hoverTexture = ImageTexture.CreateFromImage(img);
         }
-        if (hb.ValueKind != JsonValueKind.Object) return;
-        if (hb.TryGetProperty("color", out var c) && c.ValueKind == JsonValueKind.String)
-        {
-            var col = c.GetString();
-            if (!string.IsNullOrEmpty(col) && col.StartsWith("#") && col.Length is 4 or 7 or 9)
-                _hoverColor = new Color(col);
-            return;
-        }
-        // Animation ref { name, duration, loop } — use the first registered
-        // frame if resolvable, else a neutral highlight.
-        _hoverColor = new Color(1f, 1f, 1f, 0.25f);
-    }
-
-    /// Resolves a hover texture to an archive PNG path: a plain string is a
-    /// path, an object is an animation reference (uses the first frame).
-    static string? ResolveHoverTexturePath(JsonElement htx)
-    {
-        if (htx.ValueKind == JsonValueKind.String)
-            return htx.GetString();
-        if (htx.ValueKind != JsonValueKind.Object) return null;
-        if (!htx.TryGetProperty("name", out var n) || n.ValueKind != JsonValueKind.String)
-            return null;
-        var def = UiState.GetAnimation(n.GetString() ?? "");
-        if (def is null) return null;
-        if (!def.Value.TryGetProperty("frames", out var frames)
-            || frames.ValueKind != JsonValueKind.Array) return null;
-        foreach (var f in frames.EnumerateArray())
-        {
-            if (f.TryGetProperty("sprite", out var s) && s.ValueKind == JsonValueKind.String)
-                return s.GetString();
-        }
-        return null;
     }
 
     void EnsureHoverOutline(string? texturePath, int thickness)

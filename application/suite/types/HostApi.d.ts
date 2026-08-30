@@ -76,6 +76,12 @@ export type HostApi = {
     /** Sets container fields by container ID. */
     setContainer: (containerId: StringExpression, arguments: ContainerCreationArguments) => void;
 
+    /** Registers an entity (id plus optional field maps) with the runtime. */
+    registerEntity: (entity: { id: string } & EntityCreationArguments) => void;
+
+    /** Registers a container (id plus optional fields) with the runtime. */
+    registerContainer: (container: { id: string } & ContainerCreationArguments) => void;
+
     /** Registers an effect handler in the runtime. */
     registerEffect: RegisterEffectFunction,
     /** Registers an action handler in the runtime. */
@@ -105,11 +111,14 @@ export type UiWindowOptions = {
   x?: number;
   y?: number;
   anchor?: string | { x: number; y: number };
-  background?: string | AnimationRegistrationArguments | { name: string; duration?: number; loop?: boolean };
+  /** Background animation; obtain via `hostApi.ui.getAnimation`. */
+  background?: AnimationRegistrationArguments;
   align?: AlignOption;
   onHover?: {
-    texture?: string;
-    background?: string;
+    /** Hover outline animation; obtain via `hostApi.ui.getAnimation`. */
+    texture?: AnimationRegistrationArguments;
+    /** Hover background-swap animation; obtain via `hostApi.ui.getAnimation`. */
+    background?: AnimationRegistrationArguments;
     thickness?: number;
     emitAction?: string;
     stopPropagation?: boolean;
@@ -123,8 +132,8 @@ export type UiWindowOptions = {
 export type UiBorderOptions = {
   /** Patch margin (border thickness) in px, applied to all four sides. Defaults to 1. */
   width?: number;
-  /** Archive path of the border PNG texture. */
-  texture: string;
+  /** Border animation (first frame is used); obtain via `hostApi.ui.getAnimation`. */
+  texture: AnimationRegistrationArguments;
 };
 
 /** Options accepted by the high-level `hostApi.ui.field` builder. */

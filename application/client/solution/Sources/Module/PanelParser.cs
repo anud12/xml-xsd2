@@ -89,7 +89,9 @@ static class PanelParser
             if (Extract.String(h, "emitAction") is { } ea)
                 p.HoverEmitAction = ea;
             p.HoverStopPropagation = Extract.Bool(h, "stopPropagation") ?? false;
-            p.HoverBackground = Extract.String(h, "background");
+            // Hover background is an AnimationRegistrationArguments; the swap
+            // renders its first frame.
+            p.HoverBackground = ExtractTextureFromSprite(h, "background");
         }
 
         if (e.TryGetProperty("onClick", out var c) && c.ValueKind == JsonValueKind.Object)
@@ -104,7 +106,9 @@ static class PanelParser
 
         if (e.TryGetProperty("border", out var bd) && bd.ValueKind == JsonValueKind.Object)
         {
-            var bt = Extract.String(bd, "texture");
+            // Border texture is an AnimationRegistrationArguments; the
+            // nine-patch uses its first frame.
+            var bt = ExtractTextureFromSprite(bd, "texture");
             if (bt != null)
                 p.Border = new Runtime.Border
                 { Width = Extract.Int(bd, "width") ?? 1, Texture = bt };

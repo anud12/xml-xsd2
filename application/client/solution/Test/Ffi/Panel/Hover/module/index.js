@@ -15,7 +15,7 @@ export default (hostApi) => {
     width: 100,
     height: 100,
     onHover: {
-      texture: "hover.png",
+      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover"), { duration: hostApi.runtime.number.of(1) }),
       thickness: 5,
     },
     background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
