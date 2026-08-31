@@ -15,8 +15,7 @@ var hostApi={
         return __registeredAnimations[resolvedName];
       }
       return null;
-    },
-    registerPanel:h.registerPanel
+    }
   },
   runtime:{
     string:{of:function(s){return s;}},
@@ -32,10 +31,12 @@ var hostApi={
     registerAnimation:function(name,args){
       var resolvedName=typeof name==='object'?name.value:name;
       if(typeof resolvedName==='string'){
+        if(!args||typeof args!=='object'||typeof args.duration!=='number'){
+          throw new Error("registerAnimation '"+resolvedName+"': duration is required");
+        }
         __registeredAnimations[resolvedName]=args;
       }
     },
-    registerBehavior:h.registerBehavior,
     getAnimation:function(name,animationDuration){
       var resolvedName=typeof name==='object'?name.value:name;
       if(__registeredAnimations[resolvedName]){

@@ -22,6 +22,12 @@ pub fn host_api_script_animation() -> &'static str {
             globalThis.__registeredAnimations || {};
         var resolvedName = typeof name === 'object' ? name.value : name;
         if (typeof resolvedName === 'string') {
+            if (!args || typeof args !== 'object' ||
+                typeof args.duration !== 'number') {
+                throw new Error(
+                    "registerAnimation '" + resolvedName +
+                    "': duration is required");
+            }
             globalThis.__registeredAnimations[resolvedName] = args;
         }
     },
@@ -38,7 +44,6 @@ pub fn host_api_script_animation() -> &'static str {
 pub fn host_api_script_rest() -> String {
     use super::script_register::host_api_script_register_block;
     use super::script_panel_entity::{
-        host_api_script_panel,
         host_api_script_create_entity,
         host_api_script_set_entity,
         host_api_script_set_container,
@@ -52,7 +57,6 @@ pub fn host_api_script_rest() -> String {
         host_api_script_register_block("registerAction"));
     parts.push(
         host_api_script_register_block("registerEffect"));
-    parts.push(host_api_script_panel().to_string());
     parts.push(
         host_api_script_create_entity().to_string());
         parts.push(
@@ -66,8 +70,6 @@ pub fn host_api_script_rest() -> String {
     parts.push(host_api_script_entity_filter().to_string());
     parts.push(host_api_script_log().to_string());
     parts.push(host_api_script_animation().to_string());
-    parts.push(
-        super::script_behavior::host_api_script_behavior().to_string());
     let mut s = parts.join("");
     s.push_str(" }");
     s

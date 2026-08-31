@@ -9,6 +9,8 @@ public class ModuleUIContext
     {
         _archiveFiles.Clear();
         _panels.Clear();
+        EffectStore.Clear();
+        BehaviorStore.Clear();
         ArchiveReader.Extract(zipPath, _archiveFiles);
         ExecuteModules();
     }
@@ -44,16 +46,54 @@ public class ModuleUIContext
         var modules = _archiveFiles
             .Where(kv => kv.Key.EndsWith("index.js"))
             .Select(kv => kv.Value).ToList();
+        if (modules.Count == 0) return;
 
-        foreach (var bytes in modules)
-            ExecuteModuleSource(System.Text.Encoding.UTF8.GetString(bytes));
+        ModuleEngine.ArchiveFileSet = _archiveFiles.Keys.ToHashSet();
+
+        // Every index.js in the archive is executed through the same engine
+        // (shared collector) so panels from all modules are kept; the first
+        // entry is the main entry from the manifest.
+        var main = "index.js";
+        if (_archiveFiles.TryGetValue("manifest.json", out var manifestBytes))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(
+                    System.Text.Encoding.UTF8.GetString(manifestBytes));
+                if (doc.RootElement.TryGetProperty("entry", out var entry)
+                    && entry.ValueKind == System.Text.Json.JsonValueKind.String
+                    && _archiveFiles.ContainsKey(entry.GetString()))
+                    main = entry.GetString();
+            }
+            catch { }
+        }
+
+        var ordered = modules
+            .OrderBy(m => _archiveFiles.First(kv => kv.Value.SequenceEqual(m)).Key == main ? 0 : 1)
+            .ToList();
+
+        var first = true;
+        foreach (var bytes in ordered)
+        {
+            var panels = ModuleEngine.ExecuteModule(
+                System.Text.Encoding.UTF8.GetString(bytes),
+                clearCollector: first);
+            first = false;
+            foreach (var p in panels)
+                if (!string.IsNullOrEmpty(p.Id))
+                    _panels[p.Id] = p;
+        }
+
+        PanelNodeStore.RegisterAll(_panels.Values.ToArray(), _archiveFiles);
     }
 
-    void ExecuteModuleSource(string moduleJs)
+    Runtime.Panel[] ExecuteModuleSource(string moduleJs)
     {
-        var panels = ModuleEngine.ExecuteModule(moduleJs);
+        var panels = ModuleEngine.ExecuteModule(moduleJs, clearCollector: false);
         foreach (var p in panels)
             if (!string.IsNullOrEmpty(p.Id))
                 _panels[p.Id] = p;
+        PanelNodeStore.RegisterAll(_panels.Values.ToArray(), _archiveFiles);
+        return panels;
     }
 }

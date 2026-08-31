@@ -1,7 +1,3 @@
-pub(super) fn host_api_script_panel() -> &'static str {
-    r#"registerPanel: function() { /* no-op — handled by C# */ },"#
-}
-
 pub(super) fn host_api_script_create_entity()
     -> &'static str
 {
@@ -44,14 +40,7 @@ pub(super) fn host_api_script_set_entity()
         if (typeof id === 'string' && data
             && typeof data === 'object') {
             globalThis.__entityData[id] = data;
-            if (data.behavior !== undefined) {
-                globalThis.__behaviors =
-                    globalThis.__behaviors || {};
-                globalThis.__behaviors[id] =
-                    { name: data.behavior };
-            }
         }
-        return { name: id };
     },"#
 }
 

@@ -16,26 +16,20 @@ public class OffsetFfiTests : Steps {
         
         var top = RuntimeInterop.GetPanelById("top");
         Assertions.AssertThat(top.Offset.top).IsEqual(-100f);
-        Assertions.AssertThat(top.Offset.bottom).IsEqual(-100f);
         Assertions.AssertThat(top.Offset.left).IsEqual(0f);
-        Assertions.AssertThat(top.Offset.right).IsEqual(0f);
+        Assertions.AssertThat(top.Size.Width).IsEqual(10f);
+        Assertions.AssertThat(top.Size.Height).IsEqual(10f);
 
         var left = RuntimeInterop.GetPanelById("left");
         Assertions.AssertThat(left.Offset.top).IsEqual(0f);
-        Assertions.AssertThat(left.Offset.bottom).IsEqual(0f);
         Assertions.AssertThat(left.Offset.left).IsEqual(-100f);
-        Assertions.AssertThat(left.Offset.right).IsEqual(-100f);
 
         var bottom = RuntimeInterop.GetPanelById("bottom");
         Assertions.AssertThat(bottom.Offset.top).IsEqual(100f);
-        Assertions.AssertThat(bottom.Offset.bottom).IsEqual(100f);
         Assertions.AssertThat(bottom.Offset.left).IsEqual(0f);
-        Assertions.AssertThat(bottom.Offset.right).IsEqual(0f);
 
         var right = RuntimeInterop.GetPanelById("right");
         Assertions.AssertThat(right.Offset.top).IsEqual(0f);
-        Assertions.AssertThat(right.Offset.bottom).IsEqual(0f);
         Assertions.AssertThat(right.Offset.left).IsEqual(100f);
-        Assertions.AssertThat(right.Offset.right).IsEqual(100f);
     }
 }

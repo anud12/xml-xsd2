@@ -5,18 +5,13 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
+    duration: hostApi.runtime.number.of(1),
   });
-  hostApi.ui.registerPanel({
-    id: "panel",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    content: {
-      type: "constant",
-      value: string.of("Content"),
-      align: "center"
-    },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
-  })
+  hostApi.ui.panel("panel", {
+    width: 100,
+    height: 100,
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+  }, [
+    hostApi.ui.text("panel-content", "Content"),
+  ])
 }

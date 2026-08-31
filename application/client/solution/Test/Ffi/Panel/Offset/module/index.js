@@ -5,33 +5,34 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
+    duration: hostApi.runtime.number.of(1),
   });
-  hostApi.ui.registerPanel({
-    id: "top",
-    size: {height: number.of(10), width: number.of(10)},
-    anchor: {x: number.of(0.5), y: number.of(0.5)},
-    offset: {top: number.of(-100), bottom: number.of(-100), left: number.of(0), right: number.of(0)},
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
+  hostApi.ui.panel("top", {
+    x: 0,
+    y: -100,
+    width: 10,
+    height: 10,
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
   })
-  hostApi.ui.registerPanel({
-    id: "left",
-    size: {height: number.of(10), width: number.of(10)},
-    anchor: {x: number.of(0.5), y: number.of(0.5)},
-    offset: {top: number.of(0), bottom: number.of(0), left: number.of(-100), right: number.of(-100)},
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
+  hostApi.ui.panel("left", {
+    x: -100,
+    y: 0,
+    width: 10,
+    height: 10,
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
   })
-  hostApi.ui.registerPanel({
-    id: "bottom",
-    size: {height: number.of(10), width: number.of(10)},
-    anchor: {x: number.of(0.5), y: number.of(0.5)},
-    offset: {top: number.of(100), bottom: number.of(100), left: number.of(0), right: number.of(0)},
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
+  hostApi.ui.panel("bottom", {
+    x: 0,
+    y: 100,
+    width: 10,
+    height: 10,
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
   })
-  hostApi.ui.registerPanel({
-    id: "right",
-    size: {height: number.of(10), width: number.of(10)},
-    anchor: {x: number.of(0.5), y: number.of(0.5)},
-    offset: {top: number.of(0), bottom: number.of(0), left: number.of(100), right: number.of(100)},
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) }),
+  hostApi.ui.panel("right", {
+    x: 100,
+    y: 0,
+    width: 10,
+    height: 10,
+    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
   })
 }

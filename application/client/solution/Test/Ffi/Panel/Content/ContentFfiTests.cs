@@ -18,7 +18,7 @@ public class TestClass : Steps {
             .EnsureDllAccessible()
             .ProcessArchive();
 
-        var constantPanel = RuntimeInterop.GetPanelById("panel");
+        var constantPanel = RuntimeInterop.GetPanelById("panel-content");
         Assertions.AssertThat(constantPanel.Content).IsInstanceOf<ConstantTextContent>();
         Assertions.AssertThat(constantPanel.Content is EntityTextValueContent).IsEqual(false);
         

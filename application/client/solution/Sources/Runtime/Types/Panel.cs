@@ -17,10 +17,28 @@ public struct Panel
     public Size Size;
     public Layout? Layout;
     public Panel[]? Children;
+    public string[]? ChildIds;
     public PanelOnClickHandler? OnClick;
     public PanelContent? Content;
     public Hover? Hover;
+    public string? HoverEmitAction;
+    public bool HoverStopPropagation;
     public AnimationSequence? BackgroundAnimation;
+    public string? HoverBackground;
+
+    // Nine-patch border decoration (thickness + texture); center never drawn.
+    public Border? Border;
+
+    // Set by the panel/window builders to mark an explicit surface node even
+    // when no surface option (size/offset/background/hover/click) is present.
+    public bool Surface;
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+public struct Border
+{
+    public int Width;
+    public string Texture;
 }
 
 public struct Layout

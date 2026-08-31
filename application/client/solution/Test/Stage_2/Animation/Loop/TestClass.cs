@@ -23,71 +23,61 @@ public partial class TestClass : Steps {
                 .EnsureDllAccessible()
                 .ProcessArchive();
 
-            var scene = LoadTestScene();
-            var rootNode = new RootNode();
+            var scene = await AttachUiScene();
 
-            scene.AddChild(rootNode);
-            rootNode.SetSize(new Vector2() {
-                X = 1000,
-                Y = 1000
-            });
-            rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
-            await runner.SimulateFrames(1);
-
-            var panel = rootNode.GetNode<Panel>("loopPanel");
-            AssertPanelThat(panel).IsNonNull();
+            scene.AssertPanelThat("loopPanel").IsNonNull();
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_1.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_1.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_2.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_2.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_3.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_3.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_4.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_4.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_5.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_5.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_1.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_1.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_2.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_2.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_3.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_3.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_4.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_4.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_5.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_5.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_1.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_1.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_2.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_2.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(panel).HasBackgroundTexture("frame_3.png");
+            scene.AssertPanelThat("loopPanel").BackgroundMatches("module/frame_3.png");
         }
         catch (Exception e) {
             Assertions.AssertThat(true)

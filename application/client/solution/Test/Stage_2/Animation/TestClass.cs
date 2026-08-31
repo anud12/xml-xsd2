@@ -23,89 +23,65 @@ public partial class TestClass : Steps {
                 .EnsureDllAccessible()
                 .ProcessArchive();
 
-            var scene = LoadTestScene();
-            var rootNode = new RootNode();
+            var scene = await AttachUiScene();
 
-            scene.AddChild(rootNode);
-            rootNode.SetSize(new Vector2() {
-                X = 1000,
-                Y = 1000
-            });
-            rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
-            await runner.SimulateFrames(1);
-
-            var fastPanel = rootNode.GetNode<Panel>("fastPanel");
-            var slowPanel = rootNode.GetNode<Panel>("slowPanel");
-
-            AssertPanelThat(fastPanel).IsNonNull();
-            AssertPanelThat(slowPanel).IsNonNull();
-            AssertScreenshot("iteration_0.png");
-            
-            RuntimeInterop.RunIteration(1);
-            await runner.SimulateFrames(1);
-            AssertPanelThat(fastPanel).HasBackgroundTexture("frame_1.png");
-            AssertPanelThat(slowPanel).HasBackgroundTexture("frame_1.png");
-            AssertScreenshot("iteration_1.png");
+            scene.AssertPanelThat("fastPanel").IsNonNull();
+            scene.AssertPanelThat("slowPanel").IsNonNull();
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(fastPanel).HasBackgroundTexture("frame_2.png");
-            AssertPanelThat(slowPanel).HasBackgroundTexture("frame_1.png");
-            AssertScreenshot("iteration_2.png");
+            scene.AssertPanelThat("fastPanel").BackgroundMatches("module/frame_1.png");
+            scene.AssertPanelThat("slowPanel").BackgroundMatches("module/frame_1.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(fastPanel).HasBackgroundTexture("frame_3.png");
-            AssertPanelThat(slowPanel).HasBackgroundTexture("frame_2.png");
-            AssertScreenshot("iteration_3.png");
+            scene.AssertPanelThat("fastPanel").BackgroundMatches("module/frame_2.png");
+            scene.AssertPanelThat("slowPanel").BackgroundMatches("module/frame_1.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(fastPanel).HasBackgroundTexture("frame_4.png");
-            AssertPanelThat(slowPanel).HasBackgroundTexture("frame_2.png");
-            AssertScreenshot("iteration_4.png");
-            
-            RuntimeInterop.RunIteration(1);
-            await runner.SimulateFrames(1);
-            AssertPanelThat(fastPanel).HasBackgroundTexture("frame_5.png");
-            AssertPanelThat(slowPanel).HasBackgroundTexture("frame_3.png");
-            AssertScreenshot("iteration_5.png");
+            scene.AssertPanelThat("fastPanel").BackgroundMatches("module/frame_3.png");
+            scene.AssertPanelThat("slowPanel").BackgroundMatches("module/frame_2.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(fastPanel).HasBackgroundTexture("frame_5.png");
-            AssertPanelThat(slowPanel).HasBackgroundTexture("frame_3.png");
-            AssertScreenshot("iteration_6.png");
+            scene.AssertPanelThat("fastPanel").BackgroundMatches("module/frame_4.png");
+            scene.AssertPanelThat("slowPanel").BackgroundMatches("module/frame_2.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(fastPanel).HasBackgroundTexture("frame_5.png");
-            AssertPanelThat(slowPanel).HasBackgroundTexture("frame_4.png");
-            AssertScreenshot("iteration_7.png");
+            scene.AssertPanelThat("fastPanel").BackgroundMatches("module/frame_5.png");
+            scene.AssertPanelThat("slowPanel").BackgroundMatches("module/frame_3.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(fastPanel).HasBackgroundTexture("frame_5.png");
-            AssertPanelThat(slowPanel).HasBackgroundTexture("frame_4.png");
-            AssertScreenshot("iteration_8.png");
+            scene.AssertPanelThat("fastPanel").BackgroundMatches("module/frame_5.png");
+            scene.AssertPanelThat("slowPanel").BackgroundMatches("module/frame_3.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(fastPanel).HasBackgroundTexture("frame_5.png");
-            AssertPanelThat(slowPanel).HasBackgroundTexture("frame_5.png");
-            AssertScreenshot("iteration_9.png");
+            scene.AssertPanelThat("fastPanel").BackgroundMatches("module/frame_5.png");
+            scene.AssertPanelThat("slowPanel").BackgroundMatches("module/frame_4.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(fastPanel).HasBackgroundTexture("frame_5.png");
-            AssertPanelThat(slowPanel).HasBackgroundTexture("frame_5.png");
-            AssertScreenshot("iteration_10.png");
+            scene.AssertPanelThat("fastPanel").BackgroundMatches("module/frame_5.png");
+            scene.AssertPanelThat("slowPanel").BackgroundMatches("module/frame_4.png");
 
             RuntimeInterop.RunIteration(1);
             await runner.SimulateFrames(1);
-            AssertPanelThat(fastPanel).HasBackgroundTexture("frame_5.png");
-            AssertPanelThat(slowPanel).HasBackgroundTexture("frame_5.png");
-            AssertScreenshot("iteration_11.png");
+            scene.AssertPanelThat("fastPanel").BackgroundMatches("module/frame_5.png");
+            scene.AssertPanelThat("slowPanel").BackgroundMatches("module/frame_5.png");
+
+            RuntimeInterop.RunIteration(1);
+            await runner.SimulateFrames(1);
+            scene.AssertPanelThat("fastPanel").BackgroundMatches("module/frame_5.png");
+            scene.AssertPanelThat("slowPanel").BackgroundMatches("module/frame_5.png");
+
+            RuntimeInterop.RunIteration(1);
+            await runner.SimulateFrames(1);
+            scene.AssertPanelThat("fastPanel").BackgroundMatches("module/frame_5.png");
+            scene.AssertPanelThat("slowPanel").BackgroundMatches("module/frame_5.png");
         }
         catch (Exception e) {
             Assertions.AssertThat(true)

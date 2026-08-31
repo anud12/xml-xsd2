@@ -1,4 +1,4 @@
-import {EntityExpression} from "./Entity";
+import {EntityExpression, EntityProxy} from "./Entity";
 import {NumberExpression} from "./primitives/numberExpression";
 import {StringExpression} from "./primitives/stringExpression";
 import {TextMapExpression} from "./textMap";
@@ -10,19 +10,20 @@ export type ContainerCreationArguments = {
   /** Keyed numeric metadata for the container */
   numberMap?: Record<string, NumberExpression>
   /** Maps a member entity to its x-coordinate as a NumberExpression */
-  getX?: (entity: EntityExpression) => NumberExpression
+  getX?: (entity: EntityProxy) => NumberExpression
   /** Maps a member entity to its y-coordinate as a NumberExpression */
-  getY?: (entity: EntityExpression) => NumberExpression
+  getY?: (entity: EntityProxy) => NumberExpression
   /** Maps a member entity to the number of cells it occupies along the x-axis. Defaults to 1 when not set */
-  getSpanX?: (entity: EntityExpression) => NumberExpression
+  getSpanX?: (entity: EntityProxy) => NumberExpression
   /** Maps a member entity to the number of cells it occupies along the y-axis. Defaults to 1 when not set */
-  getSpanY?: (entity: EntityExpression) => NumberExpression
+  getSpanY?: (entity: EntityProxy) => NumberExpression
   /** Optional size bounds along the x-axis */
   sizeX?: { value: NumberExpression, outOfBounds: OutOfBoundsRule }
   /** Optional size bounds along the y-axis */
   sizeY?: { value: NumberExpression, outOfBounds: OutOfBoundsRule }
   
-  entities: Array<StringExpression>
+  /** Member entities of the container. Optional when the container holds no members. */
+  entities?: Array<StringExpression>
 }
 
 export type ContainerExpressionApi = {

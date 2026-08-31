@@ -6,6 +6,8 @@ import {ListExpression} from "./primitives/ListExpression";
 import {NumberExpression} from "./primitives/numberExpression";
 import {MaybeExpression} from "./primitives/maybeExpression";
 import {EntityFilterApi} from "./EntityFilter";
+import {BehaviorReference} from "./behavior";
+
 export type EntityExpressionApi = {
   /** Create an empty entity builder */
   create: () => EntityExpression,
@@ -19,10 +21,21 @@ export type EntityExpressionApi = {
 }
 
 export type EntityCreationArguments = {
-  textMap?: Record<string, StringExpression>
-  numberMap?: Record<string, NumberExpression>
-  /** The behavior name to attach to this entity. */
-  behavior?: StringExpression
+  textMap?: Record<string, StringExpression | string>
+  numberMap?: Record<string, NumberExpression | number>
+  /** Optional behavior reference attached to the entity. */
+  behavior?: BehaviorReference | StringExpression
+}
+
+/** Runtime entity view passed to container position/span callbacks. */
+export type EntityProxy = {
+  id: string,
+  /** Number-map accessor; `orElse` falls back to the supplied default when the key is absent. */
+  number_map: { get: (key: string) => { orElse: <T>(defaultValue: T) => T } },
+  /** Text-map accessor. */
+  text_map: { get: (key: string) => string },
+  getNumber: (key: string) => number,
+  getText: (key: string) => string,
 }
 
 export type EntityExpressionType = {
@@ -36,11 +49,6 @@ export type EntityExpression = {
   withNumberMap: (numberMap: NumberMapExpression) => EntityExpression,
   /** Append a container membership (ContainerExpression or ContainerReference) */
   withContainer: (container: ContainerExpression) => EntityExpression,
-}
-
-export type EntityReference = {
-  /** The name expression used to register this entity. */
-  readonly name: StringExpression;
 }
 
 export type Entity = {

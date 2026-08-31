@@ -20,18 +20,15 @@ public partial class TestClass : Steps {
                 .EnsureDllAccessible()
                 .ProcessArchive();
 
-            var scene = LoadTestScene();
-            var rootNode = new RootNode();
+            var scene = await AttachUiScene();
 
-            scene.AddChild(rootNode);
-            rootNode.SetSize(new Vector2() {
-                X = 1000,
-                Y = 1000
-            });
-            rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
+            // Pin the mouse to a known position clear of every window so the
+            // live cursor (used while SimulatedMouse is null) can't affect the
+            // initial hover state.
+            SimulateMouse(new Vector2(0, 0));
             await runner.SimulateFrames(1);
 
-            var panel = rootNode.GetNode<Panel>("hoverPanel");
+            var panel = scene.Window("hoverPanel");
             AssertPanelThat(panel).IsNonNull();
 
             var hoverOutline = panel.GetNode<HoverOutline>("HoverOutline");
@@ -42,11 +39,9 @@ public partial class TestClass : Steps {
 
             AssertScreenshot("initial.png");
 
-            var mouseEnterEvent = new InputEventMouseMotion() {
-                Position = new Vector2(51, 51),
-                GlobalPosition = new Vector2(51, 51),
-            };
-            runner.Scene().GetViewport().PushInput(mouseEnterEvent);
+            var at = panel.GlobalPosition + new Vector2(1, 1);
+            SimulateMouse(at);
+            await runner.SimulateMouseMoveAbsolute(at, 0);
             await runner.SimulateFrames(1);
 
             Assertions.AssertThat(hoverOutline.Visible)
@@ -55,11 +50,8 @@ public partial class TestClass : Steps {
 
             AssertScreenshot("mouse_enter.png");
 
-            var mouseExitEvent = new InputEventMouseMotion() {
-                Position = new Vector2(0, 0),
-                GlobalPosition = new Vector2(0, 0),
-            };
-            runner.Scene().GetViewport().PushInput(mouseExitEvent);
+            SimulateMouse(new Vector2(0, 0));
+            await runner.SimulateMouseMoveAbsolute(new Vector2(0, 0), 0);
             await runner.SimulateFrames(1);
 
             Assertions.AssertThat(hoverOutline.Visible)
@@ -67,6 +59,7 @@ public partial class TestClass : Steps {
                 .IsFalse();
 
             AssertScreenshot("mouse_leave.png");
+            ClearSimulatedMouse();
             
         }
         catch (Exception e) {

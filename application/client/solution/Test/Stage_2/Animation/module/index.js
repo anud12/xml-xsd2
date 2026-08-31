@@ -2,44 +2,37 @@
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
 
-  hostApi.runtime.registerAnimation(string.of("sequence"), {
-    frames: [
-      { sprite: hostApi.ui.getSpritePNG("frame_1.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_2.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_4.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
-    ],
+  const frames = [
+    { sprite: hostApi.ui.getSpritePNG("frame_1.png") },
+    { sprite: hostApi.ui.getSpritePNG("frame_2.png") },
+    { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
+    { sprite: hostApi.ui.getSpritePNG("frame_4.png") },
+    { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
+  ];
+
+  hostApi.runtime.registerAnimation(string.of("fastSequence"), {
+    frames: frames,
+    duration: number.of(5),
   });
 
-
-  hostApi.ui.registerPanel({
-    id: "fastPanel",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    offset: {
-      top: number.of(100),
-      bottom: number.of(100),
-      left: number.of(100),
-      right: number.of(100),
-    },
-    background: hostApi.ui.getAnimation(string.of("sequence"), { duration: number.of(5) }),
+  hostApi.runtime.registerAnimation(string.of("slowSequence"), {
+    frames: frames,
+    duration: number.of(10),
   });
 
-  hostApi.ui.registerPanel({
-    id: "slowPanel",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    offset: {
-      top: number.of(100),
-      bottom: number.of(100),
-      left: number.of(300),
-      right: number.of(300),
-    },
-    background: hostApi.ui.getAnimation(string.of("sequence"), { duration: number.of(10) }),
-  });
+  hostApi.ui.panel("fastPanel", {
+    width: 100,
+    height: 100,
+    x: 100,
+    y: 100,
+    background: hostApi.ui.getAnimation(string.of("fastSequence")),
+  }, []);
+
+  hostApi.ui.panel("slowPanel", {
+    width: 100,
+    height: 100,
+    x: 300,
+    y: 100,
+    background: hostApi.ui.getAnimation(string.of("slowSequence")),
+  }, []);
 }

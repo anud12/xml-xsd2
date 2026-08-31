@@ -12,27 +12,15 @@ public partial class TestClass : Steps {
     [TestCase]
     [RequireGodotRuntime]
     public async Task Given_panel_it_should_emit_action_on_clic() {
-        // I create a module from the first folder
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .AddFileToArchive("module/texture.png", "texture.png")
             .EnsureDllAccessible()
             .ProcessArchive();
 
+        var scene = await AttachUiScene();
 
-        var scene = LoadTestScene();
-        var rootNode = new RootNode();
-        var idList = RuntimeInterop.GetPanelIds();
-
-        scene.AddChild(rootNode);
-        rootNode.SetSize(new Vector2() {
-            X = 1000,
-            Y = 1000
-        });
-        rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
-        await runner.SimulateFrames(1);
-
-        var assertions = AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
+        var assertions = scene.AssertPanelThat("center")
             .HasContentText("0");
 
 

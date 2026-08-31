@@ -20,18 +20,9 @@ public partial class TestClass : Steps {
                 .EnsureDllAccessible()
                 .ProcessArchive();
 
-            var scene = LoadTestScene();
-            var rootNode = new RootNode();
+            var scene = await AttachUiScene();
 
-            scene.AddChild(rootNode);
-            rootNode.SetSize(new Vector2() {
-                X = 1000,
-                Y = 1000
-            });
-            rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
-            await runner.SimulateFrames(1);
-
-            var panel = rootNode.GetNode<Panel>("characterPanel");
+            var panel = scene.Window("characterPanel");
             AssertPanelThat(panel).IsNonNull();
             AssertPanelThat(panel).ViewportMatches("expected.png");
         }

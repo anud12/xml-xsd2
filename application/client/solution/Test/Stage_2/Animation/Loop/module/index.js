@@ -10,20 +10,15 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("frame_4.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
     ],
+    duration: number.of(5),
+    loop: true,
   });
 
-  hostApi.ui.registerPanel({
-    id: "loopPanel",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    offset: {
-      top: number.of(100),
-      bottom: number.of(100),
-      left: number.of(100),
-      right: number.of(100),
-    },
-    background: hostApi.ui.getAnimation(string.of("sequence"), { duration: number.of(5), loop: true }),
-  });
+  hostApi.ui.panel("loopPanel", {
+    width: 100,
+    height: 100,
+    x: 100,
+    y: 100,
+    background: hostApi.ui.getAnimation(string.of("sequence")),
+  }, []);
 }

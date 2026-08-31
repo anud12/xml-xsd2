@@ -8,6 +8,7 @@ pub mod get_entity_number_map_value;
 pub mod set_entity_text_map_value;
 pub mod set_entity_number_map_value;
 pub mod run_iteration;
+pub mod ui_state;
 
 pub use free_string::runtime_free_string;
 pub use clear_state::runtime_clear_state;

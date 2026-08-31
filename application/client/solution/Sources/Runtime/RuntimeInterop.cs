@@ -8,7 +8,9 @@ namespace NewGameProject.Runtime;
 public static class RuntimeInterop
 {
     private const string LIB_NAME = "libxml_xsd2";
-    private static string ZIP_PATH = "";
+    public static string ZIP_PATH = "";
+
+    public static string ZipPath => ZIP_PATH;
 
     public static string[] GetPanelIds()
     {
@@ -55,22 +57,25 @@ public static class RuntimeInterop
     public static Dictionary<string, byte[]> GetFileFromArchive()
     {
         var fileData = new Dictionary<string, byte[]>();
-
-        using (ZipArchive archive = ZipFile.OpenRead(ZIP_PATH))
+        if (!string.IsNullOrEmpty(ZIP_PATH))
         {
-            foreach (ZipArchiveEntry entry in archive.Entries)
+            using (ZipArchive archive = ZipFile.OpenRead(ZIP_PATH))
             {
-                if (string.IsNullOrEmpty(entry.Name)) continue;
-
-                using (Stream entryStream = entry.Open())
-                using (MemoryStream ms = new MemoryStream())
+                foreach (ZipArchiveEntry entry in archive.Entries)
                 {
-                    entryStream.CopyTo(ms);
-                    fileData.Add(entry.FullName, ms.ToArray());
+                    if (string.IsNullOrEmpty(entry.Name)) continue;
+
+                    using (Stream entryStream = entry.Open())
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        entryStream.CopyTo(ms);
+                        fileData.Add(entry.FullName, ms.ToArray());
+                    }
                 }
             }
         }
-
+        foreach (var kv in Module.PanelNodeStore.GetFiles())
+            fileData[kv.Key] = kv.Value;
         return fileData;
     }
 
@@ -167,7 +172,16 @@ public static class RuntimeInterop
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern void runtime_emit_action([MarshalAs(UnmanagedType.LPStr)] string action);
 
-    public static void emitAction(string action) => runtime_emit_action(action);
+    public static void emitAction(string action)
+    {
+        // C#-side Jint handlers take precedence (the native runtime does not
+        // understand stopPropagation); fall back to the native emit when no
+        // C# handler exists so non-module archives still work.
+        var handled = NewGameProject.Module.PanelNodeStore.TryEmitAction(action);
+        if (handled)
+            return;
+        runtime_emit_action(action);
+    }
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern long runtime_run_iteration(long elapsedUnits);
@@ -177,11 +191,57 @@ public static class RuntimeInterop
 
     public static long RunIteration(long elapsedUnits = 0)
     {
-        userLogCallback?.Invoke("DEBUG: RunIteration called with elapsedUnits=" + elapsedUnits);
+        var elapsed = runtime_get_elapsed_time_units() + elapsedUnits;
+        NewGameProject.Module.EffectStore.Process(elapsed);
+        NewGameProject.Module.BehaviorStore.Process(elapsed);
         return runtime_run_iteration(elapsedUnits);
     }
 
     public static long GetElapsedTimeUnits() => runtime_get_elapsed_time_units();
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_fetch_ui_state();
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_fetch_ui_delta();
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_fetch_ui_animations();
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_fetch_world_state();
+
+    public static string FetchUiState()
+    {
+        var ptr = runtime_fetch_ui_state();
+        if (ptr == IntPtr.Zero) return string.Empty;
+        try { return Marshal.PtrToStringAnsi(ptr) ?? string.Empty; }
+        finally { runtime_free_string(ptr); }
+    }
+
+    public static string FetchUiDelta()
+    {
+        var ptr = runtime_fetch_ui_delta();
+        if (ptr == IntPtr.Zero) return string.Empty;
+        try { return Marshal.PtrToStringAnsi(ptr) ?? string.Empty; }
+        finally { runtime_free_string(ptr); }
+    }
+
+    public static string FetchUiAnimations()
+    {
+        var ptr = runtime_fetch_ui_animations();
+        if (ptr == IntPtr.Zero) return string.Empty;
+        try { return Marshal.PtrToStringAnsi(ptr) ?? string.Empty; }
+        finally { runtime_free_string(ptr); }
+    }
+
+    public static string FetchWorldState()
+    {
+        var ptr = runtime_fetch_world_state();
+        if (ptr == IntPtr.Zero) return string.Empty;
+        try { return Marshal.PtrToStringAnsi(ptr) ?? string.Empty; }
+        finally { runtime_free_string(ptr); }
+    }
 
     private delegate void LogCallback([MarshalAs(UnmanagedType.LPStr)] string message);
     private static Action<string>? userLogCallback;

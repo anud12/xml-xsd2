@@ -31,6 +31,12 @@ export default (hostApi) => {
             v.set(string.of("Yes"))
           }))
       })
+      output.ifFalse(() => {
+        context.getEntityBy(filter).get(number.of(0))
+          .map(v => v.getText(string.of("isModified")).ifPresent(v => {
+            v.set(string.of("No"))
+          }))
+      })
     }
   })
 
@@ -47,7 +53,7 @@ export default (hostApi) => {
     apply: (context, output) => {
       /** @type {ConditionExpression} */
       const shouldDouble = output.value;
-      
+
       context.getEntityBy(filter)
         .map(elementExpr => {
           elementExpr.getNumber(key).map(v => {
@@ -57,7 +63,7 @@ export default (hostApi) => {
             shouldDouble.ifTrue(() => {
               v.sum(number.of(3))
             })
-            
+
           });
         })
     }
@@ -65,50 +71,33 @@ export default (hostApi) => {
 
   hostApi.runtime.emitEvent("event", {});
 
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+  hostApi.runtime.registerAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
+    duration: number.of(1),
   });
-  hostApi.ui.registerPanel({
-    id: "center",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    offset: {
-      top: number.of(50),
-      bottom: number.of(50),
-      left: number.of(50),
-      right: number.of(50),
-    },
-    content: {
-      entityId: string.of("entity_id"),
-      name: key,
-      type: "entityNumberValue",
-      align: "center",
-    },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) })
-  })
+  hostApi.ui.panel("center", {
+    x: 200,
+    y: 450,
+    width: 100,
+    height: 100,
+    anchor: "center",
+    align: "center",
+    background: hostApi.ui.getAnimation(string.of("texture")),
+  }, [
+    hostApi.ui.field("centerContent", { entity: "entity_id", map: "number", name: "key", fallback: "0" }),
+  ])
 
-  hostApi.ui.registerPanel({
-    id: "isModifiedPanel",
-    size: {
-      height: number.of(100),
-      width: number.of(100)
-    },
-    offset: {
-      top: number.of(50),
-      bottom: number.of(50),
-      left: number.of(50),
-      right: number.of(150),
-    },
-    content: {
-      entityId: string.of("entity_id"),
-      name: string.of("isModified"),
-      type: "entityTextValue",
-      align: "center",
-    },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) })
-  })
+  hostApi.ui.panel("isModifiedPanel", {
+    x: 700,
+    y: 450,
+    width: 100,
+    height: 100,
+    anchor: "center",
+    align: "center",
+    background: hostApi.ui.getAnimation(string.of("texture")),
+  }, [
+    hostApi.ui.field("isModifiedContent", { entity: "entity_id", map: "text", name: "isModified", fallback: "No" }),
+  ])
 }

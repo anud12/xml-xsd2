@@ -22,27 +22,16 @@ public partial class TestClass : Steps {
                 .ProcessArchive();
 
 
-            var scene = LoadTestScene();
-            var rootNode = new RootNode();
-            var idList = RuntimeInterop.GetPanelIds();
+            var scene = await AttachUiScene();
 
-            scene.AddChild(rootNode);
-            rootNode.SetSize(new Vector2() {
-                X = 1000,
-                Y = 1000
-            });
-            rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
-                    await runner.SimulateFrames(1);
+            var center = scene.Window("center");
 
-
-            AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
-                .IsPositionEqual(0, 0);
-
-            DebugSaveScreenshot("expected.png");
+            var child = scene.Window("child");
+            var childPos = child.GlobalPosition;
 
             var mouseEvent = new InputEventMouseButton() {
-                Position = new Vector2(51, 51),
-                GlobalPosition = new Vector2(51, 51),
+                Position = center.GlobalPosition + new Vector2(1, 1),
+                GlobalPosition = center.GlobalPosition + new Vector2(1, 1),
                 ButtonIndex = MouseButton.Left,
                 Pressed = true,
                 ButtonMask = MouseButtonMask.Left
@@ -55,21 +44,20 @@ public partial class TestClass : Steps {
 
             AssertRuntimeOutputContains("___From module action fired line___");
 
-            var mouseEvent2 = new InputEventMouseButton() {
-                Position = new Vector2(0, 0),
-                GlobalPosition = new Vector2(0, 0),
+            var childClick = new InputEventMouseButton() {
+                Position = childPos + new Vector2(1, 1),
+                GlobalPosition = childPos + new Vector2(1, 1),
                 ButtonIndex = MouseButton.Left,
                 Pressed = true,
                 ButtonMask = MouseButtonMask.Left
             };
-            runner.Scene().GetViewport().PushInput(mouseEvent2);
-            mouseEvent2 = (InputEventMouseButton)mouseEvent2.Duplicate();
-            mouseEvent2.Pressed = false;
-            runner.Scene().GetViewport().PushInput(mouseEvent2);
-
+            runner.Scene().GetViewport().PushInput(childClick);
+            childClick = (InputEventMouseButton)childClick.Duplicate();
+            childClick.Pressed = false;
+            runner.Scene().GetViewport().PushInput(childClick);
+            await runner.SimulateFrames(1);
 
             AssertRuntimeOutputContains("___From module childAction fired line___");
-            await runner.SimulateFrames(1);
         }
         catch (Exception e) {
             Assertions.AssertThat(true)

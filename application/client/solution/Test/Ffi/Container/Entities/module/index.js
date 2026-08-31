@@ -1,4 +1,3 @@
-// @ts-nocheck
 export default (hostApi) => {
   const { string } = hostApi.runtime;
   hostApi.runtime.registerContainer({

@@ -17,20 +17,10 @@ public partial class TestClass : Steps {
             .AddFileToArchive("module/texture.png", "texture.png")
             .EnsureDllAccessible()
             .ProcessArchive();
-        
-        var scene = LoadTestScene();
-        var rootNode = new RootNode();
-        var idList = RuntimeInterop.GetPanelIds();
 
-        scene.AddChild(rootNode);
-        rootNode.SetSize(new Vector2() {
-            X = 1000,
-            Y = 1000
-        });
-        rootNode.SetAnchorsPreset(Control.LayoutPreset.Center);
-                await runner.SimulateFrames(1);
+        var scene = await AttachUiScene();
 
-        var assertions = AssertPanelThat(rootNode.GetNode<Panel>(idList[0]))
+        var assertions = scene.AssertPanelThat("center")
             .HasContentText("42");
 
         await runner.SimulateFrames(1);
@@ -40,6 +30,6 @@ public partial class TestClass : Steps {
         await runner.SimulateFrames(1);
 
         assertions.HasContentText("99");
-        
+
     }
 }

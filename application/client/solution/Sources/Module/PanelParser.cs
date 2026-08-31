@@ -86,6 +86,12 @@ static class PanelParser
             if (t != null)
                 p.Hover = new Runtime.Hover
                 { Texture = t, Thickness = Extract.Int(h, "thickness") ?? 0 };
+            if (Extract.String(h, "emitAction") is { } ea)
+                p.HoverEmitAction = ea;
+            p.HoverStopPropagation = Extract.Bool(h, "stopPropagation") ?? false;
+            // Hover background is an AnimationRegistrationArguments; the swap
+            // renders its first frame.
+            p.HoverBackground = ExtractTextureFromSprite(h, "background");
         }
 
         if (e.TryGetProperty("onClick", out var c) && c.ValueKind == JsonValueKind.Object)
@@ -98,6 +104,18 @@ static class PanelParser
             }
         }
 
+        if (e.TryGetProperty("border", out var bd) && bd.ValueKind == JsonValueKind.Object)
+        {
+            // Border texture is an AnimationRegistrationArguments; the
+            // nine-patch uses its first frame.
+            var bt = ExtractTextureFromSprite(bd, "texture");
+            if (bt != null)
+                p.Border = new Runtime.Border
+                { Width = Extract.Int(bd, "width") ?? 1, Texture = bt };
+        }
+
+        p.Surface = Extract.Bool(e, "surface") ?? false;
+
         if (e.TryGetProperty("content", out var ct) && ct.ValueKind == JsonValueKind.Object)
             p.Content = ContentParser.Parse(ct);
 
@@ -106,10 +124,21 @@ static class PanelParser
 
         if (e.TryGetProperty("children", out var ch) && ch.ValueKind == JsonValueKind.Array)
         {
+            // Children may be nested panel objects (parsed inline) or ids of
+            // panels registered earlier in the module (linked after all
+            // panels are parsed in ToPanels).
             var children = new List<Runtime.Panel>();
+            var childIds = new List<string>();
             foreach (var child in ch.EnumerateArray())
-                children.Add(Parse(child));
+            {
+                if (child.ValueKind == JsonValueKind.Object)
+                    children.Add(Parse(child));
+                else if (child.ValueKind == JsonValueKind.String)
+                    childIds.Add(child.GetString() ?? "");
+            }
             p.Children = children.ToArray();
+            if (childIds.Count > 0)
+                p.ChildIds = childIds.ToArray();
         }
 
         return p;

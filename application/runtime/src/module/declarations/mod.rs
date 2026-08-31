@@ -45,12 +45,6 @@ fn log_actions_and_panels(dec: &Declarations) {
     for p in dec.panels.iter() {
         runtime_log!("panel: {}", p);
     }
-    for name in dec.behavior_definitions.keys() {
-        runtime_log!("behavior registered: {}", name);
-    }
-    for (entity, name) in dec.behavior_attachments.iter() {
-        runtime_log!("behavior attached: {} -> {}", entity, name);
-    }
 }
 
 fn set_state_from_declarations(dec: &Declarations) {

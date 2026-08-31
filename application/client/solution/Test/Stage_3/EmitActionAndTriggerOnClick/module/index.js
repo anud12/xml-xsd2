@@ -21,28 +21,18 @@ export default (hostApi) => {
         }
     })
 
-    hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+    hostApi.runtime.registerAnimation(string.of("texture"), {
         frames: [
           { sprite: hostApi.ui.getSpritePNG("texture.png") },
         ],
+        duration: number.of(1),
       });
 
-    hostApi.ui.registerPanel({
-        id: "center",
-        size: {
-            height: number.of(100),
-            width: number.of(100)
-        },
-        offset: {
-            top: number.of(50),
-            bottom: number.of(50),
-            left: number.of(50),
-            right: number.of(50),
-        },
-        onClick: {
-            type: "emitAction",
-            actionName: string.of("action")
-        },
-        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture"), { duration: hostApi.runtime.number.of(1) })
-    })
+    hostApi.ui.panel("center", {
+        width: 100,
+        height: 100,
+        anchor: "center",
+        background: hostApi.ui.getAnimation(string.of("texture")),
+        onClick: "action",
+    }, [])
 }
