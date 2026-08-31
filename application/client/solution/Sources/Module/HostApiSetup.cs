@@ -175,8 +175,19 @@ var hostApi = {
     runtime: {
         getEntityBy: function(filter) {
             var resolvedIds = [];
-            if (filter && filter.__ids) resolvedIds = filter.__ids;
-            else {
+            if (filter && filter.__ids) {
+                resolvedIds = filter.__ids;
+            } else if (filter && typeof filter.id === ""function"") {
+                var _allIds = [];
+                for (var k in __registeredEntities) {
+                    if (__registeredEntities.hasOwnProperty(k)) _allIds.push(k);
+                }
+                for (var i = 0; i < _allIds.length; i++) {
+                    var k = _allIds[i];
+                    var c = filter.id(__makeCondition(true, k));
+                    if (c && c.__condition === true) resolvedIds.push(k);
+                }
+            } else {
                 for (var k in __registeredEntities) {
                     if (__registeredEntities.hasOwnProperty(k)) resolvedIds.push(k);
                 }
@@ -240,9 +251,15 @@ var hostApi = {
                 };
                 return numberExpr;
             };
-            var __makeCondition = function(boolVal) {
+            var __makeCondition = function(boolVal, subjectValue) {
                 var c = {
-                    __condition: boolVal === true
+                    __condition: boolVal === true,
+                    value: subjectValue
+                };
+                c.isContainingExactly = function(target) {
+                    var t = (typeof target === ""object"") ? target.value : target;
+                    var ok = c.value !== undefined && String(c.value) === String(t);
+                    return __makeCondition(ok, c.value);
                 };
                 c.ifTrue = function(fn) { if (c.__condition && typeof fn === ""function"") fn(); return c; };
                 c.ifFalse = function(fn) { if (!c.__condition && typeof fn === ""function"") fn(); return c; };
@@ -476,22 +493,6 @@ var hostApi = {
         },
         log: function(msg) {
             if (typeof __host_log === ""function"") __host_log(String(msg));
-        },
-        entity: {
-            filter: {
-                create: function() {
-                    return {
-                        byId: function(idFn) {
-                            return {
-                                isContainingExactly: function(target) {
-                                    var tResolved = (typeof target === ""object"") ? target.value : target;
-                                    return { __ids: [tResolved] };
-                                }
-                            };
-                        }
-                    };
-                }
-            }
         },
         condition: { of: function(v) { return v; } },
         temporal: {},

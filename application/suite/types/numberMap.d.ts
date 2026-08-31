@@ -1,18 +1,24 @@
-import {NumberExpression} from "./primitives/numberExpression";
+import {NumberExpression, MutableNumberExpression} from "./primitives/numberExpression";
 import {ConditionExpression} from "./primitives/conditionExpression";
 
+/**
+ * Read-only map of named number values. Values are plain NumberExpressions that
+ * do not write back to the owning entity.
+ */
 export type NumberMap = {
-  [name:string]: NumberExpression, //colection of `NumberExpression` values accesible by `name`.
+  [name: string]: NumberExpression,
 }
 
-export type NumberMapExpressionApi = {
-  create: () => NumberMapExpression,
+/**
+ * Mutable map of named number values. Values are MutableNumberExpressions whose
+ * mutations (set/sum/...) write back to the owning entity.
+ */
+export type MutableNumberMap = {
+  [name: string]: MutableNumberExpression,
 }
 
-export type NumberMapExpression = {
-  put: (key: string, value: NumberExpression) => NumberMapExpression,
-  remove?: (key: string) => NumberMapExpression,
-  get: (key: string) => NumberExpression,
-  has: (key: string) => ConditionExpression,
-  equals: (key: string, value: NumberExpression) => ConditionExpression,
+export type NumberMapApi = {
+  /** Create an empty mutable number map. */
+  create: () => MutableNumberMap,
+  type: unknown,
 }

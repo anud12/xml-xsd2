@@ -14,7 +14,9 @@ export default (hostApi) => {
       return hostApi.runtime.maybe.of(number.of(10));
     },
     apply:(context, output) => {
-      context.getEntityBy(hostApi.runtime.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id"))))
+      context.getEntityBy({
+        id: id => id.isContainingExactly(string.of("entity_id")),
+      })
         .map(elementExpr => {
           elementExpr.getNumber(string.of("key")).map(v => v.sum(number.of(1)));
         })

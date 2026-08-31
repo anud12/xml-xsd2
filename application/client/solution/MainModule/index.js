@@ -1,7 +1,9 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
-  const filter = hostApi.runtime.entity.filter.create().byId(id => id.isContainingExactly(string.of("entity_id")));
+  const filter = {
+    id: id => id.isContainingExactly(string.of("entity_id")),
+  };
   const key = string.of("key");
   
   hostApi.runtime.setEntity(string.of("entity_id"), {

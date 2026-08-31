@@ -1,23 +1,13 @@
 import {ConditionExpression} from "./conditionExpression";
 
 export type NumberExpressionApi = {
-  of: (number:number) => NumberExpression,
-  asRule:(ruleName: string, numberExpression: NumberExpression) => NumberExpressionApi,
-  getRule: (ruleName: string) => NumberExpressionApi,
+  of: (number:number) => MutableNumberExpression,
   /** Marker for HostApi surfaces */
   type: unknown,
 }
 
 
 export type NumberExpression = {
-  of: (number:number) => NumberExpression,
-  sum: (numberExpression:NumberExpression) => NumberExpression,
-  subtract: (numberExpression:NumberExpression) => NumberExpression,
-  multiply: (numberExpression:NumberExpression) => NumberExpression,
-  divide: (numberExpression:NumberExpression) => NumberExpression,
-  modulo: (numberExpression:NumberExpression) => NumberExpression,
-  random: (fromInclusive:NumberExpression, toInclusive: NumberExpression) => NumberExpression,
-
   /** Comparison operations returning a lazy ConditionExpression. Prefix 'is' required. */
   isGreaterThan: (other: NumberExpression) => ConditionExpression,
   isLessThan: (other: NumberExpression) => ConditionExpression,
@@ -25,4 +15,14 @@ export type NumberExpression = {
   isLessOrEqualTo: (other: NumberExpression) => ConditionExpression,
   isEqualTo: (other: NumberExpression) => ConditionExpression,
   isNotEqualTo: (other: NumberExpression) => ConditionExpression,
+}
+
+export type MutableNumberExpression = NumberExpression & {
+  set: (numberExpression: NumberExpression) => MutableNumberExpression,
+  sum: (numberExpression: NumberExpression) => MutableNumberExpression,
+  subtract: (numberExpression: NumberExpression) => MutableNumberExpression,
+  multiply: (numberExpression: NumberExpression) => MutableNumberExpression,
+  divide: (numberExpression: NumberExpression) => MutableNumberExpression,
+  modulo: (numberExpression: NumberExpression) => MutableNumberExpression,
+  random: (fromInclusive: NumberExpression, toInclusive: NumberExpression) => MutableNumberExpression,
 }

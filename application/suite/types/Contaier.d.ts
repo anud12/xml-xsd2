@@ -1,14 +1,14 @@
 import {EntityExpression, EntityProxy} from "./Entity";
 import {NumberExpression} from "./primitives/numberExpression";
 import {StringExpression} from "./primitives/stringExpression";
-import {TextMapExpression} from "./textMap";
-import {NumberMapExpression} from "./numberMap";
+import {TextMap, MutableTextMap} from "./textMap";
+import {NumberMap, MutableNumberMap} from "./numberMap";
 
 export type ContainerCreationArguments = {
   /** Keyed string metadata for the container */
-  textMap?: Record<string, StringExpression>
+  textMap?: TextMap
   /** Keyed numeric metadata for the container */
-  numberMap?: Record<string, NumberExpression>
+  numberMap?: NumberMap
   /** Maps a member entity to its x-coordinate as a NumberExpression */
   getX?: (entity: EntityProxy) => NumberExpression
   /** Maps a member entity to its y-coordinate as a NumberExpression */
@@ -23,15 +23,12 @@ export type ContainerCreationArguments = {
   sizeY?: { value: NumberExpression, outOfBounds: OutOfBoundsRule }
   
   /** Member entities of the container. Optional when the container holds no members. */
-  entities?: Array<StringExpression>
+  entities?: StringExpression[]
 }
 
 export type ContainerExpressionApi = {
   /** Create an empty container builder */
-  create: () => ContainerExpression,
-  /** Register and retrieve named container templates */
-  asRule?: (ruleName: string, expr: ContainerExpression) => ContainerExpressionApi,
-  getRule?: (ruleName: string) => ContainerExpression,
+  create: () => MutableContainerExpression,
   type: ContainerExpressionType,
 }
 
@@ -42,22 +39,31 @@ export type ContainerExpressionType = {
 export type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
 
 export type ContainerExpression = {
+  /** Get the container's text_map as a read-only map */
+  textMap: () => TextMap,
+  /** Get the container's number_map as a read-only map */
+  numberMap: () => NumberMap,
+  /** List the member entities of the container */
+  getEntities: () => StringExpression[],
+}
+
+export type MutableContainerExpression = ContainerExpression & {
   /** Append an inline member entity built using EntityExpression */
-  withEntity: (entity: EntityExpression) => ContainerExpression,
-  /** Replace the entity's text_map with the supplied TextMapExpression */
-  withTextMap: (textMap: TextMapExpression) => ContainerExpression,
-  /** Replace the entity's number_map with the supplied NumberMapExpression */
-  withNumberMap: (numberMap: NumberMapExpression) => ContainerExpression,
+  withEntity: (entity: EntityExpression) => MutableContainerExpression,
+  /** Get the container's text_map as a mutable map whose writes persist to the container */
+  textMap: () => MutableTextMap,
+  /** Get the container's number_map as a mutable map whose writes persist to the container */
+  numberMap: () => MutableNumberMap,
   /** Declare the x-coordinate function */
-  withGetX: (getX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  withGetX: (getX: (entity: EntityExpression) => NumberExpression) => MutableContainerExpression,
   /** Declare the y-coordinate function */
-  withGetY: (getY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  withGetY: (getY: (entity: EntityExpression) => NumberExpression) => MutableContainerExpression,
   /** Declare the x-span function */
-  withGetSpanX: (getSpanX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  withGetSpanX: (getSpanX: (entity: EntityExpression) => NumberExpression) => MutableContainerExpression,
   /** Declare the y-span function */
-  withGetSpanY: (getSpanY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
+  withGetSpanY: (getSpanY: (entity: EntityExpression) => NumberExpression) => MutableContainerExpression,
   /** Declare the x-axis size bounds */
-  withSizeX: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
+  withSizeX: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => MutableContainerExpression,
   /** Declare the y-axis size bounds */
-  withSizeY: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
+  withSizeY: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => MutableContainerExpression,
 }

@@ -1,13 +1,14 @@
 import {ConditionExpressionApi} from "./primitives/conditionExpression";
 import {NumberExpressionApi} from "./primitives/numberExpression";
-import {StringExpression, StringExpressionApi} from "./primitives/stringExpression";
+import {StringExpression, MutableStringExpression, StringExpressionApi} from "./primitives/stringExpression";
+
 import {MaybeExpressionApi} from "./primitives/maybeExpression";
 import {TemporalExpressionApi} from "./primitives/temporalExpression";
 import {RegisterEffectFunction} from "./Effect";
 import {EntityExpressionApi} from "./Entity";
 import {ContainerExpressionApi, ContainerCreationArguments} from "./Contaier";
-import {NumberMapExpressionApi} from "./numberMap";
-import {TextMapExpressionApi} from "./textMap";
+import {NumberMapApi} from "./numberMap";
+import {TextMapApi} from "./textMap";
 import {RegisterActionFunction} from "./action";
 import {RegisterPanelFunction} from "./ui/Panel";
 import {SpriteResource} from "./texture/SpriteResource";
@@ -64,14 +65,14 @@ export type HostApi = {
     maybe: MaybeExpressionApi,
     temporal: TemporalExpressionApi,
 
-    numberMap: NumberMapExpressionApi,
-    textMap: TextMapExpressionApi,
+    numberMap: NumberMapApi,
+    textMap: TextMapApi,
 
     entity: EntityExpressionApi,
     container: ContainerExpressionApi,
 
-    /** Sets entity fields (numberMap, textMap) by entity ID. */
-    setEntity: (entityId: StringExpression, arguments: EntityCreationArguments) => void;
+    /** Sets entity fields (numberMap, textMap) by entity ID. Same payload shape as `ApplyContext.createEntity`. */
+    setEntity: (entityId: MutableStringExpression | string, arguments: EntityCreationArguments) => void;
 
     /** Sets container fields by container ID. */
     setContainer: (containerId: StringExpression, arguments: ContainerCreationArguments) => void;
@@ -158,8 +159,8 @@ export type UiPanelOptions = UiWindowOptions & {
     | {
         rowFirst?: boolean;
         reverse?: boolean;
-        columns?: Array<{ min?: number; max?: number; weight?: number; align?: "start" | "end" }>;
-        rows?: Array<{ min?: number; max?: number; weight?: number; align?: "start" | "end" }>;
+        columns?: readonly { min?: number; max?: number; weight?: number; align?: "start" | "end" }[];
+        rows?: readonly { min?: number; max?: number; weight?: number; align?: "start" | "end" }[];
         gap?: { row?: number; column?: number };
       };
 };

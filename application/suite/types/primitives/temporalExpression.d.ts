@@ -44,16 +44,6 @@ export type TemporalExpressionApi = {
   defineUnit: (unitName: string, gtuMultiplier: number) => TemporalExpressionApi;
 
   /**
-   * Register a temporal expression under a named rule for later getRule(ref) lookups.
-   */
-  asRule: (ruleName: string, expr: TemporalExpression) => TemporalExpressionApi;
-
-  /**
-   * Retrieve a previously registered temporal expression by rule name.
-   */
-  getRule: (ruleName: string) => TemporalExpression;
-
-  /**
    * Marker for HostApi surfaces.
    */
   type: unknown;
