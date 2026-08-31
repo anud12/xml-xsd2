@@ -66,8 +66,6 @@ export default (hostApi) => {
       { sprite: hostApi.ui.getSpritePNG("frame_1.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_2.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_4.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
     ],
@@ -78,8 +76,6 @@ export default (hostApi) => {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("frame_1.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_2.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_4.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
