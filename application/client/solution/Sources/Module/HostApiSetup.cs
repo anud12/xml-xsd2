@@ -6,6 +6,10 @@ static class HostApiSetup
 var __registeredEntities = {};
 var __registeredContainers = {};
 var __registeredAnimations = {};
+// Set only while an effect's apply callback is running. Expressions built
+// outside apply are read-only; the mutation surface (sum, ifPresent.set, ...)
+// is attached to entity expressions only during apply.
+var __inApply = false;
 // Shared emitter for the merged panel builder. Surface options (x/y/width/
 // height/background/onHover/onClick/anchor, or the forced flag from the
 // window alias) mark the node as a positioned surface; layout marks it as a
@@ -173,7 +177,27 @@ var hostApi = {
             }
         },
     runtime: {
+        __makeCondition: function(boolVal, subjectValue) {
+            var c = {
+                __condition: boolVal === true,
+                value: subjectValue
+            };
+            c.isContainingExactly = function(target) {
+                var t = (typeof target === ""object"") ? target.value : target;
+                var ok = c.value !== undefined && String(c.value) === String(t);
+                return hostApi.runtime.__makeCondition(ok, c.value);
+            };
+            c.ifTrue = function(fn) { if (c.__condition && typeof fn === ""function"") fn(); return c; };
+            c.ifFalse = function(fn) { if (!c.__condition && typeof fn === ""function"") fn(); return c; };
+            c.orElse = function(other) {
+                var ov = (other && typeof other.__condition === ""boolean"") ? other.__condition : !!other;
+                c.__condition = c.__condition || ov;
+                return c;
+            };
+            return c;
+        },
         getEntityBy: function(filter) {
+            var __makeCondition = hostApi.runtime.__makeCondition;
             var resolvedIds = [];
             if (filter && filter.__ids) {
                 resolvedIds = filter.__ids;
@@ -192,7 +216,7 @@ var hostApi = {
                     if (__registeredEntities.hasOwnProperty(k)) resolvedIds.push(k);
                 }
             }
-            var _makeNumberExpr = function(data, id, nResolved) {
+            var _makeNumberExpr = function(data, id, nResolved, mutable) {
                 var _cv = null, _hv = false;
                 if (data && data.numberMap && data.numberMap[nResolved] !== undefined) {
                     _cv = data.numberMap[nResolved];
@@ -227,17 +251,6 @@ var hostApi = {
                         if (_hv) fn2(numberExpr);
                         return numberExpr;
                     },
-                    sum: function(amount) {
-                        var a = (typeof amount === ""object"") ? amount.value : amount;
-                        if (_hv) {
-                            var nv = _cv + a;
-                            _cv = nv;
-                            numberExpr.value = nv;
-                            data.numberMap[nResolved] = nv;
-                            if (typeof __host_setEntityNumber === ""function"") __host_setEntityNumber(id, nResolved, nv);
-                        }
-                        return numberExpr;
-                    },
                     modulo: function(m) {
                         var md = (typeof m === ""object"") ? m.value : m;
                         var result = _hv && md ? _cv % md : null;
@@ -249,26 +262,20 @@ var hostApi = {
                         };
                     }
                 };
+                if (mutable) {
+                    numberExpr.sum = function(amount) {
+                        var a = (typeof amount === ""object"") ? amount.value : amount;
+                        if (_hv) {
+                            var nv = _cv + a;
+                            _cv = nv;
+                            numberExpr.value = nv;
+                            data.numberMap[nResolved] = nv;
+                            if (typeof __host_setEntityNumber === ""function"") __host_setEntityNumber(id, nResolved, nv);
+                        }
+                        return numberExpr;
+                    };
+                }
                 return numberExpr;
-            };
-            var __makeCondition = function(boolVal, subjectValue) {
-                var c = {
-                    __condition: boolVal === true,
-                    value: subjectValue
-                };
-                c.isContainingExactly = function(target) {
-                    var t = (typeof target === ""object"") ? target.value : target;
-                    var ok = c.value !== undefined && String(c.value) === String(t);
-                    return __makeCondition(ok, c.value);
-                };
-                c.ifTrue = function(fn) { if (c.__condition && typeof fn === ""function"") fn(); return c; };
-                c.ifFalse = function(fn) { if (!c.__condition && typeof fn === ""function"") fn(); return c; };
-                c.orElse = function(other) {
-                    var ov = (other && typeof other.__condition === ""boolean"") ? other.__condition : !!other;
-                    c.__condition = c.__condition || ov;
-                    return c;
-                };
-                return c;
             };
             var collection = {
                 map: function(fn) {
@@ -279,7 +286,7 @@ var hostApi = {
                             id: id,
                             getNumber: function(name) {
                                 var nResolved = (typeof name === ""object"") ? name.value : name;
-                                return _makeNumberExpr(data, id, nResolved);
+                                return _makeNumberExpr(data, id, nResolved, __inApply);
                             },
                             getText: function(name) {
                                 var nResolved = (typeof name === ""object"") ? name.value : name;
@@ -289,26 +296,29 @@ var hostApi = {
                                     _tv = data.textMap[nResolved];
                                     if (_tv && typeof _tv === ""object"") _tv = _tv.value;
                                 }
-                                return {
-                                    map: function(fn2) {
-                                        if (_has) fn2(_tv);
-                                        return collection;
-                                    },
-                                    ifPresent: function(fn2) {
-                                        if (_has && typeof fn2 === ""function"") {
-                                            fn2({
-                                                set: function(v) {
-                                                    var sv = (typeof v === ""object"") ? v.value : v;
-                                                    data.textMap[nResolved] = sv;
-                                                    if (typeof __host_setEntityText === ""function"")
-                                                        __host_setEntityText(id, nResolved, sv);
-                                                }
-                                            });
-                                        }
-                                        return collection;
-                                    }
-                                };
-                            }
+                                 var textExpr = {
+                                     map: function(fn2) {
+                                         if (_has) fn2(_tv);
+                                         return collection;
+                                     }
+                                 };
+                                 if (__inApply) {
+                                     textExpr.ifPresent = function(fn2) {
+                                         if (_has && typeof fn2 === ""function"") {
+                                             fn2({
+                                                 set: function(v) {
+                                                     var sv = (typeof v === ""object"") ? v.value : v;
+                                                     data.textMap[nResolved] = sv;
+                                                     if (typeof __host_setEntityText === ""function"")
+                                                         __host_setEntityText(id, nResolved, sv);
+                                                 }
+                                             });
+                                         }
+                                         return collection;
+                                     };
+                                 }
+                                 return textExpr;
+                             }
                         });
                     }
                     return collection;
@@ -325,7 +335,7 @@ var hostApi = {
                             id: id,
                             getNumber: function(name) {
                                 var nResolved = (typeof name === ""object"") ? name.value : name;
-                                var expr = _makeNumberExpr(data, id, nResolved);
+                                var expr = _makeNumberExpr(data, id, nResolved, __inApply);
                                 _flatValues.push(expr);
                                 return expr;
                             }
@@ -381,7 +391,7 @@ var hostApi = {
                             id: id,
                             getNumber: function(name) {
                                 var nResolved = (typeof name === ""object"") ? name.value : name;
-                                return _makeNumberExpr(data, id, nResolved);
+                                return _makeNumberExpr(data, id, nResolved, __inApply);
                             }
                         };
                         _condResults.push(pred(el));
@@ -418,18 +428,6 @@ var hostApi = {
                     if (typeof __host_attachBehavior === ""function"")
                         __host_attachBehavior(resolvedId, String(bName));
                 }
-                var tm = data.textMap || {};
-                for (var tk in tm) {
-                    var tv = tm[tk];
-                    if (tv && typeof tv === ""object"") tv = tv.value;
-                    if (typeof tv === ""string"") __host_setEntityText(resolvedId, tk, tv);
-                }
-                var nm = data.numberMap || {};
-                for (var nk in nm) {
-                    var nv = nm[nk];
-                    if (nv && typeof nv === ""object"") nv = nv.value;
-                    if (typeof nv === ""number"") __host_setEntityNumber(resolvedId, nk, nv);
-                }
             }
             return { name: id };
         },
@@ -438,23 +436,13 @@ var hostApi = {
             if (typeof resolvedId === ""string"") __registeredContainers[resolvedId] = data;
         },
         registerEffect: function(args) {
-            if (args && typeof args.apply === ""function"") {
-                var name = (typeof args.name === ""object"") ? args.name.value : args.name;
-                if (typeof __host_registerEffect === ""function"") {
-                    var reoccur = args.reoccurAfterMs !== undefined ? args.reoccurAfterMs : null;
-                    __host_registerEffect(String(name), reoccur, args.prepare, args.apply);
-                }
-            }
             return { name: args ? args.name : null };
         },
         registerAction: function(args) {
             if (args && typeof args.apply === ""function"") {
                 var name = (typeof args.name === ""object"") ? args.name.value : args.name;
-                if (typeof __host_registerAction === ""function"") {
-                    __host_registerAction(String(name), args.apply);
-                    globalThis.__registeredActions = globalThis.__registeredActions || [];
-                    globalThis.__registeredActions.push({ name: String(name) });
-                }
+                globalThis.__registeredActions = globalThis.__registeredActions || [];
+                globalThis.__registeredActions.push({ name: String(name) });
             }
             return { name: args ? args.name : null };
         },
@@ -485,10 +473,6 @@ var hostApi = {
             }
         },
         emitEvent: function(name, data) {
-            var n = (typeof name === ""object"") ? name.value : name;
-            if (typeof __host_emitEffectResult === ""function"")
-                return __host_emitEffectResult(String(n), data || {});
-            if (typeof __host_emitEffect === ""function"") __host_emitEffect(String(n), data || {});
             return null;
         },
         log: function(msg) {

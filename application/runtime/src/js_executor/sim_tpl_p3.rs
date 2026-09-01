@@ -29,6 +29,7 @@ const SIM_TPL_P3: &str = r#"
     const wrappedEmit = function(name, payload) { return emitEvent(name, payload); };
     const ctx = { emitEffect: wrappedEmit, emitEvent: wrappedEmit,
       createEntity: recordCreated,
+      actor: { containers: [] },
       entity: { create: ()=>({ withTextMap: tm => tm }) },
       textMap: { create: ()=>({ put: (k,v)=>{ const o={}; o[k]=v; return o; } }) },
       string: { of: s => s }};

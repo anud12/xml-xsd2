@@ -1,6 +1,8 @@
 pub mod script_emit;
 pub mod script_register;
 pub mod script_ui;
+#[allow(dead_code)]
+pub mod ui_host_api;
 pub mod script_panel_entity;
 pub mod script_rest;
 mod script_extract;

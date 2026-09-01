@@ -16,6 +16,26 @@ pub fn host_api_script_log() -> &'static str {
     },"#
 }
 
+pub fn host_api_script_register_behavior() -> &'static str {
+    r#"registerBehavior(definition) {
+        if (!definition || typeof definition !== 'object') {
+            throw new Error('behavior: missing definition');
+        }
+        var resolvedName = typeof definition.name === 'object'
+            ? definition.name.value : definition.name;
+        if (typeof resolvedName !== 'string' || resolvedName === '') {
+            throw new Error('behavior: missing name');
+        }
+        globalThis.__behaviorDefinitions =
+            globalThis.__behaviorDefinitions || {};
+        if (resolvedName in globalThis.__behaviorDefinitions) {
+            throw new Error('behavior: duplicate name ' + resolvedName);
+        }
+        globalThis.__behaviorDefinitions[resolvedName] = definition;
+        return { name: definition.name };
+    },"#
+}
+
 pub fn host_api_script_animation() -> &'static str {
     r#"registerAnimation(name, args) {
         globalThis.__registeredAnimations =
@@ -69,6 +89,7 @@ pub fn host_api_script_rest() -> String {
         host_api_script_register_container().to_string());
     parts.push(host_api_script_entity_filter().to_string());
     parts.push(host_api_script_log().to_string());
+    parts.push(host_api_script_register_behavior().to_string());
     parts.push(host_api_script_animation().to_string());
     let mut s = parts.join("");
     s.push_str(" }");
