@@ -101,6 +101,11 @@ pub(super) fn host_api_script_register_container()
             if (c && typeof c === 'object') {
                 toPush = JSON.stringify(
                     globalThis.serializeContainer(c));
+                globalThis.__containerData =
+                    globalThis.__containerData || {};
+                var cid = (typeof c.id === 'object' && c.id !== null)
+                    ? c.id.value : c.id;
+                if (cid) globalThis.__containerData[cid] = c;
             }
             globalThis.__registeredContainers =
                 globalThis.__registeredContainers || [];
