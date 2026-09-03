@@ -1,5 +1,3 @@
-import {MaybeExpression} from "./maybeExpression";
-
 export type ConditionExpression = {
   /** Short-circuiting combinators. Immutable. */
   and: (other: ConditionExpression) => ConditionExpression;
@@ -16,13 +14,14 @@ export type ConditionExpression = {
   
 };
 
+export type MutableConditionExpression = ConditionExpression & {
+  /** Overwrite the condition value in place. Returns self. */
+  set: (value: boolean) => MutableConditionExpression;
+}
+
 export type ConditionExpressionApi = {
   /** Factory function */
-  of: (value: boolean) => ConditionExpression;
-
-  /** Register and retrieve named condition rules. */
-  asRule: (ruleName: string, expr: ConditionExpression) => ConditionExpressionApi;
-  getRule: (ruleName: string) => ConditionExpression;
+  of: (value: boolean) => MutableConditionExpression;
 
   /** Marker for HostApi surfaces */
   type: unknown;

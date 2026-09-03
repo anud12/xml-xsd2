@@ -58,7 +58,7 @@ public static class BehaviorStore
                     r.Index++;
                     continue;
                 }
-                try { PanelNodeStore.TryEmitAction(step.ActionName!); }
+                try { RuntimeInterop.emitAction(step.ActionName!); }
                 catch (Exception ex)
                 {
                     RuntimeInterop.Log($"[BehaviorStore] action error: {ex.Message}");

@@ -1,28 +1,23 @@
-import {NumberMapExpression} from "./numberMap";
-import {TextMapExpression} from "./textMap";
+import {NumberMap, MutableNumberMap} from "./numberMap";
+import {TextMap, MutableTextMap} from "./textMap";
 import {ContainerExpression} from "./Contaier";
 import {StringExpression} from "./primitives/stringExpression";
 import {ListExpression} from "./primitives/ListExpression";
-import {NumberExpression} from "./primitives/numberExpression";
-import {MaybeExpression} from "./primitives/maybeExpression";
-import {EntityFilterApi} from "./EntityFilter";
+import {NumberExpression, MutableNumberExpression} from "./primitives/numberExpression";
+import {MaybeExpression, MutableMaybeExpression} from "./primitives/maybeExpression";
+import {MutableStringExpression} from "./primitives/stringExpression";
 import {BehaviorReference} from "./behavior";
 
 export type EntityExpressionApi = {
   /** Create an empty entity builder */
-  create: () => EntityExpression,
-
-  /** Optional rule registration helpers (follow repository pattern) */
-  asRule?: (ruleName: string, expr: EntityExpression) => EntityExpressionApi,
-  getRule?: (ruleName: string) => EntityExpression,
+  create: () => MutableEntityExpression,
 
   type: EntityExpressionType,
-  filter: EntityFilterApi,
 }
 
 export type EntityCreationArguments = {
-  textMap?: Record<string, StringExpression | string>
-  numberMap?: Record<string, NumberExpression | number>
+  textMap?: TextMap
+  numberMap?: NumberMap
   /** Optional behavior reference attached to the entity. */
   behavior?: BehaviorReference | StringExpression
 }
@@ -43,18 +38,49 @@ export type EntityExpressionType = {
 }
 
 export type EntityExpression = {
-  /** Replace the entity's text_map with the supplied TextMapExpression */
-  withTextMap: (textMap: TextMapExpression) => EntityExpression,
-  /** Replace the entity's number_map with the supplied NumberMapExpression */
-  withNumberMap: (numberMap: NumberMapExpression) => EntityExpression,
-  /** Append a container membership (ContainerExpression or ContainerReference) */
-  withContainer: (container: ContainerExpression) => EntityExpression,
+  /** Read the entity's text_map for a key */
+  getText: (key: StringExpression) => MaybeExpression<StringExpression>,
+  /** Read the entity's number_map for a key */
+  getNumber: (key: StringExpression) => MaybeExpression<NumberExpression>,
+  /** Get the entity's text_map as a read-only map */
+  textMap: () => TextMap,
+  /** Get the entity's number_map as a read-only map */
+  numberMap: () => NumberMap,
+  /** List the entity's text_map keys */
+  getTextKeys: () => ListExpression<string>,
+  /** List the entity's number_map keys */
+  getNumberKeys: () => ListExpression<string>,
+  /** Containers the entity belongs to */
+  containers: ListExpression<ContainerExpression>,
 }
 
+export type MutableEntityExpression = Omit<EntityExpression, "textMap" | "numberMap"> & {
+  /** Set the entity's text_map value for a key */
+  setText: (key: StringExpression, value: StringExpression) => MutableEntityExpression,
+  /** Set the entity's number_map value for a key */
+  setNumber: (key: StringExpression, value: NumberExpression) => MutableEntityExpression,
+  /** Get the entity's text_map as a mutable map whose values write back to the entity */
+  textMap: () => MutableTextMap,
+  /** Get the entity's number_map as a mutable map whose values write back to the entity */
+  numberMap: () => MutableNumberMap,
+  /** Append a container membership (ContainerExpression or ContainerReference) */
+  withContainer: (container: ContainerExpression) => MutableEntityExpression,
+}
+
+/**
+ * Entity view yielded by repository queries. Map accessors return mutable
+ * expressions; whether mutation is allowed in the current phase is enforced by
+ * the phase context (PrepareContext/SchedulingContext yield read-only views at
+ * runtime, ApplyContext yields mutable views).
+ */
 export type Entity = {
-  getId:() => StringExpression,
-  getText: (key: StringExpression) => MaybeExpression<StringExpression>,
-  getNumber: (key: StringExpression) => MaybeExpression<NumberExpression>,
+  getId: () => StringExpression,
+  getText: (key: StringExpression) => MutableMaybeExpression<MutableStringExpression>,
+  getNumber: (key: StringExpression) => MutableMaybeExpression<MutableNumberExpression>,
+  /** Get the entity's text_map; values write back to the entity in the apply phase */
+  textMap: () => MutableTextMap,
+  /** Get the entity's number_map; values write back to the entity in the apply phase */
+  numberMap: () => MutableNumberMap,
   getTextKeys: () => ListExpression<string>,
   getNumberKeys: () => ListExpression<string>,
   containers: ListExpression<ContainerExpression>

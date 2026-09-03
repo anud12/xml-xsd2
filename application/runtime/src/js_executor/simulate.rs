@@ -45,6 +45,9 @@ pub fn simulate_action(
         crate::state::set_pending_effects(sim.pending_effects.iter()
             .map(|e| e.name.clone()).collect());
     }
+    if !sim.containers.is_empty() {
+        crate::state::set_last_containers(sim.containers.clone());
+    }
     Ok((sim.created, convert_store_values(&sim.store)))
 }
 
@@ -58,4 +61,6 @@ struct Sr {
     #[serde(default)]
     #[serde(rename = "pendingEffects")]
     pending_effects: Vec<Pe>,
+    #[serde(default)]
+    containers: Vec<String>,
 }

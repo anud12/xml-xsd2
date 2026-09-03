@@ -1,23 +1,24 @@
-import {StringExpression} from "./primitives/stringExpression";
+import {StringExpression, MutableStringExpression} from "./primitives/stringExpression";
 import {ConditionExpression} from "./primitives/conditionExpression";
 
+/**
+ * Read-only map of named text values. Values are plain StringExpressions that
+ * do not write back to the owning entity.
+ */
 export type TextMap = {
-  [name:string]: StringExpression, //colection of `StringExpression` values accesible by `name`.
+  [name: string]: StringExpression,
 }
 
-export type TextMapExpressionApi = {
-  create: () => TextMapExpression,
+/**
+ * Mutable map of named text values. Values are MutableStringExpressions whose
+ * mutations (set/concat/...) write back to the owning entity.
+ */
+export type MutableTextMap = {
+  [name: string]: MutableStringExpression,
 }
 
-export type TextMapExpression = {
-  /** Insert or replace a key's value with a StringExpression */
-  put: (key: string, value: StringExpression) => TextMapExpression,
-  /** Remove a key (optional) */
-  remove?: (key: string) => TextMapExpression,
-  /** Retrieve the value expression for a key (missing keys may produce an empty StringExpression) */
-  get: (key: string) => StringExpression,
-  /** Existence check: returns a ConditionExpression */
-  has: (key: string) => ConditionExpression,
-  /** Equality check: compare stored value to provided StringExpression */
-  equals: (key: string, value: StringExpression) => ConditionExpression,
+export type TextMapApi = {
+  /** Create an empty mutable text map. */
+  create: () => MutableTextMap,
+  type: unknown,
 }

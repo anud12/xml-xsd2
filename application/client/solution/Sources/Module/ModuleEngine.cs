@@ -47,9 +47,12 @@ public static class ModuleEngine
                     sub.Execute(HostApiSetup.Script);
                     // Context handed to the action's apply: lets the module
                     // queue effects that run on the next RunIteration.
+                    // actor.containers is an empty stand-in so module action
+                    // bodies that enumerate containers do not throw.
                     sub.Execute(
-                        "globalThis.__actionContext = { emitEffect: function(name, data) { "
-                        + "__host_emitEffect(name, data); } };");
+                        "globalThis.__actionContext = { "
+                        + "emitEffect: function(name, data) { __host_emitEffect(name, data); }, "
+                        + "actor: { containers: [] } };");
                     sub.SetValue($"__action_{name.Replace(".", "_").Replace(":", "_")}", apply);
                     engines[name] = sub;
                 }
@@ -85,7 +88,17 @@ public static class ModuleEngine
                                 if (hasPrepare)
                                     output = engine.Invoke($"__effect_prepare_{safeName}", runtimeValRef[0], count, runtimeValRef[0], runtimeValRef[0]);
                                 if (hasApply)
-                                    engine.Invoke($"__effect_apply_{safeName}", runtimeValRef[0], output);
+                                {
+                                    engine.SetValue("__inApply", true);
+                                    try
+                                    {
+                                        engine.Invoke($"__effect_apply_{safeName}", runtimeValRef[0], output);
+                                    }
+                                    finally
+                                    {
+                                        engine.SetValue("__inApply", false);
+                                    }
+                                }
                             }
                             catch (Exception ex)
                             {
@@ -183,7 +196,17 @@ public static class ModuleEngine
                 {
                     var output = engine.Invoke(childPrepare, runtimeValRef[0], 0, d ?? JsValue.Null, JsValue.Null);
                     if (childApply != null && !childApply.IsUndefined() && !childApply.IsNull())
-                        engine.Invoke(childApply, runtimeValRef[0], output);
+                    {
+                        engine.SetValue("__inApply", true);
+                        try
+                        {
+                            engine.Invoke(childApply, runtimeValRef[0], output);
+                        }
+                        finally
+                        {
+                            engine.SetValue("__inApply", false);
+                        }
+                    }
                     return output;
                 }
                 catch (Exception ex)
@@ -261,7 +284,11 @@ public static class ModuleEngine
         sb.AppendLine("(function() {");
         sb.AppendLine("  var __mod = " + js + ";");
         sb.AppendLine("  if (typeof __mod === 'function') {");
-        sb.AppendLine("    __mod(hostApi);");
+        sb.AppendLine("    try {");
+        sb.AppendLine("      __mod(hostApi);");
+        sb.AppendLine("    } catch (e) {");
+        sb.AppendLine("      __host_log('[module] entrypoint error: ' + (e && e.message ? e.message : e));");
+        sb.AppendLine("    }");
         sb.AppendLine("  }");
         sb.AppendLine("})();");
 
