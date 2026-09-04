@@ -14,7 +14,7 @@ public class TestClass : Steps {
             .ProcessArchive();
 
         // First begin-task: runs its opening operation, then parks (interruptible).
-        RuntimeInterop.emitAction("begin-task", "worker-1");
+        RuntimeInterop.emitActionFor("begin-task", "worker-1");
         RuntimeInterop.RunIteration(0);
         AssertRuntimeOutputContains("task start fired");
         AssertRuntimeOutputContainsNot("task step one");
@@ -26,7 +26,7 @@ public class TestClass : Steps {
         // Second begin-task: the parked plan is interruptible, so it is dropped
         // and replaced (overwritten), not queued. Its opening operation re-runs.
         ClearOutput();
-        RuntimeInterop.emitAction("begin-task", "worker-1");
+        RuntimeInterop.emitActionFor("begin-task", "worker-1");
         RuntimeInterop.RunIteration(0);
         AssertRuntimeOutputContains("task start fired");
         AssertRuntimeOutputContainsNot("task step one");
@@ -37,7 +37,7 @@ public class TestClass : Steps {
 
         // Third begin-task: overwrites the parked plan again.
         ClearOutput();
-        RuntimeInterop.emitAction("begin-task", "worker-1");
+        RuntimeInterop.emitActionFor("begin-task", "worker-1");
         RuntimeInterop.RunIteration(0);
         AssertRuntimeOutputContains("task start fired");
         AssertRuntimeOutputContainsNot("task step one");
@@ -57,7 +57,7 @@ public class TestClass : Steps {
         // A new action while non-interruptible: it is dropped, the parked plan
         // is neither interrupted nor queued behind it.
         ClearOutput();
-        RuntimeInterop.emitAction("begin-task", "worker-1");
+        RuntimeInterop.emitActionFor("begin-task", "worker-1");
         RuntimeInterop.RunIteration(0);
         AssertRuntimeOutputContainsNot("task start fired");
         AssertRuntimeOutputContainsNot("task step two");
@@ -67,7 +67,7 @@ public class TestClass : Steps {
 
         // An instant action is dropped too while non-interruptible.
         ClearOutput();
-        RuntimeInterop.emitAction("instant-task", "worker-1");
+        RuntimeInterop.emitActionFor("instant-task", "worker-1");
         RuntimeInterop.RunIteration(0);
         AssertRuntimeOutputContainsNot("instant fired");
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("worker-1")).IsEqual("begin-task");

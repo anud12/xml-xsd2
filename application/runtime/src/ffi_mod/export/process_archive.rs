@@ -14,30 +14,16 @@ pub extern "C" fn runtime_process_archive(path: *const c_char) -> *mut c_char {
     crate::state::clear_state(); // reset cached runtime state between calls
     crate::state::set_archive_path(zip_path);
     
-    // Debug logging to file
-    use std::io::Write;
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("C:\\temp\\rust_debug.log") {
-        let _ = writeln!(f, "[{}] process_archive: zip_path={}", std::process::id(), zip_path);
-    }
-    
     runtime_log!("process_archive: zip_path='{}' exists={} ", zip_path, std::path::Path::new(zip_path).exists());
     crate::archive::create_empty_zip_if_missing(zip_path);
     let files = crate::archive::read_zip_files(zip_path);
     runtime_log!("process_archive: read {} files", files.len());
-    
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("C:\\temp\\rust_debug.log") {
-        let _ = writeln!(f, "[{}] process_archive: read {} files", std::process::id(), files.len());
-        for (name, content) in files.iter() {
-            let _ = writeln!(f, "[{}]   file '{}' = {} chars", std::process::id(), name, content.len());
-        }
-    }
-    
+
     let file_rows = crate::module::build_file_rows(&files);
     crate::state::set_last_file_rows(file_rows.clone());
     crate::state::set_archive_files(files.clone());
     let mut entity_rows: Vec<Vec<String>> = Vec::new();
     crate::module::process_module(&files, &mut entity_rows);
-    eprintln!("process_archive: panels after process_module = {:?}", crate::state::last_panels().lock().unwrap());
     crate::state::set_last_entity_rows(entity_rows.clone());
 
     // Persist state to disk and return the destination path as a C string (caller must free)

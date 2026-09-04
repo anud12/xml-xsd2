@@ -48,6 +48,11 @@ export type TeleportToArgs = {
  */
 export type ActionContext = {
   actor: EntityExpression;
+  /**
+   * The args payload the action was emitted with (e.g. by a panel's
+   * `onClick` plan). Defaults to `{}` when none was supplied.
+   */
+  args: Record<string, any>;
   emitEffect: (eventName: string, input: Record<string, any>) => any;
   /**
    * Records a suspension step: the action plan parks here until `duration`

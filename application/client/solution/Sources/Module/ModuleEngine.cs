@@ -29,38 +29,9 @@ public static class ModuleEngine
         engine.SetValue("__host_fileExists", new Func<string, bool>(path =>
             ArchiveFileSet.Contains(path)));
 
-        // Actions are executed C#-side: the apply function is captured in a
-        // per-action Jint engine and dispatched via PanelNodeStore. The
-        // native runtime does not understand stopPropagation, so the C#
-        // path is the only one that can honor it.
-        var engines = new Dictionary<string, Jint.Engine>();
-        engine.SetValue("__host_registerAction", new Action<string, JsValue>(
-            (name, apply) =>
-            {
-                try
-                {
-                    var sub = new Jint.Engine();
-                    sub.SetValue("__host_registerPanel", new Action<string>(_ => { }));
-                    sub.SetValue("__host_registerAction", new Action<string, JsValue>((n, f) => { }));
-                    sub.SetValue("__host_emitEffect", new Action<string, JsValue>((n, d) => EffectStore.Emit(n, d)));
-                    sub.SetValue("__host_log", new Action<string>(RuntimeInterop.Log));
-                    sub.Execute(HostApiSetup.Script);
-                    // Context handed to the action's apply: lets the module
-                    // queue effects that run on the next RunIteration.
-                    // actor.containers is an empty stand-in so module action
-                    // bodies that enumerate containers do not throw.
-                    sub.Execute(
-                        "globalThis.__actionContext = { "
-                        + "emitEffect: function(name, data) { __host_emitEffect(name, data); }, "
-                        + "actor: { containers: [] } };");
-                    sub.SetValue($"__action_{name.Replace(".", "_").Replace(":", "_")}", apply);
-                    engines[name] = sub;
-                }
-                catch (Exception ex)
-                {
-                    RuntimeInterop.Log($"[ModuleEngine] registerAction error: {ex.Message}");
-                }
-            }));
+        // Actions are executed by the native runtime: the C# side only records
+        // the declarations. A no-op registerAction keeps the shim happy.
+        engine.SetValue("__host_registerAction", new Action<string, JsValue>((name, apply) => { }));
 
         // Effects are stored C#-side: prepare/apply run in the main engine
         // (so closures from module scope are available) and re-run on each
@@ -253,24 +224,6 @@ public static class ModuleEngine
         catch (Exception ex)
         {
             RuntimeInterop.Log($"[ModuleEngine] execute error: {ex.Message}");
-        }
-
-        foreach (var kv in engines)
-        {
-            var engineRef = kv.Value;
-            var fnId = kv.Key.Replace(".", "_").Replace(":", "_");
-            PanelNodeStore.RegisterActionHandler(kv.Key, () =>
-            {
-                try
-                {
-                    var ctx = engineRef.GetValue("__actionContext");
-                    engineRef.Invoke("__action_" + fnId, ctx);
-                }
-                catch (Exception ex)
-                {
-                    RuntimeInterop.Log($"[ModuleEngine] action error: {ex.Message}");
-                }
-            });
         }
 
         return PanelCollector.ToPanels();

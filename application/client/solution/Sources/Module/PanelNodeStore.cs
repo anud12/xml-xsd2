@@ -17,7 +17,6 @@ public static class PanelNodeStore
     static readonly List<UiNodeData> _nodes = new();
     static readonly Dictionary<string, byte[]> _extraFiles = new();
     static readonly Dictionary<string, string> _animations = new();
-    static readonly Dictionary<string, List<Action>> _actionHandlers = new();
 
     public static void Clear()
     {
@@ -25,38 +24,6 @@ public static class PanelNodeStore
         _extraFiles.Clear();
         _animations.Clear();
         _registeredIds.Clear();
-        _actionHandlers.Clear();
-    }
-
-    /// <summary>
-    /// Registers a C#-side action handler, called by
-    /// <see cref="ModuleEngine"/> when a module declares an action.
-    /// </summary>
-    public static void RegisterActionHandler(string name, Action apply)
-    {
-        if (!_actionHandlers.TryGetValue(name, out var list))
-            _actionHandlers[name] = list = new List<Action>();
-        list.Add(apply);
-    }
-
-    /// <summary>
-    /// True when a C#-side handler exists for the action.
-    /// </summary>
-    public static bool HasHandlerFor(string name)
-        => _actionHandlers.TryGetValue(name, out var h) && h.Count > 0;
-
-    /// <summary>
-    /// Runs every C#-side handler registered for the action. Returns true
-    /// when at least one handler ran.
-    /// </summary>
-    public static bool TryEmitAction(string name)
-    {
-        if (!_actionHandlers.TryGetValue(name, out var handlers)
-            || handlers.Count == 0)
-            return false;
-        foreach (var h in handlers)
-            h();
-        return true;
     }
 
     /// <summary>
@@ -177,7 +144,18 @@ public static class PanelNodeStore
         if (hover.Count > 0)
             opts["onHover"] = hover;
         if (p.OnClick is { } oc)
-            opts["onClick"] = oc.ActionName;
+        {
+            // Parse the steps JSON so it serializes as a JSON object (the
+            // raw string would serialize as an escaped string, and
+            // UiWindow.Interactivity would misread it as the legacy
+            // single-action form).
+            try
+            {
+                using var sd = JsonDocument.Parse(oc.StepsJson);
+                opts["onClick"] = sd.RootElement.Clone();
+            }
+            catch { }
+        }
         if (p.Border is { } border)
             opts["border"] = new Dictionary<string, object?>
             {
@@ -280,17 +258,34 @@ public static class PanelNodeStore
             || opts.ContainsKey("x")
             || opts.ContainsKey("y")
             || opts.ContainsKey("background")
-            || opts.ContainsKey("onHover")
-            || opts.ContainsKey("onClick");
+            || opts.ContainsKey("onHover");
 
         var optsJson = opts;
         if (p.Layout != null)
         {
-            var rowFirst = p.Layout.Value.RowFirst ?? false;
-            optsJson = new Dictionary<string, object?>(opts)
+            // Emit the raw layout object (columns/rows/gap/rowFirst) so the
+            // UI layer's UiGridLayoutSpec can build a track grid; the legacy
+            // row/column string drops the grid tracks.
+            if (!string.IsNullOrEmpty(p.LayoutJson))
             {
-                ["layout"] = rowFirst ? "row" : "column"
-            };
+                try
+                {
+                    using var ld = JsonDocument.Parse(p.LayoutJson);
+                    optsJson = new Dictionary<string, object?>(opts)
+                    {
+                        ["layout"] = ld.RootElement.Clone()
+                    };
+                }
+                catch { }
+            }
+            if (string.IsNullOrEmpty(p.LayoutJson))
+            {
+                var rowFirst = p.Layout.Value.RowFirst ?? false;
+                optsJson = new Dictionary<string, object?>(opts)
+                {
+                    ["layout"] = rowFirst ? "row" : "column"
+                };
+            }
         }
 
         return new UiNodeData

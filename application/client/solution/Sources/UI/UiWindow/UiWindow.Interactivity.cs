@@ -26,15 +26,26 @@ public partial class UiWindow
     {
         if (opts.ValueKind == JsonValueKind.Undefined) return;
 
-        if (opts.TryGetProperty("onClick", out var onClick)
-            && onClick.ValueKind == JsonValueKind.String)
+        if (opts.TryGetProperty("onClick", out var onClick))
         {
-            _onClickAction = onClick.GetString();
             MouseFilter = MouseFilterEnum.Stop;
             if (!_guiInputWired)
             {
                 _guiInputWired = true;
                 GuiInput += OnGuiInput;
+            }
+            if (onClick.ValueKind == JsonValueKind.String)
+            {
+                // Legacy string form: a single named action, no cursor args.
+                _onClickAction = onClick.GetString();
+            }
+            else if (onClick.ValueKind == JsonValueKind.Object
+                && onClick.TryGetProperty("steps", out var st)
+                && st.ValueKind == JsonValueKind.Array
+                && st.GetArrayLength() > 0)
+            {
+                _onClickAction = null;
+                _onClickStepsJson = onClick.GetRawText();
             }
         }
 
@@ -85,14 +96,75 @@ public partial class UiWindow
         if (evt is InputEventMouseButton mb
             && mb.Pressed
             && mb.ButtonIndex == MouseButton.Left
-            && _onClickAction != null)
+            && (_onClickAction != null || _onClickStepsJson != null))
         {
             // Each window emits its own action when clicked; the top-most
             // clicked node is the one under the cursor (a child window
             // covering the point consumes the event before the parent).
-            RuntimeInterop.emitAction(_onClickAction);
+            if (_onClickAction != null)
+                RuntimeInterop.emitAction(_onClickAction);
+            else
+                ExecuteClickPlan(mb.Position);
             GetViewport().SetInputAsHandled();
         }
+    }
+
+    /// Resolves the click plan captured at panel-definition time: each
+    /// cursor symbol in a step's args is replaced by the local grid cell
+    /// (col, row) of the click; non-grid panels resolve to (0, 0). The
+    /// concrete action + args are then emitted on the C# side.
+    void ExecuteClickPlan(Godot.Vector2 localPos)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(_onClickStepsJson);
+            var (col, row) = ResolveCursorCell(localPos);
+            foreach (var step in doc.RootElement.GetProperty("steps").EnumerateArray())
+            {
+                var action = step.GetProperty("action").GetString() ?? "";
+                string argsJson = "{}";
+                if (step.TryGetProperty("args", out var argsEl)
+                    && argsEl.ValueKind == JsonValueKind.Object)
+                {
+                    var sb = new System.Text.StringBuilder("{");
+                    bool first = true;
+                    foreach (var prop in argsEl.EnumerateObject())
+                    {
+                        if (!first) sb.Append(',');
+                        first = false;
+                        sb.Append('"').Append(prop.Name).Append("\":");
+                        if (prop.Value.ValueKind == JsonValueKind.Object
+                            && prop.Value.TryGetProperty("__cursor", out var cur))
+                        {
+                            var axis = cur.GetString();
+                            sb.Append(axis == "y" ? row : col);
+                        }
+                        else
+                        {
+                            sb.Append(prop.Value.GetRawText());
+                        }
+                    }
+                    sb.Append('}');
+                    argsJson = sb.ToString();
+                }
+                RuntimeInterop.emitAction(action, argsJson);
+            }
+        }
+        catch (Exception ex)
+        {
+            RuntimeInterop.Log($"ui: onClick plan error: {ex.Message}");
+        }
+    }
+
+    /// The local grid cell (col, row) for a click position, resolved against
+    /// this window's grid (the "grid" child). A window without a grid (box
+    /// layout or leaf) resolves to (0, 0).
+    (int Col, int Row) ResolveCursorCell(Godot.Vector2 localPos)
+    {
+        var grid = GetNodeOrNull<UiGrid>("grid");
+        if (grid == null)
+            return (0, 0);
+        return grid.CellAt(localPos);
     }
 
     /// The hover background-swap texture: the node store passes the first

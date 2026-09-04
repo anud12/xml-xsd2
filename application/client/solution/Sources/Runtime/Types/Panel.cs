@@ -16,6 +16,9 @@ public struct Panel
     public Offset Offset;
     public Size Size;
     public Layout? Layout;
+    // The layout object verbatim (raw JSON), so the UI layer can read the
+    // full grid tracks (columns/rows/gap) that the legacy Layout struct drops.
+    public string? LayoutJson;
     public Panel[]? Children;
     public string[]? ChildIds;
     public PanelOnClickHandler? OnClick;
@@ -97,6 +100,7 @@ public struct Size
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
 public struct PanelOnClickHandler {
     public string ActionName;
+    public string StepsJson;
 }
 
 public abstract class PanelContent

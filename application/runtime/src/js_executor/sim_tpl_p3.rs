@@ -127,7 +127,7 @@ const SIM_TPL_P3: &str = r#"
         + ' speed ' + numVal(step.move.speed));
       plan.push(step);
     };
-    const ctx = { emitEffect: wrappedEmit, emitEvent: wrappedEmit,
+    const ctx = { args: globalThis.__actionArgsObj, emitEffect: wrappedEmit, emitEvent: wrappedEmit,
       wait: wrappedWait,
       moveTo: wrappedMoveTo,
       allowInterrupt: function() { plan.push({ interruptible: true }); },
@@ -165,6 +165,6 @@ const SIM_TPL_P3: &str = r#"
     pendingEffects: globalThis.__pendingEffects || [],
     containers: globalThis.__registeredContainers || [],
     activePlan: activePlan });
-})(ACTION_PLACEHOLDER, STORE_PLACEHOLDER)"#;
+})(ACTION_PLACEHOLDER, STORE_PLACEHOLDER, ARGS_PLACEHOLDER)"#;
 
 pub fn get_part3() -> &'static str { SIM_TPL_P3 }

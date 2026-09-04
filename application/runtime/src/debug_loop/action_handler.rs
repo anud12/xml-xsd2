@@ -26,7 +26,7 @@ pub fn handle_action(cmd: &str, delimiter: &str) {
         }
         let files_map = build_files_map();
         let current = crate::state::last_entity_rows().lock().unwrap().clone();
-        match crate::js_executor::simulate_action(&files_map, action_name, actor, &current) {
+        match crate::js_executor::simulate_action(&files_map, action_name, actor, &current, &[]) {
             Ok((created, store)) => {
                 debug_println!(
                     "debug: simulate_action created={:?} store={:?}",

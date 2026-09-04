@@ -219,7 +219,24 @@ pub fn process_active_plans(now: i64) {
                 break;
             }
             if step.get("move").is_some() {
-                let remaining = advance_move_step(&mut plan.steps[i], now, &mut containers);
+                // Advance the move one cell per elapsed GTU. The move step
+                // tracks `lastTick` — the GTU it last advanced on (absent for
+                // a fresh step, i.e. not yet advanced). Each call covers the
+                // GTUs since then, so a normally-due plan advances one cell
+                // and a plan resumed after the caller jumped several GTU in
+                // one RunIteration catches up by one cell per GTU.
+                let last = plan.steps[i].get("move")
+                    .and_then(|m| m.get("lastTick"))
+                    .and_then(|v| v.as_i64());
+                let ticks = match last {
+                    Some(l) => (now - l).max(1),
+                    None => 1,
+                };
+                let mut remaining = true;
+                for _ in 0..ticks.min(100000) {
+                    remaining = advance_move_step(&mut plan.steps[i], now, &mut containers);
+                    if !remaining { break; }
+                }
                 if remaining {
                     // Still moving: keep the move step at the head, re-park one tick.
                     let steps = plan.steps[i..].to_vec();
@@ -328,6 +345,8 @@ fn advance_move_step(
     let remaining = move_length(tx - nx, ty - ny);
     move_obj.insert("remainingLength".into(), num_json(remaining));
     move_obj.insert("start".into(), serde_json::json!({ "x": nx, "y": ny }));
+    // Record this GTU so a later (jumped) call advances one cell per GTU.
+    move_obj.insert("lastTick".into(), serde_json::json!(now));
     write_position(containers, &container_id, &entity_id, nx, ny);
 
     // The move continues only while every moving axis still has room and

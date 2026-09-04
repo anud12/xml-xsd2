@@ -25,7 +25,7 @@ public class ActiveActionFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        RuntimeInterop.emitAction("long-action", "actor-1");
+        RuntimeInterop.emitActionFor("long-action", "actor-1");
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("actor-1")).IsEqual("long-action");
     }
 
@@ -36,10 +36,10 @@ public class ActiveActionFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        RuntimeInterop.emitAction("long-action", "actor-1");
+        RuntimeInterop.emitActionFor("long-action", "actor-1");
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("actor-1")).IsEqual("long-action");
         // other-action is interruptible: it replaces long-action rather than queueing.
-        RuntimeInterop.emitAction("other-action", "actor-1");
+        RuntimeInterop.emitActionFor("other-action", "actor-1");
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("actor-1")).IsEqual("other-action");
     }
 
@@ -50,10 +50,10 @@ public class ActiveActionFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        RuntimeInterop.emitAction("long-action", "actor-1");
+        RuntimeInterop.emitActionFor("long-action", "actor-1");
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("actor-1")).IsEqual("long-action");
         // instant-action runs without parking, discarding the parked plan.
-        RuntimeInterop.emitAction("instant-action", "actor-1");
+        RuntimeInterop.emitActionFor("instant-action", "actor-1");
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("actor-1")).IsEqual("");
     }
 
@@ -64,7 +64,7 @@ public class ActiveActionFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        RuntimeInterop.emitAction("long-action", "actor-1");
+        RuntimeInterop.emitActionFor("long-action", "actor-1");
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("actor-1")).IsEqual("long-action");
         // actor-2 never received an action: actor-1's plan does not leak to it.
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("actor-2")).IsEqual("");

@@ -70,7 +70,41 @@ var __panelEmit = function(id, options, children, forceSurface) {
                 stopPropagation: opts.onHover.stopPropagation || false
             };
         }
-        json.onClick = opts.onClick ? { type: ""emitAction"", actionName: opts.onClick } : null;
+        if (typeof opts.onClick === ""function"") {
+            var __steps = [];
+            var __cursorExpr = function(axis) {
+                return {
+                    value: 0,
+                    __cursor: axis,
+                    isCondition: function() { throw new Error(""cursor expression cannot be used in a condition""); }
+                };
+            };
+            var __clickCtx = {
+                emitAction: function(name, args) {
+                    var resolvedName = (typeof name === ""object"") ? name.value : name;
+                    if (typeof resolvedName !== ""string"" || resolvedName === """")
+                        throw new Error(""onClick.emitAction requires an action name for panel '"" + id + ""'"");
+                    var registered = globalThis.__registeredActions || [];
+                    var found = false;
+                    for (var ri = 0; ri < registered.length; ri++) {
+                        if (registered[ri] && registered[ri].name === resolvedName) { found = true; break; }
+                    }
+                    if (!found)
+                        throw new Error(""onClick action '"" + resolvedName + ""' is not registered for panel '"" + id + ""'"");
+                    __steps.push({ action: resolvedName, args: (args && typeof args === ""object"") ? args : {} });
+                },
+                cursor: {
+                    getX: function() { return __cursorExpr(""x""); },
+                    getY: function() { return __cursorExpr(""y""); }
+                }
+            };
+            opts.onClick(__clickCtx);
+            if (__steps.length === 0)
+                throw new Error(""onClick for panel '"" + id + ""' must call ctx.emitAction at least once"");
+            json.onClick = { steps: __steps };
+        } else if (opts.onClick !== undefined) {
+            throw new Error(""onClick for panel '"" + id + ""' must be a function (ctx) => { ctx.emitAction(...); }"");
+        }
     }
     if (opts.layout !== undefined) {
         json.layout = typeof opts.layout === ""object"" ? opts.layout

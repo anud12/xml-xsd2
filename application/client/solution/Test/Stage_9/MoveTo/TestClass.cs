@@ -111,7 +111,7 @@ public class TestClass : Steps {
 
         // A new action for the same actor is dropped: node-1 keeps marching on
         // its original path.
-        RuntimeInterop.emitAction("relocate-node-1", "node-1");
+        RuntimeInterop.emitActionFor("relocate-node-1", "node-1");
         RuntimeInterop.RunIteration(1);
         var afterReject = ContainerInterop.GetContainerById("grid-1");
         Assertions.AssertThat(afterReject.GetXForEntityId["node-1"]).IsEqual(2.0);

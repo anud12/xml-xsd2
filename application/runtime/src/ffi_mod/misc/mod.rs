@@ -17,6 +17,8 @@ pub use free_string::runtime_free_string;
 pub use clear_state::runtime_clear_state;
 pub use trigger_action::trigger_action;
 pub use emit_action::runtime_emit_action;
+pub use emit_action::runtime_emit_action_args;
+pub use emit_action::ActionArgs;
 pub use get_container_by_id::get_container_ids;
 pub use get_container_by_id::get_container_by_id;
 pub use get_container_by_id::runtime_free_container;

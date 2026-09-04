@@ -29,7 +29,9 @@ export default (hostApi) => {
     width: 100,
     height: 100,
     background: hostApi.ui.getAnimation(string.of("texture")),
-    onClick: "action",
+    onClick: (ctx) => {
+      ctx.emitAction("action");
+    },
   }, [
     hostApi.ui.panel("child", {
       x: 20,
@@ -37,7 +39,9 @@ export default (hostApi) => {
       width: 10,
       height: 10,
       background: hostApi.ui.getAnimation(string.of("texture_2")),
-      onClick: "childAction",
+      onClick: (ctx) => {
+        ctx.emitAction("childAction");
+      },
     }, [])
   ])
 }

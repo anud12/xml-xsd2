@@ -22,6 +22,7 @@ public partial class UiWindow : Control
     UiGrid.UiGridLayoutSpec _layoutSpec = new();
     // Interactivity.
     string? _onClickAction;
+    string? _onClickStepsJson;
     bool _hoverWired;
     string? _hoverEmitAction;
     bool _hoverStopPropagation;

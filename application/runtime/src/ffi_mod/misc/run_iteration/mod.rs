@@ -1,4 +1,3 @@
-use std::time::Instant;
 use std::collections::HashMap;
 
 mod helpers;
@@ -19,16 +18,11 @@ fn build_files_map() -> HashMap<String, String> {
 
 #[no_mangle]
 pub extern "C" fn runtime_run_iteration(elapsed_units: i64) -> i64 {
-    helpers::log(&format!("runtime_run_iteration ENTRY, elapsed_units={}",
-        elapsed_units));
-    let start = Instant::now();
-
     if elapsed_units > 0 {
         crate::state::add_elapsed_time_units(elapsed_units);
     }
 
     let total = crate::state::get_elapsed_time_units();
-    helpers::log(&format!("runtime_run_iteration, total elapsed={}", total));
 
     crate::js_executor::process_active_plans(total);
 
@@ -36,6 +30,5 @@ pub extern "C" fn runtime_run_iteration(elapsed_units: i64) -> i64 {
     let _ = crate::js_executor::process_pending_effects(&files, total);
     let _ = crate::js_executor::process_scheduled_effects(&files, total);
 
-    let _elapsed = start.elapsed();
     total
 }

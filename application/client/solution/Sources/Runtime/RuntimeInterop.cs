@@ -172,15 +172,94 @@ public static class RuntimeInterop
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern void runtime_emit_action([MarshalAs(UnmanagedType.LPStr)] string action);
 
-    public static void emitAction(string action)
+    // Mirrors the Rust ActionArgs: count key strings (NUL-terminated, list of
+    // pointers) + count f64 values, parallel and deterministic by key order.
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ActionArgs
     {
-        // C#-side Jint handlers take precedence (the native runtime does not
-        // understand stopPropagation); fall back to the native emit when no
-        // C# handler exists so non-module archives still work.
-        var handled = NewGameProject.Module.PanelNodeStore.TryEmitAction(action);
-        if (handled)
+        public int count;
+        public IntPtr keys;
+        public IntPtr values;
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_emit_action_args(
+        [MarshalAs(UnmanagedType.LPStr)] string action,
+        ref ActionArgs args);
+
+    public static void emitAction(string action)
+        => emitAction(action, "{}");
+
+    /// Emits an action with an args payload (JSON object). The args are
+    /// serialized into the native ActionArgs block and delivered to the
+    /// action's ctx.args by the Rust runtime.
+    public static void emitAction(string action, string argsJson)
+    {
+        var pairs = ParseArgsJson(argsJson);
+        if (pairs.Count == 0)
+        {
+            runtime_emit_action(action);
             return;
-        runtime_emit_action(action);
+        }
+
+        var keys = new IntPtr[pairs.Count];
+        var values = new double[pairs.Count];
+        var nativeKeys = new IntPtr[pairs.Count];
+        try
+        {
+            for (var i = 0; i < pairs.Count; i++)
+            {
+                nativeKeys[i] = Marshal.StringToHGlobalAnsi(pairs[i].Key);
+                keys[i] = nativeKeys[i];
+                values[i] = pairs[i].Value;
+            }
+            var keyArr = GCHandle.Alloc(keys, GCHandleType.Pinned);
+            var valArr = GCHandle.Alloc(values, GCHandleType.Pinned);
+            try
+            {
+                var block = new ActionArgs
+                {
+                    count = pairs.Count,
+                    keys = keyArr.AddrOfPinnedObject(),
+                    values = valArr.AddrOfPinnedObject(),
+                };
+                runtime_emit_action_args(action, ref block);
+            }
+            finally
+            {
+                keyArr.Free();
+                valArr.Free();
+            }
+        }
+        finally
+        {
+            for (var i = 0; i < nativeKeys.Length; i++)
+                if (nativeKeys[i] != IntPtr.Zero) Marshal.FreeHGlobal(nativeKeys[i]);
+        }
+    }
+
+    static List<(string Key, double Value)> ParseArgsJson(string argsJson)
+    {
+        var list = new List<(string, double)>();
+        if (string.IsNullOrWhiteSpace(argsJson)) return list;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(argsJson);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object)
+                return list;
+            foreach (var prop in doc.RootElement.EnumerateObject())
+            {
+                var v = prop.Value.ValueKind == System.Text.Json.JsonValueKind.Number
+                    ? prop.Value.GetDouble()
+                    : 0.0;
+                list.Add((prop.Name, v));
+            }
+        }
+        catch
+        {
+            // Unparseable args: emit the action with no args.
+        }
+        return list;
     }
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
@@ -191,10 +270,8 @@ public static class RuntimeInterop
     /// Emits an action bound to an actor (entity id). While that actor has a
     /// parked action plan, further actions for it are rejected by the native
     /// runtime: the plan is neither interrupted nor queued behind them.
-    public static void emitAction(string action, string actor)
+    public static void emitActionFor(string action, string actor)
     {
-        if (NewGameProject.Module.PanelNodeStore.TryEmitAction(action))
-            return;
         runtime_emit_action_for(action, actor);
     }
 

@@ -16,7 +16,7 @@ public partial class TestClass : Steps {
         // Dispatch the spanning action for the actor: the plan walks to the
         // first wait and parks (resumes at 2 GTU); restStart is pending
         // until the next iteration.
-        RuntimeInterop.emitAction("rest", "guard");
+        RuntimeInterop.emitActionFor("rest", "guard");
         RuntimeInterop.RunIteration(0);
 
         AssertRuntimeOutputContains("___busy-test rest start fired___");
@@ -25,7 +25,7 @@ public partial class TestClass : Steps {
         // Another action for the same actor while the plan is parked:
         // rejected outright - it must neither run nor be queued.
         ClearOutput();
-        RuntimeInterop.emitAction("dash", "guard");
+        RuntimeInterop.emitActionFor("dash", "guard");
         AssertRuntimeOutputContainsNot("___busy-test dash fired___");
 
         // Tick 1: the plan is still parked (resumes at 2); the rejected
@@ -42,7 +42,7 @@ public partial class TestClass : Steps {
 
         // The actor is free again: the same action now runs.
         ClearOutput();
-        RuntimeInterop.emitAction("dash", "guard");
+        RuntimeInterop.emitActionFor("dash", "guard");
         RuntimeInterop.RunIteration(0);
         AssertRuntimeOutputContains("___busy-test dash fired___");
     }

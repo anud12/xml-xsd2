@@ -124,10 +124,31 @@ export type UiWindowOptions = {
     emitAction?: string;
     stopPropagation?: boolean;
   };
-  onClick?: string;
+  /**
+   * Click handler. The callback runs once at panel-definition time and
+   * aggregates an execution plan onto `ctx`; on click each step's action is
+   * emitted with its args (cursor symbols resolved to the local grid cell).
+   */
+  onClick?: (ctx: UiClickContext) => void;
   /** Nine-patch border frame drawn around the panel; the center is hidden. */
   border?: UiBorderOptions;
 };
+
+/**
+ * Context handed to a panel's `onClick` callback. Call `emitAction` to append
+ * a step to the plan; `cursor` symbols resolve at click time to the local
+ * grid cell (column/row), or 0 for non-grid panels.
+ */
+export interface UiClickContext {
+  /** Appends an action step. `args` may include `cursor` numberExpressions. */
+  emitAction: (name: string, args?: Record<string, unknown>) => void;
+  cursor: {
+    /** The clicked cell's column index (0 for non-grid panels). */
+    getX: () => number;
+    /** The clicked cell's row index (0 for non-grid panels). */
+    getY: () => number;
+  };
+}
 
 /** Nine-patch border options: the center region is never drawn. */
 export type UiBorderOptions = {
@@ -159,8 +180,8 @@ export type UiPanelOptions = UiWindowOptions & {
     | {
         rowFirst?: boolean;
         reverse?: boolean;
-        columns?: readonly { min?: number; max?: number; weight?: number; align?: "start" | "end" }[];
-        rows?: readonly { min?: number; max?: number; weight?: number; align?: "start" | "end" }[];
+        columns?: readonly { min?: number; max?: number; weight?: number; scale?: number; align?: "start" | "end" }[];
+        rows?: readonly { min?: number; max?: number; weight?: number; scale?: number; align?: "start" | "end" }[];
         gap?: { row?: number; column?: number };
       };
 };

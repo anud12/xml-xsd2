@@ -1,5 +1,4 @@
 use std::ffi::CStr;
-use std::io::Write;
 use libc::c_char;
 
 mod files_map;
@@ -10,6 +9,66 @@ pub extern "C" fn runtime_debug_simulate_action(
     action_name: *const c_char,
 ) -> bool {
     runtime_debug_simulate_action_for(action_name, std::ptr::null())
+}
+
+/// Dispatch an action with an args payload (key/value pairs) delivered to
+/// the action's `ctx.args`. No actor binding.
+pub fn runtime_debug_simulate_action_args(
+    action_name: *const c_char,
+    args: &[(String, f64)],
+) -> bool {
+    runtime_debug_simulate_action_args_for(action_name, std::ptr::null(), args)
+}
+
+/// Dispatch an action bound to an actor with an args payload.
+pub fn runtime_debug_simulate_action_args_for(
+    action_name: *const c_char,
+    actor: *const c_char,
+    args: &[(String, f64)],
+) -> bool {
+    if action_name.is_null() {
+        return false;
+    }
+    let c_str = unsafe { CStr::from_ptr(action_name) };
+    let name = match c_str.to_str() {
+        Ok(s) => s.trim(),
+        Err(_) => return false,
+    };
+    let actor = if actor.is_null() {
+        String::new()
+    } else {
+        unsafe { CStr::from_ptr(actor) }.to_str().unwrap_or("").trim().to_string()
+    };
+
+    let actions = crate::state::last_action_rows().lock().unwrap().clone();
+    let matched = actions.iter().any(|row| {
+        row.get(0).map(|s| s.as_str()) == Some(name)
+    });
+    if !matched {
+        return false;
+    }
+
+    if !actor.is_empty() {
+        if crate::state::actor_is_busy(&actor)
+            && !crate::state::actor_plan_interruptible(&actor)
+        {
+            return false;
+        }
+    } else if crate::state::has_active_plan(name) {
+        return false;
+    }
+
+    let files = files_map::build_files_map();
+    let current = crate::state::last_entity_rows().lock().unwrap().clone();
+
+    match crate::js_executor::simulate_action(&files, name, &actor, &current, args) {
+        Ok((created, store)) => {
+            fallback::handle_success(name, created, store, &current)
+        }
+        Err(_) => {
+            fallback::handle_failure(name)
+        }
+    }
 }
 
 /// Dispatch an action, optionally bound to an actor (entity id). While the
@@ -70,19 +129,11 @@ pub extern "C" fn runtime_debug_simulate_action_for(
         return false;
     }
 
-    let frc = crate::state::last_file_rows().lock().unwrap().len();
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true).append(true).open("C:\\temp\\rust_debug.log")
-    {
-        let _ = writeln!(f, "[{}] simulate_action: action={}, actor={:?}, file_rows={}",
-            std::process::id(), name, actor, frc);
-    }
-
     let files = files_map::build_files_map();
     let current = crate::state::last_entity_rows()
         .lock().unwrap().clone();
 
-    match crate::js_executor::simulate_action(&files, name, &actor, &current) {
+    match crate::js_executor::simulate_action(&files, name, &actor, &current, &[]) {
         Ok((created, store)) => {
             fallback::handle_success(name, created, store, &current)
         }
