@@ -205,6 +205,11 @@ if(!__hapi_ui.container){
 var __hapi_runtime=hostApi.runtime;
 if(!__hapi_runtime.string){__hapi_runtime.string={of:function(s){return s;}};}
 if(!__hapi_runtime.number){__hapi_runtime.number={of:function(n){return n;}};}
+if(!__hapi_runtime.temporal){
+  __hapi_runtime.temporal={
+    ofTicks:function(n){return{type:'ticks',ticks:n};}
+  };
+}
 if(!__hapi_runtime.emitEvent){__hapi_runtime.emitEvent=h.emitEvent;}
 if(!__hapi_runtime.registerEvent){__hapi_runtime.registerEvent=h.registerEvent;}
 if(!__hapi_runtime.registerAction){__hapi_runtime.registerAction=h.registerAction;}

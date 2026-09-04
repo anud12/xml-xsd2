@@ -22,6 +22,7 @@ static mut LAST_PANELS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_CREATED_BY: Option<&'static Mutex<HashMap<String, Vec<String>>>> = None;
 static mut PENDING_EFFECTS: Option<&'static Mutex<Vec<String>>> = None;
 static mut SCHEDULED_EFFECTS: Option<&'static Mutex<Vec<ScheduledEffect>>> = None;
+static mut ACTIVE_PLANS: Option<&'static Mutex<Vec<ActivePlan>>> = None;
 static mut LAST_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, f64>>>> = None;
 static mut INITIAL_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
@@ -36,6 +37,19 @@ pub struct ScheduledEffect {
     pub next_exec_time: i64,
     pub reoccurrence_interval: i64,
     pub execution_count: u64,
+}
+
+/// A parked action plan: the remaining recorded steps (from the next
+/// un-walked step onward) plus the elapsed-units deadline at which the
+/// walker resumes. One active plan per (actor, action name); the actor is
+/// the entity id from the dispatch (empty when the wire carried none).
+#[derive(Clone, Debug)]
+pub struct ActivePlan {
+    pub actor: String,
+    pub action_name: String,
+    pub steps: Vec<serde_json::Value>,
+    pub resume_at: i64,
+    pub interruptible: bool,
 }
 
 fn persisted_flag() -> &'static AtomicBool {
@@ -53,6 +67,7 @@ fn persisted_flag() -> &'static AtomicBool {
             LAST_CREATED_BY = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             PENDING_EFFECTS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
             SCHEDULED_EFFECTS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
+            ACTIVE_PLANS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
             LAST_ENTITY_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             LAST_ENTITY_NUMBER_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             INITIAL_ENTITY_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
@@ -62,4 +77,12 @@ fn persisted_flag() -> &'static AtomicBool {
         }
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }
+}
+
+/// Single process-wide lock shared by every test that mutates global
+/// runtime state, so tests across modules never race each other.
+#[cfg(test)]
+pub fn test_lock() -> std::sync::MutexGuard<'static, ()> {
+    static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner())
 }

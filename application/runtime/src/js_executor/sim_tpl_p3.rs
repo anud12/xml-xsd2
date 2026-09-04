@@ -86,9 +86,30 @@ const SIM_TPL_P3: &str = r#"
       if (a.apply && typeof a.apply === 'function' && a.apply.name === actionName) { actionObj = a; break; }
     }
   }
+  // apply is a declaration phase: emitEffect/wait record plan steps;
+  // the recorded plan is walked once, immediately up to the first wait.
+  const plan = [];
+  let activePlan = null;
   if (actionObj) {
-    const wrappedEmit = function(name, payload) { return emitEvent(name, payload); };
+    const wrappedEmit = function(name, payload) {
+      plan.push({ emit: { name: String(name), payload: payload } });
+    };
+    const wrappedWait = function(duration) {
+      let g = 0;
+      if (typeof duration === 'number') g = duration;
+      else if (duration && typeof duration === 'object') {
+        if (typeof duration.ticks === 'number') g = duration.ticks;
+        else if (typeof duration.value === 'number') g = duration.value;
+      }
+      if (g < 0 || !isFinite(g)) g = 0;
+      globalThis.__logs = globalThis.__logs || [];
+      globalThis.__logs.push('plan: wait ' + g + ' GTU');
+      plan.push({ wait: g });
+    };
     const ctx = { emitEffect: wrappedEmit, emitEvent: wrappedEmit,
+      wait: wrappedWait,
+      allowInterrupt: function() { plan.push({ interruptible: true }); },
+      denyInterrupt: function() { plan.push({ interruptible: false }); },
       createEntity: recordCreated,
       teleportTo: teleportTo,
       actor: { containers: [] },
@@ -99,11 +120,24 @@ const SIM_TPL_P3: &str = r#"
       if (typeof actionObj === 'object' && typeof actionObj.apply === 'function') actionObj.apply(ctx);
       else if (typeof actionObj === 'function') { try { actionObj(ctx); } catch(e) {} }
     } catch(e) {}
+    let currentInterruptible = false;
+    for (let i = 0; i < plan.length; i++) {
+      const st = plan[i];
+      if (st && typeof st.interruptible === 'boolean') {
+        currentInterruptible = st.interruptible;
+      } else if (st && st.emit) {
+        emitEvent(st.emit.name, st.emit.payload);
+      } else if (st && typeof st.wait === 'number') {
+        activePlan = { wait: st.wait, steps: plan.slice(i + 1), interruptible: currentInterruptible };
+        break;
+      }
+    }
   }
   return JSON.stringify({ created: globalThis.__createdEntities,
     store: globalThis.__entityStore,
     pendingEffects: globalThis.__pendingEffects || [],
-    containers: globalThis.__registeredContainers || [] });
+    containers: globalThis.__registeredContainers || [],
+    activePlan: activePlan });
 })(ACTION_PLACEHOLDER, STORE_PLACEHOLDER)"#;
 
 pub fn get_part3() -> &'static str { SIM_TPL_P3 }

@@ -1,0 +1,6 @@
+{
+  "id": "actor-active-action-test",
+  "version": "1.0.0",
+  "name": "Actor Active Action Test Module",
+  "entry": "index.js"
+}

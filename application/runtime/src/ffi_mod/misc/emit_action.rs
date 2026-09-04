@@ -29,3 +29,18 @@ pub extern "C" fn runtime_emit_action(action_name: *const std::os::raw::c_char) 
     runtime_debug_simulate_action(action_name);
     runtime_log!("DEBUG_EMIT: runtime_emit_action completed");
 }
+
+/// Like `runtime_emit_action`, but binds the action to an actor (entity id).
+/// Used to enforce per-actor serialization while an action plan is parked.
+#[no_mangle]
+pub extern "C" fn runtime_emit_action_for(
+    action_name: *const std::os::raw::c_char,
+    actor: *const std::os::raw::c_char,
+) {
+    runtime_log!(
+        "DEBUG_EMIT: runtime_emit_action_for called (actor ptr null={})",
+        actor.is_null());
+    use crate::ffi_mod::debug::runtime_debug_simulate_action_for;
+    runtime_debug_simulate_action_for(action_name, actor);
+    runtime_log!("DEBUG_EMIT: runtime_emit_action_for completed");
+}

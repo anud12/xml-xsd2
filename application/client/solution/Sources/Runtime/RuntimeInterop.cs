@@ -184,6 +184,58 @@ public static class RuntimeInterop
     }
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_emit_action_for(
+        [MarshalAs(UnmanagedType.LPStr)] string action,
+        [MarshalAs(UnmanagedType.LPStr)] string actor);
+
+    /// Emits an action bound to an actor (entity id). While that actor has a
+    /// parked action plan, further actions for it are rejected by the native
+    /// runtime: the plan is neither interrupted nor queued behind them.
+    public static void emitAction(string action, string actor)
+    {
+        if (NewGameProject.Module.PanelNodeStore.TryEmitAction(action))
+            return;
+        runtime_emit_action_for(action, actor);
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool runtime_is_actor_interruptible(
+        [MarshalAs(UnmanagedType.LPStr)] string actorId);
+
+    /// True while the actor's parked action plan was marked interruptible via
+    /// ctx.allowInterrupt(); a busy, interruptible actor accepts a new action,
+    /// a busy, non-interruptible actor drops it.
+    public static bool IsActorInterruptible(string actorId)
+    {
+        return runtime_is_actor_interruptible(actorId ?? string.Empty);
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool runtime_is_actor_busy(
+        [MarshalAs(UnmanagedType.LPStr)] string actorId);
+
+    /// True while the actor has a parked action plan. A free actor has
+    /// nothing queued: it is not running or waiting on any action.
+    public static bool IsActorBusy(string actorId)
+    {
+        return runtime_is_actor_busy(actorId ?? string.Empty);
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_get_actor_active_action(
+        [MarshalAs(UnmanagedType.LPStr)] string actorId);
+
+    /// The name of the action whose plan is currently parked for this actor, or
+    /// an empty string while the actor is free.
+    public static string GetActorActiveAction(string actorId)
+    {
+        var ptr = runtime_get_actor_active_action(actorId ?? string.Empty);
+        if (ptr == IntPtr.Zero) return string.Empty;
+        try { return Marshal.PtrToStringAnsi(ptr) ?? string.Empty; }
+        finally { runtime_free_string(ptr); }
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern long runtime_run_iteration(long elapsedUnits);
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]

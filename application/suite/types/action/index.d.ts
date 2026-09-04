@@ -1,6 +1,9 @@
 // Shared types
 export { ActionContext, ContainerPoint } from "./common";
 
+// Action plans (apply is a declaration phase; the runtime walks the plan)
+export type { ActionPlanStep } from "./plan";
+
 // Entity actions
 export type { EntityActionTarget, RegisterEntityActionArgs, RegisterEntityActionFunction } from "./entity-action";
 

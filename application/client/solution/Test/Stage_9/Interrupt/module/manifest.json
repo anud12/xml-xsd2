@@ -1,0 +1,6 @@
+{
+  "id": "actor-interrupt-test",
+  "version": "1.0.0",
+  "name": "Actor Interrupt Test Module",
+  "entry": "index.js"
+}

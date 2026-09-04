@@ -24,6 +24,7 @@ fn run_sim_collect(ctx: &Context, script: &str) -> Result<(String, String)> {
 pub fn simulate_action(
     files: &std::collections::HashMap<String, String>,
     action_name: &str,
+    actor: &str,
     initial_store: &[Vec<String>],
 ) -> Result<(Vec<String>, Vec<Vec<String>>)> {
     let (_rt, ctx) = prepare_runtime_and_ctx()?;
@@ -48,6 +49,31 @@ pub fn simulate_action(
     if !sim.containers.is_empty() {
         crate::state::set_last_containers(sim.containers.clone());
     }
+    match sim.active_plan {
+        Some(plan) => {
+            let wait = plan.get("wait").and_then(|w| w.as_i64()).unwrap_or(0);
+            let steps = plan.get("steps")
+                .and_then(|s| s.as_array())
+                .cloned()
+                .unwrap_or_default();
+            let resume_at = crate::state::get_elapsed_time_units() + wait;
+            let interruptible = plan.get("interruptible").and_then(|b| b.as_bool()).unwrap_or(false);
+            runtime_log!(
+                "plan: action '{}' (actor: {:?}) parked for {} GTU (resume_at={}) interruptible={}",
+                action_name, actor, wait, resume_at, interruptible);
+            crate::state::set_active_plan(
+                action_name.to_string(), actor.to_string(), steps, resume_at, interruptible);
+        }
+        None => {
+            if actor.is_empty() {
+                crate::state::remove_active_plan(action_name);
+            } else {
+                // A non-parking action for an actor replaces any plan it had:
+                // the prior plan is discarded, never queued.
+                crate::state::remove_active_plans_for_actor(actor);
+            }
+        }
+    }
     Ok((sim.created, convert_store_values(&sim.store)))
 }
 
@@ -63,4 +89,7 @@ struct Sr {
     pending_effects: Vec<Pe>,
     #[serde(default)]
     containers: Vec<String>,
+    #[serde(default)]
+    #[serde(rename = "activePlan")]
+    active_plan: Option<serde_json::Value>,
 }

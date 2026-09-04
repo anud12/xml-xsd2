@@ -2,15 +2,31 @@ use std::io::Write;
 
 pub fn handle_action(cmd: &str, delimiter: &str) {
     let payload = cmd.trim();
-    let action_name = payload.split_whitespace().next().unwrap_or("");
+    let tokens: Vec<&str> = payload.split_whitespace().collect();
+    let action_name = tokens.first().copied().unwrap_or("");
+    // Optional second token: the actor (entity id) the action is bound to.
+    let actor = tokens.get(1).copied().unwrap_or("");
     let actions = crate::state::last_action_rows().lock().unwrap().clone();
     let matched = actions.iter().any(|row| {
         row.get(0).map(|s| s.as_str()) == Some(action_name)
     });
     if matched {
+        if !actor.is_empty() {
+            if crate::state::actor_is_busy(actor) {
+                debug_println!("debug: action '{}' rejected: actor '{}' has an active plan (busy)", action_name, actor);
+                debug_println!("{delimiter}OK{delimiter}");
+                std::io::stdout().flush().ok();
+                return;
+            }
+        } else if crate::state::has_active_plan(action_name) {
+            debug_println!("debug: action '{}' rejected: plan already active (actor busy)", action_name);
+            debug_println!("{delimiter}OK{delimiter}");
+            std::io::stdout().flush().ok();
+            return;
+        }
         let files_map = build_files_map();
         let current = crate::state::last_entity_rows().lock().unwrap().clone();
-        match crate::js_executor::simulate_action(&files_map, action_name, &current) {
+        match crate::js_executor::simulate_action(&files_map, action_name, actor, &current) {
             Ok((created, store)) => {
                 debug_println!(
                     "debug: simulate_action created={:?} store={:?}",

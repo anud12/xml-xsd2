@@ -30,6 +30,8 @@ pub extern "C" fn runtime_run_iteration(elapsed_units: i64) -> i64 {
     let total = crate::state::get_elapsed_time_units();
     helpers::log(&format!("runtime_run_iteration, total elapsed={}", total));
 
+    crate::js_executor::process_active_plans(total);
+
     let files = build_files_map();
     let _ = crate::js_executor::process_pending_effects(&files, total);
     let _ = crate::js_executor::process_scheduled_effects(&files, total);
