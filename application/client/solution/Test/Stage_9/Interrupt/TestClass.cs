@@ -44,25 +44,42 @@ public class TestClass : Steps {
         AssertRuntimeOutputContainsNot("task step two");
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("worker-1")).IsEqual("begin-task");
 
-        // The instant action overwrites the parked plan and runs on its own.
+        // Advance past the first wait: the parked segment now runs step one and
+        // then denies interruption (denyInterrupt before the second wait).
+        ClearOutput();
+        RuntimeInterop.RunIteration(100);
+        AssertRuntimeOutputContains("task step one");
+        AssertRuntimeOutputContainsNot("task step two");
+        // Parked again, now non-interruptible.
+        Assertions.AssertThat(RuntimeInterop.IsActorInterruptible("worker-1")).IsFalse();
+        Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("worker-1")).IsEqual("begin-task");
+
+        // A new action while non-interruptible: it is dropped, the parked plan
+        // is neither interrupted nor queued behind it.
+        ClearOutput();
+        RuntimeInterop.emitAction("begin-task", "worker-1");
+        RuntimeInterop.RunIteration(0);
+        AssertRuntimeOutputContainsNot("task start fired");
+        AssertRuntimeOutputContainsNot("task step two");
+        // The original plan is still the active one.
+        Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("worker-1")).IsEqual("begin-task");
+        Assertions.AssertThat(RuntimeInterop.IsActorBusy("worker-1")).IsTrue();
+
+        // An instant action is dropped too while non-interruptible.
         ClearOutput();
         RuntimeInterop.emitAction("instant-task", "worker-1");
         RuntimeInterop.RunIteration(0);
-        AssertRuntimeOutputContains("instant fired");
-        AssertRuntimeOutputContainsNot("task step one");
-        AssertRuntimeOutputContainsNot("task step two");
-        // The instant action did not park: there is no longer an active action.
-        Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("worker-1")).IsEqual("");
+        AssertRuntimeOutputContainsNot("instant fired");
+        Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("worker-1")).IsEqual("begin-task");
 
-        // Nothing is left queued: the actor is free.
-        Assertions.AssertThat(RuntimeInterop.IsActorBusy("worker-1")).IsFalse();
-
-        // And advancing well past the waits surfaces none of the dropped
-        // operations, so the overwritten plans were never queued.
+        // Advancing past the final wait: the surviving plan finishes its step
+        // two and the actor becomes free; the dropped actions never ran.
         ClearOutput();
         RuntimeInterop.RunIteration(100);
-        AssertRuntimeOutputContainsNot("task step one");
-        AssertRuntimeOutputContainsNot("task step two");
+        AssertRuntimeOutputContains("task step two");
+        AssertRuntimeOutputContainsNot("instant fired");
+        AssertRuntimeOutputContainsNot("task start fired");
+        Assertions.AssertThat(RuntimeInterop.IsActorBusy("worker-1")).IsFalse();
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("worker-1")).IsEqual("");
     }
 }

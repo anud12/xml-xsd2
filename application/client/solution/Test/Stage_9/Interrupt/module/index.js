@@ -38,6 +38,7 @@ export default (hostApi) => {
       ctx.allowInterrupt();
       ctx.wait(10);
       ctx.emitEffect("task-step-one", {});
+      ctx.denyInterrupt();
       ctx.wait(10);
       ctx.emitEffect("task-step-two", {});
     },
