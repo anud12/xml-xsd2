@@ -86,8 +86,8 @@ const SIM_TPL_P3: &str = r#"
       if (a.apply && typeof a.apply === 'function' && a.apply.name === actionName) { actionObj = a; break; }
     }
   }
-  // apply is a declaration phase: emitEffect/wait record plan steps;
-  // the recorded plan is walked once, immediately up to the first wait.
+  // apply is a declaration phase: emitEffect/wait/moveTo record plan steps;
+  // the recorded plan is walked once, immediately up to the first wait or move.
   const plan = [];
   let activePlan = null;
   if (actionObj) {
@@ -106,8 +106,30 @@ const SIM_TPL_P3: &str = r#"
       globalThis.__logs.push('plan: wait ' + g + ' GTU');
       plan.push({ wait: g });
     };
+    const numVal = function(v) {
+      if (typeof v === 'number') return v;
+      if (v && typeof v === 'object') {
+        if (typeof v.value === 'number') return v.value;
+        if (typeof v.n === 'number') return v.n;
+      }
+      return NaN;
+    };
+    const wrappedMoveTo = function(o) {
+      const step = { move: {
+        containerId: (o && o.containerId) || '',
+        entityId: (o && o.entityId) || '',
+        x: (o && o.x) || 0,
+        y: (o && o.y) || 0,
+        speed: (o && o.speed) || 0
+      }};
+      globalThis.__logs = globalThis.__logs || [];
+      globalThis.__logs.push('plan: move to ' + step.move.x + ',' + step.move.y
+        + ' speed ' + numVal(step.move.speed));
+      plan.push(step);
+    };
     const ctx = { emitEffect: wrappedEmit, emitEvent: wrappedEmit,
       wait: wrappedWait,
+      moveTo: wrappedMoveTo,
       allowInterrupt: function() { plan.push({ interruptible: true }); },
       denyInterrupt: function() { plan.push({ interruptible: false }); },
       createEntity: recordCreated,
@@ -129,6 +151,11 @@ const SIM_TPL_P3: &str = r#"
         emitEvent(st.emit.name, st.emit.payload);
       } else if (st && typeof st.wait === 'number') {
         activePlan = { wait: st.wait, steps: plan.slice(i + 1), interruptible: currentInterruptible };
+        break;
+      } else if (st && st.move) {
+        // The move step is walked by the Rust walker across ticks; park on it
+        // immediately (wait 0 resumes it this tick) so dispatch never consumes it.
+        activePlan = { wait: 0, steps: plan, interruptible: currentInterruptible };
         break;
       }
     }
