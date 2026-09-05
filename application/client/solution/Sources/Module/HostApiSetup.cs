@@ -52,6 +52,10 @@ var __panelEmit = function(id, options, children, forceSurface) {
         json.surface = true;
         json.size = { width: opts.width || 0, height: opts.height || 0 };
         json.anchor = { x: anchor[0], y: anchor[1] };
+        if (opts.container !== undefined) {
+            var cid = (typeof opts.container === ""object"") ? opts.container.value : opts.container;
+            if (typeof cid === ""string"" && cid !== """") json.container = cid;
+        }
         json.offset = {
             top: opts.y || 0, bottom: 0,
             left: opts.x || 0,

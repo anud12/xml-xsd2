@@ -42,9 +42,12 @@ export default (hostApi) => {
     },
   });
 
+  // The panel represents the grid-1 container: the cursor cell under a click
+  // resolves from the container's sizeX/sizeY, not the layout tracks.
   hostApi.ui.panel("board", {
     width: 300,
     height: 300,
+    container: string.of("grid-1"),
     layout: {
       columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
       rows: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],

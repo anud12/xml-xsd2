@@ -162,6 +162,8 @@ public static class PanelNodeStore
                 ["width"] = border.Width,
                 ["texture"] = border.Texture
             };
+        if (!string.IsNullOrEmpty(p.ContainerId))
+            opts["container"] = p.ContainerId;
 
         var children = (p.Children ?? Array.Empty<Runtime.Panel>())
             .Where(c => !string.IsNullOrEmpty(c.Id))

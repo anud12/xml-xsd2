@@ -35,6 +35,10 @@ public struct Panel
     // Set by the panel/window builders to mark an explicit surface node even
     // when no surface option (size/offset/background/hover/click) is present.
     public bool Surface;
+
+    // The container this panel represents; the click cursor resolves its cell
+    // from the container's sizeX/sizeY rather than the declared layout tracks.
+    public string? ContainerId;
 }
 
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]

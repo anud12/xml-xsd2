@@ -49,6 +49,15 @@ public partial class UiWindow
             }
         }
 
+        // The container this panel represents; the cursor cell is resolved from
+        // its sizeX/sizeY at click time (independent of the layout tracks).
+        if (opts.TryGetProperty("container", out var ctr)
+            && ctr.ValueKind == JsonValueKind.String)
+        {
+            var cid = ctr.GetString();
+            if (!string.IsNullOrEmpty(cid)) _onClickContainerId = cid;
+        }
+
         if (!opts.TryGetProperty("onHover", out var hover)
             || hover.ValueKind != JsonValueKind.Object)
             return;
@@ -156,11 +165,28 @@ public partial class UiWindow
         }
     }
 
-    /// The local grid cell (col, row) for a click position, resolved against
-    /// this window's grid (the "grid" child). A window without a grid (box
-    /// layout or leaf) resolves to (0, 0).
+    /// The cell (col, row) for a click position. When this panel represents a
+    /// container, the cell is resolved from the container's sizeX/sizeY by
+    /// proportion of the click within the window (independent of the declared
+    /// layout tracks). Otherwise it falls back to the window's grid child; a
+    /// window with neither resolves to (0, 0).
     (int Col, int Row) ResolveCursorCell(Godot.Vector2 localPos)
     {
+        if (_onClickContainerId != null)
+        {
+            var container = ContainerInterop.GetContainerById(_onClickContainerId);
+            if (container.SizeX is { } sx
+                && container.SizeY is { } sy
+                && sx.Value > 0 && sy.Value > 0
+                && Size.X > 0 && Size.Y > 0)
+            {
+                int col = (int)((localPos.X / Size.X) * sx.Value);
+                int row = (int)((localPos.Y / Size.Y) * sy.Value);
+                col = Math.Clamp(col, 0, (int)sx.Value - 1);
+                row = Math.Clamp(row, 0, (int)sy.Value - 1);
+                return (col, row);
+            }
+        }
         var grid = GetNodeOrNull<UiGrid>("grid");
         if (grid == null)
             return (0, 0);
