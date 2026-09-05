@@ -1,7 +1,4 @@
-use std::fs::File;
-use std::io::Read;
 use std::path::Path;
-use std::sync::atomic::Ordering;
 use rusqlite::Connection;
 
 pub fn export_to_file(path: &str) {
@@ -27,13 +24,6 @@ pub fn export_to_file(path: &str) {
         backup.step(-1).expect("backup step");
         return;
     }
-    let persisted = format!("state.db-{}.db", std::process::id());
-    if super::persisted_flag().load(Ordering::SeqCst)
-        && Path::new(&persisted).exists()
-    {
-        let _ = std::fs::copy(&persisted, path).expect("copy persisted db");
-        return;
-    }
     let conn = Connection::open(path).expect("open export db");
     conn.execute_batch(
         "PRAGMA page_size = 512; \
@@ -47,13 +37,6 @@ pub fn export_to_file(path: &str) {
            SELECT '' AS textMap_name WHERE 0; \
          VACUUM;",
     ).expect("init export db");
-}
-
-pub fn read_sqlite_bytes(path: &str) -> Vec<u8> {
-    let mut f = File::open(path).expect("open state");
-    let mut buf = Vec::new();
-    f.read_to_end(&mut buf).expect("read state");
-    buf
 }
 
 fn collect_panels_fallback(panels: &mut Vec<String>) {

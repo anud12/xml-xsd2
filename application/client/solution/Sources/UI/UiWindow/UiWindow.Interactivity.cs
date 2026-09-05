@@ -26,16 +26,36 @@ public partial class UiWindow
     {
         if (opts.ValueKind == JsonValueKind.Undefined) return;
 
-        if (opts.TryGetProperty("onClick", out var onClick)
-            && onClick.ValueKind == JsonValueKind.String)
+        if (opts.TryGetProperty("onClick", out var onClick))
         {
-            _onClickAction = onClick.GetString();
             MouseFilter = MouseFilterEnum.Stop;
             if (!_guiInputWired)
             {
                 _guiInputWired = true;
                 GuiInput += OnGuiInput;
             }
+            if (onClick.ValueKind == JsonValueKind.String)
+            {
+                // Legacy string form: a single named action, no cursor args.
+                _onClickAction = onClick.GetString();
+            }
+            else if (onClick.ValueKind == JsonValueKind.Object
+                && onClick.TryGetProperty("steps", out var st)
+                && st.ValueKind == JsonValueKind.Array
+                && st.GetArrayLength() > 0)
+            {
+                _onClickAction = null;
+                _onClickStepsJson = onClick.GetRawText();
+            }
+        }
+
+        // The container this panel represents; the cursor cell is resolved from
+        // its sizeX/sizeY at click time (independent of the layout tracks).
+        if (opts.TryGetProperty("container", out var ctr)
+            && ctr.ValueKind == JsonValueKind.String)
+        {
+            var cid = ctr.GetString();
+            if (!string.IsNullOrEmpty(cid)) _onClickContainerId = cid;
         }
 
         if (!opts.TryGetProperty("onHover", out var hover)
@@ -85,14 +105,92 @@ public partial class UiWindow
         if (evt is InputEventMouseButton mb
             && mb.Pressed
             && mb.ButtonIndex == MouseButton.Left
-            && _onClickAction != null)
+            && (_onClickAction != null || _onClickStepsJson != null))
         {
             // Each window emits its own action when clicked; the top-most
             // clicked node is the one under the cursor (a child window
             // covering the point consumes the event before the parent).
-            RuntimeInterop.emitAction(_onClickAction);
+            if (_onClickAction != null)
+                RuntimeInterop.emitAction(_onClickAction);
+            else
+                ExecuteClickPlan(mb.Position);
             GetViewport().SetInputAsHandled();
         }
+    }
+
+    /// Resolves the click plan captured at panel-definition time: each
+    /// cursor symbol in a step's args is replaced by the local grid cell
+    /// (col, row) of the click; non-grid panels resolve to (0, 0). The
+    /// concrete action + args are then emitted on the C# side.
+    void ExecuteClickPlan(Godot.Vector2 localPos)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(_onClickStepsJson);
+            var (col, row) = ResolveCursorCell(localPos);
+            foreach (var step in doc.RootElement.GetProperty("steps").EnumerateArray())
+            {
+                var action = step.GetProperty("action").GetString() ?? "";
+                string argsJson = "{}";
+                if (step.TryGetProperty("args", out var argsEl)
+                    && argsEl.ValueKind == JsonValueKind.Object)
+                {
+                    var sb = new System.Text.StringBuilder("{");
+                    bool first = true;
+                    foreach (var prop in argsEl.EnumerateObject())
+                    {
+                        if (!first) sb.Append(',');
+                        first = false;
+                        sb.Append('"').Append(prop.Name).Append("\":");
+                        if (prop.Value.ValueKind == JsonValueKind.Object
+                            && prop.Value.TryGetProperty("__cursor", out var cur))
+                        {
+                            var axis = cur.GetString();
+                            sb.Append(axis == "y" ? row : col);
+                        }
+                        else
+                        {
+                            sb.Append(prop.Value.GetRawText());
+                        }
+                    }
+                    sb.Append('}');
+                    argsJson = sb.ToString();
+                }
+                RuntimeInterop.emitAction(action, argsJson);
+            }
+        }
+        catch (Exception ex)
+        {
+            RuntimeInterop.Log($"ui: onClick plan error: {ex.Message}");
+        }
+    }
+
+    /// The cell (col, row) for a click position. When this panel represents a
+    /// container, the cell is resolved from the container's sizeX/sizeY by
+    /// proportion of the click within the window (independent of the declared
+    /// layout tracks). Otherwise it falls back to the window's grid child; a
+    /// window with neither resolves to (0, 0).
+    (int Col, int Row) ResolveCursorCell(Godot.Vector2 localPos)
+    {
+        if (_onClickContainerId != null)
+        {
+            var container = ContainerInterop.GetContainerById(_onClickContainerId);
+            if (container.SizeX is { } sx
+                && container.SizeY is { } sy
+                && sx.Value > 0 && sy.Value > 0
+                && Size.X > 0 && Size.Y > 0)
+            {
+                int col = (int)((localPos.X / Size.X) * sx.Value);
+                int row = (int)((localPos.Y / Size.Y) * sy.Value);
+                col = Math.Clamp(col, 0, (int)sx.Value - 1);
+                row = Math.Clamp(row, 0, (int)sy.Value - 1);
+                return (col, row);
+            }
+        }
+        var grid = GetNodeOrNull<UiGrid>("grid");
+        if (grid == null)
+            return (0, 0);
+        return grid.CellAt(localPos);
     }
 
     /// The hover background-swap texture: the node store passes the first

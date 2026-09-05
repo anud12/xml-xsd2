@@ -185,6 +185,35 @@ public partial class UiGrid : Container
         return y;
     }
 
+    /// The (col, row) cell containing the given local point, using the solved
+    /// track sizes and gaps from the last layout. Out-of-bounds points clamp
+    /// to the last cell.
+    public (int Col, int Row) CellAt(Vector2 local)
+    {
+        var gapCol = Math.Max(0f, GapColumn);
+        var gapRow = Math.Max(0f, GapRow);
+
+        int col = Math.Max(0, _colSizes.Count - 1);
+        float acc = 0f;
+        for (int i = 0; i < _colSizes.Count; i++)
+        {
+            if (local.X < acc + _colSizes[i] || i + 1 >= _colSizes.Count)
+            { col = i; break; }
+            acc += _colSizes[i] + gapCol;
+        }
+
+        int row = Math.Max(0, _rowSizes.Count - 1);
+        acc = 0f;
+        for (int i = 0; i < _rowSizes.Count; i++)
+        {
+            if (local.Y < acc + _rowSizes[i] || i + 1 >= _rowSizes.Count)
+            { row = i; break; }
+            acc += _rowSizes[i] + gapRow;
+        }
+
+        return (col, row);
+    }
+
     /// One track spec: either fixed px, or scaled with min/max clamps.
     public struct TrackSpec
     {

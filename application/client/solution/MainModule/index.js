@@ -5,7 +5,7 @@ export default (hostApi) => {
     id: id => id.isContainingExactly(string.of("entity_id")),
   };
   const key = string.of("key");
-  
+
   hostApi.runtime.setEntity(string.of("entity_id"), {
     numberMap: {
       "key": number.of(0)
@@ -34,7 +34,7 @@ export default (hostApi) => {
       })
     }
   })
-  
+
   hostApi.runtime.registerEffect({
     name: "repeat",
     reoccurAfterMs: (context, executionCount, input, output) => {

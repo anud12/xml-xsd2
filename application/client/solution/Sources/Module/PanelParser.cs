@@ -94,14 +94,13 @@ static class PanelParser
             p.HoverBackground = ExtractTextureFromSprite(h, "background");
         }
 
-        if (e.TryGetProperty("onClick", out var c) && c.ValueKind == JsonValueKind.Object)
+        if (e.TryGetProperty("onClick", out var c) && c.ValueKind == JsonValueKind.Object
+            && c.TryGetProperty("steps", out var steps) && steps.ValueKind == JsonValueKind.Array)
         {
-            if (Extract.String(c, "type") == "emitAction")
+            p.OnClick = new Runtime.PanelOnClickHandler
             {
-                var name = Extract.String(c, "actionName");
-                if (name != null)
-                    p.OnClick = new Runtime.PanelOnClickHandler { ActionName = name };
-            }
+                StepsJson = c.GetRawText()
+            };
         }
 
         if (e.TryGetProperty("border", out var bd) && bd.ValueKind == JsonValueKind.Object)
@@ -115,12 +114,16 @@ static class PanelParser
         }
 
         p.Surface = Extract.Bool(e, "surface") ?? false;
+        p.ContainerId = Extract.String(e, "container");
 
         if (e.TryGetProperty("content", out var ct) && ct.ValueKind == JsonValueKind.Object)
             p.Content = ContentParser.Parse(ct);
 
         if (e.TryGetProperty("layout", out var l) && l.ValueKind == JsonValueKind.Object)
+        {
             p.Layout = LayoutParser.Parse(l);
+            p.LayoutJson = l.GetRawText();
+        }
 
         if (e.TryGetProperty("children", out var ch) && ch.ValueKind == JsonValueKind.Array)
         {

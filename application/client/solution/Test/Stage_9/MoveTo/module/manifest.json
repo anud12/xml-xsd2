@@ -1,0 +1,6 @@
+{
+  "id": "move-to-test",
+  "version": "1.0.0",
+  "name": "Move To Test Module",
+  "entry": "index.js"
+}

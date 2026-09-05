@@ -31,7 +31,7 @@ pub extern "C" fn runtime_load_archive(data_ptr: *const c_uchar, len: c_int) -> 
     let mut entity_rows: Vec<Vec<String>> = Vec::new();
     crate::module::process_module(&files, &mut entity_rows);
     crate::state::set_last_entity_rows(entity_rows.clone());
-    let _dest = crate::state::persist_state("state.db", &file_rows, &entity_rows);
+    crate::state::persist_state(&file_rows, &entity_rows);
 
     true
 }

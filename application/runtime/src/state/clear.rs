@@ -12,6 +12,7 @@ pub fn clear_state() {
     *super::last_panels().lock().unwrap() = Vec::new();
     super::clear_pending_effects();
     *super::scheduled_effects().lock().unwrap() = Vec::new();
+    *super::active_plans().lock().unwrap() = Vec::new();
     *super::last_created_by().lock().unwrap() = HashMap::new();
     *super::last_archive_path().lock().unwrap() = String::new();
     *super::last_entity_data().lock().unwrap() = HashMap::new();

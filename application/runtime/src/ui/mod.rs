@@ -532,12 +532,10 @@ pub fn fetch_ui_delta_json() -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex as StdMutex;
 
-    // All UI state is process-global; serialize the tests that touch it.
-    static TEST_LOCK: StdMutex<()> = StdMutex::new(());
+    // All UI state is process-global; serialize via the shared state lock.
     fn lock() -> std::sync::MutexGuard<'static, ()> {
-        TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+        crate::state::test_lock()
     }
 
     fn node_json(json: &str) -> UiNode {

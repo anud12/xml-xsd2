@@ -34,6 +34,8 @@ export default (hostApi) => {
         height: 100,
         anchor: "center",
         background: hostApi.ui.getAnimation(string.of("texture")),
-        onClick: "action",
+        onClick: (ctx) => {
+            ctx.emitAction("action");
+        },
     }, [])
 }

@@ -1,0 +1,6 @@
+{
+  "id": "action-plan-busy-test",
+  "version": "1.0.0",
+  "name": "Action Plan Busy Test Module",
+  "entry": "index.js"
+}

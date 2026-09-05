@@ -286,10 +286,9 @@ mod tests {
     use super::*;
     use crate::state;
 
-    // All process-global state is shared; serialize the tests that touch it.
-    static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    // All process-global state is shared; serialize via the shared state lock.
     fn lock() -> std::sync::MutexGuard<'static, ()> {
-        TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+        state::test_lock()
     }
 
     fn square_room(id: &str) -> Room {

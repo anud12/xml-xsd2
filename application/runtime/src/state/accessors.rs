@@ -32,6 +32,81 @@ pub fn pending_effects() -> &'static Mutex<Vec<String>> {
 pub fn scheduled_effects() -> &'static Mutex<Vec<super::ScheduledEffect>> {
     super::persisted_flag(); unsafe { super::SCHEDULED_EFFECTS.expect("scheduled effects initialized") }
 }
+pub fn active_plans() -> &'static Mutex<Vec<super::ActivePlan>> {
+    super::persisted_flag(); unsafe { super::ACTIVE_PLANS.expect("active plans initialized") }
+}
+/// Park a plan for (actor, action_name). One plan per actor: parking for a
+/// non-empty actor first drops any plan that actor already had (the interrupt:
+/// the prior plan is discarded, never queued). `interruptible` records whether
+/// the actor opted in to being interrupted while parked (allowInterrupt()).
+pub fn set_active_plan(
+    action_name: String,
+    actor: String,
+    steps: Vec<serde_json::Value>,
+    resume_at: i64,
+    interruptible: bool,
+) {
+    let mut plans = active_plans().lock().unwrap();
+    if !actor.is_empty() {
+        plans.retain(|p| p.actor != actor);
+        plans.push(super::ActivePlan { actor, action_name, steps, resume_at, interruptible });
+        return;
+    }
+    if let Some(p) = plans.iter_mut().find(|p| p.action_name == action_name && p.actor.is_empty())
+    {
+        p.steps = steps;
+        p.resume_at = resume_at;
+        p.interruptible = interruptible;
+    } else {
+        plans.push(super::ActivePlan { actor, action_name, steps, resume_at, interruptible });
+    }
+}
+pub fn park_active_plan(
+    action_name: &str,
+    actor: &str,
+    steps: Vec<serde_json::Value>,
+    resume_at: i64,
+    interruptible: bool,
+) {
+    set_active_plan(action_name.to_string(), actor.to_string(), steps, resume_at, interruptible);
+}
+pub fn remove_active_plan(action_name: &str) {
+    let mut plans = active_plans().lock().unwrap();
+    plans.retain(|p| p.action_name != action_name);
+}
+pub fn remove_active_plan_for(action_name: &str, actor: &str) {
+    let mut plans = active_plans().lock().unwrap();
+    plans.retain(|p| !(p.action_name == action_name && p.actor == actor));
+}
+pub fn has_active_plan(action_name: &str) -> bool {
+    active_plans().lock().unwrap().iter().any(|p| p.action_name == action_name)
+}
+/// True while any plan for this actor is parked (per-actor serialization:
+/// a busy actor rejects all further actions, not just the same one).
+pub fn actor_is_busy(actor: &str) -> bool {
+    if actor.is_empty() { return false; }
+    active_plans().lock().unwrap().iter().any(|p| p.actor == actor)
+}
+/// True while the actor's parked plan was marked interruptible via
+/// allowInterrupt(). A busy, interruptible actor accepts a new action (which
+/// interrupts the parked plan); a busy, non-interruptible actor rejects it.
+pub fn actor_plan_interruptible(actor: &str) -> bool {
+    if actor.is_empty() { return false; }
+    active_plans().lock().unwrap().iter().any(|p| p.actor == actor && p.interruptible)
+}
+/// The name of the action whose plan is currently parked for this actor, or
+/// `None` while the actor is free. One plan per actor, so at most one name.
+pub fn actor_active_action(actor: &str) -> Option<String> {
+    if actor.is_empty() { return None; }
+    active_plans().lock().unwrap().iter()
+        .find(|p| p.actor == actor)
+        .map(|p| p.action_name.clone())
+}
+/// Drop every plan parked for this actor. An empty actor matches nothing.
+pub fn remove_active_plans_for_actor(actor: &str) {
+    if actor.is_empty() { return; }
+    active_plans().lock().unwrap().retain(|p| p.actor != actor);
+}
 pub fn last_entity_data() -> &'static Mutex<HashMap<String, HashMap<String, String>>> {
     super::persisted_flag(); unsafe { super::LAST_ENTITY_DATA.expect("entity data initialized") }
 }

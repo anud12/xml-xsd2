@@ -22,6 +22,10 @@ public partial class UiWindow : Control
     UiGrid.UiGridLayoutSpec _layoutSpec = new();
     // Interactivity.
     string? _onClickAction;
+    string? _onClickStepsJson;
+    // The container this panel represents; the click cursor cell resolves from
+    // its sizeX/sizeY rather than the declared layout tracks.
+    string? _onClickContainerId;
     bool _hoverWired;
     string? _hoverEmitAction;
     bool _hoverStopPropagation;
