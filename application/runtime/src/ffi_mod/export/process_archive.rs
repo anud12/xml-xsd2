@@ -26,9 +26,8 @@ pub extern "C" fn runtime_process_archive(path: *const c_char) -> *mut c_char {
     crate::module::process_module(&files, &mut entity_rows);
     crate::state::set_last_entity_rows(entity_rows.clone());
 
-    // Persist state to disk and return the destination path as a C string (caller must free)
-    let dest = crate::state::persist_state("state.db", &file_rows, &entity_rows);
-    match CString::new(dest) {
+    crate::state::persist_state(&file_rows, &entity_rows);
+    match CString::new("ok") {
         Ok(s) => s.into_raw(),
         Err(_) => std::ptr::null_mut(),
     }

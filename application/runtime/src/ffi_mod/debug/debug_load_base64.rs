@@ -21,8 +21,8 @@ pub extern "C" fn runtime_debug_load_base64(payload_b64: *const c_char) -> *mut 
             let mut entity_rows: Vec<Vec<String>> = Vec::new();
             crate::module::process_module(&files, &mut entity_rows);
             crate::state::set_last_entity_rows(entity_rows.clone());
-            let dest = crate::state::persist_state("state.db", &file_rows, &entity_rows);
-            match CString::new(dest) { Ok(s) => s.into_raw(), Err(_) => std::ptr::null_mut(), }
+            crate::state::persist_state(&file_rows, &entity_rows);
+            match CString::new("ok") { Ok(s) => s.into_raw(), Err(_) => std::ptr::null_mut(), }
         },
         Err(_) => std::ptr::null_mut(),
     }

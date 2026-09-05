@@ -56,8 +56,7 @@ fn main() {
         std::io::stdout().write_all(&[0x80u8; 8]).expect("write alignment bytes");
         print!("--SQLITE-START--"); // no trailing newline: SQLite bytes follow immediately
         let sqlite_bytes = if !file_rows.is_empty() {
-            let dest = state::persist_state("state.db", &file_rows, &entity_rows);
-            state::read_sqlite_bytes(&dest)
+            state::persist_state(&file_rows, &entity_rows)
         } else {
             state::create_startup_sqlite_bytes()
         };

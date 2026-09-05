@@ -1,10 +1,9 @@
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
 use std::sync::atomic::Ordering;
 use rusqlite::Connection;
 
-pub fn persist_state(path: &str, file_rows: &[Vec<String>], entity_rows: &[Vec<String>]) -> String {
+pub fn persist_state(file_rows: &[Vec<String>], entity_rows: &[Vec<String>]) -> Vec<u8> {
     let mut conn = Connection::open_in_memory().expect("open db");
     conn.execute_batch("CREATE TABLE IF NOT EXISTS files (file_name TEXT, contents TEXT);")
         .expect("create files table");
@@ -19,17 +18,13 @@ pub fn persist_state(path: &str, file_rows: &[Vec<String>], entity_rows: &[Vec<S
     let module_rows = crate::export_helpers::insert_files_and_collect_modules(&mut conn, file_rows);
     crate::export_helpers::insert_entities(&mut conn, &entity_rows.to_vec());
     if !module_rows.is_empty() { super::set_last_module_rows(module_rows); }
-    let dest = format!("{}-{}.db", path, std::process::id());
     if !file_rows.is_empty() || !entity_rows.is_empty() {
         super::persisted_flag().store(true, Ordering::SeqCst);
     }
     *super::last_file_rows().lock().unwrap() = file_rows.to_vec();
     *super::last_entity_rows().lock().unwrap() = entity_rows.to_vec();
-    if Path::new(&dest).exists() { let _ = std::fs::remove_file(&dest); }
-    let mut dest_conn = Connection::open(&dest).expect("open dest db");
-    let backup = rusqlite::backup::Backup::new(&conn, &mut dest_conn).expect("backup");
-    backup.step(-1).expect("backup step");
-    dest
+    let data = conn.serialize("main").expect("serialize db");
+    data.to_vec()
 }
 
 pub fn create_startup_sqlite_bytes() -> Vec<u8> {
@@ -58,16 +53,4 @@ pub fn create_startup_sqlite_bytes() -> Vec<u8> {
     }
     let _ = std::fs::remove_file(&path);
     buf
-}
-
-#[allow(dead_code)]
-fn try_copy_persisted_to(path: &str) -> bool {
-    let persisted = format!("state.db-{}.db", std::process::id());
-    if super::persisted_flag().load(Ordering::SeqCst)
-        && Path::new(&persisted).exists()
-    {
-        let _ = std::fs::copy(&persisted, path).expect("copy persisted db");
-        return true;
-    }
-    false
 }
