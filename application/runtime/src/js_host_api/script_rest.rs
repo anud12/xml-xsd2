@@ -98,12 +98,22 @@ pub fn host_api_script_rest() -> String {
 
 pub fn host_api_script_tail() -> String {
     format!(
-        "{}{}{}{}",
+        "{}{}{}{}{}",
         host_api_script_convenience(),
+        host_api_script_extract_position_key(),
         host_api_script_serialize_container(),
         host_api_script_eval_position_fn(),
         host_api_script_make_entity_proxy()
     )
+}
+
+fn host_api_script_extract_position_key() -> &'static str {
+    r#"
+    globalThis.extractPositionKey = function(fn) {
+        if (typeof fn !== 'function') return null;
+        var m = String(fn).match(/get\(\s*["']([^"']+)["']\s*\)/);
+        return m ? m[1] : null;
+    };"#
 }
 
 fn host_api_script_convenience() -> &'static str {
@@ -132,10 +142,16 @@ fn host_api_script_serialize_container() -> &'static str {
             out.entities = c.entities.map(function(e) {
                 return String(e);
             });
-        if (c.getX !== undefined)
+        if (c.getX !== undefined) {
             out.getX = globalThis.evalPositionFn(c.getX);
-        if (c.getY !== undefined)
+            var kx = globalThis.extractPositionKey(c.getX);
+            if (kx !== null) out.xKey = kx;
+        }
+        if (c.getY !== undefined) {
             out.getY = globalThis.evalPositionFn(c.getY);
+            var ky = globalThis.extractPositionKey(c.getY);
+            if (ky !== null) out.yKey = ky;
+        }
         if (c.getSpanX !== undefined)
             out.getSpanX = globalThis.evalPositionFn(c.getSpanX);
         if (c.getSpanY !== undefined)

@@ -51,4 +51,25 @@ export default (hostApi) => {
       ctx.emitEffect("instant-step", {});
     },
   });
+
+  // Readouts bind worker-1's column/row number values: the plan machinery
+  // (park, overwrite, reject) never touches the entity data, so the labels
+  // stay put through the whole interruption sequence.
+  hostApi.ui.panel("col", {
+    width: 80,
+    height: 40,
+    x: 10,
+    y: 10,
+  }, [
+    hostApi.ui.field("col-value", { entity: "worker-1", map: "number", name: "column", fallback: "0" }),
+  ]);
+
+  hostApi.ui.panel("row", {
+    width: 80,
+    height: 40,
+    x: 100,
+    y: 10,
+  }, [
+    hostApi.ui.field("row-value", { entity: "worker-1", map: "number", name: "row", fallback: "0" }),
+  ]);
 }

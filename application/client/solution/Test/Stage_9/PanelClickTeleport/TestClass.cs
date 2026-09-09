@@ -28,6 +28,11 @@ public class TestClass : Steps {
         Assertions.AssertThat(before.GetXForEntityId["node-1"]).IsEqual(2.0);
         Assertions.AssertThat(before.GetYForEntityId["node-1"]).IsEqual(1.0);
 
+        // The readout panels bind node-1's column/row, so the rendered labels
+        // show where the entity currently sits.
+        scene.AssertPanelThat("col").HasContentText("2");
+        scene.AssertPanelThat("row").HasContentText("1");
+
         // The panel represents grid-1 (sizeX 10, sizeY 5) over a 300x300 board.
         // The cursor cell resolves from the container's sizeX/sizeY by the
         // proportion of the click within the window, so the layout's 3x3 tracks
@@ -36,22 +41,30 @@ public class TestClass : Steps {
         // Column 5, row 2: the board center (local 150,150) is 50% across the
         // 10-column and 5-row grid.
         ClickLocal(board, new Vector2(150, 150));
-        await runner.SimulateFrames(1);
+        // Two frames: the first flushes the click input (teleport applies) and
+        // the second paints, refreshing the readout labels from the entity store.
+        await runner.SimulateFrames(2);
         Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetXForEntityId["node-1"]).IsEqual(5.0);
         Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetYForEntityId["node-1"]).IsEqual(2.0);
+        scene.AssertPanelThat("col").HasContentText("5");
+        scene.AssertPanelThat("row").HasContentText("2");
 
         // Column 0, row 0: the top-left of the board.
         ClickLocal(board, new Vector2(5, 5));
-        await runner.SimulateFrames(1);
+        await runner.SimulateFrames(2);
         Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetXForEntityId["node-1"]).IsEqual(0.0);
         Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetYForEntityId["node-1"]).IsEqual(0.0);
+        scene.AssertPanelThat("col").HasContentText("0");
+        scene.AssertPanelThat("row").HasContentText("0");
 
         // Column 9, row 4: the bottom-right corner — the last cell of the
         // sizeX x sizeY grid, regardless of the 3x3 layout.
         ClickLocal(board, new Vector2(295, 295));
-        await runner.SimulateFrames(1);
+        await runner.SimulateFrames(2);
         Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetXForEntityId["node-1"]).IsEqual(9.0);
         Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetYForEntityId["node-1"]).IsEqual(4.0);
+        scene.AssertPanelThat("col").HasContentText("9");
+        scene.AssertPanelThat("row").HasContentText("4");
     }
 
     void ClickLocal(UiWindow window, Vector2 local) {

@@ -29,8 +29,16 @@ const SIM_TPL_P3: &str = r#"
     if (c.entities) out.entities = c.entities.map(function(e) { return String(e); });
     if (c.textMap) out.textMap = c.textMap;
     if (c.numberMap) out.numberMap = c.numberMap;
-    if (typeof c.getX === 'function') out.getX = globalThis.evalPositionFn(c.getX);
-    if (typeof c.getY === 'function') out.getY = globalThis.evalPositionFn(c.getY);
+    if (typeof c.getX === 'function') {
+      out.getX = globalThis.evalPositionFn(c.getX);
+      var kx = extractPositionKey(c.getX);
+      if (kx !== null) out.xKey = kx;
+    }
+    if (typeof c.getY === 'function') {
+      out.getY = globalThis.evalPositionFn(c.getY);
+      var ky = extractPositionKey(c.getY);
+      if (ky !== null) out.yKey = ky;
+    }
     if (typeof c.getSpanX === 'function') out.getSpanX = globalThis.evalPositionFn(c.getSpanX);
     if (typeof c.getSpanY === 'function') out.getSpanY = globalThis.evalPositionFn(c.getSpanY);
     if (c.sizeX) out.sizeX = { value: c.sizeX.value, outOfBounds: c.sizeX.outOfBounds };

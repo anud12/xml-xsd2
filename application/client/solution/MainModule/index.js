@@ -25,7 +25,7 @@ export default (hostApi) => {
           .isEqualTo(number.of(0)));
       return output.orElse(hostApi.runtime.condition.of(false));
     },
-    apply:(context, output) => {
+    apply: (context, output) => {
       output.ifTrue(() => {
         context.getEntityBy(filter).get(number.of(0))
           .map(v => v.getText(string.of("isModified")).ifPresent(v => {
@@ -59,58 +59,120 @@ export default (hostApi) => {
 
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("hover"), {
     frames: [
-      { sprite: hostApi.ui.getSpritePNG("hover.png") },
+      {sprite: hostApi.ui.getSpritePNG("hover.png")},
     ],
     duration: hostApi.runtime.number.of(1),
   });
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
-      { sprite: hostApi.ui.getSpritePNG("frame_1.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_2.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_4.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
+      {sprite: hostApi.ui.getSpritePNG("frame_1.png")},
+      {sprite: hostApi.ui.getSpritePNG("frame_2.png")},
+      {sprite: hostApi.ui.getSpritePNG("frame_3.png")},
+      {sprite: hostApi.ui.getSpritePNG("frame_4.png")},
+      {sprite: hostApi.ui.getSpritePNG("frame_5.png")},
     ],
     duration: hostApi.runtime.number.of(5),
     loop: true,
   });
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("textureSlow"), {
     frames: [
-      { sprite: hostApi.ui.getSpritePNG("frame_1.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_2.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_3.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_4.png") },
-      { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
+      {sprite: hostApi.ui.getSpritePNG("frame_1.png")},
+      {sprite: hostApi.ui.getSpritePNG("frame_2.png")},
+      {sprite: hostApi.ui.getSpritePNG("frame_3.png")},
+      {sprite: hostApi.ui.getSpritePNG("frame_4.png")},
+      {sprite: hostApi.ui.getSpritePNG("frame_5.png")},
     ],
     duration: hostApi.runtime.number.of(30),
     loop: true,
   });
-  hostApi.ui.panel("center", {
-    x: 70,
-    y: 70,
-    width: 100,
-    height: 100,
-    onHover: {
-      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
-      thickness: 5,
+
+  hostApi.runtime.registerContainer({
+    id: "grid-1",
+    entities: [
+      hostApi.runtime.string.of("node-1"),
+      hostApi.runtime.string.of("node-2"),
+    ],
+    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
+    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
+    getSpanX: (entity) => number.of(1),
+    getSpanY: (entity) => number.of(1),
+    sizeX: {
+      value: number.of(10),
+      outOfBounds: "clamp",
     },
+    sizeY: {
+      value: number.of(5),
+      outOfBounds: "clamp",
+    },
+  });
+
+  hostApi.runtime.registerAction({
+    name: string.of("teleport-to-cursor"),
+    apply: (ctx) => {
+      ctx.teleportTo({
+        containerId: string.of("grid-1"),
+        entityId: string.of("node-1"),
+        x: ctx.args.x,
+        y: ctx.args.y,
+        clamp: true,
+      });
+    },
+  });
+
+  hostApi.ui.panel("ui", {
+    x: 1,
+    y: 1,
+    width: 600,
+    height: 600,
     background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
-  }, [
-    hostApi.ui.field("centerContent", { entity: "entity_id", map: "number", name: "key", fallback: "0", align: "top" }),
-  ])
-
-
-  hostApi.ui.panel("isModifiedPanel", {
-    x: 250,
-    y: 100,
-    width: 100,
-    height: 100,
-    onHover: {
-      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
-      thickness: 10,
+    // The panel represents grid-1: the click cursor resolves from the
+    // container's actual size (sizeX 10, sizeY 5), not the layout tracks.
+    container: string.of("grid-1"),
+    layout: {
+      columns: [{scale: 1}, {scale: 1}, {scale: 1}],
+      rows: [{scale: 1}, {scale: 1}, {scale: 1}],
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("textureSlow")),
+    onClick: (ctx) => {
+      ctx.emitAction("teleport-to-cursor", {
+        x: ctx.cursor.getX(),
+        y: ctx.cursor.getY(),
+      });
+    }
   }, [
-    hostApi.ui.field("isModifiedContent", { entity: "entity_id", map: "text", name: "isModified", fallback: "No", align: "center" }),
+    hostApi.ui.container("ui-view", {container: "grid-1"}, entity => [
+      hostApi.ui.panel("entity-panel", {
+        width: 10,
+        height: 10,
+        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+      })
+    ])
   ])
+  // hostApi.ui.panel("center", {
+  //   x: 70,
+  //   y: 70,
+  //   width: 100,
+  //   height: 100,
+  //   onHover: {
+  //     texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
+  //     thickness: 5,
+  //   },
+  //   background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+  // }, [
+  //   hostApi.ui.field("centerContent", { entity: "entity_id", map: "number", name: "key", fallback: "0", align: "top" }),
+  // ])
+  //
+  //
+  // hostApi.ui.panel("isModifiedPanel", {
+  //   x: 250,
+  //   y: 100,
+  //   width: 100,
+  //   height: 100,
+  //   onHover: {
+  //     texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
+  //     thickness: 10,
+  //   },
+  //   background: hostApi.ui.getAnimation(hostApi.runtime.string.of("textureSlow")),
+  // }, [
+  //   hostApi.ui.field("isModifiedContent", { entity: "entity_id", map: "text", name: "isModified", fallback: "No", align: "center" }),
+  // ])
 }

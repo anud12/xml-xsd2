@@ -111,9 +111,15 @@ export type UiWindowOptions = {
   height?: number;
   x?: number;
   y?: number;
-  anchor?: string | { x: number; y: number };
-  /** Background animation; obtain via `hostApi.ui.getAnimation`. */
-  background?: AnimationBackground;
+   anchor?: string | { x: number; y: number };
+   /**
+    * The container this panel represents. When set, the click cursor cell
+    * resolves from the container's actual size (sizeX/sizeY) by proportion
+    * of the click within the panel — not from the layout tracks.
+    */
+   container?: string | StringExpression;
+   /** Background animation; obtain via `hostApi.ui.getAnimation`. */
+   background?: AnimationBackground;
   align?: AlignOption;
   onHover?: {
     /** Hover outline animation; obtain via `hostApi.ui.getAnimation`. */
@@ -136,16 +142,17 @@ export type UiWindowOptions = {
 
 /**
  * Context handed to a panel's `onClick` callback. Call `emitAction` to append
- * a step to the plan; `cursor` symbols resolve at click time to the local
- * grid cell (column/row), or 0 for non-grid panels.
+ * a step to the plan; `cursor` symbols resolve at click time to the cell
+ * (column/row) under the click — from the panel's container size when it
+ * represents one, else its layout grid, else 0.
  */
 export interface UiClickContext {
   /** Appends an action step. `args` may include `cursor` numberExpressions. */
   emitAction: (name: string, args?: Record<string, unknown>) => void;
   cursor: {
-    /** The clicked cell's column index (0 for non-grid panels). */
+    /** The clicked cell's column index (0 when the panel has no grid/container). */
     getX: () => number;
-    /** The clicked cell's row index (0 for non-grid panels). */
+    /** The clicked cell's row index (0 when the panel has no grid/container). */
     getY: () => number;
   };
 }

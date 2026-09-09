@@ -53,6 +53,10 @@ pub fn simulate_action(
     if !sim.containers.is_empty() {
         crate::state::set_last_containers(sim.containers.clone());
     }
+    // The action may have mutated entity number/text maps (teleportTo,
+    // setEntity, ...); merge them back so field value resolution reads the
+    // live values instead of the module-load snapshot.
+    super::entity_sync_back::sync_entity_data_back(&ctx);
     match sim.active_plan {
         Some(plan) => {
             let wait = plan.get("wait").and_then(|w| w.as_i64()).unwrap_or(0);
