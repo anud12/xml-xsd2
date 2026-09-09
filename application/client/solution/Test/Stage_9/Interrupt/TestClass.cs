@@ -7,11 +7,20 @@ namespace GdUnit4.Examples.Basics.Setup.Test.Stage_9.Interrupt;
 public class TestClass : Steps {
     [TestCategory("Stage_9")]
     [TestCase]
-    public void Given_interruptible_plan_it_should_overwrite_not_queue_when_action_repeatedly_emitted() {
+    [RequireGodotRuntime]
+    public async Task Given_interruptible_plan_it_should_overwrite_not_queue_when_action_repeatedly_emitted() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
+            .EnsureDllAccessible()
             .ProcessArchive();
+
+        var scene = await AttachUiScene();
+
+        // The readout panels bind worker-1's column/row; the plan machinery
+        // never moves the entity, so the labels must stay at (0,0) throughout.
+        scene.AssertPanelThat("col").HasContentText("0");
+        scene.AssertPanelThat("row").HasContentText("0");
 
         // First begin-task: runs its opening operation, then parks (interruptible).
         RuntimeInterop.emitActionFor("begin-task", "worker-1");
@@ -22,6 +31,9 @@ public class TestClass : Steps {
         Assertions.AssertThat(RuntimeInterop.IsActorInterruptible("worker-1")).IsTrue();
         // The parked plan is the begin-task action.
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("worker-1")).IsEqual("begin-task");
+        await runner.SimulateFrames(2);
+        scene.AssertPanelThat("col").HasContentText("0");
+        scene.AssertPanelThat("row").HasContentText("0");
 
         // Second begin-task: the parked plan is interruptible, so it is dropped
         // and replaced (overwritten), not queued. Its opening operation re-runs.
@@ -43,6 +55,9 @@ public class TestClass : Steps {
         AssertRuntimeOutputContainsNot("task step one");
         AssertRuntimeOutputContainsNot("task step two");
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("worker-1")).IsEqual("begin-task");
+        await runner.SimulateFrames(2);
+        scene.AssertPanelThat("col").HasContentText("0");
+        scene.AssertPanelThat("row").HasContentText("0");
 
         // Advance past the first wait: the parked segment now runs step one and
         // then denies interruption (denyInterrupt before the second wait).
@@ -53,6 +68,9 @@ public class TestClass : Steps {
         // Parked again, now non-interruptible.
         Assertions.AssertThat(RuntimeInterop.IsActorInterruptible("worker-1")).IsFalse();
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("worker-1")).IsEqual("begin-task");
+        await runner.SimulateFrames(2);
+        scene.AssertPanelThat("col").HasContentText("0");
+        scene.AssertPanelThat("row").HasContentText("0");
 
         // A new action while non-interruptible: it is dropped, the parked plan
         // is neither interrupted nor queued behind it.
@@ -81,5 +99,8 @@ public class TestClass : Steps {
         AssertRuntimeOutputContainsNot("task start fired");
         Assertions.AssertThat(RuntimeInterop.IsActorBusy("worker-1")).IsFalse();
         Assertions.AssertThat(RuntimeInterop.GetActorActiveAction("worker-1")).IsEqual("");
+        await runner.SimulateFrames(2);
+        scene.AssertPanelThat("col").HasContentText("0");
+        scene.AssertPanelThat("row").HasContentText("0");
     }
 }

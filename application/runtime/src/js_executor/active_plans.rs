@@ -68,9 +68,11 @@ fn extract_container_id(json_str: &str) -> String {
     trimmed.to_string()
 }
 
-/// Find the container's pre-baked `getX`/`getY` position-key name for an
-/// entity. Returns `(x_key, y_key)`; either may be empty if the container
-/// declares no such accessor.
+/// Find the entity number-data keys holding the actor's position for this
+/// container: the persisted `xKey`/`yKey` (the keys the container's position
+/// accessors read), falling back to the literal `x`/`y` when the container
+/// JSON carries no key names. Either may be empty if the container declares
+/// no such accessor for the entity.
 fn position_keys(
     containers: &[String],
     container_id: &str,
@@ -82,11 +84,18 @@ fn position_keys(
             continue;
         }
         if let Ok(v) = serde_json::from_str::<serde_json::Value>(json_str) {
-            let xk = v.get("getX").and_then(|g| g.get(entity_id))
-                .and_then(|n| n.as_f64()).map(|_| "x".to_string()).unwrap_or_default();
-            let yk = v.get("getY").and_then(|g| g.get(entity_id))
-                .and_then(|n| n.as_f64()).map(|_| "y".to_string()).unwrap_or_default();
-            return (xk, yk);
+            let x_in = v.get("getX").and_then(|g| g.get(entity_id))
+                .and_then(|n| n.as_f64()).is_some();
+            let y_in = v.get("getY").and_then(|g| g.get(entity_id))
+                .and_then(|n| n.as_f64()).is_some();
+            let xk = v.get("xKey").and_then(|k| k.as_str()).filter(|s| !s.is_empty())
+                .map(|s| s.to_string()).unwrap_or_else(|| "x".to_string());
+            let yk = v.get("yKey").and_then(|k| k.as_str()).filter(|s| !s.is_empty())
+                .map(|s| s.to_string()).unwrap_or_else(|| "y".to_string());
+            return (
+                if x_in { xk } else { String::new() },
+                if y_in { yk } else { String::new() },
+            );
         }
     }
     (String::new(), String::new())
@@ -859,5 +868,31 @@ mod tests {
         assert!(!crate::state::has_active_plan("seq") ||
             crate::state::active_plans().lock().unwrap()[0].resume_at > 0);
         assert!(crate::state::actor_plan_interruptible("e1"));
+    }
+
+    #[test]
+    fn move_writes_position_to_persisted_position_keys() {
+        let _g = lock_test();
+        crate::state::clear_state();
+        let c = json!({
+            "id": "grid",
+            "entities": ["e1"],
+            "getX": { "e1": 0.0 },
+            "getY": { "e1": 0.0 },
+            "xKey": "column",
+            "yKey": "row",
+            "sizeX": { "value": 10.0, "outOfBounds": "clamp" },
+            "sizeY": { "value": 10.0, "outOfBounds": "clamp" }
+        });
+        crate::state::set_last_containers(vec![serde_json::to_string(&c).unwrap()]);
+        plan("walk", "e1", vec![move_step("grid", "e1", 2.0, 0.0, 1.0)], 0);
+        process_active_plans(0);
+
+        // The position lands under the container's real key names, not x/y.
+        let nd = crate::state::last_entity_number_data().lock().unwrap();
+        let em = nd.get("e1").expect("entity number data written");
+        assert_eq!(em.get("column"), Some(&1.0));
+        assert_eq!(em.get("row"), Some(&0.0));
+        assert!(em.get("x").is_none());
     }
 }

@@ -7,16 +7,24 @@ namespace GdUnit4.Examples.Basics.Setup.Test.Stage_9.ContainerTeleport;
 public class TestClass : Steps {
     [TestCategory("Stage_9")]
     [TestCase]
-    public void Given_grid_entity_it_should_relocate_to_destination_when_action_fired() {
+    [RequireGodotRuntime]
+    public async Task Given_grid_entity_it_should_relocate_to_destination_when_action_fired() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
+            .EnsureDllAccessible()
             .ProcessArchive();
+
+        var scene = await AttachUiScene();
 
         // Before the action fires, node-1 sits at column=2, row=1.
         var before = ContainerInterop.GetContainerById("grid-1");
         Assertions.AssertThat(before.GetXForEntityId["node-1"]).IsEqual(2.0);
         Assertions.AssertThat(before.GetYForEntityId["node-1"]).IsEqual(1.0);
+        // The readout panels bind node-1's column/row, so the rendered labels
+        // show where the entity currently sits.
+        scene.AssertPanelThat("col").HasContentText("2");
+        scene.AssertPanelThat("row").HasContentText("1");
 
         // Firing the action runs ctx.teleportTo, relocating node-1 in both x and y.
         RuntimeInterop.emitAction("relocate-node-1");
@@ -27,14 +35,22 @@ public class TestClass : Steps {
         // The other member of the container is unaffected.
         Assertions.AssertThat(after.GetXForEntityId["node-2"]).IsEqual(0.0);
         Assertions.AssertThat(after.GetYForEntityId["node-2"]).IsEqual(0.0);
+        // The teleport rewrote the entity's column/row; the labels pick it up.
+        await runner.SimulateFrames(2);
+        scene.AssertPanelThat("col").HasContentText("6");
+        scene.AssertPanelThat("row").HasContentText("3");
     }
 
     [TestCase]
-    public void Given_grid_entity_it_should_clamp_relocate_to_size_when_clamp_set() {
+    [RequireGodotRuntime]
+    public async Task Given_grid_entity_it_should_clamp_relocate_to_size_when_clamp_set() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
+            .EnsureDllAccessible()
             .ProcessArchive();
+
+        var scene = await AttachUiScene();
 
         // Destination (x=15, y=9) exceeds sizeX (10) and sizeY (5); clamp caps both.
         RuntimeInterop.emitAction("relocate-node-1-out-of-bounds");
@@ -42,5 +58,8 @@ public class TestClass : Steps {
         var after = ContainerInterop.GetContainerById("grid-1");
         Assertions.AssertThat(after.GetXForEntityId["node-1"]).IsEqual(10.0);
         Assertions.AssertThat(after.GetYForEntityId["node-1"]).IsEqual(5.0);
+        await runner.SimulateFrames(2);
+        scene.AssertPanelThat("col").HasContentText("10");
+        scene.AssertPanelThat("row").HasContentText("5");
     }
 }

@@ -77,8 +77,16 @@ pub(super) fn host_api_script_set_container()
                 }
                 if (data.textMap) out.textMap = data.textMap;
                 if (data.numberMap) out.numberMap = data.numberMap;
-                if (data.getX) out.getX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getX) : {};
-                if (data.getY) out.getY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getY) : {};
+                if (data.getX) {
+                    out.getX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getX) : {};
+                    var kx = globalThis.extractPositionKey ? globalThis.extractPositionKey(data.getX) : null;
+                    if (kx !== null) out.xKey = kx;
+                }
+                if (data.getY) {
+                    out.getY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getY) : {};
+                    var ky = globalThis.extractPositionKey ? globalThis.extractPositionKey(data.getY) : null;
+                    if (ky !== null) out.yKey = ky;
+                }
                 if (data.getSpanX) out.getSpanX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanX) : {};
                 if (data.getSpanY) out.getSpanY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanY) : {};
                 if (data.sizeX) out.sizeX = data.sizeX;
