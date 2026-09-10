@@ -1,11 +1,15 @@
 use anyhow::Result;
-use crate::js_runtime::{create_runtime, create_context};
-use crate::js_host_api::install_host_api;
-use super::sim_entry::{select_entry_source, eval_entry_in_ctx};
+use super::sim_ctx;
 
-const BEHAVIOR_SCRIPTS_JS: &str = r#"(function(total, prevScripts){
+/// Drives attached behavior step scripts in the persistent sim context.
+/// The module install already populated `__behaviorDefinitions`,
+/// `__behaviors` (setEntity attachments) and `__registeredActions`; the
+/// per-entity step machine (`__behaviorScripts`) persists across ticks in
+/// the same context and is reset when a new archive is installed.
+const BEHAVIOR_MACHINE_JS: &str = r#"(function(total){
   globalThis.__logs = [];
-  globalThis.__behaviorScripts = prevScripts || {};
+  globalThis.__behaviorScripts =
+      globalThis.__behaviorScripts || {};
   const defs = globalThis.__behaviorDefinitions || {};
   const atts = globalThis.__behaviors || {};
   const acts = globalThis.__registeredActions || [];
@@ -19,6 +23,7 @@ const BEHAVIOR_SCRIPTS_JS: &str = r#"(function(total, prevScripts){
   }
   for (const entityId in atts) {
     const handle = atts[entityId];
+    if (!handle) continue;
     const handleName = typeof handle.name === 'object'
       ? handle.name.value : handle.name;
     const def = handleName && defs[handleName];
@@ -51,87 +56,32 @@ const BEHAVIOR_SCRIPTS_JS: &str = r#"(function(total, prevScripts){
     }
   }
   globalThis.__behaviorResult = {
-    logs: globalThis.__logs || [],
-    scripts: globalThis.__behaviorScripts
+    logs: globalThis.__logs || []
   };
   return globalThis.__behaviorResult;
 })"#;
 
-pub fn process_behavior_scripts(
-    files: &std::collections::HashMap<String, String>,
-    total: i64,
-) -> Result<()> {
-    fn eval_with_detail(
-        ctx: &rquickjs::Context,
-        label: &str,
-        script: String,
-    ) -> Result<()> {
-        use rquickjs::CatchResultExt;
-        let res: Result<(), String> = ctx.with(|c| {
-            match c.eval::<(), _>(script).catch(&c) {
-                Ok(()) => Ok(()),
-                Err(e) => {
-                    let value = match &e {
-                        rquickjs::CaughtError::Exception(ex) => {
-                            ex.clone().into_value()
-                        }
-                        rquickjs::CaughtError::Value(v) => v.clone(),
-                        rquickjs::CaughtError::Error(_) => {
-                            return Err(String::new())
-                        }
-                    };
-                    let detail = match value.into_object() {
-                        Some(obj) => {
-                            let name: Result<String, _> = obj.get("name");
-                            let message: Result<String, _> =
-                                obj.get("message");
-                            match (name.ok(), message.ok()) {
-                                (Some(n), Some(m)) if !m.is_empty() => {
-                                    format!("{}: {}", n, m)
-                                }
-                                (Some(n), _) if !n.is_empty() => n,
-                                (_, Some(m)) => m,
-                                _ => String::new(),
-                            }
-                        }
-                        None => String::new(),
-                    };
-                    Err(detail)
-                }
-            }
-        });
-        match res {
-            Ok(()) => Ok(()),
-            Err(detail) => Err(anyhow::anyhow!(
-                "{}: {}",
-                label,
-                if detail.is_empty() {
-                    "QuickJS exception".to_string()
-                } else { detail })),
-        }
+pub fn process_behavior_machine(total: i64) -> Result<()> {
+    let Some(ctx) = sim_ctx::ctx() else { return Ok(()); };
+    let invoke = format!("({})({})", BEHAVIOR_MACHINE_JS, total);
+    if let Err(e) = ctx.with(|c| c.eval::<(), _>(invoke)) {
+        runtime_log!("behavior machine failed: {:?}", e);
+        return Ok(());
     }
-    let rt = create_runtime()?;
-    let ctx = create_context(&rt)?;
-    install_host_api(&ctx)?;
-    let source = select_entry_source(files);
-    eval_entry_in_ctx(&ctx, &source)?;
-    let prev = crate::state::behavior_scripts()
-        .lock().unwrap().clone();
-    let script = format!(
-        "JSON.stringify(({})({}, {}))",
-        BEHAVIOR_SCRIPTS_JS, total, prev);
-    eval_with_detail(&ctx, "behavior scripts", script)?;
-    let raw = ctx.with(|c| c.eval::<String, _>(
-        "JSON.stringify(globalThis.__behaviorResult)"))?;
-    let res: serde_json::Value = serde_json::from_str(&raw)?;
+    let raw = ctx
+        .with(|c| c.eval::<String, _>(
+            "JSON.stringify(globalThis.__behaviorResult \
+             || { logs: [] })"))
+        .unwrap_or_else(|_| "{\"logs\":[]}".to_string());
+    let res: serde_json::Value =
+        serde_json::from_str(&raw).unwrap_or_default();
     if let Some(logs) = res.get("logs").and_then(|l| l.as_array()) {
         for l in logs {
-            if let Some(s) = l.as_str() { runtime_log!("{}", s); }
+            if let Some(s) = l.as_str() {
+                runtime_log!("{}", s);
+            }
         }
-    }
-    if let Some(scripts) = res.get("scripts") {
-        *crate::state::behavior_scripts().lock().unwrap() =
-            scripts.to_string();
     }
     Ok(())
 }
+

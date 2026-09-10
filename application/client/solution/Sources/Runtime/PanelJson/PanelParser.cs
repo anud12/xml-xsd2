@@ -1,13 +1,12 @@
 using System.Text.Json;
-using NewGameProject.Runtime;
 
-namespace NewGameProject.Module;
+namespace NewGameProject.Runtime;
 
 static class PanelParser
 {
     static MapLayerBinding[]? _lastSpriteMapLayers;
 
-    public static bool TryParse(string json, out Runtime.Panel panel)
+    public static bool TryParse(string json, out Panel panel)
     {
         panel = default;
         try
@@ -19,9 +18,9 @@ static class PanelParser
         catch { return false; }
     }
 
-    static Runtime.Panel Parse(JsonElement e)
+    static Panel Parse(JsonElement e)
     {
-        var p = new Runtime.Panel
+        var p = new Panel
         {
             Id = Extract.String(e, "id") ?? "",
             Background = ExtractTextureFromSprite(e, "background")
@@ -54,7 +53,7 @@ static class PanelParser
             {
                 var duration = Extract.Int(bgVal, "duration") ?? 1;
                 var loop = Extract.Bool(bgVal, "loop") ?? false;
-                p.BackgroundAnimation = new Runtime.AnimationSequence
+                p.BackgroundAnimation = new AnimationSequence
                 {
                     Frames = framePaths.ToArray(),
                     DurationTicks = duration,
@@ -66,25 +65,25 @@ static class PanelParser
         }
 
         if (e.TryGetProperty("anchor", out var a))
-            p.Anchor = new Runtime.Vector2
+            p.Anchor = new Vector2
             { X = Extract.Float(a, "x") ?? 0f, Y = Extract.Float(a, "y") ?? 0f };
 
         if (e.TryGetProperty("offset", out var o))
-            p.Offset = new Runtime.Offset
+            p.Offset = new Offset
             {
                 top = Extract.Float(o, "top") ?? 0f, bottom = Extract.Float(o, "bottom") ?? 0f,
                 left = Extract.Float(o, "left") ?? 0f, right = Extract.Float(o, "right") ?? 0f
             };
 
         if (e.TryGetProperty("size", out var s))
-            p.Size = new Runtime.Size
+            p.Size = new Size
             { Height = Extract.Float(s, "height") ?? 0f, Width = Extract.Float(s, "width") ?? 0f };
 
         if (e.TryGetProperty("hover", out var h) && h.ValueKind == JsonValueKind.Object)
         {
             var t = ExtractTextureFromSprite(h, "texture");
             if (t != null)
-                p.Hover = new Runtime.Hover
+                p.Hover = new Hover
                 { Texture = t, Thickness = Extract.Int(h, "thickness") ?? 0 };
             if (Extract.String(h, "emitAction") is { } ea)
                 p.HoverEmitAction = ea;
@@ -97,7 +96,7 @@ static class PanelParser
         if (e.TryGetProperty("onClick", out var c) && c.ValueKind == JsonValueKind.Object
             && c.TryGetProperty("steps", out var steps) && steps.ValueKind == JsonValueKind.Array)
         {
-            p.OnClick = new Runtime.PanelOnClickHandler
+            p.OnClick = new PanelOnClickHandler
             {
                 StepsJson = c.GetRawText()
             };
@@ -109,7 +108,7 @@ static class PanelParser
             // nine-patch uses its first frame.
             var bt = ExtractTextureFromSprite(bd, "texture");
             if (bt != null)
-                p.Border = new Runtime.Border
+                p.Border = new Border
                 { Width = Extract.Int(bd, "width") ?? 1, Texture = bt };
         }
 
@@ -130,7 +129,7 @@ static class PanelParser
             // Children may be nested panel objects (parsed inline) or ids of
             // panels registered earlier in the module (linked after all
             // panels are parsed in ToPanels).
-            var children = new List<Runtime.Panel>();
+            var children = new List<Panel>();
             var childIds = new List<string>();
             foreach (var child in ch.EnumerateArray())
             {

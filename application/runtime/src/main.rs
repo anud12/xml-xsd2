@@ -10,6 +10,7 @@ mod archive;
 mod state;
 mod export_helpers;
 mod module;
+mod ui;
 
 use std::io::Write;
 

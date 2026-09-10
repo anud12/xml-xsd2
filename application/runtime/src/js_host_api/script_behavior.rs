@@ -108,6 +108,8 @@ pub fn host_api_script_behavior() -> &'static str {
                 'behavior: definition must declare priority or utility');
         }
         globalThis.__behaviorDefinitions[resolvedName] = definition;
+        globalThis.__logs = globalThis.__logs || [];
+        globalThis.__logs.push('behavior registered: ' + resolvedName);
         return { name: definition.name };
-    }"#
+    },"#
 }

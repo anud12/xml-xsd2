@@ -3,7 +3,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
-using NewGameProject.Module;
 using NewGameProject.Runtime;
 
 namespace NewGameProject.Tests.XUnit;
@@ -46,8 +45,6 @@ public partial class Steps {
         var result = RuntimeInterop.ProcessArchive(_currentArchivePath);
         if (result == null)
             throw new InvalidOperationException("Failed to process archive: " + _currentArchivePath);
-
-        ModuleContextProvider.Context.ProcessArchive(_currentArchivePath);
 
         return this;
     }

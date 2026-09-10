@@ -40,6 +40,20 @@ pub(super) fn host_api_script_set_entity()
         if (typeof id === 'string' && data
             && typeof data === 'object') {
             globalThis.__entityData[id] = data;
+            if (data.behavior !== undefined) {
+                var b = typeof data.behavior === 'object'
+                    && data.behavior !== null
+                    ? data.behavior.value : data.behavior;
+                if (typeof b === 'string' && b !== '') {
+                    globalThis.__behaviors =
+                        globalThis.__behaviors || {};
+                    globalThis.__behaviors[id] = { name: b };
+                    globalThis.__logs =
+                        globalThis.__logs || [];
+                    globalThis.__logs.push(
+                        'behavior attached: ' + id + ' -> ' + b);
+                }
+            }
         }
     },"#
 }

@@ -1,11 +1,10 @@
 using System.Text.Json;
-using NewGameProject.Runtime;
 
-namespace NewGameProject.Module;
+namespace NewGameProject.Runtime;
 
 static class ContentParser
 {
-    internal static Runtime.PanelContent? Parse(JsonElement elem)
+    internal static PanelContent? Parse(JsonElement elem)
     {
         var type = Extract.String(elem, "type");
         var align = Extract.String(elem, "align") ?? "center";
@@ -13,27 +12,27 @@ static class ContentParser
         if (type == "constant")
         {
             var value = Extract.String(elem, "value");
-            return value != null ? new Runtime.ConstantTextContent(value, align) : null;
+            return value != null ? new ConstantTextContent(value, align) : null;
         }
 
         if (type == "entityTextValue" || type == "entityStringValue")
         {
             var name = Extract.String(elem, "name");
             var entityId = Extract.String(elem, "entityId");
-            return name != null ? new Runtime.EntityTextValueContent(name, align, entityId) : null;
+            return name != null ? new EntityTextValueContent(name, align, entityId) : null;
         }
 
         if (type == "constantNumber")
         {
             var value = Extract.Double(elem, "value") ?? 0.0;
-            return new Runtime.ConstantNumberContent(value, align);
+            return new ConstantNumberContent(value, align);
         }
 
         if (type == "entityNumberValue")
         {
             var name = Extract.String(elem, "name");
             var entityId = Extract.String(elem, "entityId");
-            return name != null ? new Runtime.EntityNumberValueContent(name, align, entityId) : null;
+            return name != null ? new EntityNumberValueContent(name, align, entityId) : null;
         }
 
         if (type == "containerListView")
@@ -42,11 +41,11 @@ static class ContentParser
             if (containerId != null)
             {
                 var vertical = Extract.Bool(elem, "vertical") ?? true;
-                var content = new Runtime.ContainerListViewContent(containerId, vertical);
+                var content = new ContainerListViewContent(containerId, vertical);
 
                 if (elem.TryGetProperty("__templateResults", out var results) && results.ValueKind == JsonValueKind.Array)
                 {
-                    var parsedResults = new List<Runtime.Panel>();
+                    var parsedResults = new List<Panel>();
                     foreach (var item in results.EnumerateArray())
                     {
                         if (item.ValueKind == JsonValueKind.String)
@@ -71,13 +70,13 @@ static class ContentParser
         return null;
     }
 
-    internal static Runtime.PanelContent? ParseJson(string json)
+    internal static PanelContent? ParseJson(string json)
     {
         using var doc = JsonDocument.Parse(json);
         return Parse(doc.RootElement);
     }
 
-    internal static Runtime.Panel? ParsePanel(string json)
+    internal static Panel? ParsePanel(string json)
     {
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
@@ -86,7 +85,7 @@ static class ContentParser
         if (id == null)
             return null;
 
-        var panel = new Runtime.Panel
+        var panel = new Panel
         {
             Id = id,
             Background = ExtractTexture(root),
@@ -94,7 +93,7 @@ static class ContentParser
 
         if (root.TryGetProperty("anchor", out var anchorElem) && anchorElem.ValueKind == JsonValueKind.Object)
         {
-            panel.Anchor = new Runtime.Vector2
+            panel.Anchor = new Vector2
             {
                 X = (float)(Extract.Double(anchorElem, "x") ?? 0.5),
                 Y = (float)(Extract.Double(anchorElem, "y") ?? 0.5),
@@ -103,7 +102,7 @@ static class ContentParser
 
         if (root.TryGetProperty("offset", out var offsetElem) && offsetElem.ValueKind == JsonValueKind.Object)
         {
-            panel.Offset = new Runtime.Offset
+            panel.Offset = new Offset
             {
                 top = (float)(Extract.Double(offsetElem, "top") ?? 0),
                 bottom = (float)(Extract.Double(offsetElem, "bottom") ?? 0),
@@ -114,7 +113,7 @@ static class ContentParser
 
         if (root.TryGetProperty("size", out var sizeElem) && sizeElem.ValueKind == JsonValueKind.Object)
         {
-            panel.Size = new Runtime.Size
+            panel.Size = new Size
             {
                 Width = (float)(Extract.Double(sizeElem, "width") ?? 80),
                 Height = (float)(Extract.Double(sizeElem, "height") ?? 40),

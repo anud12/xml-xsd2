@@ -1,7 +1,6 @@
 using System.IO.Compression;
 using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
-using NewGameProject.Module;
 using NewGameProject.Runtime;
 
 public partial class Game : Node {
@@ -23,8 +22,7 @@ public partial class Game : Node {
                 return;
             }
             GD.Print($"Archive loaded: {db}");
-            ModuleContextProvider.Context.ProcessArchive(zip);
-            GD.Print($"Loaded {ModuleContextProvider.Context.GetPanelIds().Length} panels");
+            GD.Print($"Loaded {RuntimeInterop.GetPanelIds().Length} panels");
         }
 
         _ready = true;

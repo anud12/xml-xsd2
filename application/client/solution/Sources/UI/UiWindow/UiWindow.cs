@@ -10,6 +10,7 @@ namespace GdUnit4.Examples.Basics.Setup.Sources.UI;
 public partial class UiWindow : Control
 {
     readonly Dictionary<string, UiWindow> _children = new();
+    string _nodeId = "";
     bool _isText;
     // Cached window layout options; used to reposition on resize.
     Vector2 _windowOffset = Vector2.Zero;
@@ -68,6 +69,7 @@ public partial class UiWindow : Control
 
     void WireOptions(UiNodeData node)
     {
+        _nodeId = node.Id;
         var opts = ParseOptions(node);
         WireInteractivity(node, opts);
     }
@@ -119,9 +121,16 @@ public partial class UiWindow : Control
     {
         try
         {
-            return JsonDocument.Parse(node.OptionsJson).RootElement;
+            // Clone detaches the element from the (unreferenced) JsonDocument,
+            // whose finalizer would otherwise invalidate the pooled backing
+            // memory under GC pressure.
+            return JsonDocument.Parse(node.OptionsJson).RootElement.Clone();
         }
-        catch { return default; }
+        catch
+        {
+            // Malformed options must not take the node down; treat as empty.
+            return JsonDocument.Parse("{}").RootElement.Clone();
+        }
     }
 
     static bool TryNum(JsonElement opts, string prop, out float value)

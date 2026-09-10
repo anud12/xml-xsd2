@@ -17,6 +17,9 @@ public partial class UiWindow
     public string? HoverEmitAction => _hoverEmitAction;
 
     bool _guiInputWired;
+    // Legacy onClick: the handler is a JS function kept by the sim context;
+    // the node's options carry the "__jsHandler" marker instead of a plan.
+    bool _onClickJs;
 
     /// onClick: left-click press emits the named action. onHover: while
     /// hovered the node's background is swapped (the hover animation's first
@@ -36,8 +39,12 @@ public partial class UiWindow
             }
             if (onClick.ValueKind == JsonValueKind.String)
             {
-                // Legacy string form: a single named action, no cursor args.
-                _onClickAction = onClick.GetString();
+                var s = onClick.GetString();
+                if (s == "__jsHandler")
+                    _onClickJs = true;
+                else
+                    // Legacy string form: a single named action, no cursor args.
+                    _onClickAction = s;
             }
             else if (onClick.ValueKind == JsonValueKind.Object
                 && onClick.TryGetProperty("steps", out var st)
@@ -105,12 +112,17 @@ public partial class UiWindow
         if (evt is InputEventMouseButton mb
             && mb.Pressed
             && mb.ButtonIndex == MouseButton.Left
-            && (_onClickAction != null || _onClickStepsJson != null))
+            && (_onClickAction != null || _onClickStepsJson != null || _onClickJs))
         {
             // Each window emits its own action when clicked; the top-most
             // clicked node is the one under the cursor (a child window
             // covering the point consumes the event before the parent).
-            if (_onClickAction != null)
+            if (_onClickJs)
+            {
+                var (col, row) = ResolveCursorCell(mb.Position);
+                RuntimeInterop.UiJsClick(_nodeId, col, row);
+            }
+            else if (_onClickAction != null)
                 RuntimeInterop.emitAction(_onClickAction);
             else
                 ExecuteClickPlan(mb.Position);

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace NewGameProject.Module;
+namespace NewGameProject.Runtime;
 
 static class Extract
 {

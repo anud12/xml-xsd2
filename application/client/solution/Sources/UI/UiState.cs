@@ -20,6 +20,9 @@ public class UiNodeData
     public UiNodeKind Kind { get; set; }
     public string Value { get; set; } = "";
     public string OptionsJson { get; set; } = "{}";
+    /// Field binding as a JSON object ({entity,map,name,fallback}) for nodes
+    /// read through the Rust slab FFI; empty for non-field nodes.
+    public string BindingJson { get; set; } = "";
     public List<string> Children { get; set; } = new();
     /// Archive path for image nodes (empty for all other kinds).
     public string Src { get; set; } = "";
@@ -29,6 +32,7 @@ public class UiNodeData
         if (obj is not UiNodeData o) return false;
         return o.Id == Id && o.Kind == Kind && o.Value == Value
             && o.OptionsJson == OptionsJson && o.Src == Src
+            && o.BindingJson == BindingJson
             && o.Children.Count == Children.Count
             && o.Children.SequenceEqual(Children);
     }
@@ -48,79 +52,26 @@ public class UiDelta
 
 public static class UiState
 {
-    static UiNodeKind ParseKind(string? s) => s switch
-    {
-        "text" => UiNodeKind.Text,
-        "field" => UiNodeKind.Field,
-        "window" => UiNodeKind.Window,
-        "image" => UiNodeKind.Image,
-        "canvas" => UiNodeKind.Canvas,
-        _ => UiNodeKind.Division
-    };
-
-    public static List<UiNodeData> ParseNodes(string json)
-    {
-        var doc = System.Text.Json.JsonDocument.Parse(json);
-        var list = new List<UiNodeData>();
-        foreach (var el in doc.RootElement.GetProperty("nodes").EnumerateArray())
-            list.Add(ParseNode(el));
-        return list;
-    }
-
-    static UiNodeData ParseNode(System.Text.Json.JsonElement el)
-    {
-        var node = new UiNodeData
-        {
-            Id = el.GetProperty("id").GetString() ?? "",
-            Kind = ParseKind(el.TryGetProperty("kind", out var k) ? k.GetString() : null),
-        };
-        if (el.TryGetProperty("value", out var v)) node.Value = v.GetString() ?? "";
-        if (el.TryGetProperty("src", out var s)) node.Src = s.GetString() ?? "";
-        if (el.TryGetProperty("options", out var o) && o.ValueKind == System.Text.Json.JsonValueKind.Object)
-            node.OptionsJson = o.GetRawText();
-        if (el.TryGetProperty("children", out var c))
-            foreach (var ch in c.EnumerateArray())
-                node.Children.Add(ch.GetString() ?? "");
-        return node;
-    }
-
-    public static UiDelta? ParseDelta(string? json)
-    {
-        if (string.IsNullOrEmpty(json)) return null;
-        var doc = System.Text.Json.JsonDocument.Parse(json);
-        var delta = new UiDelta();
-        foreach (var el in doc.RootElement.GetProperty("ops").EnumerateArray())
-        {
-            var op = new UiDeltaOp { Op = el.GetProperty("op").GetString() ?? "" };
-            if (el.TryGetProperty("node", out var n)) op.Node = ParseNode(n);
-            if (el.TryGetProperty("id", out var id)) op.Id = id.GetString() ?? "";
-            delta.Ops.Add(op);
-        }
-        return delta;
-    }
-
     public static List<UiNodeData> FetchState()
     {
-        var csNodes = NewGameProject.Module.PanelNodeStore.Fetch();
-        if (csNodes.Count > 0) return csNodes;
-        var json = RuntimeInterop.FetchUiState();
-        if (string.IsNullOrEmpty(json)) return new List<UiNodeData>();
-        return ParseNodes(json);
+        var ptr = RuntimeInterop.FetchUiState();
+        if (ptr == IntPtr.Zero) return new List<UiNodeData>();
+        try { return UiSlab.ReadNodes(ptr); }
+        finally { RuntimeInterop.FreeUiState(ptr); }
     }
 
     public static UiDelta? FetchDelta()
     {
-        var json = RuntimeInterop.FetchUiDelta();
-        return ParseDelta(json);
+        var ptr = RuntimeInterop.FetchUiDelta();
+        if (ptr == IntPtr.Zero) return null;
+        try { return UiSlab.ReadDelta(ptr); }
+        finally { RuntimeInterop.FreeUiDelta(ptr); }
     }
 
     /// The registered animation definition for the given name (from
     /// <c>runtime_fetch_ui_animations</c>), or null when unregistered.
     public static System.Text.Json.JsonElement? GetAnimation(string name)
     {
-        var csJson = NewGameProject.Module.PanelNodeStore.GetAnimationJson(name);
-        if (!string.IsNullOrEmpty(csJson))
-            return JsonDocument.Parse(csJson).RootElement.Clone();
         var json = RuntimeInterop.FetchUiAnimations();
         if (string.IsNullOrEmpty(json)) return null;
         using var doc = System.Text.Json.JsonDocument.Parse(json);
