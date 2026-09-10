@@ -32,6 +32,13 @@ public partial class RootNode
         var hoverable = new List<UiWindow>();
         foreach (var win in windows)
         {
+            // A window a delta freed this frame is still reachable through
+            // stale references; drop it instead of touching its Godot side.
+            if (win == null || win.IsQueuedForDeletion())
+            {
+                _hoverStates.Remove(win);
+                continue;
+            }
             if (win.Visible
                 && win.GetGlobalRect().HasPoint(mouse))
                 hoverable.Add(win);

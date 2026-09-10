@@ -12,6 +12,7 @@ pub mod set_entity_text_map_value;
 pub mod set_entity_number_map_value;
 pub mod run_iteration;
 pub mod ui_state;
+pub mod ui_abi;
 
 pub use free_string::runtime_free_string;
 pub use clear_state::runtime_clear_state;
@@ -31,3 +32,4 @@ pub use set_entity_text_map_value::runtime_set_entity_text_map_value;
 pub use set_entity_number_map_value::runtime_set_entity_number_map_value;
 pub use run_iteration::runtime_run_iteration;
 pub use run_iteration::runtime_get_elapsed_time_units;
+pub use ui_abi::runtime_ui_abi_sizes;

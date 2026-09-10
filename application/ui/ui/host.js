@@ -13,6 +13,10 @@ function (root) {
     // Render lambdas for ui.container lists, keyed by list name. The engine
     // re-invokes these per entity during expansion (see expandContainers).
     var containerRenders = Object.create(null);
+    // Item node ids materialized per container list by the last expansion, so
+    // resetContainers can drop them and restore the list's marker between
+    // engine ticks.
+    var containerItems = Object.create(null);
 
     function transport() {
         var t = root.__uiTransport;
@@ -42,6 +46,117 @@ function (root) {
 
     function isMarker(c) {
         return typeof c === 'string' && c.indexOf('$$container:') === 0;
+    }
+
+    // Hover visuals must carry a concrete texture reference (an archive path
+    // or a sprite map ref) that the renderer can load directly; animation
+    // registrations ({ frames: [...] }) resolve to their first frame's
+    // reference.
+    function firstFrameRef(v) {
+        if (typeof v === 'string' && v.length > 0) return v;
+        if (!v || typeof v !== 'object' || !Array.isArray(v.frames)) return null;
+        for (var i = 0; i < v.frames.length; i++) {
+            var f = v.frames[i];
+            if (typeof f === 'string' && f.length > 0) return f;
+            if (f && typeof f === 'object' && f.sprite != null) {
+                var s = f.sprite;
+                if (typeof s === 'string' && s.length > 0) return s;
+                if (typeof s === 'object' && s.__spriteMap) {
+                    return JSON.stringify({
+                        __spriteMap: true,
+                        map: s.map,
+                        layers: s.layers || []
+                    });
+                }
+                if (typeof s === 'object' && typeof s.name === 'string') {
+                    return s.name;
+                }
+            }
+        }
+        return null;
+    }
+
+    // A background may be a registered animation object (the registry
+    // reference itself, with no name of its own). The renderer consumes a
+    // named reference { name, duration, loop }, so resolve the object back to
+    // its registry key by reference equality (ui.getAnimation returns the
+    // stored object itself).
+    function backgroundRef(v) {
+        if (typeof v === 'string') return v;
+        if (!v || typeof v !== 'object') return v;
+        if (typeof v.name === 'string') return v;
+        var store = root.__registeredAnimations || {};
+        for (var k in store) {
+            if (store[k] === v) {
+                return {
+                    name: k,
+                    duration: typeof v.duration === 'number' ? v.duration : 1,
+                    loop: v.loop === true
+                };
+            }
+        }
+        return v;
+    }
+
+    function normalizeOptions(options) {
+        if (!options || typeof options !== 'object') return options;
+        if (options.background == null) return options;
+        var bg = backgroundRef(options.background);
+        if (bg === options.background) return options;
+        var copy = {};
+        for (var k in options) {
+            if (Object.prototype.hasOwnProperty.call(options, k)) copy[k] = options[k];
+        }
+        copy.background = bg;
+        return copy;
+    }
+
+    function resolveHoverOptions(options) {
+        if (!options || typeof options !== 'object') return options;
+        var h = options.onHover;
+        if (!h || typeof h !== 'object') return options;
+        var needCopy = (h.texture != null && typeof h.texture !== 'string')
+            || (h.background != null && typeof h.background !== 'string');
+        if (!needCopy) return options;
+        var copy = {};
+        for (var k in options) {
+            if (Object.prototype.hasOwnProperty.call(options, k)) copy[k] = options[k];
+        }
+        copy.onHover = {
+            texture: h.texture,
+            thickness: h.thickness,
+            background: h.background,
+            emitAction: h.emitAction,
+            stopPropagation: h.stopPropagation
+        };
+        if (copy.onHover.texture != null && typeof copy.onHover.texture !== 'string') {
+            copy.onHover.texture = firstFrameRef(copy.onHover.texture);
+        }
+        if (copy.onHover.background != null && typeof copy.onHover.background !== 'string') {
+            copy.onHover.background = firstFrameRef(copy.onHover.background);
+        }
+        return copy;
+    }
+
+    // A border's texture must carry a concrete texture reference (like the
+    // hover visuals); an animation registration ({ frames: [...] }) resolves
+    // to its first frame's reference.
+    function resolveBorderOptions(options) {
+        if (!options || typeof options !== 'object') return options;
+        var b = options.border;
+        if (!b || typeof b !== 'object') return options;
+        if (b.texture == null || typeof b.texture === 'string') return options;
+        var copy = {};
+        for (var k in options) {
+            if (Object.prototype.hasOwnProperty.call(options, k)) copy[k] = options[k];
+        }
+        var border = {};
+        for (var bk in b) {
+            if (Object.prototype.hasOwnProperty.call(b, bk)) border[bk] = b[bk];
+        }
+        border.texture = firstFrameRef(b.texture);
+        copy.border = border;
+        return copy;
     }
 
     /// Marks the children slot of a container list with `name`: the engine
@@ -79,6 +194,7 @@ function (root) {
                         for (var k = 0; k < arr.length; k++) itemIds.push(arr[k]);
                     }
                 }
+                containerItems[name] = itemIds;
                 for (var m = itemIds.length - 1; m >= 0; m--) {
                     node.children.splice(j, 0, itemIds[m]);
                 }
@@ -90,6 +206,38 @@ function (root) {
                 // Children were replaced; re-scan this node in case the render
                 // declared further markers (nested container lists).
                 i--;
+            }
+        }
+    }
+
+    /// Drops the node with `id` and every node in its subtree from the
+    /// registries (used to undo a container list's materialized items).
+    function removeSubtree(id) {
+        var node = nodes[id];
+        if (!node) return;
+        if (Array.isArray(node.children)) {
+            for (var i = 0; i < node.children.length; i++) {
+                removeSubtree(node.children[i]);
+            }
+        }
+        delete nodes[id];
+        var idx = order.indexOf(id);
+        if (idx >= 0) order.splice(idx, 1);
+    }
+
+    /// Undoes the last expansion: drops every materialized container item and
+    /// restores each list node's `$$container:` marker, so the engine can
+    /// re-expand against a fresh entity list on the next tick.
+    function resetContainers() {
+        for (var name in containerRenders) {
+            var items = containerItems[name];
+            if (items) {
+                for (var i = 0; i < items.length; i++) removeSubtree(items[i]);
+            }
+            containerItems[name] = [];
+            var list = nodes[name];
+            if (list && Array.isArray(list.children)) {
+                list.children = [containerMarker(name)];
             }
         }
     }
@@ -116,7 +264,7 @@ function (root) {
             return register({
                 id: id,
                 kind: 'division',
-                options: opts,
+                options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
                 children: childIds(children)
             });
         },
@@ -128,7 +276,7 @@ function (root) {
             return register({
                 id: id,
                 kind: 'window',
-                options: opts,
+                options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
                 children: childIds(children)
             });
         },
@@ -223,10 +371,12 @@ function (root) {
             nodes = Object.create(null);
             order = [];
             containerRenders = Object.create(null);
+            containerItems = Object.create(null);
         },
         loadSnapshot: function (arr) {
             nodes = Object.create(null);
             order = [];
+            containerItems = Object.create(null);
             (arr || []).forEach(function (n) {
                 requireId(n.id, n.kind);
                 nodes[n.id] = n;
@@ -235,6 +385,9 @@ function (root) {
         },
         expandContainers: function (entitiesFor) {
             expandContainers(entitiesFor);
+        },
+        resetContainers: function () {
+            resetContainers();
         }
     };
     return api;

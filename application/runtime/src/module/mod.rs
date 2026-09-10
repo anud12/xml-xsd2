@@ -47,4 +47,10 @@ pub fn process_module(
         entry::handle_entry_point(
             &manifest_name, &manifest_json, files);
     }
+
+    // Evaluate the module entry once in the persistent simulation context
+    // so iterations can run its effects without re-evaluating the entry.
+    if let Err(e) = crate::js_executor::sim_ctx::install(files) {
+        runtime_log!("sim install failed: {:?}", e);
+    }
 }

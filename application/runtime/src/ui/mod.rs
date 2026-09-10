@@ -1,23 +1,25 @@
-//! UI state store + persistent QuickJS host for the .ui layer.
+//! UI state store + id-diff over the persistent sim context.
 //!
-//! The canonical .ui layer (application/ui/ui/*.js) is engine-agnostic: it
-//! talks to the engine only through `globalThis.__uiTransport` and a small
-//! set of injected globals. This module owns the Rust side of that seam:
+//! The .ui layer (application/ui/ui/*.js) lives in the module's persistent
+//! QuickJS context (crate::js_executor::sim_ctx): the module entry declares
+//! nodes once through the live `globalThis.host.ui` factories, and each tick
+//! re-expands container lists against the current runtime containers,
+//! snapshots the result, and reconciles it into the id-keyed node store
+//! (`UI_NODES`) that renderers fetch. This module owns the Rust side of that
+//! seam:
 //!
-//! - a persistent QuickJS context (engine of record) that loads the .ui
-//!   layer once and evaluates the declared UI nodes in it;
 //! - the id-keyed UI node store (`UI_NODES`) that renderers fetch;
 //! - the id-diff producing a `UiDelta` (add/update/remove).
 
 #![allow(dead_code)]
+pub mod abi;
+
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, Once};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-
-use crate::js_runtime::{create_context, create_runtime};
 
 // ---------------------------------------------------------------------------
 // Node / delta model
@@ -115,47 +117,28 @@ pub enum UiDeltaOp {
 
 static INIT: Once = Once::new();
 static mut UI_NODES: Option<&'static Mutex<Vec<UiNode>>> = None;
-static mut DECLARED_NODES:
-    Option<&'static Mutex<HashMap<String, Vec<UiNode>>>> = None;
 static mut UI_DIRTY: Option<&'static AtomicBool> = None;
 static mut UI_DELTA: Option<&'static Mutex<Option<UiDelta>>> = None;
-static mut UI_HOST: Option<&'static UiHost> = None;
 static mut PREV_STORE_IDS: Option<&'static Mutex<Vec<String>>> = None;
 static mut UI_MODULE_OWNERS:
     Option<&'static Mutex<HashMap<String, Vec<String>>>> = None;
 static mut UI_ANIMATIONS:
     Option<&'static Mutex<HashMap<String, serde_json::Value>>> = None;
-static mut UI_MODULE_SOURCES:
-    Option<&'static Mutex<HashMap<String, String>>> = None;
 
 fn init() {
     INIT.call_once(|| unsafe {
         UI_NODES = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
-        DECLARED_NODES = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
         UI_DIRTY = Some(Box::leak(Box::new(AtomicBool::new(false))));
         UI_DELTA = Some(Box::leak(Box::new(Mutex::new(None))));
         PREV_STORE_IDS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
         UI_MODULE_OWNERS = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
         UI_ANIMATIONS = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
-        UI_MODULE_SOURCES = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
     });
 }
 
 pub fn ui_nodes() -> &'static Mutex<Vec<UiNode>> {
     init();
     unsafe { UI_NODES.expect("ui nodes initialized") }
-}
-pub fn declared_nodes() -> &'static Mutex<HashMap<String, Vec<UiNode>>> {
-    init();
-    unsafe { DECLARED_NODES.expect("declared ui nodes initialized") }
-}
-pub fn all_declared_nodes() -> Vec<UiNode> {
-    let declared = declared_nodes().lock().unwrap();
-    let mut out: Vec<UiNode> = Vec::new();
-    for nodes in declared.values() {
-        out.extend(nodes.iter().cloned());
-    }
-    out
 }
 pub fn ui_dirty() -> &'static AtomicBool {
     init();
@@ -177,95 +160,30 @@ pub fn animations() -> &'static Mutex<HashMap<String, serde_json::Value>> {
     init();
     unsafe { UI_ANIMATIONS.expect("ui animations initialized") }
 }
-/// Module source per module id, kept so the persistent host can re-run the
-/// .ui layer (container-list render lambdas can't be serialized).
-pub fn module_sources() -> &'static Mutex<HashMap<String, String>> {
-    init();
-    unsafe { UI_MODULE_SOURCES.expect("ui module sources initialized") }
-}
-/// Store a module's source so the persistent host can re-run its .ui layer.
-pub fn set_module_source(module_id: &str, source: &str) {
-    init();
-    module_sources().lock().unwrap()
-        .insert(module_id.to_string(), source.to_string());
-}
-
 /// Clear all UI state (called from `runtime_clear_state`).
 pub fn clear() {
     init();
     ui_nodes().lock().unwrap().clear();
-    declared_nodes().lock().unwrap().clear();
     prev_store_ids().lock().unwrap().clear();
     module_owners().lock().unwrap().clear();
     animations().lock().unwrap().clear();
-    module_sources().lock().unwrap().clear();
     *ui_delta().lock().unwrap() = None;
     ui_dirty().store(false, Ordering::SeqCst);
 }
 
-/// Reset the node store and diff baseline (called from `runtime_clear_state`
-/// before a new archive is processed, so a module never sees the previous
-/// archive's leftover nodes).
-pub fn reset_store() {
-    init();
-    ui_nodes().lock().unwrap().clear();
-    prev_store_ids().lock().unwrap().clear();
-    *ui_delta().lock().unwrap() = None;
-    ui_dirty().store(false, Ordering::SeqCst);
-}
-
-/// Store the nodes a module declared (called from the declarations
-/// pipeline). Re-declaring replaces that module's previous nodes.
-pub fn set_declared(module_id: &str, nodes: Vec<UiNode>) {
-    runtime_log!(
-        "ui: module \"{}\" declared {} node(s)",
-        module_id, nodes.len());
-    let mut ids: Vec<String> = Vec::new();
-    for n in nodes.iter() { ids.push(n.id().to_string()); }
-    declared_nodes().lock().unwrap().insert(module_id.to_string(), nodes);
-    module_owners().lock().unwrap().insert(module_id.to_string(), ids);
-}
-
 // ---------------------------------------------------------------------------
-// Persistent QuickJS host
+// Tick (runs in the persistent sim context)
 // ---------------------------------------------------------------------------
-
-pub struct UiHost {
-    pub rt: rquickjs::Runtime,
-    pub ctx: rquickjs::Context,
-}
-
-fn ui_layer_bundle() -> String {
-    [
-        crate::js_host_api::script_ui::ui_transport_shim(),
-        include_str!("../../../ui/ui/host.js"),
-    ]
-    .join("\n")
-}
-
-fn ensure_host() -> Result<&'static UiHost> {
-    let existing = unsafe { UI_HOST };
-    if let Some(h) = existing { return Ok(h); }
-    let rt = create_runtime()?;
-    let ctx = create_context(&rt)?;
-    // The host lives for the process lifetime; the Runtime must outlive the
-    // Context, so both are leaked together.
-    let host = Box::leak(Box::new(UiHost { rt, ctx }));
-    unsafe { UI_HOST = Some(host); }
-    let bundle = ui_layer_bundle();
-    host.ctx.with(|c| c.eval::<(), _>(bundle.clone()))
-        .map_err(|e| anyhow::anyhow!("ui host eval failed: {:?}", e))?;
-    runtime_log!("ui: persistent QuickJS host initialized");
-    Ok(host)
-}
 
 fn eval_string(ctx: &rquickjs::Context, script: &str) -> Result<String> {
     ctx.with(|c| c.eval::<String, _>(script.to_string()))
-        .map_err(|e| anyhow::anyhow!("ui host eval failed: {:?}", e))
+        .map_err(|e| anyhow::anyhow!("ui eval failed: {:?}", e))
 }
 
-/// Evaluate the UI DAG in the persistent QuickJS host and reconcile the
-/// result into the node store, emitting an id-keyed delta when it changed.
+/// Re-expand the module's container lists against the current runtime
+/// containers, snapshot the .ui layer from the persistent sim context, and
+/// reconcile the result into the node store, emitting an id-keyed delta when
+/// it changed.
 pub fn tick() {
     if let Err(e) = tick_inner() {
         runtime_log!("ui: tick failed: {:?}", e);
@@ -273,137 +191,46 @@ pub fn tick() {
 }
 
 fn tick_inner() -> Result<()> {
-    let host = ensure_host()?;
-    let declared = all_declared_nodes();
-    if declared.is_empty() { return Ok(()); }
-
-    // Start from a clean .ui context each tick so a previous tick's (or a
-    // previous test's) module registry can't leak into this snapshot. The
-    // bundle re-eval re-installs __uiHost with empty node + render registries;
-    // then the container-list modules are re-run so their render lambdas are
-    // live (the extraction context is gone; lambdas can't be serialized).
-    let bundle = ui_layer_bundle();
-    host.ctx.with(|c| c.eval::<(), _>(bundle.to_string()))
-        .map_err(|e| anyhow::anyhow!("ui host re-eval failed: {:?}", e))?;
-
-    let declared_ids: Vec<String> = declared_nodes()
-        .lock().unwrap().keys().cloned().collect();
-    // Only re-run modules that actually declare a container list: re-running
-    // a module whose source has `import` statements or external references
-    // would fail in the persistent host. Container-less modules keep their
-    // declared static nodes (no render lambdas needed).
-    for module_id in declared_ids {
-        let Some(src) = module_sources().lock().unwrap().get(&module_id).cloned()
-        else { continue; };
-        if !contains_container_list(&src) { continue; }
-        let script = ui_layer_rerun_script(&src);
-        if let Err(e) = host.ctx.with(|c| c.eval::<(), _>(script.to_string())) {
-            runtime_log!("ui: module \"{}\" re-run failed: {:?}", module_id, e);
-        }
-    }
-
-    let seed: String = serde_json::to_string(&declared)?;
-    // Install the entity lookup the .ui layer uses to expand container lists.
-    // Each list node's `options.container` names a runtime container; the
-    // lookup returns that container's entity ids. Unknown containers render
-    // zero items (the list node stays in the tree with empty children).
-    // TODO: collect and surface module UI errors (currently log-only).
+    let Some(ctx) = crate::js_executor::sim_ctx::ctx() else {
+        return Ok(());
+    };
+    // The static nodes were declared once at install time; only the
+    // container-list materialization is per-tick. Expansion is destructive
+    // (markers are replaced by item ids), so reset first — the reset drops
+    // the last tick's items and restores each list's marker. The entity
+    // lookup (`__uiEntitiesFor`) is stable from install; only the container
+    // list it reads is refreshed here.
     let containers_json = container_entities_json()?;
     let script = format!(
-        "globalThis.__uiContainerList = {};\n\
-         __uiHost.loadSnapshot({});\n\
-         globalThis.__uiEntitiesFor = function (name) {{\n\
-           var node = null;\n\
-           var snap = __uiHost.snapshot();\n\
-           for (var i = 0; i < snap.length; i++) {{ if (snap[i].id === name) {{ node = snap[i]; break; }} }}\n\
-           var cid = node && node.options && node.options.container;\n\
-           if (typeof cid !== 'string') return [];\n\
-           var map = {{}};\n\
-           for (var j = 0; j < globalThis.__uiContainerList.length; j++) {{\n\
-             map[globalThis.__uiContainerList[j].id] = globalThis.__uiContainerList[j].entities || [];\n\
-           }}\n\
-           return map[cid] || [];\n\
-         }};\n\
-         __uiHost.expandContainers(__uiEntitiesFor);",
-        containers_json, seed
+        "__uiHost.resetContainers();\n\
+         globalThis.__uiContainerList = {};\n\
+         __uiHost.expandContainers(globalThis.__uiEntitiesFor);\n\
+         JSON.stringify(__uiHost.snapshot())",
+        containers_json
     );
-    host.ctx.with(|c| c.eval::<(), _>(script))
-        .map_err(|e| anyhow::anyhow!("ui seed failed: {:?}", e))?;
-
-    let snapshot_json =
-        eval_string(&host.ctx, "JSON.stringify(__uiHost.snapshot())")?;
+    let snapshot_json = eval_string(&ctx, &script)?;
     let mut snapshot: Vec<UiNode> = serde_json::from_str(&snapshot_json)?;
     resolve_field_values(&mut snapshot);
 
+    // Keep the animation-definition store in sync for the fetch FFI (the
+    // module's registerAnimation calls filled __registeredAnimations at
+    // install time).
+    match eval_string(
+        &ctx,
+        "JSON.stringify(globalThis.__registeredAnimations || {})",
+    ) {
+        Ok(anim_json) => {
+            if let Ok(map) = serde_json::from_str::<
+                HashMap<String, serde_json::Value>
+            >(&anim_json)
+            {
+                *animations().lock().unwrap() = map;
+            }
+        }
+        Err(_) => {}
+    }
+
     apply_diff(&snapshot)
-}
-
-
-
-/// True when the module source declares a container list. Only such modules
-/// are re-run in the persistent host: container-less modules keep their
-/// declared static nodes (no render lambdas needed) and re-running a module
-/// whose source has imports or external references would fail there.
-fn contains_container_list(source: &str) -> bool {
-    source.contains("ui.container(") || source.contains("ui.container (")
-}
-
-/// Builds the script that re-runs a module's .ui layer in the persistent
-/// host: a minimal hostApi (UI factories + no-op runtime calls) is provided,
-/// then the module entrypoint is invoked, re-registering the static nodes and
-/// refreshing the container render-lambda registry.
-fn ui_layer_rerun_script(source: &str) -> String {
-    // The stored source is already transformed (`var __module_default = ...`).
-    // Reuse that binding rather than re-prefixing.
-    let body = if source.contains("export default") {
-        source.replace("export default", "var __ui_mod =")
-    } else if source.contains("var __module_default") {
-        source.replace("var __module_default", "var __ui_mod")
-    } else {
-        format!("var __ui_mod = {}", source)
-    };
-    format!(
-        r#"
-{body}
-globalThis.__uiHost.clear();
-(function () {{
-  var __rerunAnimations = {{}};
-  var hostApi = {{
-    ui: {{
-      getSpritePNG: function (p) {{ return p; }},
-      getAnimation: function (name, dur) {{
-        var n = typeof name === 'object' ? name.value : name;
-        var a = __rerunAnimations[n];
-        return {{ name: n,
-                 duration: (a && a.duration) || 1,
-                 loop: !!(a && a.loop) }};
-      }},
-      div: __uiHost.div,
-      text: __uiHost.text,
-      window: __uiHost.window,
-      field: __uiHost.field,
-      image: __uiHost.image,
-      canvas: __uiHost.canvas,
-      container: __uiHost.container
-    }},
-    runtime: {{
-      string: {{ of: function (s) {{ return s; }} }},
-      number: {{ of: function (n) {{ return n; }} }},
-      setEntity: function () {{}},
-      setContainer: function () {{}},
-      registerAction: function () {{}},
-      registerEffect: function () {{}},
-      registerAnimation: function (name, args) {{
-        var n = typeof name === 'object' ? name.value : name;
-        if (typeof n === 'string') __rerunAnimations[n] = args;
-      }},
-      log: function () {{}}
-    }}
-  }};
-  if (typeof __ui_mod === 'function') __ui_mod(hostApi);
-}})();
-"#
-    )
 }
 
 /// The current runtime containers as a JS array literal of
@@ -542,20 +369,27 @@ mod tests {
         serde_json::from_str(json).unwrap()
     }
 
-    fn spine_nodes() -> Vec<UiNode> {
-        vec![
-            node_json(
-                r#"{"kind":"division","id":"spine-div","options":{},"children":["spine-text"]}"#),
-            node_json(
-                r#"{"kind":"text","id":"spine-text","value":"spine","children":[]}"#),
-        ]
+    /// Install `source` as the module entry in the persistent sim context
+    /// (the live UI declaration path).
+    fn install_module(source: &str) {
+        let mut files = HashMap::new();
+        files.insert("index.js".to_string(), source.to_string());
+        crate::js_executor::sim_ctx::install(&files).unwrap();
     }
+
+    const SPINE_MODULE: &str = r#"
+export default (hostApi) => {
+  hostApi.ui.div('spine-div', {}, [
+    hostApi.ui.text('spine-text', 'spine')
+  ]);
+};
+"#;
 
     #[test]
     fn spine_div_and_text_flow_into_ui_state() {
         let _g = lock();
-        clear();
-        set_declared("spine-module", spine_nodes());
+        crate::state::clear_state();
+        install_module(SPINE_MODULE);
         tick();
 
         let json = fetch_ui_state_json();
@@ -581,34 +415,10 @@ mod tests {
     }
 
     #[test]
-    fn redeclaration_produces_update_delta() {
-        let _g = lock();
-        clear();
-        set_declared("spine-module", spine_nodes());
-        tick();
-        ui_delta().lock().unwrap().take();
-        ui_dirty().store(false, Ordering::SeqCst);
-
-        let mut changed = spine_nodes();
-        if let UiNode::Text { value, .. } = &mut changed[1] {
-            *value = "spine-v2".to_string();
-        }
-        set_declared("spine-module", changed);
-        tick();
-
-        let delta: serde_json::Value = serde_json::from_str(
-            &fetch_ui_delta_json().unwrap()).unwrap();
-        let ops = delta["ops"].as_array().unwrap();
-        assert!(ops.iter().any(|o| o["op"] == "update"
-            && o["node"]["id"] == "spine-text"
-            && o["node"]["value"] == "spine-v2"));
-    }
-
-    #[test]
     fn one_iteration_keeps_spine_nodes_visible() {
         let _g = lock();
-        clear();
-        set_declared("spine-module", spine_nodes());
+        crate::state::clear_state();
+        install_module(SPINE_MODULE);
         crate::ffi_mod::runtime_run_iteration(1);
         tick();
 
@@ -657,19 +467,23 @@ mod tests {
             .insert(name.to_string(), value);
     }
 
-    fn hp_field_node() -> UiNode {
-        node_json(
-            r#"{"kind":"field","id":"hp-field","binding":{"entity":"ent-a","map":"number","name":"hp","fallback":"n/a"},"value":"n/a","children":[]}"#)
-    }
+    const FIELD_MODULE: &str = r#"
+export default (hostApi) => {
+  hostApi.ui.field('hp-field', {
+    entity: 'ent-a',
+    map: 'number',
+    name: 'hp',
+    fallback: 'n/a'
+  });
+};
+"#;
 
     #[test]
     fn field_binds_entity_value_and_updates_live() {
         let _g = lock();
-        clear();
         crate::state::clear_state();
+        install_module(FIELD_MODULE);
         set_entity_number("ent-a", "hp", 7.0);
-
-        set_declared("field-module", vec![hp_field_node()]);
         tick();
 
         let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
@@ -855,16 +669,6 @@ export default (hostApi) => {
 };
 "#;
 
-    fn container_list_nodes(target: &str) -> Vec<UiNode> {
-        vec![
-            node_json(
-                r#"{"kind":"window","id":"list-panel","options":{"width":300,"height":300},"children":["items"]}"#),
-            node_json(&format!(
-                r#"{{"kind":"division","id":"items","options":{{"container":"{}"}},"children":["$$container:items"]}}"#,
-                target)),
-        ]
-    }
-
     fn seed_container_state() {
         set_entity_number("item-a", "value", 1.0);
         set_entity_number("item-b", "value", 2.0);
@@ -875,12 +679,10 @@ export default (hostApi) => {
     #[test]
     fn container_list_expands_one_item_per_entity() {
         let _g = lock();
-        clear();
         crate::state::clear_state();
 
         seed_container_state();
-        set_module_source("container-module", CONTAINER_LIST_MODULE);
-        set_declared("container-module", container_list_nodes("items"));
+        install_module(CONTAINER_LIST_MODULE);
         tick();
 
         let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
@@ -910,12 +712,10 @@ export default (hostApi) => {
     #[test]
     fn container_list_reconciles_entity_additions_and_removals() {
         let _g = lock();
-        clear();
         crate::state::clear_state();
 
         seed_container_state();
-        set_module_source("container-module", CONTAINER_LIST_MODULE);
-        set_declared("container-module", container_list_nodes("items"));
+        install_module(CONTAINER_LIST_MODULE);
         tick();
         ui_delta().lock().unwrap().take();
 
@@ -955,13 +755,11 @@ export default (hostApi) => {
     #[test]
     fn container_list_unknown_container_renders_zero_items() {
         let _g = lock();
-        clear();
         crate::state::clear_state();
         // A list whose target container was never registered.
         let module = CONTAINER_LIST_MODULE.replace(
             "{ container: 'items' }", "{ container: 'missing' }");
-        set_module_source("container-module", &module);
-        set_declared("container-module", container_list_nodes("missing"));
+        install_module(&module);
         tick();
 
         let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
@@ -971,6 +769,82 @@ export default (hostApi) => {
         assert!(ids.contains(&"items"), "list node missing: {:?}", ids);
         assert!(!ids.iter().any(|id| id.starts_with("item-")),
             "expected zero items, got {:?}", ids);
+    }
+
+    #[test]
+    fn store_round_trips_through_binary_slab() {
+        let _g = lock();
+        ui_nodes().lock().unwrap().clear();
+        prev_store_ids().lock().unwrap().clear();
+        ui_delta().lock().unwrap().take();
+        apply_diff(&[
+            node_json(
+                r#"{"kind":"window","id":"win-a","options":{"x":10,"y":-20,"anchor":"top-left","width":200,"height":100},"children":["t"]}"#),
+            node_json(
+                r#"{"kind":"text","id":"t","value":"spine","children":[]}"#),
+            node_json(
+                r#"{"kind":"field","id":"hp","binding":{"entity":"ent-a","map":"number","name":"hp","fallback":"n/a"},"value":"7","children":[]}"#),
+        ]).unwrap();
+        let mut anims = HashMap::new();
+        anims.insert(
+            "blink".to_string(),
+            serde_json::json!({"frames":[{"sprite":"a.png"},{"sprite":"b.png"}],"duration":1.5,"loop":true}),
+        );
+        *animations().lock().unwrap() = anims;
+
+        // Snapshot: store -> slab -> back out the domain data.
+        let nodes = ui_nodes().lock().unwrap().clone();
+        let snap = crate::ui::abi::build_snapshot(
+            &nodes, &animations().lock().unwrap().clone());
+        unsafe {
+            let s = &*snap;
+            assert_eq!(s.version, crate::ui::abi::UI_ABI_VERSION);
+            assert_eq!(s.node_count, 3);
+            assert_eq!(s.anim_count, 1);
+            let arena = s.strings;
+            let cstr = |off: u32| -> String {
+                std::ffi::CStr::from_ptr(
+                    arena.add(off as usize) as *const i8)
+                    .to_string_lossy().into_owned()
+            };
+            let ns = std::slice::from_raw_parts(s.nodes, 3);
+            let win = ns.iter().find(|n| cstr(n.id) == "win-a").unwrap();
+            assert_eq!(win.kind, crate::ui::abi::UI_KIND_WINDOW);
+            assert!((win.opt.x - 10.0).abs() < f32::EPSILON);
+            assert_eq!(cstr(win.opt.anchor), "top-left");
+            assert!((win.opt.width - 200.0).abs() < f32::EPSILON);
+            assert_eq!(win.child_count, 1);
+            let text = ns.iter().find(|n| cstr(n.id) == "t").unwrap();
+            assert_eq!(cstr(text.value), "spine");
+            let hp = ns.iter().find(|n| cstr(n.id) == "hp").unwrap();
+            assert_eq!(hp.kind, crate::ui::abi::UI_KIND_FIELD);
+            assert_eq!(cstr(hp.binding.entity), "ent-a");
+            assert_eq!(hp.binding.map, crate::ui::abi::UI_MAP_NUMBER);
+            assert_eq!(cstr(hp.value), "7");
+            let anims = std::slice::from_raw_parts(s.anims, 1);
+            assert_eq!(cstr(anims[0].name), "blink");
+            assert_eq!(anims[0].frame_count, 2);
+            crate::ui::abi::free_snapshot(snap);
+        }
+
+        // Delta: pending ops -> slab -> ops intact, then consumed.
+        let delta = crate::ui::abi::build_delta(
+            &ui_delta().lock().unwrap().take().unwrap().ops);
+        unsafe {
+            let d = &*delta;
+            assert_eq!(d.op_count, 3);
+            let arena = d.strings;
+            let cstr = |off: u32| -> String {
+                std::ffi::CStr::from_ptr(
+                    arena.add(off as usize) as *const i8)
+                    .to_string_lossy().into_owned()
+            };
+            let ops = std::slice::from_raw_parts(d.ops, 3);
+            assert!(ops.iter().all(|o| o.op == crate::ui::abi::UI_OP_ADD));
+            assert!(ops.iter().any(|o| cstr(o.node.id) == "win-a"));
+            crate::ui::abi::free_delta(delta);
+        }
+
     }
 
     #[test]

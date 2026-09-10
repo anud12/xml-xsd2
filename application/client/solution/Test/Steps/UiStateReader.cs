@@ -1,66 +1,59 @@
 using System.Text.Json;
 using Godot;
 using NewGameProject.Runtime;
+using NewGameProject.UI;
 
 namespace NewGameProject.Tests.XUnit;
 
 /// <summary>
-/// Reads the NEW .ui node store exposed by the runtime
-/// (<see cref="RuntimeInterop.FetchUiState"/>, one-shot JSON) and locates a
-/// declared node by id. The legacy <c>registerPanel</c> Jint path is no
-/// longer exercised by the migrated fixtures, so assertions target the
-/// .ui options (width/height/x/y/anchor/background/children) instead of
-/// the legacy <c>Runtime.Panel</c> struct.
+/// Reads the .ui node store exposed by the runtime
+/// (<see cref="RuntimeInterop.FetchUiState"/>, binary slab) and locates a
+/// declared node by id. Assertions target the .ui options
+/// (width/height/x/y/anchor/background/children).
 /// </summary>
 public static class UiStateReader
 {
-    /// <summary>Parses the UI state JSON; returns the raw node elements.</summary>
+    static string KindStr(NewGameProject.UI.UiNodeKind kind) => kind switch
+    {
+        NewGameProject.UI.UiNodeKind.Text => "text",
+        NewGameProject.UI.UiNodeKind.Field => "field",
+        NewGameProject.UI.UiNodeKind.Window => "window",
+        NewGameProject.UI.UiNodeKind.Image => "image",
+        NewGameProject.UI.UiNodeKind.Canvas => "canvas",
+        _ => "division"
+    };
+
+    /// <summary>Reads the UI node store (Rust slab FFI); returns the raw node elements.</summary>
     public static JsonElement[] GetNodes()
     {
         for (int attempt = 0; attempt < 50; attempt++)
         {
-            var csNodes = NewGameProject.Module.PanelNodeStore.Fetch();
-            if (csNodes.Count > 0)
+            var ptr = RuntimeInterop.FetchUiState();
+            if (ptr != IntPtr.Zero)
             {
-                var list = new List<JsonElement>();
-                foreach (var n in csNodes)
+                var slabNodes = UiSlab.ReadNodes(ptr);
+                RuntimeInterop.FreeUiState(ptr);
+                if (slabNodes.Count > 0)
                 {
-                    var kindStr = n.Kind switch
+                    var list = new List<JsonElement>();
+                    foreach (var n in slabNodes)
                     {
-                        NewGameProject.UI.UiNodeKind.Text => "text",
-                        NewGameProject.UI.UiNodeKind.Field => "field",
-                        NewGameProject.UI.UiNodeKind.Window => "window",
-                        NewGameProject.UI.UiNodeKind.Image => "image",
-                        NewGameProject.UI.UiNodeKind.Canvas => "canvas",
-                        _ => "division"
-                    };
-                    var optionsEl = JsonDocument.Parse(n.OptionsJson).RootElement.Clone();
-                    var payload = new Dictionary<string, object>
-                    {
-                        ["id"] = n.Id,
-                        ["kind"] = kindStr,
-                        ["value"] = n.Value,
-                        ["src"] = n.Src,
-                        ["options"] = optionsEl,
-                        ["children"] = n.Children
-                    };
-                    var nodeJson = JsonSerializer.Serialize(payload);
-                    using var nd = JsonDocument.Parse(nodeJson);
-                    list.Add(nd.RootElement.Clone());
+                        var payload = new Dictionary<string, object>
+                        {
+                            ["id"] = n.Id,
+                            ["kind"] = KindStr(n.Kind),
+                            ["value"] = n.Value,
+                            ["src"] = n.Src,
+                            ["options"] = JsonDocument.Parse(n.OptionsJson).RootElement.Clone(),
+                            ["children"] = n.Children
+                        };
+                        if (!string.IsNullOrEmpty(n.BindingJson))
+                            payload["binding"] = JsonDocument.Parse(n.BindingJson).RootElement.Clone();
+                        list.Add(JsonDocument.Parse(
+                            JsonSerializer.Serialize(payload)).RootElement.Clone());
+                    }
+                    return list.ToArray();
                 }
-                return list.ToArray();
-            }
-            var json = RuntimeInterop.FetchUiState();
-            if (string.IsNullOrEmpty(json)) continue;
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("nodes", out var nodes)
-                && nodes.ValueKind == JsonValueKind.Array
-                && nodes.GetArrayLength() > 0)
-            {
-                var list = new List<JsonElement>();
-                foreach (var el in nodes.EnumerateArray())
-                    list.Add(el.Clone());
-                return list.ToArray();
             }
             System.Threading.Thread.Sleep(50);
         }
@@ -90,16 +83,11 @@ public static class UiStateReader
     public static JsonElement? GetOptions(string id)
     {
         var node = GetNode(id);
-        if (node.ValueKind != JsonValueKind.Object)
-        {
-            System.IO.File.AppendAllText(@"C:\Users\acriha\AppData\Local\Temp\opencode\dbg-anim.log", $"[READER] {id} node not object: {node.ValueKind}\n");
-            return null;
-        }
+        if (node.ValueKind != JsonValueKind.Object) return null;
         if (node.TryGetProperty("binding", out var b) && b.ValueKind == JsonValueKind.Object)
             return b;
         if (node.TryGetProperty("options", out var o) && o.ValueKind == JsonValueKind.Object)
             return o;
-        System.IO.File.AppendAllText(@"C:\Users\acriha\AppData\Local\Temp\opencode\dbg-anim.log", $"[READER] {id} node raw={node.GetRawText()}\n");
         return null;
     }
 

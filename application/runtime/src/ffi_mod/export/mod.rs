@@ -3,6 +3,7 @@ pub mod export_state;
 pub mod export_state_struct;
 pub mod free_exported_state;
 pub mod load_archive;
+pub mod panel_json;
 
 pub use process_archive::runtime_process_archive;
 pub use export_state::runtime_export_state;

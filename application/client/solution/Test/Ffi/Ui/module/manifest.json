@@ -1,0 +1,6 @@
+{
+  "id": "ui-slab-smoke",
+  "version": "1.0.0",
+  "name": "UI Slab Smoke",
+  "entry": "index.js"
+}

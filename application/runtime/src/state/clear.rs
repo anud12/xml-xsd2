@@ -21,4 +21,6 @@ pub fn clear_state() {
     *super::last_containers().lock().unwrap() = Vec::new();
     super::elapsed_time_units().store(0, Ordering::SeqCst);
     super::persisted_flag().store(false, Ordering::SeqCst);
+    crate::ui::clear();
+    crate::js_executor::sim_ctx::reset();
 }

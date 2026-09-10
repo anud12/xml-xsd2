@@ -14,13 +14,40 @@ public static class RuntimeInterop
 
     public static string[] GetPanelIds()
     {
-        return ModuleContextProvider.Context.GetPanelIds();
+        var ptr = runtime_fetch_panel_ids();
+        if (ptr == IntPtr.Zero) return Array.Empty<string>();
+        try
+        {
+            var json = Marshal.PtrToStringAnsi(ptr) ?? "[]";
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var ids = new List<string>();
+            foreach (var id in doc.RootElement.EnumerateArray())
+                ids.Add(id.GetString() ?? "");
+            return ids.ToArray();
+        }
+        catch { return Array.Empty<string>(); }
+        finally { runtime_free_string(ptr); }
     }
 
     public static Panel GetPanelById(string id)
     {
-        return ModuleContextProvider.Context.GetPanelById(id);
+        var ptr = runtime_fetch_panel_json(id);
+        if (ptr == IntPtr.Zero) return default;
+        try
+        {
+            var json = Marshal.PtrToStringAnsi(ptr);
+            if (json != null && PanelParser.TryParse(json, out var panel))
+                return panel;
+            return default;
+        }
+        finally { runtime_free_string(ptr); }
     }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_fetch_panel_json([MarshalAs(UnmanagedType.LPStr)] string id);
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_fetch_panel_ids();
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr runtime_process_archive([MarshalAs(UnmanagedType.LPStr)] string path);
@@ -74,8 +101,6 @@ public static class RuntimeInterop
                 }
             }
         }
-        foreach (var kv in Module.PanelNodeStore.GetFiles())
-            fileData[kv.Key] = kv.Value;
         return fileData;
     }
 
@@ -276,6 +301,18 @@ public static class RuntimeInterop
     }
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_ui_js_click(
+        [MarshalAs(UnmanagedType.LPStr)] string id, int col, int row);
+
+    /// Routes a click to a node whose legacy `onClick` handler is a JS
+    /// function (the sim context keeps the handler; `col`/`row` are the
+    /// resolved cursor cell the handler's `ctx.cursor` reports).
+    public static void UiJsClick(string id, int col, int row)
+    {
+        runtime_ui_js_click(id, col, row);
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern bool runtime_is_actor_interruptible(
         [MarshalAs(UnmanagedType.LPStr)] string actorId);
 
@@ -321,7 +358,6 @@ public static class RuntimeInterop
     public static long RunIteration(long elapsedUnits = 0)
     {
         var elapsed = runtime_get_elapsed_time_units() + elapsedUnits;
-        NewGameProject.Module.EffectStore.Process(elapsed);
         NewGameProject.Module.BehaviorStore.Process(elapsed);
         return runtime_run_iteration(elapsedUnits);
     }
@@ -332,7 +368,13 @@ public static class RuntimeInterop
     private static extern IntPtr runtime_fetch_ui_state();
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_free_ui_snapshot(IntPtr ptr);
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr runtime_fetch_ui_delta();
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_free_ui_delta(IntPtr ptr);
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr runtime_fetch_ui_animations();
@@ -340,20 +382,29 @@ public static class RuntimeInterop
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr runtime_fetch_world_state();
 
-    public static string FetchUiState()
+    /// Full UI tree as a binary slab (`UiAbi.UiSnapshot`); the returned
+    /// pointer stays valid until <see cref="FreeUiState"/>.
+    public static IntPtr FetchUiState()
     {
-        var ptr = runtime_fetch_ui_state();
-        if (ptr == IntPtr.Zero) return string.Empty;
-        try { return Marshal.PtrToStringAnsi(ptr) ?? string.Empty; }
-        finally { runtime_free_string(ptr); }
+        return runtime_fetch_ui_state();
     }
 
-    public static string FetchUiDelta()
+    public static void FreeUiState(IntPtr ptr)
     {
-        var ptr = runtime_fetch_ui_delta();
-        if (ptr == IntPtr.Zero) return string.Empty;
-        try { return Marshal.PtrToStringAnsi(ptr) ?? string.Empty; }
-        finally { runtime_free_string(ptr); }
+        if (ptr != IntPtr.Zero) runtime_free_ui_snapshot(ptr);
+    }
+
+    /// Pending delta as a binary slab (`UiAbi.UiDelta`), or IntPtr.Zero when
+    /// clean. Fetching consumes the pending delta; release with
+    /// <see cref="FreeUiDelta"/>.
+    public static IntPtr FetchUiDelta()
+    {
+        return runtime_fetch_ui_delta();
+    }
+
+    public static void FreeUiDelta(IntPtr ptr)
+    {
+        if (ptr != IntPtr.Zero) runtime_free_ui_delta(ptr);
     }
 
     public static string FetchUiAnimations()

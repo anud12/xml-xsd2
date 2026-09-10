@@ -130,25 +130,50 @@ public partial class UiWindow
             _animDurationTicks = Math.Max(1, (int)dd.GetDouble());
         if (def.Value.TryGetProperty("loop", out var ll) && ll.ValueKind == JsonValueKind.True)
             _animLoop = true;
-        var framePaths = new List<string>();
+        var frameSprites = new List<JsonElement>();
         foreach (var f in frames.EnumerateArray())
         {
-            if (f.TryGetProperty("sprite", out var s) && s.ValueKind == JsonValueKind.String)
-                framePaths.Add(s.GetString() ?? "");
+            if (f.TryGetProperty("sprite", out var s))
+                frameSprites.Add(s);
         }
-        if (framePaths.Count == 0) return;
+        if (frameSprites.Count == 0) return;
 
         // Same frame scheme as the legacy Panel: frame 0 from the first
         // elapsed unit, ticksPerFrame = duration / frames.
         var ticksPerFrame = Math.Max(
-            (int)Math.Round(_animDurationTicks / (double)framePaths.Count), 1);
+            (int)Math.Round(_animDurationTicks / (double)frameSprites.Count), 1);
         var rawIndex = (int)((elapsed - 1) / ticksPerFrame);
         if (rawIndex < 0) rawIndex = 0;
         var frameIndex = _animLoop
-            ? rawIndex % framePaths.Count
-            : Math.Min(rawIndex, framePaths.Count - 1);
+            ? rawIndex % frameSprites.Count
+            : Math.Min(rawIndex, frameSprites.Count - 1);
 
-        var path = framePaths[frameIndex];
+        var sprite = frameSprites[frameIndex];
+        if (sprite.ValueKind == JsonValueKind.Object
+            && sprite.TryGetProperty("kind", out var sk)
+            && sk.ValueKind == JsonValueKind.String
+            && sk.GetString() == "spriteMap")
+        {
+            // Sprite-map frames are validated, not rendered (baseline parity):
+            // a missing map file reports a human-readable error.
+            var mapPath = sprite.TryGetProperty("map", out var m) ? m.GetString() ?? "" : "";
+            if (!RuntimeInterop.GetFileFromArchive().TryGetValue(mapPath, out _))
+            {
+                RuntimeInterop.Log(
+                    $"Sprite map: missing TIFF file \"{mapPath}\" for panel \"{Name}\".");
+            }
+            return;
+        }
+
+        string path;
+        if (sprite.ValueKind == JsonValueKind.String)
+            path = sprite.GetString() ?? "";
+        else if (sprite.ValueKind == JsonValueKind.Object
+            && sprite.TryGetProperty("name", out var nm)
+            && nm.ValueKind == JsonValueKind.String)
+            path = nm.GetString() ?? "";
+        else
+            return;
         if (!force && path == _currentFramePath) return;
         _currentFramePath = path;
         var files = RuntimeInterop.GetFileFromArchive();

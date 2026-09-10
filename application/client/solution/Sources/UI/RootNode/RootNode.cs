@@ -137,7 +137,11 @@ public partial class RootNode : Godot.Panel
             {
                 case "add":
                 case "update":
-                    if (_windows.TryGetValue(op.Node.Id, out var win))
+                    // The full state already covered the tree this frame; an
+                    // update for a window the state no longer declares is a
+                    // stale race and must not touch a freed node.
+                    if (_windows.TryGetValue(op.Node.Id, out var win)
+                        && !IsDead(win))
                     {
                         win.Apply(op.Node);
                         win.SetChildren(op.Node.Children);
@@ -148,10 +152,18 @@ public partial class RootNode : Godot.Panel
                     {
                         rem.QueueFree();
                         _windows.Remove(op.Id);
+                        _hoverStates.Remove(rem);
                     }
                     break;
             }
         }
+    }
+
+    /// True when the window has been queued for deletion (and is therefore
+    /// unsafe to touch through the Godot API once the frame frees it).
+    static bool IsDead(UiWindow win)
+    {
+        return win == null || win.IsQueuedForDeletion();
     }
 
     public override void _Process(double delta)

@@ -1,18 +1,18 @@
 using System.Text.Json;
 
-namespace NewGameProject.Module;
+namespace NewGameProject.Runtime;
 
 static class LayoutParser
 {
-    internal static Runtime.Layout? Parse(JsonElement elem)
+    internal static Layout? Parse(JsonElement elem)
     {
-        var layout = new Runtime.Layout();
+        var layout = new Layout();
 
         if (elem.TryGetProperty("columns", out var cols) && cols.ValueKind == JsonValueKind.Array)
         {
-            var defs = new List<Runtime.TrackDefinition>();
+            var defs = new List<TrackDefinition>();
             foreach (var col in cols.EnumerateArray())
-                defs.Add(new Runtime.TrackDefinition
+                defs.Add(new TrackDefinition
                 {
                     min = Extract.Int(col, "min"),
                     max = Extract.Int(col, "max"),
@@ -29,15 +29,14 @@ static class LayoutParser
             layout.ReverseOrder = rv.GetBoolean();
 
         if (elem.TryGetProperty("gap", out var g) && g.ValueKind == JsonValueKind.Object)
-            layout.gap = new Runtime.Gap
-            { Row = Extract.Int(g, "row") ?? 0, Column = Extract.Int(g, "column") ?? 0 };
+            layout.gap = new Gap { Row = Extract.Int(g, "row") ?? 0, Column = Extract.Int(g, "column") ?? 0 };
 
         return layout;
     }
 
-    static Runtime.Align? ParseAlign(string? v)
+    static Align? ParseAlign(string? v)
     {
-        if (v == "end") return Runtime.Align.End;
-        return Runtime.Align.Start;
+        if (v == "end") return Align.End;
+        return Align.Start;
     }
 }

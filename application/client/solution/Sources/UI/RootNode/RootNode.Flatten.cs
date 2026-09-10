@@ -25,6 +25,7 @@ public partial class RootNode
             {
                 childWin.QueueFree();
                 _windows.Remove(childNode.Id);
+                _hoverStates.Remove(childWin);
                 _flattenedFields.Remove(childNode.Id);
             }
             var label = new Label
@@ -52,6 +53,11 @@ public partial class RootNode
         foreach (var kv in _flattenedFields)
         {
             var (host, childId) = kv.Value;
+            if (host == null || host.IsQueuedForDeletion())
+            {
+                _flattenedFields.Remove(kv.Key);
+                continue;
+            }
             if (!byId.TryGetValue(childId, out var childNode)) continue;
             var label = host.GetNodeOrNull<Label>("text");
             if (label == null) continue;
@@ -62,9 +68,18 @@ public partial class RootNode
 
     static JsonElement ParseOptions(UiNodeData node)
     {
-        if (!string.IsNullOrEmpty(node.OptionsJson))
-            return JsonDocument.Parse(node.OptionsJson).RootElement;
-        return default;
+        // Clone detaches the element from the (unreferenced) JsonDocument,
+        // whose finalizer would otherwise invalidate the pooled backing
+        // memory under GC pressure.
+        if (string.IsNullOrEmpty(node.OptionsJson)) return default;
+        try
+        {
+            return JsonDocument.Parse(node.OptionsJson).RootElement.Clone();
+        }
+        catch
+        {
+            return JsonDocument.Parse("{}").RootElement.Clone();
+        }
     }
 
     /// Applies a legacy 9-point align ("top", "center-left", ...) from the

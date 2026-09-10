@@ -37,6 +37,24 @@ var __hapi_isAnimation = function (v) {
   return !!v && typeof v === 'object'
     && Array.isArray(v.frames) && v.frames.length > 0;
 };
+var __hapi_firstFrameRef = function (v) {
+  if (typeof v === 'string' && v.length > 0) return v;
+  if (!v || typeof v !== 'object' || !Array.isArray(v.frames)) return null;
+  for (var i = 0; i < v.frames.length; i++) {
+    var f = v.frames[i];
+    if (typeof f === 'string' && f.length > 0) return f;
+    if (f && typeof f === 'object' && f.sprite != null) {
+      var s = f.sprite;
+      if (typeof s === 'string' && s.length > 0) return s;
+      if (typeof s === 'object' && s.__spriteMap) {
+        return JSON.stringify({ __spriteMap: true,
+                                map: s.map, layers: s.layers || [] });
+      }
+      if (typeof s === 'object' && typeof s.name === 'string') return s.name;
+    }
+  }
+  return null;
+};
 var __hapi_registerPanel = function (json) {
   globalThis.__registeredPanels =
     globalThis.__registeredPanels || [];
@@ -89,10 +107,14 @@ var __hapi_panelEmit = function (id, options, children, forceSurface) {
           && !__hapi_isAnimation(opts.onHover.background))
         throw new Error("panel '" + id
           + "': onHover.background must be an AnimationRegistrationArguments (use hostApi.ui.getAnimation)");
+      var __hoverTexture = opts.onHover.texture !== undefined
+        ? __hapi_firstFrameRef(opts.onHover.texture) : null;
+      var __hoverBackground = opts.onHover.background !== undefined
+        ? __hapi_firstFrameRef(opts.onHover.background) : null;
       json.hover = {
-        texture: opts.onHover.texture !== undefined ? opts.onHover.texture : null,
+        texture: __hoverTexture,
         thickness: (opts.onHover.thickness !== undefined ? opts.onHover.thickness : 0),
-        background: opts.onHover.background !== undefined ? opts.onHover.background : null,
+        background: __hoverBackground,
         emitAction: opts.onHover.emitAction || null,
         stopPropagation: opts.onHover.stopPropagation || false
       };

@@ -133,6 +133,7 @@ export default (hostApi) => {
       rows: [{scale: 1}, {scale: 1}, {scale: 1}],
     },
     onClick: (ctx) => {
+      hostApi.runtime.log("Click")
       ctx.emitAction("teleport-to-cursor", {
         x: ctx.cursor.getX(),
         y: ctx.cursor.getY(),
@@ -140,7 +141,7 @@ export default (hostApi) => {
     }
   }, [
     hostApi.ui.container("ui-view", {container: "grid-1"}, entity => [
-      hostApi.ui.panel("entity-panel", {
+      hostApi.ui.panel(entity.id, {
         width: 10,
         height: 10,
         background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
