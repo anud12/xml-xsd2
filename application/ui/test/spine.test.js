@@ -115,13 +115,13 @@ test('ui.canvas registers a canvas node with world options', () => {
   });
 });
 
-test('ui.container registers a division node with a container marker child', () => {
+test('ui.entityList registers a division node with a container marker child', () => {
   registered = [];
   host.clear();
   const render = (entity) => [host.window(entity.id, {}, [
     host.field(entity.id + ':value', { entity: entity.id, map: 'number', name: 'value', fallback: '0' }),
   ])];
-  const id = host.container('items', { container: 'items' }, render);
+  const id = host.entityList('items', { container: 'items' }, render);
   assert.strictEqual(id, 'items');
   const list = host.snapshot().find((n) => n.id === 'items');
   assert.strictEqual(list.kind, 'division');
@@ -129,20 +129,20 @@ test('ui.container registers a division node with a container marker child', () 
   assert.deepStrictEqual(list.children, ['$$container:items']);
 });
 
-test('ui.container rejects bad name, args, or render', () => {
+test('ui.entityList rejects bad name, args, or render', () => {
   host.clear();
-  assert.throws(() => host.container('', { container: 'c' }, () => []), /mandatory name/);
-  assert.throws(() => host.container('x', {}, () => []), /args.container/);
-  assert.throws(() => host.container('x', { container: 'c' }, null), /render must be a function/);
+  assert.throws(() => host.entityList('', { container: 'c' }, () => []), /mandatory name/);
+  assert.throws(() => host.entityList('x', {}, () => []), /args.container/);
+  assert.throws(() => host.entityList('x', { container: 'c' }, null), /render must be a function/);
 });
 
-test('ui.container expands one item per entity via expandContainers', () => {
+test('ui.entityList expands one item per entity via expandContainers', () => {
   registered = [];
   host.clear();
   const render = (entity) => [host.window(entity.id, { w: 1 }, [
     host.text(entity.id + '-t', 'v' + entity.index),
   ])];
-  host.container('items', { container: 'items' }, render);
+  host.entityList('items', { container: 'items' }, render);
   host.expandContainers((name) => {
     assert.strictEqual(name, 'items');
     return ['a', 'b', 'c'];
@@ -157,13 +157,76 @@ test('ui.container expands one item per entity via expandContainers', () => {
   assert.strictEqual(textC.value, 'v2');
 });
 
-test('ui.container with unknown container renders zero items', () => {
+test('ui.entityList with unknown container renders zero items', () => {
   host.clear();
   const render = (entity) => [host.window(entity.id, {}, [])];
-  host.container('items', { container: 'items' }, render);
+  host.entityList('items', { container: 'items' }, render);
   host.expandContainers(() => []);
   const list = host.snapshot().find((n) => n.id === 'items');
   assert.deepStrictEqual(list.children, []);
+});
+
+test('ui.containerView registers a window node with view options and a view marker', () => {
+  host.clear();
+  const id = host.containerView('world', { container: 'grid-1', width: 700, height: 500, x: 10, y: 80 },
+    (entity) => host.window(entity.id, { background: 'tex' }, []));
+  assert.strictEqual(id, 'world');
+  const view = host.snapshot().find((n) => n.id === 'world');
+  assert.strictEqual(view.kind, 'window');
+  assert.strictEqual(view.options.container, 'grid-1');
+  assert.strictEqual(view.options.viewWidth, 700);
+  assert.strictEqual(view.options.viewHeight, 500);
+  assert.strictEqual(view.options.x, 10);
+  assert.strictEqual(view.options.y, 80);
+  assert.deepStrictEqual(view.children, ['$$containerView:world']);
+});
+
+test('ui.containerView rejects bad name, args, or render', () => {
+  host.clear();
+  assert.throws(() => host.containerView('', { container: 'c', width: 10, height: 10 }, () => 'x'), /mandatory name/);
+  assert.throws(() => host.containerView('v', null, () => 'x'), /args must be an object/);
+  assert.throws(() => host.containerView('v', { container: '', width: 10, height: 10 }, () => 'x'), /args.container/);
+  assert.throws(() => host.containerView('v', { container: 'c', width: 0, height: 10 }, () => 'x'), /args.width/);
+  assert.throws(() => host.containerView('v', { container: 'c', width: 10, height: 0 }, () => 'x'), /args.height/);
+  assert.throws(() => host.containerView('v', { container: 'c', width: 10, height: 10 }, null), /render must be a function/);
+});
+
+test('ui.containerView expands one item per entity and stamps options.entity', () => {
+  host.clear();
+  const render = (entity) => host.window(entity.id, { background: 'tex' }, []);
+  host.containerView('world', { container: 'grid-1', width: 700, height: 500 }, render);
+  host.expandContainerViews((cid) => {
+    assert.strictEqual(cid, 'grid-1');
+    return ['a', 'b'];
+  });
+  const snap = host.snapshot();
+  const view = snap.find((n) => n.id === 'world');
+  assert.deepStrictEqual(view.children, ['a', 'b']);
+  const itemA = snap.find((n) => n.id === 'a');
+  assert.strictEqual(itemA.options.entity, 'a');
+  const itemB = snap.find((n) => n.id === 'b');
+  assert.strictEqual(itemB.options.entity, 'b');
+});
+
+test('ui.containerView with unknown container renders zero items', () => {
+  host.clear();
+  host.containerView('world', { container: 'grid-1', width: 700, height: 500 },
+    (entity) => host.window(entity.id, {}, []));
+  host.expandContainerViews(() => []);
+  const view = host.snapshot().find((n) => n.id === 'world');
+  assert.deepStrictEqual(view.children, []);
+});
+
+test('ui.containerView reset restores the view marker', () => {
+  host.clear();
+  host.containerView('world', { container: 'grid-1', width: 700, height: 500 },
+    (entity) => host.window(entity.id, {}, []));
+  host.expandContainerViews(() => ['a']);
+  let view = host.snapshot().find((n) => n.id === 'world');
+  assert.deepStrictEqual(view.children, ['a']);
+  host.resetContainers();
+  view = host.snapshot().find((n) => n.id === 'world');
+  assert.deepStrictEqual(view.children, ['$$containerView:world']);
 });
 
 test('snapshot is ordered by declaration and deep-copied', () => {

@@ -4,7 +4,8 @@ var h=globalThis.host;
 if(!h){throw new Error("host is undefined");}
 var hostApi={
   ui:{
-    texture:{of:function(p){return p;}}
+    texture:{of:function(p){return p;}},
+    registerPanel:h.registerPanel
   },
   runtime:{
     string:{of:function(s){return s;}},

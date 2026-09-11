@@ -67,7 +67,7 @@ pub extern "C" fn runtime_set_actor(actor: *const c_char) {
     let Some(ctx) = crate::js_executor::sim_ctx::ctx() else { return; };
     let Ok(actor) = unsafe { CStr::from_ptr(actor) }.to_str() else { return; };
     let json = serde_json::to_string(actor).unwrap_or_else(|_| "\"\"".to_string());
-    let _ = ctx.with(|c| c.eval::<(), _>(format!(
+    let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(format!(
         "globalThis.__uiClientState = globalThis.__uiClientState || \
          {{ clientId: 'local', actor: null, values: {{}} }};\n\
          globalThis.__uiClientState.actor = {};",
@@ -101,7 +101,7 @@ pub extern "C" fn runtime_ui_js_click(id: *const c_char, col: i32, row: i32) {
          return JSON.stringify(globalThis.__uiClickEmissions);\
        }})()"
     );
-    let Ok(raw) = ctx.with(|c| c.eval::<String, _>(script)) else { return; };
+    let Ok(raw) = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<String, _>(script)) else { return; };
     let Ok(emissions) = serde_json::from_str::<Vec<serde_json::Value>>(&raw) else { return; };
     for em in emissions {
         let Some(name) = em.get("name").and_then(|n| n.as_str()) else { continue; };
@@ -147,7 +147,7 @@ pub extern "C" fn runtime_set_client_values(
         ));
     }
     script.push_str("};");
-    let _ = ctx.with(|c| c.eval::<(), _>(script));
+    let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(script));
 }
 
 fn arena_str(arena: *const u8, offset: u32) -> String {

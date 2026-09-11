@@ -1,10 +1,13 @@
 // sim_template part 1: setup, recordCreated, findEffectByName
 
-const SIM_TPL_P1: &str = r#"(function(actionName, initialStore, actionArgs){
+const SIM_TPL_P1: &str = r#"(function(actionName, initialStore){
   globalThis.__entityStore = initialStore || [];
   globalThis.__createdEntities = globalThis.__createdEntities || [];
   const acts = globalThis.__registeredActions || [];
   globalThis.__logs = [];
+  globalThis.__plannedMoves = [];
+  globalThis.__interruptible = false;
+  globalThis.__actionArgs = globalThis.__actionArgs || {};
   const evs = globalThis.__registeredEvents || [];
   function recordCreated(obj) {
     if (obj && typeof obj === 'object') {
@@ -37,17 +40,6 @@ const SIM_TPL_P1: &str = r#"(function(actionName, initialStore, actionArgs){
       }
     }
     return null;
-  }
-  const __actionArgsObj = {};
-  if (Array.isArray(actionArgs)) {
-    for (const pair of actionArgs) {
-      if (pair && pair.length >= 2) __actionArgsObj[pair[0]] = pair[1];
-    }
-  } else if (actionArgs && typeof actionArgs === 'object') {
-    for (const [k, v] of Object.entries(actionArgs)) __actionArgsObj[k] = v;
-  }
-  Object.freeze(__actionArgsObj);
-  globalThis.__actionArgsObj = __actionArgsObj;
-  globalThis.__actionArgs = __actionArgsObj;"#;
+  }"#;
 
 pub fn get_part1() -> &'static str { SIM_TPL_P1 }

@@ -16,20 +16,12 @@ pub fn host_api_script_log() -> &'static str {
     },"#
 }
 
-
-
 pub fn host_api_script_animation() -> &'static str {
     r#"registerAnimation(name, args) {
         globalThis.__registeredAnimations =
             globalThis.__registeredAnimations || {};
         var resolvedName = typeof name === 'object' ? name.value : name;
         if (typeof resolvedName === 'string') {
-            if (!args || typeof args !== 'object' ||
-                typeof args.duration !== 'number') {
-                throw new Error(
-                    "registerAnimation '" + resolvedName +
-                    "': duration is required");
-            }
             globalThis.__registeredAnimations[resolvedName] = args;
         }
     },
@@ -43,9 +35,26 @@ pub fn host_api_script_animation() -> &'static str {
     },"#
 }
 
+fn host_api_script_behavior() -> &'static str {
+    super::script_behavior::host_api_script_behavior()
+}
+
+fn host_api_script_condition() -> &'static str {
+    r#"condition:{
+        of:function(v){
+          return{
+            value:v,
+            ifTrue:function(cb){if(v&&typeof cb==='function')cb();},
+            ifFalse:function(cb){if(!v&&typeof cb==='function')cb();}
+          };
+        }
+      },"#
+}
+
 pub fn host_api_script_rest() -> String {
     use super::script_register::host_api_script_register_block;
     use super::script_panel_entity::{
+        host_api_script_panel,
         host_api_script_create_entity,
         host_api_script_set_entity,
         host_api_script_set_container,
@@ -59,6 +68,7 @@ pub fn host_api_script_rest() -> String {
         host_api_script_register_block("registerAction"));
     parts.push(
         host_api_script_register_block("registerEffect"));
+    parts.push(host_api_script_panel().to_string());
     parts.push(
         host_api_script_create_entity().to_string());
         parts.push(
@@ -69,9 +79,10 @@ pub fn host_api_script_rest() -> String {
         host_api_script_register_entity().to_string());
     parts.push(
         host_api_script_register_container().to_string());
+    parts.push(host_api_script_behavior().to_string());
+    parts.push(host_api_script_condition().to_string());
     parts.push(host_api_script_entity_filter().to_string());
     parts.push(host_api_script_log().to_string());
-    parts.push(super::script_behavior::host_api_script_behavior().to_string());
     parts.push(host_api_script_animation().to_string());
     let mut s = parts.join("");
     s.push_str(" }");
@@ -80,22 +91,12 @@ pub fn host_api_script_rest() -> String {
 
 pub fn host_api_script_tail() -> String {
     format!(
-        "{}{}{}{}{}",
+        "{}{}{}{}",
         host_api_script_convenience(),
-        host_api_script_extract_position_key(),
         host_api_script_serialize_container(),
         host_api_script_eval_position_fn(),
         host_api_script_make_entity_proxy()
     )
-}
-
-fn host_api_script_extract_position_key() -> &'static str {
-    r#"
-    globalThis.extractPositionKey = function(fn) {
-        if (typeof fn !== 'function') return null;
-        var m = String(fn).match(/get\(\s*["']([^"']+)["']\s*\)/);
-        return m ? m[1] : null;
-    };"#
 }
 
 fn host_api_script_convenience() -> &'static str {
@@ -106,7 +107,23 @@ fn host_api_script_convenience() -> &'static str {
     globalThis.entity.create = function(o) {
         return globalThis.host.createEntity(o);
     };
-    function string_of(s) { return s; }"#
+    function string_of(s) { return s; }
+    globalThis.__posKey = function(fn, def) {
+        try {
+            var s = Function.prototype.toString.call(fn);
+            var m = s.match(/number_map\.get\(["']([A-Za-z0-9_\-]+)["']\)/);
+            if (m) { return m[1]; }
+        } catch (e) {}
+        return def;
+    };
+    globalThis.__posMapKeys = function(m, def) {
+        if (m && typeof m === 'object') {
+            for (var k in m) {
+                if (Object.prototype.hasOwnProperty.call(m, k)) { return k; }
+            }
+        }
+        return def;
+    };"#
 }
 
 fn host_api_script_serialize_container() -> &'static str {
@@ -124,16 +141,10 @@ fn host_api_script_serialize_container() -> &'static str {
             out.entities = c.entities.map(function(e) {
                 return String(e);
             });
-        if (c.getX !== undefined) {
+        if (c.getX !== undefined)
             out.getX = globalThis.evalPositionFn(c.getX);
-            var kx = globalThis.extractPositionKey(c.getX);
-            if (kx !== null) out.xKey = kx;
-        }
-        if (c.getY !== undefined) {
+        if (c.getY !== undefined)
             out.getY = globalThis.evalPositionFn(c.getY);
-            var ky = globalThis.extractPositionKey(c.getY);
-            if (ky !== null) out.yKey = ky;
-        }
         if (c.getSpanX !== undefined)
             out.getSpanX = globalThis.evalPositionFn(c.getSpanX);
         if (c.getSpanY !== undefined)
@@ -144,6 +155,10 @@ fn host_api_script_serialize_container() -> &'static str {
         if (c.sizeY !== undefined)
             out.sizeY = {value: c.sizeY.value,
                 outOfBounds: c.sizeY.outOfBounds};
+        if (globalThis.__posKey) {
+            if (c.getX) out.xKey = globalThis.__posKey(c.getX, "x");
+            if (c.getY) out.yKey = globalThis.__posKey(c.getY, "y");
+        }
         return out;
     };"#
 }

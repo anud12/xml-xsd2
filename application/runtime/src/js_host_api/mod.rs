@@ -1,11 +1,8 @@
-pub mod script_behavior;
 pub mod script_emit;
 pub mod script_register;
-pub mod script_ui;
-#[allow(dead_code)]
-pub mod ui_host_api;
 pub mod script_panel_entity;
 pub mod script_rest;
+pub mod script_behavior;
 mod script_extract;
 mod script_extract_map;
 
@@ -22,7 +19,9 @@ pub struct Declarations {
     pub emits: HashMap<String, Vec<String>>,
     pub functions: Vec<String>,
     pub entities: Vec<String>,
+    #[serde(default)]
     pub logs: Vec<String>,
+    #[serde(default)]
     pub panels: Vec<String>,
     #[serde(default)]
     pub entity_data: serde_json::Value,

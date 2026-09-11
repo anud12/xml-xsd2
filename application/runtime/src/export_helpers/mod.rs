@@ -2,10 +2,8 @@ use rusqlite::Connection;
 use rusqlite::Transaction;
 
 mod inserters;
-mod module_rows;
 
 pub use inserters::*;
-pub use module_rows::*;
 
 pub fn init_in_memory_export_db() -> Connection {
     let c = Connection::open_in_memory()

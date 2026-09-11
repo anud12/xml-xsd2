@@ -1,13 +1,12 @@
 import { ConditionExpression } from "../primitives/conditionExpression";
 import { TemporalExpression } from "../primitives/temporalExpression";
-import { StringExpression } from "../primitives/stringExpression";
 import { ActionContext } from "./common";
 
 /**
  * Arguments for registering a no-input action via hostApi.registerAction
  */
 export type RegisterActionArgs = {
-  name: string | StringExpression;
+  name: string | any;
   description?: string;
   cooldownGroup?: string;
   guard?: (context: ActionContext) => ConditionExpression;
@@ -15,14 +14,13 @@ export type RegisterActionArgs = {
   apply: (context: ActionContext) => void;
 };
 
-/**
- * Reference to a registered action.
- */
-export type ActionReference = {
-  name: StringExpression;
+/** A registered action handle: its name plus optional metadata. */
+export type RegisteredAction = {
+  name: string;
+  [key: string]: any;
 };
 
 /**
  * Type for registerAction function (no-input actions).
  */
-export type RegisterActionFunction = (args: RegisterActionArgs) => ActionReference;
+export type RegisterActionFunction = (args: RegisterActionArgs) => RegisteredAction;

@@ -1,25 +1,30 @@
 use anyhow::Result;
 use super::context_builders::{
-    build_effect_context_scheduled, sync_entity_data_with_initial,
+    build_effect_context_scheduled, sync_entity_data,
     eval_reoccur_interval, collect_logs, lookup_effect,
     call_effect_prepare, call_effect_apply, sync_entity_data_back,
 };
-use super::sim_ctx;
 
-pub fn process_scheduled_effects(current_elapsed: i64) -> Result<()> {
+/// Fire due reoccurring effects. Prefer the persistent sim context (the module
+/// is already installed there with its registered effects and a live entity
+/// store), so the effect applies to the *current* accumulated entity values
+/// rather than a fresh re-evaluation of the module entry (which would reset
+/// the store to its initial values and discard prior increments).
+pub fn process_scheduled_effects(
+    _files: &std::collections::HashMap<String, String>,
+    current_elapsed: i64,
+) -> Result<()> {
     let due = crate::state::get_due_scheduled_effects(current_elapsed);
     if due.is_empty() { return Ok(()); }
 
-    let Some(ctx) = sim_ctx::ctx() else { return Ok(()); };
+    // The reoccur effect is applied against the live sim context. If a module
+    // has not been installed (no sim ctx), there is nothing to re-fire.
+    let Some(ctx) = super::sim_ctx::ctx() else { return Ok(()); };
+
+    // Rebuild the effect context against the context's live entity data.
+    sync_entity_data(ctx);
 
     for scheduled in due.iter() {
-        // Reset per-effect scratch state so logs/queues from the module
-        // install or a previous effect don't leak into this run.
-        let _ = ctx.with(|c| c.eval::<(), _>(
-            "globalThis.__logs=[];globalThis.__pendingEffects=[];"));
-
-        sync_entity_data_with_initial(ctx);
-
         if !lookup_effect(ctx, &scheduled.name) { continue; }
 
         build_effect_context_scheduled(ctx);

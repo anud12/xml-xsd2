@@ -31,7 +31,7 @@ export default (hostApi) => {
     align: "center",
     background: hostApi.ui.getAnimation(string.of("texture")),
   }, [
-    hostApi.ui.container("items", { container: "items-container" },
+    hostApi.ui.entityList("items", { container: "items-container" },
       (entity) => [
         hostApi.ui.panel(entity.id, {
           width: 50,

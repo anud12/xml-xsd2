@@ -9,8 +9,8 @@ pub fn lookup_effect(ctx: &Context, name: &str) -> bool {
             }}
         }}
     }})();"#, name);
-    if ctx.with(|c| c.eval::<(), _>(lookup)).is_err() { return false; }
-    ctx.with(|c| c.eval::<bool, _>(
+    if crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(lookup)).is_err() { return false; }
+    crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<bool, _>(
         "globalThis.__foundEffect !== undefined")).unwrap_or(false)
 }
 
@@ -27,7 +27,7 @@ pub fn sync_entity_store(ctx: &Context) {
         serde_json::Value::Object(obj)
     }).collect();
     let ss = serde_json::to_string(&es).unwrap_or_else(|_| "[]".into());
-    let _ = ctx.with(|c| c.eval::<(), _>(
+    let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(
         format!("globalThis.__entityStore = {}; ", ss)));
     super::entity_sync_map::__sync_entity_data_map(ctx);
 }

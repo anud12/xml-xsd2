@@ -4,10 +4,11 @@ use std::sync::{Once, Mutex};
 use std::collections::HashMap;
 
 mod accessors; mod clear; mod export; mod markers;
-mod persist; mod scheduled;
+mod persist; mod scheduled; mod active_plans; mod world; mod world_crossing;
 
 pub use accessors::*; pub use clear::*; pub use export::*;
 pub use markers::*; pub use persist::*; pub use scheduled::*;
+pub use active_plans::*; pub use world::*; pub use world_crossing::*;
 
 static INIT: Once = Once::new();
 static mut PERSISTED_HAS_DATA: Option<&'static AtomicBool> = None;
@@ -22,13 +23,15 @@ static mut LAST_PANELS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_CREATED_BY: Option<&'static Mutex<HashMap<String, Vec<String>>>> = None;
 static mut PENDING_EFFECTS: Option<&'static Mutex<Vec<String>>> = None;
 static mut SCHEDULED_EFFECTS: Option<&'static Mutex<Vec<ScheduledEffect>>> = None;
-static mut ACTIVE_PLANS: Option<&'static Mutex<Vec<ActivePlan>>> = None;
 static mut LAST_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, f64>>>> = None;
 static mut INITIAL_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
 static mut LAST_CONTAINERS: Option<&'static Mutex<Vec<String>>> = None;
 static mut ELAPSED_TIME_UNITS: Option<&'static AtomicI64> = None;
 static mut ARCHIVE_FILES: Option<&'static Mutex<HashMap<String, String>>> = None;
+static mut ACTIVE_PLANS: Option<&'static Mutex<Vec<ActivePlan>>> = None;
+static mut ROOMS: Option<&'static Mutex<Vec<Room>>> = None;
+static mut PORTALS: Option<&'static Mutex<Vec<Portal>>> = None;
 
 #[derive(Clone, Debug)]
 pub struct ScheduledEffect {
@@ -39,14 +42,12 @@ pub struct ScheduledEffect {
     pub execution_count: u64,
 }
 
-/// A parked action plan: the remaining recorded steps (from the next
-/// un-walked step onward) plus the elapsed-units deadline at which the
-/// walker resumes. One active plan per (actor, action name); the actor is
-/// the entity id from the dispatch (empty when the wire carried none).
+/// A parked action plan: recorded steps walked per tick by the active-plans
+/// walker. Plain data (no JS engine needed to walk it).
 #[derive(Clone, Debug)]
 pub struct ActivePlan {
-    pub actor: String,
     pub action_name: String,
+    pub actor: String,
     pub steps: Vec<serde_json::Value>,
     pub resume_at: i64,
     pub interruptible: bool,
@@ -67,22 +68,16 @@ fn persisted_flag() -> &'static AtomicBool {
             LAST_CREATED_BY = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             PENDING_EFFECTS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
             SCHEDULED_EFFECTS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
-            ACTIVE_PLANS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
             LAST_ENTITY_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             LAST_ENTITY_NUMBER_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             INITIAL_ENTITY_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             LAST_CONTAINERS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
             ELAPSED_TIME_UNITS = Some(Box::leak(Box::new(AtomicI64::new(0))));
             ARCHIVE_FILES = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
+            ACTIVE_PLANS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
+            ROOMS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
+            PORTALS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
         }
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }
-}
-
-/// Single process-wide lock shared by every test that mutates global
-/// runtime state, so tests across modules never race each other.
-#[cfg(test)]
-pub fn test_lock() -> std::sync::MutexGuard<'static, ()> {
-    static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-    TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner())
 }

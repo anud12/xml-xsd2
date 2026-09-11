@@ -2,7 +2,7 @@ import {NumberExpression} from "../primitives/numberExpression";
 import {SpriteResource} from "../texture/SpriteResource";
 import {StringExpression} from "../primitives/stringExpression";
 import {Entity, EntityExpression} from "../Entity";
-import {AnimationRegistrationArguments, AnimationBackground} from "../animation/AnimationRegistration";
+import {AnimationRegistrationArguments} from "../animation/AnimationRegistration";
 
 /**
  * Callback signature for registering a panel with the UI host.
@@ -41,7 +41,7 @@ export type PanelOptions = {
   /** Panel dimensions in logical units. */
   size: { width: NumberExpression; height: NumberExpression };
   /** Background animation applied to the panel. */
-  background: AnimationBackground;
+  background: AnimationRegistrationArguments;
   /** Content component rendered inside the panel. */
   content?: PanelContent
   /** Handler invoked when the panel is clicked. */

@@ -36,6 +36,16 @@ export default (hostApi) => {
     },
   });
 
+  // node-5 starts at the origin; the odd-angle test walks it to (10,3) —
+  // atan2(3,10) ≈ 16.7°, neither 45° nor axis-aligned.
+  hostApi.runtime.registerEntity({
+    id: "node-5",
+    numberMap: {
+      column: number.of(0),
+      row: number.of(0),
+    },
+  });
+
   hostApi.runtime.registerContainer({
     id: "grid-1",
     entities: [
@@ -43,6 +53,7 @@ export default (hostApi) => {
       hostApi.runtime.string.of("node-2"),
       hostApi.runtime.string.of("node-3"),
       hostApi.runtime.string.of("node-4"),
+      hostApi.runtime.string.of("node-5"),
     ],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
@@ -87,6 +98,22 @@ export default (hostApi) => {
     },
   });
 
+  // A high-speed diagonal move: (0,0) -> (10,10) at speed 10. Without the
+  // remaining-path clamp the final tick overshoots the destination and the
+  // move never lands; with it the actor stops exactly at (10,10).
+  hostApi.runtime.registerAction({
+    name: string.of("blitz-node-1"),
+    apply: (ctx) => {
+      ctx.moveTo({
+        containerId: string.of("grid-1"),
+        entityId: string.of("node-1"),
+        x: 10,
+        y: 10,
+        speed: 10,
+      });
+    },
+  });
+
   // A move whose target exceeds the container size: walks to the bound edge
   // and stops there ("try, then stop").
   hostApi.runtime.registerAction({
@@ -125,6 +152,24 @@ export default (hostApi) => {
         entityId: string.of("node-4"),
         x: 0,
         y: 0,
+        speed: 1,
+      });
+    },
+  });
+
+  // An odd-angle move: (0,0) -> (10,3) at speed 1. The straight-line
+  // direction is pooled per tick (Q16.16 fixed-point), so x and y each advance
+  // whole units only when their fraction has accumulated to 1 — the actor
+  // walks a straight ~16.7° line, not a 45°-then-axis staircase, and lands
+  // on the target exactly.
+  hostApi.runtime.registerAction({
+    name: string.of("march-node-5-odd-angle"),
+    apply: (ctx) => {
+      ctx.moveTo({
+        containerId: string.of("grid-1"),
+        entityId: string.of("node-5"),
+        x: 10,
+        y: 3,
         speed: 1,
       });
     },
@@ -214,5 +259,23 @@ export default (hostApi) => {
     y: 10,
   }, [
     hostApi.ui.field("row-4-value", { entity: "node-4", map: "number", name: "row", fallback: "0" }),
+  ]);
+
+  hostApi.ui.panel("col-5", {
+    width: 80,
+    height: 40,
+    x: 550,
+    y: 10,
+  }, [
+    hostApi.ui.field("col-5-value", { entity: "node-5", map: "number", name: "column", fallback: "0" }),
+  ]);
+
+  hostApi.ui.panel("row-5", {
+    width: 80,
+    height: 40,
+    x: 640,
+    y: 10,
+  }, [
+    hostApi.ui.field("row-5-value", { entity: "node-5", map: "number", name: "row", fallback: "0" }),
   ]);
 }

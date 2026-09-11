@@ -9,7 +9,7 @@ fn sync_entity_data_map(
         .map(|(id, props)| build_entity_entry(id, props, &td))
         .collect();
     let ds = serde_json::to_string(&dj).unwrap_or_else(|_| "{}".into());
-    let _ = ctx.with(|c| c.eval::<(), _>(
+    let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(
         format!("globalThis.__entityData = {}; ", ds)));
 }
 
@@ -39,7 +39,7 @@ fn build_entity_entry(
 pub(crate) fn __sync_entity_data_map(ctx: &Context) {
     let nd = crate::state::last_entity_number_data().lock().unwrap().clone();
     let td = crate::state::last_entity_data().lock().unwrap().clone();
-    let existing = ctx.with(|c| c.eval::<String, _>(
+    let existing = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<String, _>(
         "JSON.stringify(globalThis.__entityData||{})"
     )).unwrap_or_else(|_| "{}".into());
 
@@ -52,7 +52,7 @@ pub(crate) fn __sync_entity_data_map(ctx: &Context) {
         let mut merged = existing_map.clone();
         for (id, val) in dj { merged.insert(id, val); }
         let ds = serde_json::to_string(&merged).unwrap_or_default();
-        let _ = ctx.with(|c| c.eval::<(), _>(
+        let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(
             format!("globalThis.__entityData = {}; ", ds)));
     } else {
         sync_entity_data_map(ctx, &nd);

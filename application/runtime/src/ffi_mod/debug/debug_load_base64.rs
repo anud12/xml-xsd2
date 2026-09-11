@@ -22,7 +22,7 @@ pub extern "C" fn runtime_debug_load_base64(payload_b64: *const c_char) -> *mut 
             crate::module::process_module(&files, &mut entity_rows);
             crate::state::set_last_entity_rows(entity_rows.clone());
             crate::state::persist_state(&file_rows, &entity_rows);
-            match CString::new("ok") { Ok(s) => s.into_raw(), Err(_) => std::ptr::null_mut(), }
+            match CString::new(String::new()) { Ok(s) => s.into_raw(), Err(_) => std::ptr::null_mut(), }
         },
         Err(_) => std::ptr::null_mut(),
     }

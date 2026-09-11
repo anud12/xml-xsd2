@@ -2,12 +2,32 @@ import {ConditionExpression} from "./conditionExpression";
 
 export type StringExpressionApi = {
   /** Create a literal */
-  of: (s: string) => MutableStringExpression,
+  of: (s: string) => StringExpression,
+  /** Register an expression under a named rule for later getRule(ref) lookups */
+  asRule: (ruleName: string, expr: StringExpression) => StringExpressionApi,
+  /** Retrieve an API scoped to a previously registered rule */
+  getRule: (ruleName: string) => StringExpressionApi,
   /** Marker for HostApi surfaces */
   type: unknown,
 }
 
 export type StringExpression = {
+  /** Replaces string, and returns the new value */
+  set: (s: StringExpression) => StringExpression,
+  /** Concatenate two expressions */
+  concat: (other: StringExpression) => StringExpression,
+  /** Join multiple expressions using an optional separator */
+  join: (parts: StringExpression[], separator?: StringExpression) => StringExpression,
+  /** Convenience: prefix a literal string to this expression */
+  prefix: (s: string) => StringExpression,
+  /** Convenience: suffix a literal string to this expression */
+  suffix: (s: string) => StringExpression,
+  /** Grouping node to control evaluation order */
+  group: (expr: StringExpression) => StringExpression,
+  /** Deterministic choice among alternatives */
+  oneOf: (choices: StringExpression[]) => StringExpression,
+  /** Reference another rule by id (resolved at evaluation time) */
+  ref: (ruleId: string) => StringExpression,
   /** Return index of first possible match of `other` inside this expression's language, or -1 if none */
   indexOfExpression: (other: StringExpression, fromInclusive?: any) => any,
   /** Check whether this expression MAY produce a string that contains any possible evaluation of `other`.
@@ -19,27 +39,8 @@ export type StringExpression = {
    *  This is more expensive to compute; implementations MAY fall back to conservative results or timeouts.
    */
   isContainingExactly: (other: StringExpression) => ConditionExpression,
-}
-
-export type MutableStringExpression = StringExpression & {
-  /** Replaces string, and returns self */
-  set: (s: StringExpression) => MutableStringExpression,
-  /** Concatenate two expressions */
-  concat: (other: StringExpression) => MutableStringExpression,
-  /** Join multiple expressions using an optional separator */
-  join: (parts: readonly StringExpression[], separator?: StringExpression) => MutableStringExpression,
-  /** Convenience: prefix a literal string to this expression */
-  prefix: (s: string) => MutableStringExpression,
-  /** Convenience: suffix a literal string to this expression */
-  suffix: (s: string) => MutableStringExpression,
-  /** Grouping node to control evaluation order */
-  group: (expr: StringExpression) => MutableStringExpression,
-  /** Deterministic choice among alternatives */
-  oneOf: (choices: readonly StringExpression[]) => MutableStringExpression,
-  /** Reference another rule by id (resolved at evaluation time) */
-  ref: (ruleId: string) => MutableStringExpression,
   /** Optional simple transforms (implementation may provide) */
-  upper?: () => MutableStringExpression,
-  lower?: () => MutableStringExpression,
-  trim?: () => MutableStringExpression,
+  upper?: () => StringExpression,
+  lower?: () => StringExpression,
+  trim?: () => StringExpression,
 }

@@ -7,17 +7,25 @@
 
 use crate::state::ActivePlan;
 
-const SQRT2: f64 = 1.4142135623730951;
+/// Q16.16 fixed-point scale: 16 fractional bits. A speed of 1 is 1 GTU per
+/// tick; the direction components and the per-axis accumulators are expressed
+/// in 1/65536 GTU so pooled (sub-unit) motion survives integer math.
+const Q16: i64 = 1 << 16;
 
-/// Total path length for a straight-line move. Axis-aligned (one delta zero)
-/// uses the larger delta; diagonal uses floor(√2 * min(|dx|,|dy|)) — a float
-/// clamped to int by truncation toward zero.
-pub(crate) fn move_length(dx: f64, dy: f64) -> f64 {
-    if dx == 0.0 || dy == 0.0 {
-        dx.abs().max(dy.abs())
-    } else {
-        (SQRT2 * dx.abs().min(dy.abs())).floor()
+/// Truncating integer square root of `n` (Newton iteration, no floats).
+/// A perfect square rounds up; otherwise the result is the largest `r` with
+/// `r*r <= n`.
+fn isqrt(n: i64) -> i64 {
+    if n <= 0 {
+        return 0;
     }
+    let mut x = n;
+    let mut y = (x + 1) / 2;
+    while y < x {
+        x = y;
+        y = (x + n / x) / 2;
+    }
+    x
 }
 
 /// One container's size bounds: max coordinate along each axis (None = unbound).
@@ -183,6 +191,31 @@ fn num_json(n: f64) -> serde_json::Value {
 
 use std::collections::HashMap;
 
+/// Apply a teleport to the actor: write its position into the entity number
+/// data (under the container's position keys) and rebake the container's
+/// `getX`/`getY` so `get_container_by_id` reflects it immediately. A bound is
+/// the container's max coordinate; the lower bound is 0. A `None` bound leaves
+/// that axis unclamped. This is a synchronous write — a teleport is not walked.
+pub fn apply_teleport(
+    containers: &mut Vec<String>,
+    container_id: &str,
+    entity_id: &str,
+    x: f64,
+    y: f64,
+    clamp: bool,
+) {
+    let (bx, by) = container_bounds(containers, container_id);
+    let mut nx = x;
+    let mut ny = y;
+    if clamp {
+        nx = nx.max(0.0);
+        ny = ny.max(0.0);
+        if let Some(b) = bx { if nx > b { nx = b; } }
+        if let Some(b) = by { if ny > b { ny = b; } }
+    }
+    write_position(containers, container_id, entity_id, nx, ny);
+}
+
 pub fn process_active_plans(now: i64) {
     let mut due: Vec<ActivePlan> = {
         let plans = crate::state::active_plans().lock().unwrap();
@@ -286,6 +319,16 @@ pub fn process_active_plans(now: i64) {
 /// Advance a `move` plan step by one tick. Returns `true` if the move is still
 /// in progress (the step stays at the head and the plan re-parks), `false` if
 /// the move is exhausted (the caller consumes the step and continues).
+///
+/// Movement is integer Bresenham stepping in Q16.16 fixed-point: each axis
+/// pools the exact sub-unit motion `delta * speed` per tick into a signed
+/// remainder, and releases a whole GTU only when the remainder crosses the
+/// distance scale (`step = trunc(rem / (dist * Q16))`). Because the remainder
+/// carries the truncation loss, each axis advances at its exact rate
+/// `delta / dist` and the move lands exactly on the target — a 45° move covers
+/// 1 GTU of *path* per tick at speed 1 (not √2), and an odd angle (e.g. 16.7°)
+/// walks a straight staircase toward the target rather than a 45°-then-axis
+/// detour.
 fn advance_move_step(
     step: &mut serde_json::Value,
     now: i64,
@@ -299,26 +342,47 @@ fn advance_move_step(
         .and_then(|v| v.as_str()).unwrap_or("").to_string();
     let entity_id = move_obj.get("entityId")
         .and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let tx = move_obj.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0);
-    let ty = move_obj.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    let tx = move_obj.get("x").and_then(|v| v.as_f64()).map(|n| n.round() as i64).unwrap_or(0);
+    let ty = move_obj.get("y").and_then(|v| v.as_f64()).map(|n| n.round() as i64).unwrap_or(0);
 
-    // The actor's live position, tracked in the step. Initialized once from the
-    // container (the pre-baked getX/getY), then updated after each advance so
-    // the next tick advances from the current cell, not the start.
-    let (cx, cy) = match move_obj.get("start").and_then(|s| s.as_object()) {
-        Some(s) => (
-            s.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0),
-            s.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0),
-        ),
-        None => match current_position(containers, &container_id, &entity_id) {
-            Some(c) => {
-                move_obj.insert("start".into(),
-                    serde_json::json!({ "x": c.0, "y": c.1 }));
-                c
-            }
+    // Lazy setup: capture the start position, segment deltas and distance
+    // exactly once, on the first advance. The per-axis remainders start at 0.
+    if move_obj.get("startX").is_none() {
+        let (cx, cy) = match current_position(containers, &container_id, &entity_id) {
+            Some(c) => c,
             None => return false,
-        },
-    };
+        };
+        let sx = cx.round() as i64;
+        let sy = cy.round() as i64;
+        move_obj.insert("startX".into(), serde_json::json!(sx));
+        move_obj.insert("startY".into(), serde_json::json!(sy));
+        move_obj.insert("deltaX".into(), serde_json::json!(tx - sx));
+        move_obj.insert("deltaY".into(), serde_json::json!(ty - sy));
+        let dist = isqrt((tx - sx) * (tx - sx) + (ty - sy) * (ty - sy));
+        move_obj.insert("dist".into(), serde_json::json!(dist));
+        move_obj.insert("remX".into(), serde_json::json!(0));
+        move_obj.insert("remY".into(), serde_json::json!(0));
+        move_obj.insert("posX".into(), serde_json::json!(sx));
+        move_obj.insert("posY".into(), serde_json::json!(sy));
+    }
+
+    let sx = move_obj.get("startX").and_then(|v| v.as_i64()).unwrap_or(0);
+    let sy = move_obj.get("startY").and_then(|v| v.as_i64()).unwrap_or(0);
+    let dx = move_obj.get("deltaX").and_then(|v| v.as_i64()).unwrap_or(0);
+    let dy = move_obj.get("deltaY").and_then(|v| v.as_i64()).unwrap_or(0);
+    let dist = move_obj.get("dist").and_then(|v| v.as_i64()).unwrap_or(0);
+    let mut remx = move_obj.get("remX").and_then(|v| v.as_i64()).unwrap_or(0);
+    let mut remy = move_obj.get("remY").and_then(|v| v.as_i64()).unwrap_or(0);
+    // The logical position (in GTU, unclamped): the source of truth for
+    // arrival. The *written* position is this clamped to the container bounds,
+    // so an out-of-bounds target parks the actor at the boundary edge.
+    let mut lx = move_obj.get("posX").and_then(|v| v.as_i64()).unwrap_or(sx);
+    let mut ly = move_obj.get("posY").and_then(|v| v.as_i64()).unwrap_or(sy);
+
+    // Zero-length move (start == target): nothing to do.
+    if dist == 0 {
+        return false;
+    }
 
     // Resolve speed (re-read each tick so mid-move changes take effect).
     let speed = move_obj.get("speed")
@@ -329,66 +393,72 @@ fn advance_move_step(
         })
         .unwrap_or(0.0);
 
-    // Already at the target: the move is done.
-    if (tx - cx).abs() < 1e-9 && (ty - cy).abs() < 1e-9 {
-        return false;
-    }
-
     // speed <= 0: "try, then stop" — no advance, the move ends here.
     if speed <= 0.0 {
         return false;
     }
+    // Pooled motion this tick, per axis, in Q16.16 (exact for any speed):
+    // delta * speed, keeping the sub-unit fraction in the remainder.
+    let dxp = (dx as f64 * speed * Q16 as f64).round() as i64;
+    let dyp = (dy as f64 * speed * Q16 as f64).round() as i64;
 
+    // Pool and release: the axis moves a whole GTU when the remainder crosses
+    // the distance scale. Truncation toward zero keeps negative deltas
+    // advancing in the negative direction.
+    remx += dxp;
+    remy += dyp;
+    let denom = dist * Q16;
+    let mut stepx = if remx >= 0 { remx / denom } else { -((-remx) / denom) };
+    let mut stepy = if remy >= 0 { remy / denom } else { -((-remy) / denom) };
+    // Clamp each axis to the path still remaining to the target. On the final
+    // tick the pooled motion (delta * speed) can exceed what is left, and
+    // truncation would otherwise release the axis's *full* remaining delta —
+    // landing past the target (e.g. (0,0)->(10,10) at speed 10 lands at
+    // (11,11)) so the arrival check never fires and the move parks forever.
+    // Clamping stops the actor exactly at the destination. Out-of-bounds
+    // targets are unaffected: the remaining delta exceeds the segment, so the
+    // clamp never binds and the logical position keeps tracking the segment.
+    if dx >= 0 {
+        let rem = tx - lx;
+        if stepx > rem { stepx = rem; }
+    } else {
+        let rem = tx - lx;
+        if stepx < rem { stepx = rem; }
+    }
+    if dy >= 0 {
+        let rem = ty - ly;
+        if stepy > rem { stepy = rem; }
+    } else {
+        let rem = ty - ly;
+        if stepy < rem { stepy = rem; }
+    }
+    remx -= stepx * denom;
+    remy -= stepy * denom;
+    lx += stepx;
+    ly += stepy;
+
+    // Clamp the logical position into the container's [0, bound] for writing.
     let (bx, by) = container_bounds(containers, &container_id);
+    let mut nx = lx;
+    let mut ny = ly;
+    if nx < 0 { nx = 0; }
+    if ny < 0 { ny = 0; }
+    if let Some(b) = bx { let b = b.round() as i64; if nx > b { nx = b; } }
+    if let Some(b) = by { let b = b.round() as i64; if ny > b { ny = b; } }
 
-    // Per-axis progress toward the target, capped at the container bounds
-    // (a bound is the max coordinate; the lower bound is 0). An axis already at
-    // its target is neutral; a *moving* axis ends the move once it reaches its
-    // target or is stopped by a bound (the "try, then stop" rule).
-    let x_neutral = (tx - cx).abs() < 1e-9;
-    let y_neutral = (ty - cy).abs() < 1e-9;
-    let (nx, ax_done) = if x_neutral { (cx, false) } else { advance_axis(cx, tx, speed, bx) };
-    let (ny, ay_done) = if y_neutral { (cy, false) } else { advance_axis(cy, ty, speed, by) };
-
-    // Remaining path length is the actual distance still to cover.
-    let remaining = move_length(tx - nx, ty - ny);
-    move_obj.insert("remainingLength".into(), num_json(remaining));
-    move_obj.insert("start".into(), serde_json::json!({ "x": nx, "y": ny }));
-    // Record this GTU so a later (jumped) call advances one cell per GTU.
+    move_obj.insert("remX".into(), serde_json::json!(remx));
+    move_obj.insert("remY".into(), serde_json::json!(remy));
+    move_obj.insert("posX".into(), serde_json::json!(lx));
+    move_obj.insert("posY".into(), serde_json::json!(ly));
+    // Record this GTU so a later (jumped) call advances one step per GTU.
     move_obj.insert("lastTick".into(), serde_json::json!(now));
-    write_position(containers, &container_id, &entity_id, nx, ny);
+    write_position(containers, &container_id, &entity_id, nx as f64, ny as f64);
 
-    // The move continues only while every moving axis still has room and
-    // length left.
-    if (ax_done || ay_done) {
-        return false;
-    }
-    remaining > 0.0
-}
-
-/// Advance one coordinate toward its target by `speed`, capped at `bound`
-/// (max coordinate; lower bound 0). Returns the new value and whether this
-/// (moving) axis is now done — at its target, or stopped by a bound.
-fn advance_axis(
-    cur: f64,
-    target: f64,
-    speed: f64,
-    bound: Option<f64>,
-) -> (f64, bool) {
-    let up = target > cur;
-    let mut next = if up { cur + speed } else { cur - speed };
-    // Clamp into [0, bound].
-    if next < 0.0 { next = 0.0; }
-    if let Some(b) = bound {
-        if next > b { next = b; }
-    }
-    // Overshoot the target: snap onto it.
-    if up { if next > target { next = target; } }
-    else { if next < target { next = target; } }
-    let done = (next - target).abs() < 1e-9
-        || (up && next >= bound.unwrap_or(f64::MAX))
-        || (!up && next <= 0.0);
-    (next, done)
+    // Exhausted once the *logical* position reaches the target. An out-of-
+    // bounds target never satisfies this (the logical position keeps tracking
+    // the segment), so the actor holds at the bound edge and the move stays
+    // parked — "it tries, then stops."
+    !(lx == tx && ly == ty)
 }
 
 #[cfg(test)]
@@ -644,15 +714,6 @@ mod tests {
     }
 
     #[test]
-    fn move_length_axis_and_diagonal() {
-        assert_eq!(move_length(5.0, 0.0), 5.0);
-        assert_eq!(move_length(0.0, 3.0), 3.0);
-        // diagonal: floor(√2 * min) — 10 → 14
-        assert_eq!(move_length(10.0, 10.0), 14.0);
-        assert_eq!(move_length(3.0, 7.0), 4.0); // floor(1.4142*3)=4
-    }
-
-    #[test]
     fn axis_aligned_move_advances_one_per_tick() {
         let _g = lock_test();
         crate::state::clear_state();
@@ -683,17 +744,52 @@ mod tests {
         ]);
         plan("diag", "e1", vec![move_step("grid", "e1", 10.0, 10.0, 1.0)], 0);
 
-        // Both axes advance 1 cell per tick in parallel, so the move takes
-        // max(|dx|,|dy|) = 10 ticks; still moving until the final one.
-        for step in 0..9 {
-            process_active_plans(step);
-            assert!(crate::state::has_active_plan("diag"), "still moving at step {}", step);
+        // Bresenham stepping: dist = isqrt(200) = 14, each axis pools
+        // 10/14 ≈ 0.714 GTU per tick and moves a whole unit when the remainder
+        // crosses the distance scale. Both axes stay in lockstep (symmetric
+        // deltas), moving on ticks 2,3,5,6,7,9,10,12,13,14 — the dispatch tick
+        // (0) pools (no whole unit yet). Positions after ticks 0..13:
+        let expected: [(i32, i32); 14] = [
+            (0,0),(1,1),(2,2),(2,2),(3,3),(4,4),(5,5),(5,5),
+            (6,6),(7,7),(7,7),(8,8),(9,9),(10,10),
+        ];
+        for (step, &(ex, ey)) in expected.iter().enumerate() {
+            process_active_plans(step as i64);
+            let (x, y) = pos_of("e1");
+            assert_eq!((x as i32, y as i32), (ex, ey), "step {}", step);
+            if step < 13 {
+                assert!(crate::state::has_active_plan("diag"), "still moving at step {}", step);
+            }
         }
-        process_active_plans(9);
-        let (x, y) = pos_of("e1");
-        assert!((x - 10.0).abs() < 1e-9, "x={}", x);
-        assert!((y - 10.0).abs() < 1e-9, "y={}", y);
         assert!(!crate::state::has_active_plan("diag"));
+    }
+
+    #[test]
+    fn odd_angle_move_walks_straight_line_at_speed_1() {
+        let _g = lock_test();
+        crate::state::clear_state();
+        crate::state::set_last_containers(vec![
+            container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
+        ]);
+        // Target (10,3): atan2(3,10) ≈ 16.7° — neither 45° nor axis-aligned.
+        plan("odd", "e1", vec![move_step("grid", "e1", 10.0, 3.0, 1.0)], 0);
+
+        // dist = isqrt(109) = 10. x pools 10/10 = 1.0 GTU per tick (moves
+        // every tick); y pools 3/10 = 0.3 and moves a whole unit on ticks 4,
+        // 7 and 10. The actor walks a straight ~16.7° staircase — no
+        // 45°-then-axis detour — and lands exactly on the target at tick 10:
+        let expected: [(i32, i32); 10] = [
+            (1,0),(2,0),(3,0),(4,1),(5,1),(6,1),(7,2),(8,2),(9,2),(10,3),
+        ];
+        for (step, &(ex, ey)) in expected.iter().enumerate() {
+            process_active_plans(step as i64);
+            let (x, y) = pos_of("e1");
+            assert_eq!((x as i32, y as i32), (ex, ey), "step {}", step);
+            if step < 9 {
+                assert!(crate::state::has_active_plan("odd"), "still moving at step {}", step);
+            }
+        }
+        assert!(!crate::state::has_active_plan("odd"));
     }
 
     #[test]
@@ -703,7 +799,11 @@ mod tests {
         crate::state::set_last_containers(vec![
             container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
         ]);
-        // 10 cells at speed 3 → 3,3,3,1 over 4 ticks.
+        // 10 cells at speed 3: the walker covers `speed` GTU of *path* per
+        // tick, so a pure-x move advances 3 cells/tick → 3, 6, 9. On the final
+        // tick the pooled motion (3) exceeds the 1 GTU still remaining, so the
+        // step is clamped to the remaining path and the move lands exactly at
+        // 10 (no overshoot to 12) and exhausts.
         plan("dash", "e1", vec![move_step("grid", "e1", 10.0, 0.0, 3.0)], 0);
 
         process_active_plans(0);
@@ -714,7 +814,50 @@ mod tests {
         assert_eq!(pos_of("e1").0, 9.0);
         process_active_plans(3);
         assert_eq!(pos_of("e1").0, 10.0);
+        // Move exhausted exactly at the destination.
         assert!(!crate::state::has_active_plan("dash"));
+    }
+
+    #[test]
+    fn speed_greater_than_one_does_not_overshoot_on_final_tick() {
+        let _g = lock_test();
+        crate::state::clear_state();
+        crate::state::set_last_containers(vec![
+            container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
+        ]);
+        // (0,0) -> (10,0) at speed 10: the final tick's pooled amount (10 *
+        // 10 * Q16) exceeds the remaining path, so without clamping the axis
+        // would release its whole remaining delta and land at 20 (past the
+        // target). The move must stop exactly at the destination.
+        plan("no-overshoot", "e1", vec![move_step("grid", "e1", 10.0, 0.0, 10.0)], 0);
+
+        process_active_plans(0);
+        assert_eq!(pos_of("e1"), (10.0, 0.0), "must land exactly on the target");
+        assert!(!crate::state::has_active_plan("no-overshoot"), "move must be exhausted");
+    }
+
+    #[test]
+    fn speed_greater_than_one_diagonal_does_not_overshoot() {
+        let _g = lock_test();
+        crate::state::clear_state();
+        crate::state::set_last_containers(vec![
+            container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
+        ]);
+        // (0,0) -> (10,10) at speed 10: dist = isqrt(200) = 14. Without the
+        // remaining-path clamp, each axis's final-tick pooled amount crosses the
+        // distance scale and the logical position lands past (10,10) — the move
+        // would never "land" and keep parking. It must stop exactly at (10,10).
+        plan("no-overshoot-diag", "e1", vec![move_step("grid", "e1", 10.0, 10.0, 10.0)], 0);
+
+        for step in 0..20 {
+            process_active_plans(step);
+            if !crate::state::has_active_plan("no-overshoot-diag") {
+                let (x, y) = pos_of("e1");
+                assert_eq!((x, y), (10.0, 10.0), "must land exactly on the target");
+                return;
+            }
+        }
+        panic!("move never exhausted (overshot the destination)");
     }
 
     #[test]
@@ -725,19 +868,22 @@ mod tests {
             container_with_pos("grid", "e1", 5.0, 3.0, Some(10.0), Some(10.0))
         ]);
         // Move from (5,3) toward the origin: negative x AND negative y, speed 1.
-        // Both axes move in parallel; the shorter axis (y, 3) exhausts first and
-        // ends the move, leaving x at its partial cell.
+        // dist = isqrt(34) = 5. x pools -5/5 = -1.0 (moves a whole unit every
+        // tick); y pools -3/5 = -0.6 and moves on ticks 2, 4 and 5 (the pooled
+        // remainder crosses the distance scale). Both axes land on the
+        // destination at tick 5:
+        let expected: [(i32, i32); 5] = [
+            (4,3),(3,2),(2,2),(1,1),(0,0),
+        ];
         plan("back", "e1", vec![move_step("grid", "e1", 0.0, 0.0, 1.0)], 0);
-
-        for step in 0..2 {
-            process_active_plans(step);
+        for (step, &(ex, ey)) in expected.iter().enumerate() {
+            process_active_plans(step as i64);
             let (x, y) = pos_of("e1");
-            assert_eq!((x, y), ((5.0 - (step as f64 + 1.0)), (3.0 - (step as f64 + 1.0))), "step {}", step);
+            assert_eq!((x as i32, y as i32), (ex, ey), "step {}", step);
+            if step < 4 {
+                assert!(crate::state::has_active_plan("back"), "still moving at step {}", step);
+            }
         }
-        // Step 3: y reaches 0 (exhausted) and the move ends; x is at 2.
-        process_active_plans(3);
-        let (x, y) = pos_of("e1");
-        assert_eq!((x, y), (2.0, 0.0));
         assert!(!crate::state::has_active_plan("back"));
     }
 
@@ -786,7 +932,9 @@ mod tests {
         crate::state::set_last_containers(vec![
             container_with_pos("grid", "e1", 0.0, 0.0, Some(5.0), Some(5.0))
         ]);
-        // Target x=10 exceeds sizeX=5 → walks to 5 then stops.
+        // Target x=10 exceeds sizeX=5 → the written position clamps at 5 while
+        // the *logical* position keeps tracking toward 10, so the move never
+        // "lands" and stays parked (the actor holds at the bound edge).
         plan("oob", "e1", vec![move_step("grid", "e1", 10.0, 0.0, 1.0)], 0);
 
         for step in 0..5 {
@@ -794,10 +942,12 @@ mod tests {
         }
         let (x, _) = pos_of("e1");
         assert_eq!(x, 5.0);
-        assert!(!crate::state::has_active_plan("oob"));
-        // Still stopped on a further tick.
+        // Out-of-bounds target: the move is still active (holds at the bound).
+        assert!(crate::state::has_active_plan("oob"));
+        // Still clamped on a further tick.
         process_active_plans(6);
         assert_eq!(pos_of("e1").0, 5.0);
+        assert!(crate::state::has_active_plan("oob"));
     }
 
     #[test]
