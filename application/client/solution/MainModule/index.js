@@ -24,11 +24,11 @@ export default (hostApi) => {
     getSpanX: (entity) => number.of(1),
     getSpanY: (entity) => number.of(1),
     sizeX: {
-      value: number.of(10),
+      value: number.of(100),
       outOfBounds: "clamp",
     },
     sizeY: {
-      value: number.of(5),
+      value: number.of(50),
       outOfBounds: "clamp",
     },
   });
@@ -37,33 +37,18 @@ export default (hostApi) => {
   // The shorter axis (y) settles at 2 and holds; the move keeps going until x
   // also reaches its target — the destination (3,2) — at which point it stops.
   hostApi.runtime.registerAction({
-    name: string.of("march-node-1"),
+    name: string.of("move-to-cursor"),
     apply: (ctx) => {
       ctx.moveTo({
         containerId: string.of("grid-1"),
         entityId: string.of("node-1"),
-        x: 3,
-        y: 2,
+        x: ctx.args.x,
+        y: ctx.args.y,
         speed: 1,
       });
     },
   });
 
-  // A speed-1 move toward (3,2): advances one cell per tick along a diagonal.
-  // The shorter axis (y) settles at 2 and holds; the move keeps going until x
-  // also reaches its target — the destination (3,2) — at which point it stops.
-  hostApi.runtime.registerAction({
-    name: string.of("march-node-0"),
-    apply: (ctx) => {
-      ctx.moveTo({
-        containerId: string.of("grid-1"),
-        entityId: string.of("node-1"),
-        x: 0,
-        y: 0,
-        speed: 1,
-      });
-    },
-  });
 
   // Readouts bind node-1's column/row so the rendered labels follow the move.
   hostApi.ui.panel("col", {
@@ -84,6 +69,19 @@ export default (hostApi) => {
     hostApi.ui.field("row-value", { entity: "node-1", map: "number", name: "row", fallback: "0" }),
   ]);
 
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+      frames: [
+        {sprite: hostApi.ui.getSpritePNG("frame_1.png")},
+        {sprite: hostApi.ui.getSpritePNG("frame_2.png")},
+        {sprite: hostApi.ui.getSpritePNG("frame_3.png")},
+        {sprite: hostApi.ui.getSpritePNG("frame_4.png")},
+        {sprite: hostApi.ui.getSpritePNG("frame_5.png")},
+      ],
+      duration: hostApi.runtime.number.of(5),
+      loop: true,
+    });
+  
+
   // The 700x500 view of the 10x5 container: each container cell is 70x100, and
   // the view places the entity panel exactly on its cell, re-resolved each tick
   // so the panel tracks the move.
@@ -93,12 +91,17 @@ export default (hostApi) => {
     height: 500,
     x: 10,
     y: 80,
-    onClick: ctx => {
-      ctx.emitAction("march-node-1", {})
-    }
+    background: hostApi.ui.getAnimation(string.of("marker")),
+    onClick: (ctx) => {
+      hostApi.runtime.log("plane click col=" + ctx.cursor.getX() + " row=" + ctx.cursor.getY());
+      ctx.emitAction("move-to-cursor", {
+        x: ctx.cursor.getX(),
+        y: ctx.cursor.getY(),
+      });
+    },
   }, entity => hostApi.ui.window(entity.id, {}, [
     hostApi.ui.panel(entity.id + "-marker", {
-      background: hostApi.ui.getAnimation(string.of("marker")),
+      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
     }),
   ]))
   

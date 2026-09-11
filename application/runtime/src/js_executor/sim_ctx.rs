@@ -47,7 +47,7 @@ if (__uih && globalThis.host) {
   // them in a side table keyed by node id and publish a marker string so the
   // C# side wires input and routes clicks back through runtime_ui_js_click.
   globalThis.__uiClickHandlers = globalThis.__uiClickHandlers || {};
-  var __uWin0 = __uih.window, __uDiv0 = __uih.div;
+  var __uWin0 = __uih.window, __uDiv0 = __uih.div, __uCV0 = __uih.containerView;
   function __prepClick(id, options, children, inner) {
     var opts = options || {};
     if (typeof opts.onClick === 'function') {
@@ -66,6 +66,9 @@ if (__uih && globalThis.host) {
   };
   __uih.div = function (id, options, children) {
     return __prepClick(id, options, children, __uDiv0);
+  };
+  __uih.containerView = function (name, args, render) {
+    return __prepClick(name, args, render, __uCV0);
   };
   __u.div = __uih.div;
   __u.text = __uih.text;
