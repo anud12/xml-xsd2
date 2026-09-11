@@ -408,8 +408,30 @@ fn advance_move_step(
     remx += dxp;
     remy += dyp;
     let denom = dist * Q16;
-    let stepx = if remx >= 0 { remx / denom } else { -((-remx) / denom) };
-    let stepy = if remy >= 0 { remy / denom } else { -((-remy) / denom) };
+    let mut stepx = if remx >= 0 { remx / denom } else { -((-remx) / denom) };
+    let mut stepy = if remy >= 0 { remy / denom } else { -((-remy) / denom) };
+    // Clamp each axis to the path still remaining to the target. On the final
+    // tick the pooled motion (delta * speed) can exceed what is left, and
+    // truncation would otherwise release the axis's *full* remaining delta —
+    // landing past the target (e.g. (0,0)->(10,10) at speed 10 lands at
+    // (11,11)) so the arrival check never fires and the move parks forever.
+    // Clamping stops the actor exactly at the destination. Out-of-bounds
+    // targets are unaffected: the remaining delta exceeds the segment, so the
+    // clamp never binds and the logical position keeps tracking the segment.
+    if dx >= 0 {
+        let rem = tx - lx;
+        if stepx > rem { stepx = rem; }
+    } else {
+        let rem = tx - lx;
+        if stepx < rem { stepx = rem; }
+    }
+    if dy >= 0 {
+        let rem = ty - ly;
+        if stepy > rem { stepy = rem; }
+    } else {
+        let rem = ty - ly;
+        if stepy < rem { stepy = rem; }
+    }
     remx -= stepx * denom;
     remy -= stepy * denom;
     lx += stepx;
@@ -778,10 +800,10 @@ mod tests {
             container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
         ]);
         // 10 cells at speed 3: the walker covers `speed` GTU of *path* per
-        // tick, so a pure-x move advances 3 cells/tick → 3, 6, 9, then 12.
-        // The written position clamps at sizeX (20), and the logical position
-        // (12) never equals the target (10), so the move keeps trying — it
-        // parks holding at the bound edge.
+        // tick, so a pure-x move advances 3 cells/tick → 3, 6, 9. On the final
+        // tick the pooled motion (3) exceeds the 1 GTU still remaining, so the
+        // step is clamped to the remaining path and the move lands exactly at
+        // 10 (no overshoot to 12) and exhausts.
         plan("dash", "e1", vec![move_step("grid", "e1", 10.0, 0.0, 3.0)], 0);
 
         process_active_plans(0);
@@ -791,9 +813,51 @@ mod tests {
         process_active_plans(2);
         assert_eq!(pos_of("e1").0, 9.0);
         process_active_plans(3);
-        assert_eq!(pos_of("e1").0, 12.0);
-        // Still moving (logical 12 != target 10), holding at the bound.
-        assert!(crate::state::has_active_plan("dash"));
+        assert_eq!(pos_of("e1").0, 10.0);
+        // Move exhausted exactly at the destination.
+        assert!(!crate::state::has_active_plan("dash"));
+    }
+
+    #[test]
+    fn speed_greater_than_one_does_not_overshoot_on_final_tick() {
+        let _g = lock_test();
+        crate::state::clear_state();
+        crate::state::set_last_containers(vec![
+            container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
+        ]);
+        // (0,0) -> (10,0) at speed 10: the final tick's pooled amount (10 *
+        // 10 * Q16) exceeds the remaining path, so without clamping the axis
+        // would release its whole remaining delta and land at 20 (past the
+        // target). The move must stop exactly at the destination.
+        plan("no-overshoot", "e1", vec![move_step("grid", "e1", 10.0, 0.0, 10.0)], 0);
+
+        process_active_plans(0);
+        assert_eq!(pos_of("e1"), (10.0, 0.0), "must land exactly on the target");
+        assert!(!crate::state::has_active_plan("no-overshoot"), "move must be exhausted");
+    }
+
+    #[test]
+    fn speed_greater_than_one_diagonal_does_not_overshoot() {
+        let _g = lock_test();
+        crate::state::clear_state();
+        crate::state::set_last_containers(vec![
+            container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
+        ]);
+        // (0,0) -> (10,10) at speed 10: dist = isqrt(200) = 14. Without the
+        // remaining-path clamp, each axis's final-tick pooled amount crosses the
+        // distance scale and the logical position lands past (10,10) — the move
+        // would never "land" and keep parking. It must stop exactly at (10,10).
+        plan("no-overshoot-diag", "e1", vec![move_step("grid", "e1", 10.0, 10.0, 10.0)], 0);
+
+        for step in 0..20 {
+            process_active_plans(step);
+            if !crate::state::has_active_plan("no-overshoot-diag") {
+                let (x, y) = pos_of("e1");
+                assert_eq!((x, y), (10.0, 10.0), "must land exactly on the target");
+                return;
+            }
+        }
+        panic!("move never exhausted (overshot the destination)");
     }
 
     #[test]

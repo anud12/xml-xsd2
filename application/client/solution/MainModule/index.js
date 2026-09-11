@@ -21,14 +21,14 @@ export default (hostApi) => {
     entities: [string.of("node-1")],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    getSpanX: (entity) => number.of(10),
-    getSpanY: (entity) => number.of(10),
+    getSpanX: (entity) => number.of(500),
+    getSpanY: (entity) => number.of(500),
     sizeX: {
-      value: number.of(500),
+      value: number.of(5000),
       outOfBounds: "clamp",
     },
     sizeY: {
-      value: number.of(500),
+      value: number.of(5000),
       outOfBounds: "clamp",
     },
   });
@@ -44,7 +44,7 @@ export default (hostApi) => {
         entityId: string.of("node-1"),
         x: ctx.args.x,
         y: ctx.args.y,
-        speed: 1,
+        speed: 100,
       });
     },
   });

@@ -98,6 +98,22 @@ export default (hostApi) => {
     },
   });
 
+  // A high-speed diagonal move: (0,0) -> (10,10) at speed 10. Without the
+  // remaining-path clamp the final tick overshoots the destination and the
+  // move never lands; with it the actor stops exactly at (10,10).
+  hostApi.runtime.registerAction({
+    name: string.of("blitz-node-1"),
+    apply: (ctx) => {
+      ctx.moveTo({
+        containerId: string.of("grid-1"),
+        entityId: string.of("node-1"),
+        x: 10,
+        y: 10,
+        speed: 10,
+      });
+    },
+  });
+
   // A move whose target exceeds the container size: walks to the bound edge
   // and stops there ("try, then stop").
   hostApi.runtime.registerAction({

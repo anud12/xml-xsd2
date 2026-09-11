@@ -94,16 +94,60 @@ public class TestClass : Steps {
         scene.AssertPanelThat("col-1").HasContentText("9");
         scene.AssertPanelThat("row-1").HasContentText("0");
 
-        // The final tick: logical position reaches 12, the written position
-        // clamps at sizeX (10). The logical position never equals the target
-        // (10), so the move keeps trying and the actor holds at the bound edge.
+        // The final tick: the pooled motion (3) exceeds the 1 GTU still
+        // remaining, so the step is clamped to the remaining path and the move
+        // lands exactly at 10 (no overshoot to 12) and the actor is free.
         RuntimeInterop.RunIteration(1);
         var done = ContainerInterop.GetContainerById("grid-1");
         Assertions.AssertThat(done.GetXForEntityId["node-1"]).IsEqual(10.0);
-        Assertions.AssertThat(RuntimeInterop.IsActorBusy("node-1")).IsTrue();
+        Assertions.AssertThat(done.GetYForEntityId["node-1"]).IsEqual(0.0);
+        Assertions.AssertThat(RuntimeInterop.IsActorBusy("node-1")).IsFalse();
         await runner.SimulateFrames(2);
         scene.AssertPanelThat("col-1").HasContentText("10");
         scene.AssertPanelThat("row-1").HasContentText("0");
+    }
+
+    [TestCase]
+    [RequireGodotRuntime]
+    public async Task Given_high_speed_diagonal_move_it_should_stop_at_destination_without_overshooting() {
+        CleanupArchive();
+        AddFileToArchive("module/index.js", "index.js")
+            .AddFileToArchive("module/manifest.json", "manifest.json")
+            .EnsureDllAccessible()
+            .ProcessArchive();
+
+        var scene = await AttachUiScene();
+
+        // node-1 at (0,0), a speed-10 diagonal move toward (10,10). On the
+        // final tick each axis's pooled motion would otherwise cross the
+        // distance scale and push the logical position past (10,10) (to
+        // (11,11)), so the arrival check would never fire and the move would
+        // keep parking. With the remaining-path clamp the actor lands exactly
+        // on (10,10) and the move stops.
+        RuntimeInterop.emitAction("blitz-node-1");
+
+        int ticks = 0;
+        while (ticks < 10 && RuntimeInterop.IsActorBusy("node-1")) {
+            RuntimeInterop.RunIteration(1);
+            ticks++;
+        }
+
+        var done = ContainerInterop.GetContainerById("grid-1");
+        Assertions.AssertThat(done.GetXForEntityId["node-1"]).IsEqual(10.0);
+        Assertions.AssertThat(done.GetYForEntityId["node-1"]).IsEqual(10.0);
+        Assertions.AssertThat(RuntimeInterop.IsActorBusy("node-1")).IsFalse();
+        await runner.SimulateFrames(2);
+        scene.AssertPanelThat("col-1").HasContentText("10");
+        scene.AssertPanelThat("row-1").HasContentText("10");
+
+        // A further tick does not resume the finished move.
+        RuntimeInterop.RunIteration(1);
+        var t2 = ContainerInterop.GetContainerById("grid-1");
+        Assertions.AssertThat(t2.GetXForEntityId["node-1"]).IsEqual(10.0);
+        Assertions.AssertThat(t2.GetYForEntityId["node-1"]).IsEqual(10.0);
+        await runner.SimulateFrames(2);
+        scene.AssertPanelThat("col-1").HasContentText("10");
+        scene.AssertPanelThat("row-1").HasContentText("10");
     }
 
     [TestCase]
