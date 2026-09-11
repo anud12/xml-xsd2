@@ -39,27 +39,29 @@ public class TestClass : Steps {
 
         
         
-        // Fire the speed-1 diagonal move toward (5,2): one cell per tick.
+        // Fire the speed-1 move toward (3,2). Bresenham: dist = isqrt(3²+2²)
+        // = 3, so x advances 1 GTU/tick and y advances 2/3 GTU/tick (whole
+        // units on ticks 2 and 3).
         RuntimeInterop.emitAction("march-node-1");
 
-        // Tick 1: (1,1).
+        // Tick 1: (1,0).
         RuntimeInterop.RunIteration(1);
         await runner.SimulateFrames(2);
         Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetXForEntityId["node-1"]).IsEqual(1.0);
-        Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetYForEntityId["node-1"]).IsEqual(1.0);
-        scene.AssertPanelThat("node-1").IsPositionEqual(CellPos(1, 1).X, CellPos(1, 1).Y);
+        Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetYForEntityId["node-1"]).IsEqual(0.0);
+        scene.AssertPanelThat("node-1").IsPositionEqual(CellPos(1, 0).X, CellPos(1, 0).Y);
         scene.AssertPanelThat("col").HasContentText("1");
-        scene.AssertPanelThat("row").HasContentText("1");
+        scene.AssertPanelThat("row").HasContentText("0");
 
         
-        // Tick 2: (2,2).
+        // Tick 2: (2,1).
         RuntimeInterop.RunIteration(1);
         await runner.SimulateFrames(2);
-        scene.AssertPanelThat("node-1").IsPositionEqual(CellPos(2, 2).X, CellPos(2, 2).Y);
+        scene.AssertPanelThat("node-1").IsPositionEqual(CellPos(2, 1).X, CellPos(2, 1).Y);
         scene.AssertPanelThat("col").HasContentText("2");
-        scene.AssertPanelThat("row").HasContentText("2");
+        scene.AssertPanelThat("row").HasContentText("1");
 
-        // Tick 3: (3,2) — both axes reach their targets and the move ends.
+        // Tick 3: (3,2) — the destination is reached and the move ends.
         RuntimeInterop.RunIteration(1);
         await runner.SimulateFrames(2);
         var done = ContainerInterop.GetContainerById("grid-1");

@@ -46,7 +46,7 @@ public partial class Game : Node {
         if (RUN_RUNTIME_LOOP) {
             new Thread(() => {
                 var stopwatch = new System.Diagnostics.Stopwatch();
-                const long cycleDurationMs = 40;
+                const long cycleDurationMs = 25;
 
                 while (RUN_RUNTIME_LOOP) {
                     stopwatch.Restart();

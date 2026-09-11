@@ -21,14 +21,14 @@ export default (hostApi) => {
     entities: [string.of("node-1")],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    getSpanX: (entity) => number.of(1),
-    getSpanY: (entity) => number.of(1),
+    getSpanX: (entity) => number.of(10),
+    getSpanY: (entity) => number.of(10),
     sizeX: {
-      value: number.of(100),
+      value: number.of(500),
       outOfBounds: "clamp",
     },
     sizeY: {
-      value: number.of(50),
+      value: number.of(500),
       outOfBounds: "clamp",
     },
   });
@@ -87,7 +87,7 @@ export default (hostApi) => {
   // so the panel tracks the move.
   hostApi.ui.containerView("plane", {
     container: "grid-1",
-    width: 700,
+    width: 500,
     height: 500,
     x: 10,
     y: 80,

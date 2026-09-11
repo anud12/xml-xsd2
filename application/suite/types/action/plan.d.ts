@@ -23,8 +23,19 @@ export type ActionPlanStep =
         x: NumberExpression;
         y: NumberExpression;
         speed: NumberExpression;
-        // Walker-mutated at walk time (not set by module code):
-        remainingLength?: number;
-        start?: { x: number; y: number };
+        // Walker-mutated at walk time (not set by module code). The move is
+        // advanced by integer Bresenham stepping in Q16.16 fixed-point: each
+        // axis pools `delta * speed` per tick into a signed remainder and
+        // releases whole GTUs as the remainder crosses the distance scale.
+        startX?: number;
+        startY?: number;
+        deltaX?: number;
+        deltaY?: number;
+        dist?: number;
+        remX?: number;
+        remY?: number;
+        posX?: number;
+        posY?: number;
+        lastTick?: number;
       }
     };

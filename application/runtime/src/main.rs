@@ -49,24 +49,11 @@ fn main() {
         if !r.is_empty() { runtime_log!("main: file={}", r[0]); }
     }
 
+    state::persist_state(&file_rows, &entity_rows);
+
     if let Some(ref delim) = delimiter {
         crate::native_stdio::set_native_stdout_enabled(true);
-        // 8 invalid UTF-8 bytes shift byteStart (Java's re-encoded byte count) forward by 16,
-        // landing it exactly after "--SQLITE-START--" (16 chars) and onto the SQLite magic bytes.
-        std::io::stdout().write_all(&[0x80u8; 8]).expect("write alignment bytes");
-        print!("--SQLITE-START--"); // no trailing newline: SQLite bytes follow immediately
-        let sqlite_bytes = if !file_rows.is_empty() {
-            let dest = state::persist_state("state.db", &file_rows, &entity_rows);
-            state::read_sqlite_bytes(&dest)
-        } else {
-            state::create_startup_sqlite_bytes()
-        };
-        std::io::stdout().write_all(&sqlite_bytes).expect("write sqlite bytes");
         print!("{}", delim);
-        // Extra padding so byteEnd (Java's re-encoded offset) never exceeds lastOutput.length
-        for _ in 0..50 {
-            print!("\n");
-        }
         std::io::stdout().flush().ok();
         debug_loop::run(delim);
     }

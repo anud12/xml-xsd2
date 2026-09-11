@@ -46,9 +46,11 @@ pub extern "C" fn runtime_process_archive(path: *const c_char) -> *mut c_char {
     eprintln!("process_archive: panels after process_module = {:?}", crate::state::last_panels().lock().unwrap());
     crate::state::set_last_entity_rows(entity_rows.clone());
 
-    // Persist state to disk and return the destination path as a C string (caller must free)
-    let dest = crate::state::persist_state("state.db", &file_rows, &entity_rows);
-    match CString::new(dest) {
+    // Record the loaded state in memory (no snapshot file is written).
+    crate::state::persist_state(&file_rows, &entity_rows);
+
+    // Return an empty path string (caller must free).
+    match CString::new(String::new()) {
         Ok(s) => s.into_raw(),
         Err(_) => std::ptr::null_mut(),
     }
