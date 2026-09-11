@@ -1,7 +1,7 @@
 use rquickjs::Context;
 
 pub fn sync_entity_data_back(ctx: &Context) {
-    let ds = ctx.with(|c| c.eval::<String, _>(
+    let ds = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<String, _>(
         "JSON.stringify(globalThis.__entityData || {})"))
         .unwrap_or_else(|_| "{}".into());
     if let Ok(upd) = serde_json::from_str::<
@@ -46,10 +46,11 @@ fn apply_number_and_text_maps(
 }
 
 pub fn collect_logs(ctx: &Context) {
-    let lj = ctx.with(|c| c.eval::<String, _>(
+    let lj = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<String, _>(
         "JSON.stringify(globalThis.__logs || [])"))
         .unwrap_or_else(|_| "[]".into());
     if let Ok(lv) = serde_json::from_str::<Vec<String>>(&lj) {
         for l in lv.iter() { runtime_log!("{}", l); }
     }
+    let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>("globalThis.__logs = []"));
 }

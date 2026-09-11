@@ -1,0 +1,6 @@
+{
+  "id": "render-movement-test",
+  "version": "1.0.0",
+  "name": "Render Movement Test Module",
+  "entry": "index.js"
+}

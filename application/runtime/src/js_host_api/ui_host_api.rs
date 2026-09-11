@@ -6,7 +6,7 @@
 //! script reuses that object instead of rebuilding a shadowing hostApi, and
 //! only adds the ui.* factories that the host script parts do not provide.
 //!
-//! `ui.panel` / `ui.window` / `ui.field` / `ui.text` / `ui.container` mirror
+//! `ui.panel` / `ui.window` / `ui.field` / `ui.text` / `ui.entityList` mirror
 //! the C# HostApiSetup `__panelEmit` JSON shape and record each node into
 //! `globalThis.__registeredPanels`, which the extraction declaration script
 //! picks up. `getAnimation` reads `globalThis.__registeredAnimations` (the
@@ -192,8 +192,8 @@ if(!__hapi_ui.div){
     return __hapi_panelEmit(id,{layout:layout},children,false);
   };
 }
-if(!__hapi_ui.container){
-  __hapi_ui.container=function(id,options,template){
+if(!__hapi_ui.entityList){
+  __hapi_ui.entityList=function(id,options,template){
     var containerId=options&&options.container;
     var resolvedContainerId=(typeof containerId==="object")?containerId.value:containerId;
     var vertical=options&&options.vertical!==undefined?options.vertical:true;

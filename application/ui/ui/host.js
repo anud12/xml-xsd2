@@ -10,13 +10,23 @@ function (root) {
 
     var nodes = Object.create(null);
     var order = [];
-    // Render lambdas for ui.container lists, keyed by list name. The engine
+    // Render lambdas for ui.entityList lists, keyed by list name. The engine
     // re-invokes these per entity during expansion (see expandContainers).
+    // A list render returns an array of node ids; the items are flow children
+    // placed by the parent's layout (insertion order).
     var containerRenders = Object.create(null);
     // Item node ids materialized per container list by the last expansion, so
     // resetContainers can drop them and restore the list's marker between
     // engine ticks.
     var containerItems = Object.create(null);
+    // Render lambdas for ui.containerView views, keyed by view name. Unlike
+    // container lists (which return an array of node ids), a view render
+    // returns a single panel id per entity; the engine stamps each item with
+    // `options.entity = entityId` so the per-tick position pass can resolve
+    // its geometry from the container.
+    var containerViewRenders = Object.create(null);
+    // Item node ids materialized per container view by the last expansion.
+    var containerViewItems = Object.create(null);
 
     function transport() {
         var t = root.__uiTransport;
@@ -166,6 +176,19 @@ function (root) {
         return '$$container:' + name;
     }
 
+    // Marks the children slot of a container view with `name`: same marker
+    // mechanism as container lists, but the render lambda returns a single
+    // panel per entity (not an array), and the engine stamps each item with
+    // `options.entity = entityId` so the per-tick position pass can resolve
+    // its geometry from the container's getX/getY/getSpanX/getSpanY.
+    function containerViewMarker(name) {
+        return '$$containerView:' + name;
+    }
+
+    function isContainerViewMarker(c) {
+        return typeof c === 'string' && c.indexOf('$$containerView:') === 0;
+    }
+
     /// Replaces the marker in each node's children with the ids the stored
     /// render lambda declared for that node's container entities. The render
     /// lambda is declarative: re-invoking it per entity re-registers the same
@@ -210,6 +233,60 @@ function (root) {
         }
     }
 
+    /// Re-expands every container view's marker against the current entity
+    /// list, stamping each materialized item panel with `options.entity` so
+    /// the engine's per-tick position pass can resolve its geometry. The
+    /// render lambda returns a single panel id per entity (not an array);
+    /// returning null skips the entity.
+    function expandContainerViews(entitiesFor) {
+        for (var i = 0; i < order.length; i++) {
+            var node = nodes[order[i]];
+            if (!node || node.kind !== 'window') continue;
+            if (!Array.isArray(node.children)) continue;
+            var changed = false;
+            for (var j = 0; j < node.children.length; j++) {
+                var c = node.children[j];
+                if (!isContainerViewMarker(c)) continue;
+                var name = c.slice('$$containerView:'.length);
+                var render = containerViewRenders[name];
+                var cid = node.options && node.options.container;
+                var entities = (typeof entitiesFor === 'function' && render && typeof cid === 'string')
+                    ? entitiesFor(cid) : [];
+                var itemIds = [];
+                if (render && Array.isArray(entities)) {
+                    for (var e = 0; e < entities.length; e++) {
+                        var result = render({ id: entities[e], index: e });
+                        if (result == null) continue;
+                        // The render returns a single panel id (a string). If a
+                        // module returns an array or multiple, take the first
+                        // id; the view cannot place more than one panel per
+                        // entity.
+                        var itemId = Array.isArray(result) ? result[0] : result;
+                        if (typeof itemId !== 'string' || itemId.length === 0) continue;
+                        itemIds.push(itemId);
+                        // Stamp the item with its entity so the position pass
+                        // can resolve geometry. The item node may be a window
+                        // or division; both carry an options object.
+                        var itemNode = nodes[itemId];
+                        if (itemNode) {
+                            if (!itemNode.options || typeof itemNode.options !== 'object')
+                                itemNode.options = {};
+                            itemNode.options.entity = entities[e];
+                        }
+                    }
+                }
+                containerViewItems[name] = itemIds;
+                for (var m = itemIds.length - 1; m >= 0; m--) {
+                    node.children.splice(j, 0, itemIds[m]);
+                }
+                node.children.splice(j + itemIds.length, 1);
+                changed = true;
+                break;
+            }
+            if (changed) i--;
+        }
+    }
+
     /// Drops the node with `id` and every node in its subtree from the
     /// registries (used to undo a container list's materialized items).
     function removeSubtree(id) {
@@ -238,6 +315,17 @@ function (root) {
             var list = nodes[name];
             if (list && Array.isArray(list.children)) {
                 list.children = [containerMarker(name)];
+            }
+        }
+        for (var vname in containerViewRenders) {
+            var vitems = containerViewItems[vname];
+            if (vitems) {
+                for (var vi = 0; vi < vitems.length; vi++) removeSubtree(vitems[vi]);
+            }
+            containerViewItems[vname] = [];
+            var view = nodes[vname];
+            if (view && Array.isArray(view.children)) {
+                view.children = [containerViewMarker(vname)];
             }
         }
     }
@@ -312,18 +400,18 @@ function (root) {
                 children: []
             });
         },
-        container: function (name, args, render) {
+        entityList: function (name, args, render) {
             if (typeof name !== 'string' || name.length === 0) {
-                throw new Error('ui: container mandatory name missing');
+                throw new Error('ui: entityList mandatory name missing');
             }
             if (!args || typeof args !== 'object') {
-                throw new Error('ui: container args must be an object with container');
+                throw new Error('ui: entityList args must be an object with container');
             }
             if (typeof args.container !== 'string' || args.container.length === 0) {
-                throw new Error('ui: container args.container must be a non-empty container id');
+                throw new Error('ui: entityList args.container must be a non-empty container id');
             }
             if (typeof render !== 'function') {
-                throw new Error('ui: container render must be a function(entity) => nodeIds');
+                throw new Error('ui: entityList render must be a function(entity) => nodeIds');
             }
             containerRenders[name] = render;
             return register({
@@ -331,6 +419,43 @@ function (root) {
                 kind: 'division',
                 options: { container: args.container },
                 children: [containerMarker(name)]
+            });
+        },
+        containerView: function (name, args, render) {
+            if (typeof name !== 'string' || name.length === 0) {
+                throw new Error('ui: containerView mandatory name missing');
+            }
+            if (!args || typeof args !== 'object') {
+                throw new Error('ui: containerView args must be an object with container, width, height');
+            }
+            if (typeof args.container !== 'string' || args.container.length === 0) {
+                throw new Error('ui: containerView args.container must be a non-empty container id');
+            }
+            if (typeof args.width !== 'number' || !(args.width > 0)) {
+                throw new Error('ui: containerView args.width must be a positive number (view width)');
+            }
+            if (typeof args.height !== 'number' || !(args.height > 0)) {
+                throw new Error('ui: containerView args.height must be a positive number (view height)');
+            }
+            if (typeof render !== 'function') {
+                throw new Error('ui: containerView render must be a function(entity) => panelId');
+            }
+            containerViewRenders[name] = render;
+            // The view node is a window (it extends panel: x/y/width/height/
+            // background/anchor are all honored). It carries `container`,
+            // `viewWidth`, `viewHeight` for the per-tick position pass, plus
+            // the standard panel options (minus container/viewWidth/viewHeight).
+            var opts = {};
+            for (var k in args) {
+                if (Object.prototype.hasOwnProperty.call(args, k)) opts[k] = args[k];
+            }
+            opts.viewWidth = args.width;
+            opts.viewHeight = args.height;
+            return register({
+                id: name,
+                kind: 'window',
+                options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
+                children: [containerViewMarker(name)]
             });
         },
         field: function (id, binding) {
@@ -372,11 +497,14 @@ function (root) {
             order = [];
             containerRenders = Object.create(null);
             containerItems = Object.create(null);
+            containerViewRenders = Object.create(null);
+            containerViewItems = Object.create(null);
         },
         loadSnapshot: function (arr) {
             nodes = Object.create(null);
             order = [];
             containerItems = Object.create(null);
+            containerViewItems = Object.create(null);
             (arr || []).forEach(function (n) {
                 requireId(n.id, n.kind);
                 nodes[n.id] = n;
@@ -385,6 +513,9 @@ function (root) {
         },
         expandContainers: function (entitiesFor) {
             expandContainers(entitiesFor);
+        },
+        expandContainerViews: function (entitiesFor) {
+            expandContainerViews(entitiesFor);
         },
         resetContainers: function () {
             resetContainers();

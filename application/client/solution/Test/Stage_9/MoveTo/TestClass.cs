@@ -221,7 +221,7 @@ public class TestClass : Steps {
 
     [TestCase]
     [RequireGodotRuntime]
-    public async Task Given_entity_in_negative_diagonal_it_should_stop_when_shorter_axis_reaches_target() {
+    public async Task Given_entity_in_negative_diagonal_it_should_stop_when_destination_reached() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
@@ -231,8 +231,9 @@ public class TestClass : Steps {
         var scene = await AttachUiScene();
 
         // node-4 starts at (5,3); a speed-1 move toward (0,0) walks both axes
-        // west and south. The shorter axis (y, 3) exhausts first and ends the
-        // move, leaving x at its partial cell.
+        // west and south. The shorter axis (y, 3) settles at 0 and holds while x
+        // keeps advancing; the move stops only when the destination (0,0) is
+        // reached — i.e. both axes at their target.
         RuntimeInterop.emitAction("march-node-4-to-origin");
 
         // Tick 1: (4,2).
@@ -253,23 +254,33 @@ public class TestClass : Steps {
         scene.AssertPanelThat("col-4").HasContentText("3");
         scene.AssertPanelThat("row-4").HasContentText("1");
 
-        // Tick 3: y reaches 0 (exhausted) and the move ends; x is at 2.
+        // Tick 3: y reaches 0 and holds; x keeps advancing to 2.
         RuntimeInterop.RunIteration(1);
         var t3 = ContainerInterop.GetContainerById("grid-1");
         Assertions.AssertThat(t3.GetXForEntityId["node-4"]).IsEqual(2.0);
         Assertions.AssertThat(t3.GetYForEntityId["node-4"]).IsEqual(0.0);
-        Assertions.AssertThat(RuntimeInterop.IsActorBusy("node-4")).IsFalse();
         await runner.SimulateFrames(2);
         scene.AssertPanelThat("col-4").HasContentText("2");
         scene.AssertPanelThat("row-4").HasContentText("0");
 
-        // A further tick does not resume the abandoned x progress.
-        RuntimeInterop.RunIteration(1);
-        var t4 = ContainerInterop.GetContainerById("grid-1");
-        Assertions.AssertThat(t4.GetXForEntityId["node-4"]).IsEqual(2.0);
-        Assertions.AssertThat(t4.GetYForEntityId["node-4"]).IsEqual(0.0);
+        // Ticks 4-5: y holds at 0, x reaches 0 — the destination is reached and
+        // the move stops.
+        RuntimeInterop.RunIteration(2);
+        var done = ContainerInterop.GetContainerById("grid-1");
+        Assertions.AssertThat(done.GetXForEntityId["node-4"]).IsEqual(0.0);
+        Assertions.AssertThat(done.GetYForEntityId["node-4"]).IsEqual(0.0);
+        Assertions.AssertThat(RuntimeInterop.IsActorBusy("node-4")).IsFalse();
         await runner.SimulateFrames(2);
-        scene.AssertPanelThat("col-4").HasContentText("2");
+        scene.AssertPanelThat("col-4").HasContentText("0");
+        scene.AssertPanelThat("row-4").HasContentText("0");
+
+        // A further tick does not resume the finished move.
+        RuntimeInterop.RunIteration(1);
+        var t6 = ContainerInterop.GetContainerById("grid-1");
+        Assertions.AssertThat(t6.GetXForEntityId["node-4"]).IsEqual(0.0);
+        Assertions.AssertThat(t6.GetYForEntityId["node-4"]).IsEqual(0.0);
+        await runner.SimulateFrames(2);
+        scene.AssertPanelThat("col-4").HasContentText("0");
         scene.AssertPanelThat("row-4").HasContentText("0");
     }
 }

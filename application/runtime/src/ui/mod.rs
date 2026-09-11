@@ -176,7 +176,7 @@ pub fn clear() {
 // ---------------------------------------------------------------------------
 
 fn eval_string(ctx: &rquickjs::Context, script: &str) -> Result<String> {
-    ctx.with(|c| c.eval::<String, _>(script.to_string()))
+    crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<String, _>(script.to_string()))
         .map_err(|e| anyhow::anyhow!("ui eval failed: {:?}", e))
 }
 
@@ -205,12 +205,14 @@ fn tick_inner() -> Result<()> {
         "__uiHost.resetContainers();\n\
          globalThis.__uiContainerList = {};\n\
          __uiHost.expandContainers(globalThis.__uiEntitiesFor);\n\
+         __uiHost.expandContainerViews(globalThis.__uiEntitiesFor);\n\
          JSON.stringify(__uiHost.snapshot())",
         containers_json
     );
     let snapshot_json = eval_string(&ctx, &script)?;
     let mut snapshot: Vec<UiNode> = serde_json::from_str(&snapshot_json)?;
     resolve_field_values(&mut snapshot);
+    resolve_container_view_positions(&mut snapshot);
 
     // Keep the animation-definition store in sync for the fetch FFI (the
     // module's registerAnimation calls filled __registeredAnimations at
@@ -293,6 +295,184 @@ fn resolve_field_values(snapshot: &mut [UiNode]) {
             }
         }
     }
+}
+
+/// Re-resolve every container-view item's geometry (x/y/width/height) from
+/// its entity's container position, so the id-diff sees live moves as updates
+/// and the C# `ApplyWindow` re-positions the panel. A view node carries
+/// `options.container`, `options.viewWidth`, `options.viewHeight`; each item
+/// child carries `options.entity` (stamped by the JS expansion). The cell
+/// size is `view / container.size`, and the item sits at
+/// `(getX * cellW, getY * cellH)` with span `(getSpanX * cellW, getSpanY * cellH)`.
+fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
+    // Build a container-geometry map: id -> (sizeX, sizeY, per-entity
+    // getX/getY/getSpanX/getSpanY). The latest row for an id wins (mirrors
+    // the JS `__uiEntitiesFor` lookup).
+    let containers = crate::state::last_containers().lock().unwrap().clone();
+    // A view (Vec, not a map) so the immutable borrow ends before the
+    // mutable item writes below. The latest row for an id wins.
+    let mut geom: Vec<
+        (String, Option<f64>, Option<f64>, serde_json::Map<String, serde_json::Value>),
+    > = Vec::new();
+    for json_str in containers.iter() {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(json_str) else {
+            continue;
+        };
+        let Some(id) = v.get("id").and_then(|x| x.as_str()) else {
+            continue;
+        };
+        let size_x = v.get("sizeX").and_then(|s| s.get("value")).and_then(|n| n.as_f64());
+        let size_y = v.get("sizeY").and_then(|s| s.get("value")).and_then(|n| n.as_f64());
+        let prev = geom.iter().find(|g| g.0 == id).map(|g| g.3.clone());
+        let per_entity = merge_position_maps(&prev, &v);
+        geom.retain(|g| g.0 != id);
+        geom.push((id.to_string(), size_x, size_y, per_entity));
+    }
+
+    // First pass (immutable): collect each view's (container id, cell size,
+    // item child ids). The cell size is precomputed so the second pass owns
+    // all the data it needs and never borrows `geom` or the snapshot.
+    let mut views: Vec<(String, f64, f64, Vec<String>)> = Vec::new();
+    for node in snapshot.iter() {
+        let UiNode::Window { options, children, .. } = node else {
+            continue;
+        };
+        let Some(opts_obj) = options.as_object() else {
+            continue;
+        };
+        let Some(cid) = opts_obj.get("container").and_then(|c| c.as_str()) else {
+            continue;
+        };
+        let Some(view_w) = opts_obj.get("viewWidth").and_then(|n| n.as_f64()) else {
+            continue;
+        };
+        let Some(view_h) = opts_obj.get("viewHeight").and_then(|n| n.as_f64()) else {
+            continue;
+        };
+        // The container must declare its extent; a view without bounds cannot
+        // derive a cell size.
+        let (sx, sy) = match geom.iter().find(|g| g.0 == cid) {
+            Some((_, Some(a), Some(b), _)) => (*a, *b),
+            _ => continue,
+        };
+        views.push((
+            cid.to_string(),
+            view_w / sx,
+            view_h / sy,
+            children.clone(),
+        ));
+    }
+
+    // Second pass (mutable): index snapshot positions by id (owned keys),
+    // then write each item's cell geometry via `get_mut(position)`.
+    let mut index: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for (i, node) in snapshot.iter().enumerate() {
+        index.insert(node.id().to_string(), i);
+    }
+
+    for (cid, cell_w, cell_h, children) in views {
+        let Some(per_entity) = geom
+            .iter()
+            .find(|g| g.0 == cid)
+            .map(|g| g.3.clone())
+        else {
+            continue;
+        };
+        for child_id in children {
+            let Some(pos) = index.get(child_id.as_str()).copied() else {
+                continue;
+            };
+            let Some(item) = snapshot.get_mut(pos) else {
+                continue;
+            };
+            let UiNode::Window { options: item_opts, .. } = item else {
+                continue;
+            };
+            let Some(item_obj) = item_opts.as_object_mut() else {
+                continue;
+            };
+            let Some(entity) = item_obj.get("entity").and_then(|e| e.as_str()) else {
+                continue;
+            };
+            let Some(ent_pos) = per_entity.get(entity).and_then(|p| p.as_object()) else {
+                continue;
+            };
+            let get = |key: &str| ent_pos.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let x = get("x") * cell_w;
+            let y = get("y") * cell_h;
+            let span_x = get("spanX").max(1.0) * cell_w;
+            let span_y = get("spanY").max(1.0) * cell_h;
+            item_obj.insert("x".into(), num_json(x));
+            item_obj.insert("y".into(), num_json(y));
+            item_obj.insert("width".into(), num_json(span_x));
+            item_obj.insert("height".into(), num_json(span_y));
+        }
+    }
+}
+
+/// Merge a container row's per-entity position maps (getX/getY/getSpanX/
+/// getSpanY, each `entityId -> number`) into one `entityId -> { x, y, spanX,
+/// spanY }` map, layered over any earlier row for the same container id.
+fn merge_position_maps(
+    prev: &Option<serde_json::Map<String, serde_json::Value>>,
+    v: &serde_json::Value,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut out = match prev {
+        Some(m) => m.clone(),
+        None => serde_json::Map::new(),
+    };
+    let v_obj = match v.as_object() {
+        Some(o) => o,
+        None => return out,
+    };
+    let copy_map = |key: &str| -> std::collections::HashMap<String, f64> {
+        let mut m = std::collections::HashMap::new();
+        if let Some(obj) = v_obj.get(key).and_then(|x| x.as_object()) {
+            for (k, val) in obj {
+                if let Some(n) = val.as_f64() {
+                    m.insert(k.clone(), n);
+                }
+            }
+        }
+        m
+    };
+    let get_x = copy_map("getX");
+    let get_y = copy_map("getY");
+    let span_x = copy_map("getSpanX");
+    let span_y = copy_map("getSpanY");
+    let mut ids: std::collections::HashSet<&str> = std::collections::HashSet::new();
+    for m in [&get_x, &get_y, &span_x, &span_y] {
+        for k in m.keys() {
+            ids.insert(k.as_str());
+        }
+    }
+    for id in ids {
+        let entry = out.entry(id.to_string()).or_insert_with(|| {
+            serde_json::json!({ "x": 0.0, "y": 0.0, "spanX": 1.0, "spanY": 1.0 })
+        });
+        let Some(obj) = entry.as_object_mut() else {
+            continue;
+        };
+        if let Some(n) = get_x.get(id) {
+            obj.insert("x".into(), num_json(*n));
+        }
+        if let Some(n) = get_y.get(id) {
+            obj.insert("y".into(), num_json(*n));
+        }
+        if let Some(n) = span_x.get(id) {
+            obj.insert("spanX".into(), num_json(*n));
+        }
+        if let Some(n) = span_y.get(id) {
+            obj.insert("spanY".into(), num_json(*n));
+        }
+    }
+    out
+}
+
+fn num_json(n: f64) -> serde_json::Value {
+    serde_json::Number::from_f64(n)
+        .map(serde_json::Value::Number)
+        .unwrap_or(serde_json::Value::Null)
 }
 
 fn apply_diff(snapshot: &[UiNode]) -> Result<()> {
@@ -654,7 +834,7 @@ export default (hostApi) => {
     entities: ['item-a', 'item-b']
   });
   hostApi.ui.window('list-panel', { width: 300, height: 300 }, [
-    hostApi.ui.container('items', { container: 'items' },
+    hostApi.ui.entityList('items', { container: 'items' },
       (entity) => [
         hostApi.ui.window(entity.id, { width: 100, height: 50 }, [
           hostApi.ui.field(entity.id + ':value', {

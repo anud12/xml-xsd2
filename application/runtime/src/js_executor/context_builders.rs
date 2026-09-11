@@ -31,7 +31,7 @@ fn build_effect_context_impl(ctx: &Context, kind: &str) {
 
     // Evaluate full JS directly
     let full = format!("{}{}{}", p1, p2, p3);
-    let _ = ctx.with(|c| c.eval::<(), _>(full.as_str()));
+    let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(full.as_str()));
 }
 
 pub fn sync_entity_data(ctx: &Context) {

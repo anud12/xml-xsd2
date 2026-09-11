@@ -28,8 +28,9 @@ const SCHED_CTX_JS_P3: &str = r#",map:function(cb){
                 var cp=null;
                 if(typeof target.prepare==='function')
                     cp=target.prepare(globalThis.__context);
-                if(cp&&typeof cp==='object'&&cp.value){
-                    _c=true;
+                var hasVal=cp&&typeof cp==='object'&&'value' in cp;
+                if(hasVal){
+                    _c=!!cp.value;
                     if(typeof target.apply==='function')
                         target.apply(globalThis.__context,cp);
                 }

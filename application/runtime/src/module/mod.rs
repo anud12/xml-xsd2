@@ -41,16 +41,8 @@ pub fn process_module(
     }
 
     for (manifest_name, manifest_json) in manifests {
-        eprintln!("process_module: processing manifest {}",
-            manifest_name);
         manifest::set_module_rows(&manifest_json);
         entry::handle_entry_point(
             &manifest_name, &manifest_json, files);
-    }
-
-    // Evaluate the module entry once in the persistent simulation context
-    // so iterations can run its effects without re-evaluating the entry.
-    if let Err(e) = crate::js_executor::sim_ctx::install(files) {
-        runtime_log!("sim install failed: {:?}", e);
     }
 }

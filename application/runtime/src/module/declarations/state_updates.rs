@@ -1,10 +1,8 @@
 use crate::js_host_api::Declarations;
 
 pub fn append_panels_to_cache(dec: &Declarations) {
-    if dec.panels.is_empty() { return; }
-    let mut panels = crate::state::last_panels().lock().unwrap();
-    for p in dec.panels.iter() {
-        panels.push(p.clone());
+    if !dec.panels.is_empty() {
+        crate::state::set_last_panels(dec.panels.clone());
     }
 }
 

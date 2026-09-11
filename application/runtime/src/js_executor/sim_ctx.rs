@@ -8,6 +8,7 @@
 //! context without re-evaluating the module entry.
 
 use std::collections::HashMap;
+use std::sync::Mutex;
 use anyhow::Result;
 use rquickjs::{Context, Runtime};
 use crate::js_runtime::{create_context, create_runtime};
@@ -72,7 +73,8 @@ if (__uih && globalThis.host) {
   __u.field = __uih.field;
   __u.image = __uih.image;
   __u.canvas = __uih.canvas;
-  __u.container = __uih.container;
+  __u.entityList = __uih.entityList;
+  __u.containerView = __uih.containerView;
   __u.panel = function (id, options, children) {
     var opts = options || {};
     var surface = opts.x !== undefined || opts.y !== undefined
@@ -92,21 +94,28 @@ if (__uih && globalThis.host) {
     };
   };
   globalThis.__uiEntitiesFor = function (name) {
+    // `name` may be a UI node id (entityList: resolve its options.container)
+    // or a runtime container id directly (containerView). Resolve the
+    // container id first, then look it up in the per-tick container list.
+    var cid = null;
     var snap = __uih.snapshot();
     for (var i = 0; i < snap.length; i++) {
       if (snap[i].id !== name) continue;
-      var cid = snap[i].options && snap[i].options.container;
-      if (typeof cid !== 'string') return [];
-      var list = globalThis.__uiContainerList || [];
-      var found = null;
-      // The container store appends a row per setContainer call; the latest
-      // row for an id wins.
-      for (var j = 0; j < list.length; j++) {
-        if (list[j].id === cid) found = list[j].entities || [];
-      }
-      return found || [];
+      var c2 = snap[i].options && snap[i].options.container;
+      if (typeof c2 === 'string') { cid = c2; break; }
     }
-    return [];
+    if (typeof cid !== 'string') {
+      // Not a UI node in the snapshot; treat `name` as the container id.
+      cid = name;
+    }
+    var list = globalThis.__uiContainerList || [];
+    var found = null;
+    // The container store appends a row per setContainer call; the latest
+    // row for an id wins.
+    for (var j = 0; j < list.length; j++) {
+      if (list[j].id === cid) found = list[j].entities || [];
+    }
+    return found || [];
   };
 }
 "#;
@@ -152,7 +161,8 @@ pub fn install(files: &HashMap<String, String>) -> Result<()> {
     .join("\n");
     ctx.with(|c| c.eval::<(), _>(bundle))
         .map_err(|e| anyhow::anyhow!("ui layer install failed: {:?}", e))?;
-    eval_entry_in_ctx(&ctx, &source)?;
+    eval_entry_in_ctx(&ctx, &source)
+        .map_err(|e| anyhow::anyhow!("module entry install failed: {:?}", e))?;
     // Ensure hostApi has entity.filter for effect closures
     let _ = ctx.with(|c| c.eval::<(), _>(
         "if(globalThis.hostApi&&!globalThis.hostApi.entity){\
@@ -169,6 +179,25 @@ pub fn install(files: &HashMap<String, String>) -> Result<()> {
 /// The persistent context, if a module has been installed.
 pub fn ctx() -> Option<&'static Context> {
     unsafe { SIM_HOST.map(|h| &h.ctx) }
+}
+
+/// The persistent QuickJS `Context` is shared by the background iteration
+/// thread (behavior machine, effect dispatch) and the main/UI thread (`.ui`
+/// tick, clicks, actor/client-state writes). rquickjs `Context::with` borrows
+/// an interior `RefCell`, so two threads calling it at once panic with
+/// "RefCell already borrowed". This guard is the single serialization point:
+/// every sim-context `with` below goes through `sim_with`, which holds it.
+/// `sim_with` is a leaf (it never re-enters itself), so the guard is never
+/// held across a nested acquisition and no call deadlocks on it.
+static CTX_GUARD: Mutex<()> = Mutex::new(());
+
+/// Run `f` against the shared sim Context while holding `CTX_GUARD`.
+pub fn sim_with<R, F>(ctx: &Context, f: F) -> R
+where
+    F: FnOnce(rquickjs::Ctx<'_>) -> R,
+{
+    let _guard = CTX_GUARD.lock().unwrap();
+    ctx.with(f)
 }
 
 /// Drop the persistent context, if any.

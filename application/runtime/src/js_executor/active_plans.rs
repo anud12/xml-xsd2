@@ -183,6 +183,31 @@ fn num_json(n: f64) -> serde_json::Value {
 
 use std::collections::HashMap;
 
+/// Apply a teleport to the actor: write its position into the entity number
+/// data (under the container's position keys) and rebake the container's
+/// `getX`/`getY` so `get_container_by_id` reflects it immediately. A bound is
+/// the container's max coordinate; the lower bound is 0. A `None` bound leaves
+/// that axis unclamped. This is a synchronous write — a teleport is not walked.
+pub fn apply_teleport(
+    containers: &mut Vec<String>,
+    container_id: &str,
+    entity_id: &str,
+    x: f64,
+    y: f64,
+    clamp: bool,
+) {
+    let (bx, by) = container_bounds(containers, container_id);
+    let mut nx = x;
+    let mut ny = y;
+    if clamp {
+        nx = nx.max(0.0);
+        ny = ny.max(0.0);
+        if let Some(b) = bx { if nx > b { nx = b; } }
+        if let Some(b) = by { if ny > b { ny = b; } }
+    }
+    write_position(containers, container_id, entity_id, nx, ny);
+}
+
 pub fn process_active_plans(now: i64) {
     let mut due: Vec<ActivePlan> = {
         let plans = crate::state::active_plans().lock().unwrap();
@@ -343,12 +368,14 @@ fn advance_move_step(
 
     // Per-axis progress toward the target, capped at the container bounds
     // (a bound is the max coordinate; the lower bound is 0). An axis already at
-    // its target is neutral; a *moving* axis ends the move once it reaches its
-    // target or is stopped by a bound (the "try, then stop" rule).
+    // its target is neutral; a *moving* axis advances one step and, once it
+    // reaches its target (or is stopped by a bound), holds there while the other
+    // axis keeps going. The move is finished only when every axis has settled —
+    // i.e. the destination (all axes at target) is reached.
     let x_neutral = (tx - cx).abs() < 1e-9;
     let y_neutral = (ty - cy).abs() < 1e-9;
-    let (nx, ax_done) = if x_neutral { (cx, false) } else { advance_axis(cx, tx, speed, bx) };
-    let (ny, ay_done) = if y_neutral { (cy, false) } else { advance_axis(cy, ty, speed, by) };
+    let (nx, ax_settled) = if x_neutral { (cx, true) } else { advance_axis(cx, tx, speed, bx) };
+    let (ny, ay_settled) = if y_neutral { (cy, true) } else { advance_axis(cy, ty, speed, by) };
 
     // Remaining path length is the actual distance still to cover.
     let remaining = move_length(tx - nx, ty - ny);
@@ -358,12 +385,9 @@ fn advance_move_step(
     move_obj.insert("lastTick".into(), serde_json::json!(now));
     write_position(containers, &container_id, &entity_id, nx, ny);
 
-    // The move continues only while every moving axis still has room and
-    // length left.
-    if (ax_done || ay_done) {
-        return false;
-    }
-    remaining > 0.0
+    // Still moving while any axis has not settled; the destination is reached
+    // (move exhausted) once every axis is at its target or bound.
+    !(ax_settled && ay_settled)
 }
 
 /// Advance one coordinate toward its target by `speed`, capped at `bound`
@@ -725,19 +749,25 @@ mod tests {
             container_with_pos("grid", "e1", 5.0, 3.0, Some(10.0), Some(10.0))
         ]);
         // Move from (5,3) toward the origin: negative x AND negative y, speed 1.
-        // Both axes move in parallel; the shorter axis (y, 3) exhausts first and
-        // ends the move, leaving x at its partial cell.
+        // Both axes move in parallel; the shorter axis (y, 3) settles first and
+        // holds at 0 while x keeps advancing. The move ends only when both axes
+        // reach the destination (x at 0, the longer axis).
         plan("back", "e1", vec![move_step("grid", "e1", 0.0, 0.0, 1.0)], 0);
 
-        for step in 0..2 {
+        // Steps 0-2: both axes advance in parallel; at step 2 y reaches 0 and
+        // settles while x keeps advancing.
+        for step in 0..3 {
             process_active_plans(step);
             let (x, y) = pos_of("e1");
-            assert_eq!((x, y), ((5.0 - (step as f64 + 1.0)), (3.0 - (step as f64 + 1.0))), "step {}", step);
+            assert_eq!((x, y), ((5.0 - (step as f64 + 1.0)), ((3.0 - (step as f64 + 1.0)).max(0.0))), "step {}", step);
         }
-        // Step 3: y reaches 0 (exhausted) and the move ends; x is at 2.
+        // After step 2 position is (2,0); y holds at 0 while x keeps going.
+        assert!(crate::state::has_active_plan("back"));
+        // Steps 3-4: y holds at 0, x reaches 0 and the move ends.
         process_active_plans(3);
-        let (x, y) = pos_of("e1");
-        assert_eq!((x, y), (2.0, 0.0));
+        assert_eq!(pos_of("e1"), (1.0, 0.0));
+        process_active_plans(4);
+        assert_eq!(pos_of("e1"), (0.0, 0.0));
         assert!(!crate::state::has_active_plan("back"));
     }
 

@@ -1,3 +1,7 @@
+pub(super) fn host_api_script_panel() -> &'static str {
+    r#"registerPanel: function() { /* no-op — handled by C# */ },"#
+}
+
 pub(super) fn host_api_script_create_entity()
     -> &'static str
 {
@@ -41,18 +45,13 @@ pub(super) fn host_api_script_set_entity()
             && typeof data === 'object') {
             globalThis.__entityData[id] = data;
             if (data.behavior !== undefined) {
-                var b = typeof data.behavior === 'object'
-                    && data.behavior !== null
-                    ? data.behavior.value : data.behavior;
-                if (typeof b === 'string' && b !== '') {
-                    globalThis.__behaviors =
-                        globalThis.__behaviors || {};
-                    globalThis.__behaviors[id] = { name: b };
-                    globalThis.__logs =
-                        globalThis.__logs || [];
-                    globalThis.__logs.push(
-                        'behavior attached: ' + id + ' -> ' + b);
-                }
+                var b = data.behavior;
+                var bVal = typeof b === 'object' ? b : { name: b };
+                globalThis.__behaviors =
+                    globalThis.__behaviors || {};
+                globalThis.__behaviors[id] = bVal;
+                globalThis.__logs = globalThis.__logs || [];
+                globalThis.__logs.push('behavior attached: ' + id + ' -> ' + bVal.name);
             }
         }
     },"#
@@ -91,20 +90,16 @@ pub(super) fn host_api_script_set_container()
                 }
                 if (data.textMap) out.textMap = data.textMap;
                 if (data.numberMap) out.numberMap = data.numberMap;
-                if (data.getX) {
-                    out.getX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getX) : {};
-                    var kx = globalThis.extractPositionKey ? globalThis.extractPositionKey(data.getX) : null;
-                    if (kx !== null) out.xKey = kx;
-                }
-                if (data.getY) {
-                    out.getY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getY) : {};
-                    var ky = globalThis.extractPositionKey ? globalThis.extractPositionKey(data.getY) : null;
-                    if (ky !== null) out.yKey = ky;
-                }
+                if (data.getX) out.getX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getX) : {};
+                if (data.getY) out.getY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getY) : {};
                 if (data.getSpanX) out.getSpanX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanX) : {};
                 if (data.getSpanY) out.getSpanY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanY) : {};
                 if (data.sizeX) out.sizeX = data.sizeX;
                 if (data.sizeY) out.sizeY = data.sizeY;
+                if (globalThis.__posKey) {
+                    if (data.getX) out.xKey = globalThis.__posKey(data.getX, "x");
+                    if (data.getY) out.yKey = globalThis.__posKey(data.getY, "y");
+                }
                 var serialized = JSON.stringify(out);
                 globalThis.__registeredContainers =
                     globalThis.__registeredContainers || [];
@@ -123,11 +118,6 @@ pub(super) fn host_api_script_register_container()
             if (c && typeof c === 'object') {
                 toPush = JSON.stringify(
                     globalThis.serializeContainer(c));
-                globalThis.__containerData =
-                    globalThis.__containerData || {};
-                var cid = (typeof c.id === 'object' && c.id !== null)
-                    ? c.id.value : c.id;
-                if (cid) globalThis.__containerData[cid] = c;
             }
             globalThis.__registeredContainers =
                 globalThis.__registeredContainers || [];

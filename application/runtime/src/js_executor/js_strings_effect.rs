@@ -35,13 +35,13 @@ const REOCCUR_JS: &str = r#"(function() {
 })()"#;
 
 pub fn call_effect_prepare(ctx: &Context) {
-    let _ = ctx.with(|c| c.eval::<(), _>(PREPARE_JS));
+    let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(PREPARE_JS));
 }
 
 pub fn call_effect_apply(ctx: &Context) {
-    let _ = ctx.with(|c| c.eval::<(), _>(APPLY_JS));
+    let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(APPLY_JS));
 }
 
 pub fn eval_reoccur_interval(ctx: &Context) -> f64 {
-    ctx.with(|c| c.eval::<f64, _>(REOCCUR_JS)).unwrap_or(-1.0)
+    crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<f64, _>(REOCCUR_JS)).unwrap_or(-1.0)
 }

@@ -47,8 +47,10 @@ pub fn handle_load(payload: &str, delimiter: &str) {
     let mut entity_rows: Vec<Vec<String>> = Vec::new();
     crate::module::process_module(&files, &mut entity_rows);
     crate::state::set_last_entity_rows(entity_rows.clone());
-    crate::state::persist_state(&file_rows, &entity_rows);
-    runtime_log!("debug: persist_state complete");
+    let dest = crate::state::persist_state(
+        "state.db", &file_rows, &entity_rows,
+    );
+    runtime_log!("debug: persist_state wrote {}", dest);
     debug_println!("{delimiter}OK{delimiter}");
     std::io::stdout().flush().ok();
 }

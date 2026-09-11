@@ -28,11 +28,12 @@ const PENDING_CTX_JS_P3: &str = r#",map:function(cb){
                 var prepared=null;
                 if(typeof target.prepare==='function')
                     prepared=target.prepare(globalThis.__context);
-                if(prepared&&typeof prepared==='object'&&prepared.value){
+                var hasVal=prepared&&typeof prepared==='object'&&'value' in prepared;
+                if(hasVal){
+                    cm=!!prepared.value;
                     if(typeof target.apply==='function')
                         target.apply(globalThis.__context,prepared);
                 }
-                cm=(prepared&&typeof prepared==='object'&&prepared.value)||false;
             }catch(e){}}
             var _s=[cm];
             return{ifTrue:function(cb){

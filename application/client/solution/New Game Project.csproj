@@ -50,6 +50,8 @@
     <Content Include="MainModule\frame_5.png" />
     <Content Include="MainModule\frame_5.png.import" />
     <Content Include="MainModule\hover.png" />
+    <Content Include="MainModule\marker.png" />
+    <Content Include="MainModule\marker.png.import" />
     <Content Include="Tests\Cases\**\*.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

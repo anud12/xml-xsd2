@@ -58,17 +58,31 @@ pub fn extract_from_source(source: &str) -> Result<Declarations> {
     let transformed = transform_source(&bundled);
     let host_script = get_host_api_script();
     ctx.with(|c| {
-        rquickjs::CaughtError::catch(&c, c.eval::<(), _>(host_script.clone()))
-            .map_err(|ce| ce.to_string())
-    }).map_err(|msg| anyhow!("host API eval failed: {}", msg))?;
+        c.eval::<(), _>(host_script.clone())
+    }).map_err(|e| anyhow!("host API eval failed: {}", e))?;
     ctx.with(|c| {
-        rquickjs::CaughtError::catch(&c, c.eval::<(), _>(transformed.clone()))
-            .map_err(|ce| ce.to_string())
-    }).map_err(|msg| anyhow!("module eval failed: {}", msg))?;
+        c.eval::<(), _>(transformed.clone())
+    }).map_err(|e| anyhow!("module eval failed: {}", e))?;
     let invoke_js = super::extract_invoke::get_invoke_js();
+    let wrapped = format!("try{{\n{}\n}}catch(e){{globalThis.__extractErr=String(e&&(e.message+' || '+e.stack)||e);}}", invoke_js);
     ctx.with(|c| {
-        rquickjs::CaughtError::catch(&c, c.eval::<(), _>(invoke_js.to_string()))
-            .map_err(|ce| ce.to_string())
-    }).map_err(|msg| anyhow!("invoke eval failed: {}", msg))?;
+        c.eval::<(), _>(wrapped)
+    }).map_err(|e| anyhow!("invoke eval failed: {}", e))?;
+    // Surface a module-entry throw (e.g. behavior validation rejecting a
+    // definition) as a log line so it reaches `dec.logs` and the C# test
+    // assertions, while the partial declarations already captured still parse.
+    let err = ctx.with(|c| c.eval::<Option<String>, _>("globalThis.__extractErr")).unwrap_or(None);
+    if let Some(e) = err {
+        if !e.is_empty() {
+            // Serialize the error to JSON so quoting is handled correctly, then
+            // push it into __logs so it reaches dec.logs.
+            let err_json = serde_json::to_string(&e).unwrap_or_else(|_| "\"\"".to_string());
+            let _ = ctx.with(|c| c.eval::<(), _>(
+                format!(
+                    "globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push({});",
+                    err_json
+                )));
+        }
+    }
     extract_declarations(&ctx)
 }

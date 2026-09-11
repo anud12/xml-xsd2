@@ -35,7 +35,7 @@ if (globalThis.__uiHost && globalThis.hostApi) {
   if (globalThis.__uiHost.field) hostApi.ui.field = globalThis.__uiHost.field;
   if (globalThis.__uiHost.image) hostApi.ui.image = globalThis.__uiHost.image;
   if (globalThis.__uiHost.canvas) hostApi.ui.canvas = globalThis.__uiHost.canvas;
-  if (globalThis.__uiHost.container) hostApi.ui.container = globalThis.__uiHost.container;
+  if (globalThis.__uiHost.entityList) hostApi.ui.entityList = globalThis.__uiHost.entityList;
   if (globalThis.__uiHost.setActor) hostApi.ui.setActor = globalThis.__uiHost.setActor;
 }
 if (globalThis.hostApi) {
