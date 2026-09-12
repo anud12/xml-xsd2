@@ -1,0 +1,83 @@
+export default (hostApi) => {
+  const { number, string } = hostApi.runtime;
+
+  hostApi.runtime.registerEntity({
+    id: "node-1",
+    numberMap: {
+      column: number.of(2),
+      row: number.of(1),
+    },
+  });
+
+  hostApi.runtime.registerContainer({
+    id: "grid-1",
+    entities: [
+      hostApi.runtime.string.of("node-1"),
+    ],
+    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
+    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
+    getSpanX: (entity) => number.of(1),
+    getSpanY: (entity) => number.of(1),
+    sizeX: {
+      value: number.of(10),
+      outOfBounds: "clamp",
+    },
+    sizeY: {
+      value: number.of(5),
+      outOfBounds: "clamp",
+    },
+  });
+
+  // The click handler forwards the cursor cell as the move destination.
+  // Unlike teleport, ctx.moveTo advances one cell per tick toward the target.
+  hostApi.runtime.registerAction({
+    name: string.of("move-to-cursor"),
+    apply: (ctx) => {
+      ctx.moveTo({
+        containerId: string.of("grid-1"),
+        entityId: string.of("node-1"),
+        x: ctx.args.x,
+        y: ctx.args.y,
+        speed: 1,
+      });
+    },
+  });
+
+  // Readouts bind node-1's column/row number values: the labels re-resolve
+  // from the entity store every frame, so they follow the move.
+  hostApi.ui.panel("col", {
+    width: 80,
+    height: 40,
+    x: 10,
+    y: 10,
+  }, [
+    hostApi.ui.field("col-value", { entity: "node-1", map: "number", name: "column", fallback: "0" }),
+  ]);
+
+  hostApi.ui.panel("row", {
+    width: 80,
+    height: 40,
+    x: 100,
+    y: 10,
+  }, [
+    hostApi.ui.field("row-value", { entity: "node-1", map: "number", name: "row", fallback: "0" }),
+  ]);
+
+  // The panel represents the grid-1 container: the cursor cell under a click
+  // resolves from the container's sizeX/sizeY, not the layout tracks.
+  hostApi.ui.panel("board", {
+    width: 300,
+    height: 300,
+    container: string.of("grid-1"),
+    layout: {
+      columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
+      rows: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
+    },
+    onClick: (ctx) => {
+      ctx.emitAction("move-to-cursor", {
+        x: ctx.cursor.getX(),
+        y: ctx.cursor.getY(),
+      });
+    },
+  }, [])
+}
