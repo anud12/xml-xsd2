@@ -91,6 +91,9 @@ export default (hostApi) => {
     height: 500,
     x: 10,
     y: 80,
+    border: {
+      texture: hostApi.ui.getSpritePNG("black_pixel.png")
+    },
     background: hostApi.ui.getAnimation(string.of("marker")),
     onClick: (ctx) => {
       hostApi.runtime.log("plane click col=" + ctx.cursor.getX() + " row=" + ctx.cursor.getY());
