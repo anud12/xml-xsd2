@@ -19,6 +19,16 @@ public partial class UiWindow : Control
     Vector2 _windowExplicitSize = Vector2.Zero; // (0,0) = size to content
     bool _isWindow;
 
+    // User-resizable (resizable: true option): drag edge/corner hit zones
+    // resize the window. `_userSize` / `_userPosition` are the drag-adjusted
+    // size/position; non-zero/has-value while they differ from the declared
+    // values, so per-frame repaints keep the user values instead of resetting
+    // to the declared ones (top/left edge drags also move the window).
+    bool _resizable;
+    Vector2 _userSize = Vector2.Zero;
+    bool _hasUserPosition;
+    Vector2 _userPosition = Vector2.Zero;
+
     // Parsed layout of this div/window (drives box vs grid).
     UiGrid.UiGridLayoutSpec _layoutSpec = new();
     // Interactivity.

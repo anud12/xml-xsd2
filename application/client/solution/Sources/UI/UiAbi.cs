@@ -165,6 +165,7 @@ public static class UiAbi
         public float CamY;
         public float CamZoom;
         public byte HasCamera;
+        public byte Resizable;
     }
 
     [StructLayout(LayoutKind.Sequential)]

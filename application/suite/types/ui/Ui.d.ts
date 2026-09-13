@@ -15,7 +15,7 @@ export type UiNodeId = string;
  * A panel background: an animation registration (with a name/duration/loop
  * resolved by the host) or a raw texture reference.
  */
-export type UiBackground = AnimationRegistrationArguments | string;
+export type UiBackground = AnimationRegistrationArguments | SpriteResource;
 
 /**
  * Grid layout tracks. Modules use either weighted columns or explicit scale
@@ -45,10 +45,17 @@ export type UiPanelOptions = {
   align?: "top" | "top-left" | "top-right" | "center" | "center-left" | "center-right" | "bottom" | "bottom-left" | "bottom-right";
   background?: UiBackground;
   border?: { texture?: UiBackground; thickness?: number; width?: number; height?: number };
-  onHover?: { texture?: UiBackground; background?: UiBackground; thickness?: number; emitAction?: string; stopPropagation?: boolean };
-  onClick?: (ctx: UiClickContext) => void;
-  container?: string | any;
-  layout?: UiLayout;
+   onHover?: { texture?: UiBackground; background?: UiBackground; thickness?: number; emitAction?: string; stopPropagation?: boolean };
+   onClick?: (ctx: UiClickContext) => void;
+   container?: string | any;
+   layout?: UiLayout;
+   /**
+    * True when the user can drag the window's edges/corners to resize it.
+    * The bottom and right edges (and the bottom-right corner) are the active
+    * hit zones; the top-left corner stays fixed. Only honored for windows
+    * (explicitly sized panels).
+    */
+   resizable?: boolean;
   [key: string]: unknown;
 };
 

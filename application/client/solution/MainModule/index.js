@@ -39,6 +39,7 @@ export default (hostApi) => {
   hostApi.runtime.registerAction({
     name: string.of("move-to-cursor"),
     apply: (ctx) => {
+      
       ctx.moveTo({
         containerId: string.of("grid-1"),
         entityId: string.of("node-1"),
@@ -69,16 +70,22 @@ export default (hostApi) => {
     hostApi.ui.field("row-value", { entity: "node-1", map: "number", name: "row", fallback: "0" }),
   ]);
 
+  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("bar-loop"), {
+    frames: [
+      {sprite: hostApi.ui.getSpritePNG("frame_2.png")},
+      {sprite: hostApi.ui.getSpritePNG("frame_3.png")},
+      {sprite: hostApi.ui.getSpritePNG("frame_4.png")},
+      {sprite: hostApi.ui.getSpritePNG("frame_5.png")},
+    ],
+    duration: hostApi.runtime.number.of(5),
+    loop: true,
+  });
+  
   hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
       frames: [
         {sprite: hostApi.ui.getSpritePNG("frame_1.png")},
-        {sprite: hostApi.ui.getSpritePNG("frame_2.png")},
-        {sprite: hostApi.ui.getSpritePNG("frame_3.png")},
-        {sprite: hostApi.ui.getSpritePNG("frame_4.png")},
-        {sprite: hostApi.ui.getSpritePNG("frame_5.png")},
       ],
-      duration: hostApi.runtime.number.of(5),
-      loop: true,
+      duration: hostApi.runtime.number.of(1),
     });
   
 
@@ -91,6 +98,7 @@ export default (hostApi) => {
     height: 500,
     x: 10,
     y: 80,
+    resizable: true,
     border: {
       texture: hostApi.ui.getSpritePNG("black_pixel.png")
     },
