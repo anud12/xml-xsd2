@@ -337,13 +337,21 @@ public partial class UiWindow
         if (_onClickContainerId != null)
         {
             var container = ContainerInterop.GetContainerById(_onClickContainerId);
+            // The view's items are laid out by the runtime's position pass from
+            // the view's declared (viewWidth/viewHeight) size — frozen for the
+            // module's lifetime and independent of any user resize. Resolve the
+            // click against that same declared extent (not the live Size) so a
+            // click lands on the cell whose marker sits under the pointer.
+            var view = _windowExplicitSize != Godot.Vector2.Zero
+                ? _windowExplicitSize
+                : Size;
             if (container.SizeX is { } sx
                 && container.SizeY is { } sy
                 && sx.Value > 0 && sy.Value > 0
-                && Size.X > 0 && Size.Y > 0)
+                && view.X > 0 && view.Y > 0)
             {
-                int col = (int)((localPos.X / Size.X) * sx.Value);
-                int row = (int)((localPos.Y / Size.Y) * sy.Value);
+                int col = (int)((localPos.X / view.X) * sx.Value);
+                int row = (int)((localPos.Y / view.Y) * sy.Value);
                 col = Math.Clamp(col, 0, (int)sx.Value - 1);
                 row = Math.Clamp(row, 0, (int)sy.Value - 1);
                 return (col, row);
