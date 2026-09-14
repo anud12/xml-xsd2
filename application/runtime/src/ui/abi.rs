@@ -177,6 +177,7 @@ pub struct UiNodeOptions {
     pub cam_zoom: f32,
     pub has_camera: u8,
     pub resizable: u8,
+    pub resizable_keep_aspect: u8,
 }
 
 #[repr(C)]
@@ -635,6 +636,7 @@ fn empty_options() -> UiNodeOptions {
         cam_zoom: 0.0,
         has_camera: 0,
         resizable: 0,
+        resizable_keep_aspect: 0,
     }
 }
 
@@ -995,7 +997,19 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
         o.cam_zoom = opt_f32(c, "zoom");
         o.has_camera = 1;
     }
-    o.resizable = opt_bool(opts, "resizable") as u8;
+    // resizable: a bare boolean, or an object { keepAspectRatio }. Both enable
+    // resize; the object form additionally locks the aspect ratio.
+    match opts.get("resizable") {
+        Some(Value::Bool(b)) => {
+            o.resizable = *b as u8;
+        }
+        Some(v) if v.is_object() => {
+            o.resizable = 1;
+            let ka = v.get("keepAspectRatio").and_then(|b| b.as_bool()).unwrap_or(false);
+            o.resizable_keep_aspect = ka as u8;
+        }
+        _ => {}
+    }
     o
 }
 

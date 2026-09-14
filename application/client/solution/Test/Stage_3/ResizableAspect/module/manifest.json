@@ -1,0 +1,6 @@
+{
+  "id": "resizable-aspect-test",
+  "version": "1.0.0",
+  "name": "Resizable Aspect Test Module",
+  "entry": "index.js"
+}

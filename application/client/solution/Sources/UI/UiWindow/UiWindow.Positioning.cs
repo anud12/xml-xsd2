@@ -108,10 +108,22 @@ public partial class UiWindow
         _windowExplicitSize = new Vector2(w, h);
         // resizable: true — the user can drag edges/corners to resize the
         // window. Only meaningful for windows (explicitly sized panels).
-        _resizable = opts.ValueKind == JsonValueKind.Object
-            && opts.TryGetProperty("resizable", out var rz)
-            && (rz.ValueKind == JsonValueKind.True
-                || (rz.ValueKind == JsonValueKind.Number && rz.GetDouble() != 0));
+        bool resizable = false;
+        if (opts.ValueKind == JsonValueKind.Object && opts.TryGetProperty("resizable", out var rz))
+        {
+            if (rz.ValueKind == JsonValueKind.True)
+                resizable = true;
+            else if (rz.ValueKind == JsonValueKind.Number)
+                resizable = rz.GetDouble() != 0;
+            else if (rz.ValueKind == JsonValueKind.Object)
+            {
+                resizable = true;
+                _resizableKeepAspect = rz.TryGetProperty("keepAspectRatio", out var ka)
+                    && (ka.ValueKind == JsonValueKind.True
+                        || (ka.ValueKind == JsonValueKind.Number && ka.GetDouble() != 0));
+            }
+        }
+        _resizable = resizable;
         if (_resizable)
             WireResizeInput();
 

@@ -195,23 +195,28 @@ public partial class UiWindow
                 var delta = mm.GlobalPosition - _resizeStartMouse;
                 var newSize = _resizeStartSize;
                 var newPos = _resizeStartPos;
-                if ((_resizeEdge & EdgeRight) != 0)
-                    newSize.X = Math.Max(1f, _resizeStartSize.X + delta.X);
-                if ((_resizeEdge & EdgeLeft) != 0)
+                if (_resizableKeepAspect)
+                    KeepAspectResize(delta, _resizeEdge, ref newSize, ref newPos);
+                else
                 {
-                    var w = _resizeStartSize.X - delta.X;
-                    if (w < 1f) w = 1f;
-                    newPos.X = _resizeStartPos.X + (_resizeStartSize.X - w);
-                    newSize.X = w;
-                }
-                if ((_resizeEdge & EdgeBottom) != 0)
-                    newSize.Y = Math.Max(1f, _resizeStartSize.Y + delta.Y);
-                if ((_resizeEdge & EdgeTop) != 0)
-                {
-                    var h = _resizeStartSize.Y - delta.Y;
-                    if (h < 1f) h = 1f;
-                    newPos.Y = _resizeStartPos.Y + (_resizeStartSize.Y - h);
-                    newSize.Y = h;
+                    if ((_resizeEdge & EdgeRight) != 0)
+                        newSize.X = Math.Max(1f, _resizeStartSize.X + delta.X);
+                    if ((_resizeEdge & EdgeLeft) != 0)
+                    {
+                        var w = _resizeStartSize.X - delta.X;
+                        if (w < 1f) w = 1f;
+                        newPos.X = _resizeStartPos.X + (_resizeStartSize.X - w);
+                        newSize.X = w;
+                    }
+                    if ((_resizeEdge & EdgeBottom) != 0)
+                        newSize.Y = Math.Max(1f, _resizeStartSize.Y + delta.Y);
+                    if ((_resizeEdge & EdgeTop) != 0)
+                    {
+                        var h = _resizeStartSize.Y - delta.Y;
+                        if (h < 1f) h = 1f;
+                        newPos.Y = _resizeStartPos.Y + (_resizeStartSize.Y - h);
+                        newSize.Y = h;
+                    }
                 }
                 Position = newPos;
                 Size = newSize;
@@ -231,6 +236,55 @@ public partial class UiWindow
                 ApplyResizeCursor(ResizeEdgeAt(mm.Position));
             }
         }
+    }
+
+    /// Aspect-ratio-preserving resize: the width:height ratio is locked to the
+    /// declared starting size. The dominant axis delta (the one that produces
+    /// the larger proportional change) drives the scale, so the opposite edge
+    /// lags by a sub-pixel amount that is rounded to zero — the window stays
+    /// proportional to within a pixel.
+    void KeepAspectResize(
+        Godot.Vector2 delta, int edge,
+        ref Godot.Vector2 newSize, ref Godot.Vector2 newPos)
+    {
+        var startAspect = _resizeStartSize.X / Mathf.Max(1f, _resizeStartSize.Y);
+
+        // Candidate scale factors from each active edge. The dominant edge
+        // (largest |proportional delta|) wins; the other axis follows.
+        float scale = 1f;
+        float dominant = 0f;
+        if ((edge & EdgeRight) != 0)
+        {
+            var s = (_resizeStartSize.X + delta.X) / _resizeStartSize.X;
+            if (Math.Abs(s - 1f) > Math.Abs(dominant)) { dominant = s - 1f; scale = s; }
+        }
+        if ((edge & EdgeLeft) != 0)
+        {
+            var w = _resizeStartSize.X - delta.X;
+            var s = w / _resizeStartSize.X;
+            if (Math.Abs(s - 1f) > Math.Abs(dominant)) { dominant = s - 1f; scale = s; }
+        }
+        if ((edge & EdgeBottom) != 0)
+        {
+            var s = (_resizeStartSize.Y + delta.Y) / _resizeStartSize.Y;
+            if (Math.Abs(s - 1f) > Math.Abs(dominant)) { dominant = s - 1f; scale = s; }
+        }
+        if ((edge & EdgeTop) != 0)
+        {
+            var h = _resizeStartSize.Y - delta.Y;
+            var s = h / _resizeStartSize.Y;
+            if (Math.Abs(s - 1f) > Math.Abs(dominant)) { dominant = s - 1f; scale = s; }
+        }
+
+        var nw = Math.Max(1f, _resizeStartSize.X * scale);
+        var nh = Math.Max(1f, nw / startAspect);
+        newSize = new Godot.Vector2(nw, nh);
+
+        // Shift position so the opposite edge/corner stays put.
+        if ((edge & EdgeLeft) != 0)
+            newPos.X = _resizeStartPos.X + (_resizeStartSize.X - nw);
+        if ((edge & EdgeTop) != 0)
+            newPos.Y = _resizeStartPos.Y + (_resizeStartSize.Y - nh);
     }
 
     /// Maps the active edge bitmask to the matching Godot resize cursor

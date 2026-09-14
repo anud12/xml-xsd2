@@ -151,7 +151,10 @@ public static class UiSlab
         }
         if (o.Resizable != 0)
         {
-            Add("resizable", "true");
+            if (o.ResizableKeepAspect != 0)
+                Add("resizable", "{\"keepAspectRatio\":true}");
+            else
+                Add("resizable", "true");
         }
         if (first) return "{}";
         return "{" + sb + "}";

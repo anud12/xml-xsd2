@@ -98,7 +98,9 @@ export default (hostApi) => {
     height: 500,
     x: 10,
     y: 80,
-    resizable: true,
+    resizable: {
+      keepAspectRatio: true
+    },
     border: {
       texture: hostApi.ui.getSpritePNG("black_pixel.png")
     },

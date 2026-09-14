@@ -49,13 +49,14 @@ export type UiPanelOptions = {
    onClick?: (ctx: UiClickContext) => void;
    container?: string | any;
    layout?: UiLayout;
-   /**
-    * True when the user can drag the window's edges/corners to resize it.
-    * The bottom and right edges (and the bottom-right corner) are the active
-    * hit zones; the top-left corner stays fixed. Only honored for windows
-    * (explicitly sized panels).
-    */
-   resizable?: boolean;
+    /**
+     * Enables user edge/corner drag-resize. A bare `true` allows free resizing
+     * on all four edges and corners. An object form accepts options:
+     * `keepAspectRatio` locks the width:height ratio to the declared size, so
+     * a drag grows/shrinks both axes in proportion (the dominant edge/corner
+     * wins). Only honored for windows (explicitly sized panels).
+     */
+    resizable?: boolean | { keepAspectRatio?: boolean };
   [key: string]: unknown;
 };
 

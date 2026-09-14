@@ -25,6 +25,7 @@ public partial class UiWindow : Control
     // values, so per-frame repaints keep the user values instead of resetting
     // to the declared ones (top/left edge drags also move the window).
     bool _resizable;
+    bool _resizableKeepAspect;
     Vector2 _userSize = Vector2.Zero;
     bool _hasUserPosition;
     Vector2 _userPosition = Vector2.Zero;
