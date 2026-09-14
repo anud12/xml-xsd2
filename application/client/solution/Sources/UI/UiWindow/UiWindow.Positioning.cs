@@ -44,14 +44,19 @@ public partial class UiWindow
             ? _windowExplicitSize
             : SizeToContent();
         if (childSize == Vector2.Zero) childSize = new Vector2(100f, 100f);
-        Position = _windowHasXY
-            ? new Vector2(
-                parentRect.Position.X + _windowOffset.X,
-                parentRect.Position.Y + _windowOffset.Y)
-            : new Vector2(
-                parentRect.Position.X + parentRect.Size.X * _windowAnchorFrac.X,
-                parentRect.Position.Y + parentRect.Size.Y * _windowAnchorFrac.Y);
-        if (_windowExplicitSize != Vector2.Zero)
+        if (_hasUserPosition)
+            Position = _userPosition;
+        else
+            Position = _windowHasXY
+                ? new Vector2(
+                    parentRect.Position.X + _windowOffset.X,
+                    parentRect.Position.Y + _windowOffset.Y)
+                : new Vector2(
+                    parentRect.Position.X + parentRect.Size.X * _windowAnchorFrac.X,
+                    parentRect.Position.Y + parentRect.Size.Y * _windowAnchorFrac.Y);
+        if (_userSize != Vector2.Zero)
+            Size = _userSize;
+        else if (_windowExplicitSize != Vector2.Zero)
             Size = _windowExplicitSize;
     }
 
@@ -101,12 +106,34 @@ public partial class UiWindow
         TryNum(opts, "width", out var w);
         TryNum(opts, "height", out var h);
         _windowExplicitSize = new Vector2(w, h);
+        // resizable: true — the user can drag edges/corners to resize the
+        // window. Only meaningful for windows (explicitly sized panels).
+        bool resizable = false;
+        if (opts.ValueKind == JsonValueKind.Object && opts.TryGetProperty("resizable", out var rz))
+        {
+            if (rz.ValueKind == JsonValueKind.True)
+                resizable = true;
+            else if (rz.ValueKind == JsonValueKind.Number)
+                resizable = rz.GetDouble() != 0;
+            else if (rz.ValueKind == JsonValueKind.Object)
+            {
+                resizable = true;
+                _resizableKeepAspect = rz.TryGetProperty("keepAspectRatio", out var ka)
+                    && (ka.ValueKind == JsonValueKind.True
+                        || (ka.ValueKind == JsonValueKind.Number && ka.GetDouble() != 0));
+            }
+        }
+        _resizable = resizable;
+        if (_resizable)
+            WireResizeInput();
 
         _layoutSpec = UiGrid.UiGridLayoutSpec.Parse(opts);
         EnsureFlowContainer();
         if (_windowExplicitSize != Vector2.Zero)
         {
-            CustomMinimumSize = _windowExplicitSize;
+            // A user resize overrides the declared minimum so a shrunken size
+            // is not clamped back up to the declared explicit size each frame.
+            CustomMinimumSize = _userSize != Vector2.Zero ? _userSize : _windowExplicitSize;
             FixedFlowSize = true;
         }
         else

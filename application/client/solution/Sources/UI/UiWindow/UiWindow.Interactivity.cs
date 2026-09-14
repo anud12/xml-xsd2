@@ -20,6 +20,17 @@ public partial class UiWindow
     // Legacy onClick: the handler is a JS function kept by the sim context;
     // the node's options carry the "__jsHandler" marker instead of a plan.
     bool _onClickJs;
+    // Resize drag state (resizable windows).
+    bool _resizeWired;
+    // Active resize edge flags (bitmask) during a drag: 1 = left, 2 = right,
+    // 4 = top, 8 = bottom. A corner sets two bits.
+    int _resizeEdge;
+    Godot.Vector2 _resizeStartSize = Godot.Vector2.Zero;
+    Godot.Vector2 _resizeStartPos = Godot.Vector2.Zero;
+    Godot.Vector2 _resizeStartMouse = Godot.Vector2.Zero;
+    bool _resizing;
+    const int EdgeLeft = 1, EdgeRight = 2, EdgeTop = 4, EdgeBottom = 8;
+    const float ResizeHitZone = 6f; // px edge/corner hit thickness
 
     /// onClick: left-click press emits the named action. onHover: while
     /// hovered the node's background is swapped (the hover animation's first
@@ -130,6 +141,199 @@ public partial class UiWindow
         }
     }
 
+    /// Wires resize drag input for a resizable window. The window consumes
+    /// mouse input (MouseFilter.Stop) so edge/corner hit zones receive
+    /// GuiInput even when the window also has an onClick.
+    public void WireResizeInput()
+    {
+        if (_resizeWired) return;
+        _resizeWired = true;
+        MouseFilter = MouseFilterEnum.Stop;
+        GuiInput += OnResizeGuiInput;
+    }
+
+    /// Resize drag handler: on left-press inside an edge/corner hit zone, begin
+    /// resizing; while resizing, follow the mouse to grow/shrink the window on
+    /// the active edge(s) (shifting position when the top/left edge moves, so
+    /// the opposite edge stays put); on release, persist the new size. All four
+    /// edges and corners are active.
+    public bool IsResizable => _resizable;
+    public bool IsResizing => _resizing;
+
+    void OnResizeGuiInput(InputEvent evt)
+    {
+        if (!_resizable) return;
+        if (evt is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
+        {
+            if (mb.Pressed)
+            {
+                var edge = ResizeEdgeAt(mb.Position);
+                if (edge != 0)
+                {
+                    _resizing = true;
+                    _resizeEdge = edge;
+                    _resizeStartSize = Size;
+                    _resizeStartPos = Position;
+                    _resizeStartMouse = mb.GlobalPosition;
+                    ApplyResizeCursor(_resizeEdge);
+                    GetViewport().SetInputAsHandled();
+                }
+            }
+            else if (_resizing)
+            {
+                _resizing = false;
+                _resizeEdge = 0;
+                // Restore to whatever edge the cursor now sits on (may be 0).
+                ApplyResizeCursor(ResizeEdgeAt(mb.Position));
+                GetViewport().SetInputAsHandled();
+            }
+        }
+        else if (evt is InputEventMouseMotion mm)
+        {
+            if (_resizing)
+            {
+                var delta = mm.GlobalPosition - _resizeStartMouse;
+                var newSize = _resizeStartSize;
+                var newPos = _resizeStartPos;
+                if (_resizableKeepAspect)
+                    KeepAspectResize(delta, _resizeEdge, ref newSize, ref newPos);
+                else
+                {
+                    if ((_resizeEdge & EdgeRight) != 0)
+                        newSize.X = Math.Max(1f, _resizeStartSize.X + delta.X);
+                    if ((_resizeEdge & EdgeLeft) != 0)
+                    {
+                        var w = _resizeStartSize.X - delta.X;
+                        if (w < 1f) w = 1f;
+                        newPos.X = _resizeStartPos.X + (_resizeStartSize.X - w);
+                        newSize.X = w;
+                    }
+                    if ((_resizeEdge & EdgeBottom) != 0)
+                        newSize.Y = Math.Max(1f, _resizeStartSize.Y + delta.Y);
+                    if ((_resizeEdge & EdgeTop) != 0)
+                    {
+                        var h = _resizeStartSize.Y - delta.Y;
+                        if (h < 1f) h = 1f;
+                        newPos.Y = _resizeStartPos.Y + (_resizeStartSize.Y - h);
+                        newSize.Y = h;
+                    }
+                }
+                Position = newPos;
+                Size = newSize;
+                _userSize = newSize;
+                if (newPos != _resizeStartPos)
+                {
+                    _hasUserPosition = true;
+                    _userPosition = newPos;
+                }
+                CustomMinimumSize = newSize;
+                GetViewport().SetInputAsHandled();
+            }
+            else
+            {
+                // Hover feedback: show the resize cursor over an edge/corner
+                // hit zone, restore the default arrow elsewhere.
+                ApplyResizeCursor(ResizeEdgeAt(mm.Position));
+            }
+        }
+    }
+
+    /// Aspect-ratio-preserving resize: the width:height ratio is locked to the
+    /// declared starting size. The dominant axis delta (the one that produces
+    /// the larger proportional change) drives the scale, so the opposite edge
+    /// lags by a sub-pixel amount that is rounded to zero — the window stays
+    /// proportional to within a pixel.
+    void KeepAspectResize(
+        Godot.Vector2 delta, int edge,
+        ref Godot.Vector2 newSize, ref Godot.Vector2 newPos)
+    {
+        var startAspect = _resizeStartSize.X / Mathf.Max(1f, _resizeStartSize.Y);
+
+        // Candidate scale factors from each active edge. The dominant edge
+        // (largest |proportional delta|) wins; the other axis follows.
+        float scale = 1f;
+        float dominant = 0f;
+        if ((edge & EdgeRight) != 0)
+        {
+            var s = (_resizeStartSize.X + delta.X) / _resizeStartSize.X;
+            if (Math.Abs(s - 1f) > Math.Abs(dominant)) { dominant = s - 1f; scale = s; }
+        }
+        if ((edge & EdgeLeft) != 0)
+        {
+            var w = _resizeStartSize.X - delta.X;
+            var s = w / _resizeStartSize.X;
+            if (Math.Abs(s - 1f) > Math.Abs(dominant)) { dominant = s - 1f; scale = s; }
+        }
+        if ((edge & EdgeBottom) != 0)
+        {
+            var s = (_resizeStartSize.Y + delta.Y) / _resizeStartSize.Y;
+            if (Math.Abs(s - 1f) > Math.Abs(dominant)) { dominant = s - 1f; scale = s; }
+        }
+        if ((edge & EdgeTop) != 0)
+        {
+            var h = _resizeStartSize.Y - delta.Y;
+            var s = h / _resizeStartSize.Y;
+            if (Math.Abs(s - 1f) > Math.Abs(dominant)) { dominant = s - 1f; scale = s; }
+        }
+
+        var nw = Math.Max(1f, _resizeStartSize.X * scale);
+        var nh = Math.Max(1f, nw / startAspect);
+        newSize = new Godot.Vector2(nw, nh);
+
+        // Shift position so the opposite edge/corner stays put.
+        if ((edge & EdgeLeft) != 0)
+            newPos.X = _resizeStartPos.X + (_resizeStartSize.X - nw);
+        if ((edge & EdgeTop) != 0)
+            newPos.Y = _resizeStartPos.Y + (_resizeStartSize.Y - nh);
+    }
+
+    /// Maps the active edge bitmask to the matching Godot resize cursor
+    /// (arrow when 0 = not over a hit zone) and applies it to the viewport.
+    Godot.Control.CursorShape CursorShapeForEdge(int edge)
+    {
+        var left = (edge & EdgeLeft) != 0;
+        var right = (edge & EdgeRight) != 0;
+        var top = (edge & EdgeTop) != 0;
+        var bottom = (edge & EdgeBottom) != 0;
+        if (left && right) return Godot.Control.CursorShape.Hsize;
+        if (top && bottom) return Godot.Control.CursorShape.Vsize;
+        // Diagonals: the resize arrow runs from the top-left to the bottom-
+        // right (NW-SE) for the top-left / bottom-right corners, and from the
+        // top-right to the bottom-left (NE-SW) for the top-right / bottom-left
+        // corners. Godot names these by the first two letters of the diagonal
+        // direction.
+        if (top && left) return Godot.Control.CursorShape.Fdiagsize;
+        if (bottom && right) return Godot.Control.CursorShape.Fdiagsize;
+        if (top && right) return Godot.Control.CursorShape.Bdiagsize;
+        if (bottom && left) return Godot.Control.CursorShape.Bdiagsize;
+        if (left || right) return Godot.Control.CursorShape.Hsize;
+        if (top || bottom) return Godot.Control.CursorShape.Vsize;
+        return Godot.Control.CursorShape.Arrow;
+    }
+
+    void ApplyResizeCursor(int edge)
+    {
+        var shape = CursorShapeForEdge(edge);
+        // The window's own control cursor: Godot applies the hovered control's
+        // shape to the display server each frame, so this is authoritative for
+        // the area the window covers.
+        MouseDefaultCursorShape = shape;
+    }
+
+    /// The active resize edge bitmask at a local point: left/right/top/bottom
+    /// edges and their corners; 0 when not over any hit zone.
+    int ResizeEdgeAt(Godot.Vector2 local)
+    {
+        var w = Size.X;
+        var h = Size.Y;
+        int edge = 0;
+        if (local.X <= ResizeHitZone) edge |= EdgeLeft;
+        if (local.X >= w - ResizeHitZone) edge |= EdgeRight;
+        if (local.Y <= ResizeHitZone) edge |= EdgeTop;
+        if (local.Y >= h - ResizeHitZone) edge |= EdgeBottom;
+        return edge;
+    }
+
     /// Resolves the click plan captured at panel-definition time: each
     /// cursor symbol in a step's args is replaced by the local grid cell
     /// (col, row) of the click; non-grid panels resolve to (0, 0). The
@@ -187,13 +391,21 @@ public partial class UiWindow
         if (_onClickContainerId != null)
         {
             var container = ContainerInterop.GetContainerById(_onClickContainerId);
+            // The view's items are laid out by the runtime's position pass from
+            // the view's declared (viewWidth/viewHeight) size — frozen for the
+            // module's lifetime and independent of any user resize. Resolve the
+            // click against that same declared extent (not the live Size) so a
+            // click lands on the cell whose marker sits under the pointer.
+            var view = _windowExplicitSize != Godot.Vector2.Zero
+                ? _windowExplicitSize
+                : Size;
             if (container.SizeX is { } sx
                 && container.SizeY is { } sy
                 && sx.Value > 0 && sy.Value > 0
-                && Size.X > 0 && Size.Y > 0)
+                && view.X > 0 && view.Y > 0)
             {
-                int col = (int)((localPos.X / Size.X) * sx.Value);
-                int row = (int)((localPos.Y / Size.Y) * sy.Value);
+                int col = (int)((localPos.X / view.X) * sx.Value);
+                int row = (int)((localPos.Y / view.Y) * sy.Value);
                 col = Math.Clamp(col, 0, (int)sx.Value - 1);
                 row = Math.Clamp(row, 0, (int)sy.Value - 1);
                 return (col, row);
@@ -235,9 +447,21 @@ public partial class UiWindow
         Resized += () => _hoverOutline?.Resize();
     }
 
-    void OnMouseEntered() => NotifyHoverEnter();
+    void OnMouseEntered()
+    {
+        NotifyHoverEnter();
+        // A resizable window restores the default arrow on entry (the cursor
+        // switches to the resize shape only once over an edge hit zone).
+        if (_resizable) ApplyResizeCursor(0);
+    }
 
-    void OnMouseExited() => NotifyHoverExit();
+    void OnMouseExited()
+    {
+        NotifyHoverExit();
+        // Leaving the window clears any resize cursor we applied so it does
+        // not stick when the mouse is now over a non-resizable area.
+        if (_resizable && !_resizing) ApplyResizeCursor(0);
+    }
 
     /// True when this window owns a hover (an emit action, a hover
     /// background, or a hover outline) — used by <see

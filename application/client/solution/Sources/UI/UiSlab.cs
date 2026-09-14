@@ -147,7 +147,14 @@ public static class UiSlab
                 cam.Append("\"zoom\":").Append(Num(o.CamZoom));
             }
             cam.Append('}');
-            if (cam.Length > 2) Add("camera", cam.ToString());
+                if (cam.Length > 2) Add("camera", cam.ToString());
+        }
+        if (o.Resizable != 0)
+        {
+            if (o.ResizableKeepAspect != 0)
+                Add("resizable", "{\"keepAspectRatio\":true}");
+            else
+                Add("resizable", "true");
         }
         if (first) return "{}";
         return "{" + sb + "}";
