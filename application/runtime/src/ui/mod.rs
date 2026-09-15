@@ -312,7 +312,7 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
     // A view (Vec, not a map) so the immutable borrow ends before the
     // mutable item writes below. The latest row for an id wins.
     let mut geom: Vec<
-        (String, Option<f64>, Option<f64>, serde_json::Map<String, serde_json::Value>),
+        (String, Option<f64>, Option<f64>, bool, serde_json::Map<String, serde_json::Value>),
     > = Vec::new();
     for json_str in containers.iter() {
         let Ok(v) = serde_json::from_str::<serde_json::Value>(json_str) else {
@@ -323,16 +323,21 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
         };
         let size_x = v.get("sizeX").and_then(|s| s.get("value")).and_then(|n| n.as_f64());
         let size_y = v.get("sizeY").and_then(|s| s.get("value")).and_then(|n| n.as_f64());
-        let prev = geom.iter().find(|g| g.0 == id).map(|g| g.3.clone());
+        // `alignment` (optional) selects how an entity's marker is placed over
+        // its span: "center" centers the marker on the span midpoint, while
+        // the default "top-left" pins the marker's top-left corner to (x, y).
+        let center = v.get("alignment").and_then(|a| a.as_str()) == Some("center");
+        let prev = geom.iter().find(|g| g.0 == id).map(|g| g.4.clone());
         let per_entity = merge_position_maps(&prev, &v);
         geom.retain(|g| g.0 != id);
-        geom.push((id.to_string(), size_x, size_y, per_entity));
+        geom.push((id.to_string(), size_x, size_y, center, per_entity));
     }
 
     // First pass (immutable): collect each view's (container id, cell size,
-    // item child ids). The cell size is precomputed so the second pass owns
-    // all the data it needs and never borrows `geom` or the snapshot.
-    let mut views: Vec<(String, f64, f64, Vec<String>)> = Vec::new();
+    // center flag, item child ids). The cell size is precomputed so the
+    // second pass owns all the data it needs and never borrows `geom` or the
+    // snapshot.
+    let mut views: Vec<(String, f64, f64, bool, Vec<String>)> = Vec::new();
     for node in snapshot.iter() {
         let UiNode::Window { options, children, .. } = node else {
             continue;
@@ -351,14 +356,15 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
         };
         // The container must declare its extent; a view without bounds cannot
         // derive a cell size.
-        let (sx, sy) = match geom.iter().find(|g| g.0 == cid) {
-            Some((_, Some(a), Some(b), _)) => (*a, *b),
+        let (sx, sy, center) = match geom.iter().find(|g| g.0 == cid) {
+            Some((_, Some(a), Some(b), c, _)) => (*a, *b, *c),
             _ => continue,
         };
         views.push((
             cid.to_string(),
             view_w / sx,
             view_h / sy,
+            center,
             children.clone(),
         ));
     }
@@ -370,11 +376,11 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
         index.insert(node.id().to_string(), i);
     }
 
-    for (cid, cell_w, cell_h, children) in views {
+    for (cid, cell_w, cell_h, center, children) in views {
         let Some(per_entity) = geom
             .iter()
             .find(|g| g.0 == cid)
-            .map(|g| g.3.clone())
+            .map(|g| g.4.clone())
         else {
             continue;
         };
@@ -398,10 +404,19 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
                 continue;
             };
             let get = |key: &str| ent_pos.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0);
-            let x = get("x") * cell_w;
-            let y = get("y") * cell_h;
             let span_x = get("spanX").max(1.0) * cell_w;
             let span_y = get("spanY").max(1.0) * cell_h;
+            // With `alignment: "center"`, the marker is centered on the span
+            // midpoint: the declared (x, y) is the top-left, so shift the
+            // marker by half its span. Otherwise (the "top-left" default), the
+            // marker pins its top-left corner to (x, y).
+            let (ox, oy) = if center {
+                (span_x / 2.0, span_y / 2.0)
+            } else {
+                (0.0, 0.0)
+            };
+            let x = get("x") * cell_w - ox;
+            let y = get("y") * cell_h - oy;
             item_obj.insert("x".into(), num_json(x));
             item_obj.insert("y".into(), num_json(y));
             item_obj.insert("width".into(), num_json(span_x));

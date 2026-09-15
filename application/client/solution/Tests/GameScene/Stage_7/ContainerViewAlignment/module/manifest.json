@@ -1,0 +1,6 @@
+{
+  "id": "container-view-alignment-test",
+  "version": "1.0.0",
+  "name": "ContainerViewAlignment Test Module",
+  "entry": "index.js"
+}

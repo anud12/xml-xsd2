@@ -21,9 +21,17 @@ export type ContainerCreationArguments = {
   sizeX?: { value: NumberExpression, outOfBounds: OutOfBoundsRule }
   /** Optional size bounds along the y-axis */
   sizeY?: { value: NumberExpression, outOfBounds: OutOfBoundsRule }
-  
+  /**
+   * How each entity's marker is placed over its span.
+   * - `"center"`: center the marker on the span midpoint.
+   * - `"top-left"` (default): pin the marker's top-left corner to (x, y).
+   */
+  alignment?: ContainerAlignment
+
   entities: Array<StringExpression>
 }
+
+export type ContainerAlignment = "center" | "top-left"
 
 export type ContainerExpressionApi = {
   /** Create an empty container builder */
