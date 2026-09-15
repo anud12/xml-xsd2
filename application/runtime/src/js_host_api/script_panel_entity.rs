@@ -96,6 +96,7 @@ pub(super) fn host_api_script_set_container()
                 if (data.getSpanY) out.getSpanY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanY) : {};
                 if (data.sizeX) out.sizeX = data.sizeX;
                 if (data.sizeY) out.sizeY = data.sizeY;
+                if (data.alignment !== undefined) out.alignment = data.alignment;
                 if (globalThis.__posKey) {
                     if (data.getX) out.xKey = globalThis.__posKey(data.getX, "x");
                     if (data.getY) out.yKey = globalThis.__posKey(data.getY, "y");

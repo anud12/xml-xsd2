@@ -1,0 +1,63 @@
+[gd_scene format=3 uid="uid://b1settings0001"]
+
+[ext_resource type="Script" path="res://Scenes/Settings/Settings.cs" id="1_settings"]
+
+[node name="Settings" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_settings")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = 200.0
+offset_top = -200.0
+offset_right = -200.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Content"]
+layout_mode = 2
+text = "Settings"
+
+[node name="WorkInProgress" type="Label" parent="Content"]
+layout_mode = 2
+text = "(work in progress)"
+
+[node name="ResolutionRow" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ResolutionLabel" type="Label" parent="Content/ResolutionRow"]
+layout_mode = 2
+text = "Resolution:"
+
+[node name="ResolutionOption" type="OptionButton" parent="Content/ResolutionRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+
+[node name="BorderlessRow" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BorderlessLabel" type="Label" parent="Content/BorderlessRow"]
+layout_mode = 2
+text = "Borderless:"
+
+[node name="BorderlessOption" type="CheckButton" parent="Content/BorderlessRow"]
+layout_mode = 2
+text = "Borderless Fullscreen"
+
+[node name="BackButton" type="Button" parent="Content"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Back"

@@ -155,6 +155,7 @@ fn host_api_script_serialize_container() -> &'static str {
         if (c.sizeY !== undefined)
             out.sizeY = {value: c.sizeY.value,
                 outOfBounds: c.sizeY.outOfBounds};
+        if (c.alignment !== undefined) out.alignment = c.alignment;
         if (globalThis.__posKey) {
             if (c.getX) out.xKey = globalThis.__posKey(c.getX, "x");
             if (c.getY) out.yKey = globalThis.__posKey(c.getY, "y");

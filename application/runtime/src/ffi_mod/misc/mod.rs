@@ -1,4 +1,5 @@
 pub mod free_string;
+pub mod action_ids;
 pub mod clear_state;
 pub mod trigger_action;
 pub mod emit_action;
@@ -15,6 +16,7 @@ pub mod actor_interrupt;
 pub mod actor_active_action;
 pub mod world_state;
 
+pub use action_ids::runtime_fetch_action_ids;
 pub use free_string::runtime_free_string;
 pub use clear_state::runtime_clear_state;
 pub use trigger_action::trigger_action;

@@ -50,6 +50,27 @@ public static class RuntimeInterop
     private static extern IntPtr runtime_fetch_panel_ids();
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_fetch_action_ids();
+
+    /// Registered action ids as a JSON array of strings, or an empty array.
+    public static string[] GetActionIds()
+    {
+        var ptr = runtime_fetch_action_ids();
+        if (ptr == IntPtr.Zero) return Array.Empty<string>();
+        try
+        {
+            var json = Marshal.PtrToStringAnsi(ptr) ?? "[]";
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var ids = new List<string>();
+            foreach (var id in doc.RootElement.EnumerateArray())
+                ids.Add(id.GetString() ?? "");
+            return ids.ToArray();
+        }
+        catch { return Array.Empty<string>(); }
+        finally { runtime_free_string(ptr); }
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr runtime_process_archive([MarshalAs(UnmanagedType.LPStr)] string path);
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]

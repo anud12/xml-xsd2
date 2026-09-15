@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="New Game Project"
-run/main_scene="uid://yicge48108e0"
+run/main_scene="uid://b1mainmenu001"
 config/features=PackedStringArray("4.6", "C#", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -32,3 +32,8 @@ project/assembly_name="New Game Project"
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+
+[settings]
+
+resolution=Vector2i(1920, 1080)
+borderless=false

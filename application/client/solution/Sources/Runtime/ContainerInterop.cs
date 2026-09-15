@@ -85,6 +85,11 @@ public static class ContainerInterop
             container.SizeY = ParseAxisSize(sizeYProp);
         }
 
+        container.Alignment = root.TryGetProperty("alignment", out var alignProp)
+            && alignProp.ValueKind == System.Text.Json.JsonValueKind.String
+            ? alignProp.GetString()
+            : null;
+
         return container;
     }
 
