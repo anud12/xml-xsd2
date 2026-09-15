@@ -13,6 +13,7 @@ public partial class Game : Node {
     static bool _runtimeRunning = false;
     bool _ready = false;
     int _frameCount = 0;
+    ActionsWindow? _actionsWindow;
 
     public override void _Ready() {
         RuntimeInterop.RegisterLogger(m => GD.Print(m));
@@ -51,6 +52,12 @@ public partial class Game : Node {
         settingsButton.Pressed += OnSettingsButton;
         AddChild(settingsButton);
 
+        var actionsButton = new Button { Text = "Actions", Name = "ActionsButton" };
+        actionsButton.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        actionsButton.Position = new Vector2(110, 8);
+        actionsButton.Pressed += ToggleActionsWindow;
+        AddChild(actionsButton);
+
         RuntimeInterop.emitAction("increment");
 
         if (RUN_RUNTIME_LOOP && !_runtimeRunning) {
@@ -76,6 +83,16 @@ public partial class Game : Node {
 
     void OnSettingsButton() {
         GetTree().ChangeSceneToFile("res://Scenes/Settings/Settings.tscn");
+    }
+
+    void ToggleActionsWindow() {
+        if (_actionsWindow != null && IsInstanceValid(_actionsWindow)) {
+            _actionsWindow.QueueFree();
+            _actionsWindow = null;
+            return;
+        }
+        _actionsWindow = new ActionsWindow();
+        AddChild(_actionsWindow);
     }
 
     string CreateArchive(string dir) {
