@@ -57,6 +57,11 @@ text = "Borderless:"
 layout_mode = 2
 text = "Borderless Fullscreen"
 
+[node name="ApplyButton" type="Button" parent="Content"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Apply"
+
 [node name="BackButton" type="Button" parent="Content"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2

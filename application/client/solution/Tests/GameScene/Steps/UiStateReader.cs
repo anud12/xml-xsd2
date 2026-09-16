@@ -19,7 +19,6 @@ public static class UiStateReader
         NewGameProject.UI.UiNodeKind.Field => "field",
         NewGameProject.UI.UiNodeKind.Window => "window",
         NewGameProject.UI.UiNodeKind.Image => "image",
-        NewGameProject.UI.UiNodeKind.Canvas => "canvas",
         _ => "division"
     };
 

@@ -20,7 +20,6 @@ public static class UiAbi
     public const uint KindField = 2;
     public const uint KindWindow = 3;
     public const uint KindImage = 4;
-    public const uint KindCanvas = 5;
 
     public const byte OpAdd = 0;
     public const byte OpUpdate = 1;
@@ -158,13 +157,6 @@ public static class UiAbi
         public UiOnClick OnClick;
         public UiOnHover OnHover;
         public uint Container;
-        public uint WorldMap;
-        public uint WorldRoom;
-        public uint CamRoom;
-        public float CamX;
-        public float CamY;
-        public float CamZoom;
-        public byte HasCamera;
         public byte Resizable;
         public byte ResizableKeepAspect;
     }

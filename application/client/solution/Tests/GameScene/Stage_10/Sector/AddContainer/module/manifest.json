@@ -1,0 +1,6 @@
+{
+  "id": "sector-add-container-test",
+  "version": "1.0.0",
+  "name": "Sector Add Container Test Module",
+  "entry": "index.js"
+}

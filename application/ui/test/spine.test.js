@@ -95,26 +95,6 @@ test('ui.image rejects empty src and missing id', () => {
   assert.throws(() => host.image('img', 42), /non-empty archive path/);
 });
 
-test('ui.canvas registers a canvas node with world options', () => {
-  registered = [];
-  host.clear();
-  const id = host.canvas('world-canvas', {
-    world: { map: 'cave', room: 'cave-1' },
-    camera: { room: 'cave-1', x: 0, y: 0, zoom: 2 },
-  }, []);
-  assert.strictEqual(id, 'world-canvas');
-  assert.strictEqual(registered.length, 1);
-  assert.deepStrictEqual(registered[0], {
-    id: 'world-canvas',
-    kind: 'canvas',
-    options: {
-      world: { map: 'cave', room: 'cave-1' },
-      camera: { room: 'cave-1', x: 0, y: 0, zoom: 2 },
-    },
-    children: [],
-  });
-});
-
 test('ui.entityList registers a division node with a container marker child', () => {
   registered = [];
   host.clear();

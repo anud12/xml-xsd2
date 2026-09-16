@@ -1,0 +1,6 @@
+{
+  "id": "sector-grid-create-test",
+  "version": "1.0.0",
+  "name": "Sector Grid Create Test Module",
+  "entry": "index.js"
+}

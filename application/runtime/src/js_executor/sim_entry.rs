@@ -27,7 +27,14 @@ fn transform_source(source: &str) -> String {
 }
 
 pub fn eval_entry_in_ctx(ctx: &Context, source: &str) -> Result<String> {
-    let transformed = transform_source(source);
+    // Multi-file modules reference one another with relative `import` statements,
+    // which QuickJS cannot parse in script mode. Bundle them the same way the
+    // extraction path does: resolve each relative import against the archive,
+    // inline its source, and strip the `export` keywords so the entry becomes a
+    // single self-contained script. For single-file modules (no imports) this
+    // is a no-op.
+    let bundled = super::extract::bundle_imports(source);
+    let transformed = transform_source(&bundled);
     ctx.with(|c| {
         c.eval::<(), _>(transformed.clone())
     })?;
@@ -51,6 +58,12 @@ var hostApi={
       return null;
     },
     registerPanel:h.registerPanel
+  },
+  world:{
+    sectorGrid:function(id){
+      var resolvedId=typeof id==='object'?id.value:id;
+      return { id: resolvedId, sectorGrid: true };
+    }
   },
   runtime:{
     string:{of:function(s){return s;}},

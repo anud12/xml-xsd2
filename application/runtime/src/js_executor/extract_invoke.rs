@@ -18,6 +18,15 @@ var hostApi={
     },
     registerPanel:h.registerPanel
   },
+  // World/sector namespace. `sectorGrid(id)` declares a named grid; sectors
+  // attach later via a container's optional `sector` field (captured in
+  // setContainer). The returned object only needs a stable id reference.
+  world:{
+    sectorGrid:function(id){
+      var resolvedId=typeof id==='object'?id.value:id;
+      return { id: resolvedId, sectorGrid: true };
+    }
+  },
   runtime:{
     string:{of:function(s){return s;}},
     number:{of:function(n){return n;}},

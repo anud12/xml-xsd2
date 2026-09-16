@@ -270,6 +270,18 @@ if(!__hapi_runtime.condition){
     }
   };
 }
+// World/sector namespace: `world.sectorGrid(id)` declares a named grid and
+// returns it. Sectors attach later via a container's optional `sector` field
+// (captured in setContainer). The returned object only needs a stable id so
+// module code can hold a reference; the Rust layer computes the actual grid.
+if(!hostApi.world){
+  hostApi.world={
+    sectorGrid:function(id){
+      var resolvedId=typeof id==='object'?id.value:id;
+      return { id: resolvedId, sectorGrid: true };
+    }
+  };
+}
 globalThis.hostApi=hostApi;
 var __mod=globalThis.__module_default||__module_default;
 if(typeof __mod==='function'){__mod(hostApi);}

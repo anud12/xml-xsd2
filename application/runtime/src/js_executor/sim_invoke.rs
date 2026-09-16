@@ -7,6 +7,12 @@ var hostApi={
     texture:{of:function(p){return p;}},
     registerPanel:h.registerPanel
   },
+  world:{
+    sectorGrid:function(id){
+      var resolvedId=typeof id==='object'?id.value:id;
+      return { id: resolvedId, sectorGrid: true };
+    }
+  },
   runtime:{
     string:{of:function(s){return s;}},
     number:{of:function(n){return n;}},

@@ -10,8 +10,7 @@ public enum UiNodeKind
     Text,
     Field,
     Window,
-    Image,
-    Canvas
+    Image
 }
 
 public class UiNodeData

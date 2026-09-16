@@ -368,18 +368,6 @@ function (root) {
                 children: childIds(children)
             });
         },
-        canvas: function (id, options, children) {
-            var opts = {};
-            if (options && typeof options === 'object') {
-                for (var k in options) { if (Object.prototype.hasOwnProperty.call(options, k)) opts[k] = options[k]; }
-            }
-            return register({
-                id: id,
-                kind: 'canvas',
-                options: opts,
-                children: childIds(children)
-            });
-        },
         text: function (id, value) {
             return register({
                 id: id,

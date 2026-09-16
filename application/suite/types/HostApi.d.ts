@@ -18,11 +18,22 @@ import {RegisterAnimationFunction, GetAnimationFunction} from "./animation/Anima
 import {AutonomyApi} from "./autonomy";
 
 /**
+ * World/sector namespace: `world.sectorGrid(id)` declares a named grid.
+ * Sectors attach to a grid via a container's optional `sector` field.
+ */
+export type WorldApi = {
+  /** Declares a named sector grid and returns a reference to it. */
+  sectorGrid: (id: StringExpression) => { id: string },
+}
+
+/**
  * The top-level host API surface exposed to modules.
  */
 export type HostApi = {
   /** UI-related APIs for panels, textures, and animations. */
   ui: UiApi,
+  /** World/sector namespace for declaring named sector grids. */
+  world: WorldApi,
   /** Runtime APIs for entities, containers, effects, actions, and events. */
   runtime: {
     condition: ConditionExpressionApi,

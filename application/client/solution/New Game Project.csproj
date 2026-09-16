@@ -63,6 +63,10 @@
     <Content Include="Tests\GameScene\Ffi\Panel\Content\module\manifest.json" />
     <Content Include="Tests\GameScene\Ffi\Panel\Content\module\texture.png" />
     <Content Include="Tests\GameScene\Ffi\Panel\Content\module\texture.png.import" />
+    <Content Include="Tests\GameScene\Ffi\Sector\**\*.js" />
+    <Content Include="Tests\GameScene\Ffi\Sector\**\*.json" />
+    <Content Include="Tests\GameScene\Stage_10\Sector\**\*.js" />
+    <Content Include="Tests\GameScene\Stage_10\Sector\**\*.json" />
     <Content Include="Tests\GameScene\Stage_1\readme.md" />
     <Content Include="Tests\GameScene\Stage_2\Hover\module\hover.png" />
     <Content Include="Tests\GameScene\Stage_2\SpriteMap\MultiLayerOverlap\module\index.js" />

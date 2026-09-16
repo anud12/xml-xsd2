@@ -7,7 +7,8 @@ pub(super) fn extract_declarations_script() -> String {
                 events: [], actions: [], functions: [],
                 entities: [], creators: {{}}, emits: {{}},
                 panels: [], entity_data: {{}},
-                containers: [], pending_effects: [],
+                containers: [], sectors: [],
+                pending_effects: [],
                 animations: {{}}
             }};
             {}
@@ -30,6 +31,8 @@ pub(super) fn extract_declarations_script() -> String {
                 globalThis.__entityData || {{}};
             out.containers =
                 globalThis.__registeredContainers || [];
+            out.sectors =
+                globalThis.__registeredSectors || [];
             const pending =
                 globalThis.__pendingEffects || [];
             out.pending_effects =

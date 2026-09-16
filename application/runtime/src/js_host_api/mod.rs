@@ -28,6 +28,8 @@ pub struct Declarations {
     #[serde(default)]
     pub containers: Vec<String>,
     #[serde(default)]
+    pub sectors: Vec<String>,
+    #[serde(default)]
     pub pending_effects: Vec<String>,
     #[serde(default)]
     pub animations: HashMap<String, serde_json::Value>,

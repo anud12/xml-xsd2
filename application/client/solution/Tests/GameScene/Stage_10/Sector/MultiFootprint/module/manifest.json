@@ -1,0 +1,6 @@
+{
+  "id": "sector-multi-footprint-test",
+  "version": "1.0.0",
+  "name": "Sector Multi Footprint Test Module",
+  "entry": "index.js"
+}

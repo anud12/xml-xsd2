@@ -72,14 +72,6 @@ pub enum UiNode {
         #[serde(default)]
         children: Vec<String>,
     },
-    #[serde(rename = "canvas")]
-    Canvas {
-        id: String,
-        #[serde(default)]
-        options: serde_json::Value,
-        #[serde(default)]
-        children: Vec<String>,
-    },
 }
 
 impl UiNode {
@@ -90,7 +82,6 @@ impl UiNode {
             UiNode::Field { id, .. } => id,
             UiNode::Window { id, .. } => id,
             UiNode::Image { id, .. } => id,
-            UiNode::Canvas { id, .. } => id,
         }
     }
 }
@@ -1040,44 +1031,5 @@ export default (hostApi) => {
             crate::ui::abi::free_delta(delta);
         }
 
-    }
-
-    #[test]
-    fn canvas_node_with_world_options_round_trips_store_and_delta() {
-        let _g = lock();
-        ui_nodes().lock().unwrap().clear();
-        prev_store_ids().lock().unwrap().clear();
-        ui_delta().lock().unwrap().take();
-        let canvas = node_json(
-            r#"{"kind":"canvas","id":"world-canvas","options":{"world":{"map":"cave","room":"cave-1"},"camera":{"room":"cave-1","x":0,"y":0,"zoom":1}},"children":["hud"]}"#);
-        assert!(matches!(&canvas, UiNode::Canvas { id, .. } if id == "world-canvas"));
-        apply_diff(&[canvas.clone()]).unwrap();
-
-        // the add op carries the full options
-        let delta = ui_delta().lock().unwrap().take().unwrap();
-        let add = delta.ops.iter().find(|o| matches!(o, UiDeltaOp::Add { node }
-            if node.id() == "world-canvas")).expect("add op for canvas");
-        match add {
-            UiDeltaOp::Add { node } => match node {
-                UiNode::Canvas { id, options, children } => {
-                    assert_eq!(id, "world-canvas");
-                    assert_eq!(options["world"]["room"], "cave-1");
-                    assert_eq!(options["camera"]["zoom"], 1);
-                    assert_eq!(children, &vec!["hud".to_string()]);
-                }
-                other => panic!("expected canvas node, got {:?}", other),
-            },
-            other => panic!("expected add, got {:?}", other),
-        }
-
-        // the store round-trips the node with options intact
-        let json = fetch_ui_state_json();
-        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
-        let canvas_el = v["nodes"].as_array().unwrap().iter()
-            .find(|n| n["id"] == "world-canvas").unwrap();
-        assert_eq!(canvas_el["kind"], "canvas");
-        assert_eq!(canvas_el["options"]["world"]["map"], "cave");
-        assert_eq!(canvas_el["options"]["world"]["room"], "cave-1");
-        assert_eq!(canvas_el["children"][0], "hud");
     }
 }

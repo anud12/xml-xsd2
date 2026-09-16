@@ -25,19 +25,18 @@ public partial class Settings : Control
         current.ButtonPressed = SettingsStore.Borderless;
         current.Toggled += v => OnBorderlessToggled(v);
 
+        GetNode<Button>("Content/ApplyButton").Pressed += OnApply;
         GetNode<Button>("Content/BackButton").Pressed += OnBack;
     }
 
     public void OnResolutionSelected(long index)
     {
         SettingsStore.Resolution = Presets[(int)index].Size;
-        Persist();
     }
 
     public void OnBorderlessToggled(bool toggled)
     {
         SettingsStore.Borderless = toggled;
-        Persist();
     }
 
     int IndexForSize(Vector2I size)
@@ -48,7 +47,7 @@ public partial class Settings : Control
         return 0;
     }
 
-    void Persist()
+    public void OnApply()
     {
         SettingsStore.Save();
         SettingsStore.Apply();

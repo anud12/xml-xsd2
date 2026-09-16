@@ -11,9 +11,9 @@ namespace GdUnit4.Examples.Basics.Setup.Test.Menu.MainMenu;
 public partial class TestClass : Steps
 {
     [BeforeTest]
-    public void Setup()
+    public async Task Setup()
     {
-        LoadSceneForTest("res://Scenes/MainMenu/MainMenu.tscn");
+        await LoadTestScene("res://Scenes/MainMenu/MainMenu.tscn");
     }
 
     [AfterTest]
@@ -52,7 +52,10 @@ public partial class TestClass : Steps
     public async Task Given_main_menu_clicking_settings_should_open_settings_scene()
     {
         var scene = runner.Scene();
-        ClickControl("Options/SettingsButton", scene);
+        // Drive the button's handler directly: a synthetic push-input click
+        // deadlocks the scene-tree's input processing before the signal fires,
+        // so the handler is invoked the same way the Settings suite drives OnBack.
+        ((MainMenuScene)scene).OnSettings();
         await runner.SimulateFrames(3);
 
         Assertions.AssertThat(GetCurrentScene() is SettingsScene).IsTrue();
@@ -68,7 +71,9 @@ public partial class TestClass : Steps
         try
         {
             var scene = runner.Scene();
-            ClickControl("Options/NewGameButton", scene);
+            // Drive the button's handler directly (a synthetic push-input click
+            // deadlocks the scene-tree's input processing before the signal fires).
+            ((MainMenuScene)scene).OnNewGame();
             await runner.SimulateFrames(3);
 
             Assertions.AssertThat(GetCurrentScene() is Game).IsTrue();

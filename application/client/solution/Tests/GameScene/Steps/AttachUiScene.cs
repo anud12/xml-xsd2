@@ -27,7 +27,7 @@ public partial class Steps
     /// </example>
     public async Task<AssertScene> AttachUiScene()
     {
-        var scene = LoadTestScene();
+        var scene = await LoadTestScene();
         var root = new RootNode { Name = "root" };
         scene.AddChild(root);
         // Establish a deterministic initial mouse position so hover tracking

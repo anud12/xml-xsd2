@@ -11,9 +11,9 @@ namespace GdUnit4.Examples.Basics.Setup.Test.Menu.Settings;
 public partial class TestClass : Steps
 {
     [BeforeTest]
-    public void Setup()
+    public async Task Setup()
     {
-        LoadSceneForTest("res://Scenes/Settings/Settings.tscn");
+        await LoadTestScene("res://Scenes/Settings/Settings.tscn");
     }
 
     [AfterTest]
