@@ -651,5 +651,37 @@ public partial class Steps {
             File.Delete(actualPath);
             return this;
         }
+
+        /// <summary>
+        /// Debug helper: captures this panel's viewport rectangle and saves it
+        /// as a PNG next to the calling <c>.cs</c> file. No comparison is performed.
+        /// Returns the absolute path of the saved PNG.
+        /// </summary>
+        public string DebugSaveViewport(string fileName, [CallerFilePath] string callerPath = "") {
+            if (node is not Control control) {
+                GD.PrintErr($"[debug] Node at \"{path}\" is not a Control; cannot capture viewport");
+                return "";
+            }
+            var viewport = control.GetViewport();
+            var viewportTexture = viewport.GetTexture();
+            using var fullImage = viewportTexture.GetImage();
+
+            var globalPos = control.GetGlobalRect().Position;
+            var size = control.GetGlobalRect().Size;
+            using var cropped = fullImage.GetRegion(new Rect2I((int)globalPos.X, (int)globalPos.Y, (int)size.X, (int)size.Y));
+
+            var baseDir = Path.GetDirectoryName(callerPath);
+            var absolutePath = Path.Combine(baseDir, fileName);
+            Directory.CreateDirectory(baseDir);
+
+            var globalPath = ProjectSettings.GlobalizePath(absolutePath);
+            var err = cropped.SavePng(globalPath);
+            if (err != Error.Ok)
+                GD.PrintErr($"[debug] Failed to save viewport to {globalPath}: {err}");
+            else
+                GD.Print($"[debug] Viewport saved to: {globalPath}");
+
+            return globalPath;
+        }
     }
 }

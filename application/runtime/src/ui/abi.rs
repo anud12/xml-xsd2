@@ -170,6 +170,7 @@ pub struct UiNodeOptions {
     pub container: u32,
     pub resizable: u8,
     pub resizable_keep_aspect: u8,
+    pub portal_arrow: u8,
 }
 
 #[repr(C)]
@@ -620,6 +621,7 @@ fn empty_options() -> UiNodeOptions {
         container: NO_STR,
         resizable: 0,
         resizable_keep_aspect: 0,
+        portal_arrow: 0,
     }
 }
 
@@ -972,6 +974,7 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
         }
         _ => {}
     }
+    o.portal_arrow = opt_bool(opts, "portalArrow") as u8;
     o
 }
 
@@ -1363,6 +1366,19 @@ mod tests {
         let frames = unsafe { std::slice::from_raw_parts(anims[0].frames, 2) };
         assert_eq!(cstr(arena, frames[1]), "b.png");
 
+        unsafe { free_snapshot(snap as *const UiSnapshot as *mut UiSnapshot) };
+    }
+
+    #[test]
+    fn portal_arrow_option_round_trips() {
+        let nodes = vec![node(
+            r#"{"kind":"window","id":"p","options":{"x":77,"y":0,"width":6,"height":40,"portalArrow":true,"sector":"portal"},"children":[]}"#,
+        )];
+        let snap = unsafe { &*build_snapshot(&nodes, &HashMap::new()) };
+        let arena = snap.strings;
+        let ns = unsafe { std::slice::from_raw_parts(snap.nodes, snap.node_count as usize) };
+        let p = ns.iter().find(|n| cstr(arena, n.id) == "p").unwrap();
+        assert_eq!(p.opt.portal_arrow, 1);
         unsafe { free_snapshot(snap as *const UiSnapshot as *mut UiSnapshot) };
     }
 

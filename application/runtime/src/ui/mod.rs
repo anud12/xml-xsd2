@@ -192,13 +192,16 @@ fn tick_inner() -> Result<()> {
     // lookup (`__uiEntitiesFor`) is stable from install; only the container
     // list it reads is refreshed here.
     let containers_json = container_entities_json()?;
+    let sector_grids_json = crate::state::fetch_sector_grids_json();
     let script = format!(
         "__uiHost.resetContainers();\n\
          globalThis.__uiContainerList = {};\n\
+         globalThis.__uiSectorGrids = {};\n\
          __uiHost.expandContainers(globalThis.__uiEntitiesFor);\n\
          __uiHost.expandContainerViews(globalThis.__uiEntitiesFor);\n\
+         __uiHost.expandSectorGrids();\n\
          JSON.stringify(__uiHost.snapshot())",
-        containers_json
+        containers_json, sector_grids_json
     );
     let snapshot_json = eval_string(&ctx, &script)?;
     let mut snapshot: Vec<UiNode> = serde_json::from_str(&snapshot_json)?;

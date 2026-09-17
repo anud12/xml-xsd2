@@ -106,6 +106,7 @@ globalThis.hostApi=hostApi;
   if(!u.image)u.image=noop;
   if(!u.canvas)u.canvas=noop;
   if(!u.containerView)u.containerView=noop;
+  if(!u.sectorGrid)u.sectorGrid=noop;
   if(!u.entityList)u.entityList=noop;
   if(!u.getSpritePNG)u.getSpritePNG=function(p){return p;};
   if(!u.getAnimation)u.getAnimation=function(){return null;};

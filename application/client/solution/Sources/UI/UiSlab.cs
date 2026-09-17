@@ -134,6 +134,8 @@ public static class UiSlab
             else
                 Add("resizable", "true");
         }
+        if (o.PortalArrow != 0)
+            Add("portalArrow", "true");
         if (first) return "{}";
         return "{" + sb + "}";
     }

@@ -27,6 +27,15 @@ function (root) {
     var containerViewRenders = Object.create(null);
     // Item node ids materialized per container view by the last expansion.
     var containerViewItems = Object.create(null);
+    // Render lambdas for ui.sectorGrid views, keyed by view name. The render
+    // takes a cell/portal descriptor (the grid's "container expression") and
+    // returns a single node id; the engine positions + sizes that node from the
+    // grid geometry, and the module sets its background/content.
+    var sectorGridRenders = Object.create(null);
+    // Item node ids (cell + portal windows) materialized per sector grid view
+    // by the last expansion, so resetContainers can drop them and restore the
+    // view's marker between engine ticks.
+    var sectorGridItems = Object.create(null);
 
     function transport() {
         var t = root.__uiTransport;
@@ -189,6 +198,18 @@ function (root) {
         return typeof c === 'string' && c.indexOf('$$containerView:') === 0;
     }
 
+    // Marks the children slot of a sector grid view with `name`: same marker
+    // mechanism as container views, but the engine materializes one cell
+    // window per footprint square (positioned by cellSize) and one thin marker
+    // per portal from the runtime's computed grid, not from a render lambda.
+    function sectorGridMarker(name) {
+        return '$$sectorGrid:' + name;
+    }
+
+    function isSectorGridMarker(c) {
+        return typeof c === 'string' && c.indexOf('$$sectorGrid:') === 0;
+    }
+
     /// Replaces the marker in each node's children with the ids the stored
     /// render lambda declared for that node's container entities. The render
     /// lambda is declarative: re-invoking it per entity re-registers the same
@@ -287,6 +308,133 @@ function (root) {
         }
     }
 
+    /// Re-expands every sector grid view's marker against the runtime's
+    /// computed grids (globalThis.__uiSectorGrids, gridId -> { cells, portals
+    /// }). For each footprint cell a window node is placed at
+    /// (x*cellSize, y*cellSize) with span (cellSize, cellSize); for each
+    /// portal a thin marker is centered on the shared boundary edge. The view
+    /// node carries options.grid (grid id), options.cellSize (default 32) and
+    /// options.portalThickness (default 6).
+    function expandSectorGrids() {
+        var grids = root.__uiSectorGrids || {};
+        for (var i = 0; i < order.length; i++) {
+            var node = nodes[order[i]];
+            if (!node || node.kind !== 'window') continue;
+            if (!Array.isArray(node.children)) continue;
+            var changed = false;
+            for (var j = 0; j < node.children.length; j++) {
+                var c = node.children[j];
+                if (!isSectorGridMarker(c)) continue;
+                var name = c.slice('$$sectorGrid:'.length);
+                var gridId = node.options && node.options.grid;
+                var cellSize = (node.options && typeof node.options.cellSize === 'number' && node.options.cellSize > 0)
+                    ? node.options.cellSize : 32;
+                var thickness = (node.options && typeof node.options.portalThickness === 'number' && node.options.portalThickness > 0)
+                    ? node.options.portalThickness : 6;
+                // Gap between adjacent cells: each cell is inset by gap/2 on
+                // every side, so the space between two neighbors is `gap`.
+                var cellGap = (node.options && typeof node.options.cellGap === 'number' && node.options.cellGap > 0)
+                    ? node.options.cellGap : 0;
+                if (cellGap >= cellSize) cellGap = cellSize;
+                var cellInset = cellGap / 2;
+                var cellSpan = cellSize - cellGap;
+                var grid = (typeof gridId === 'string') ? grids[gridId] : null;
+                var render = sectorGridRenders[name];
+                var itemIds = [];
+                if (render && grid) {
+                    // One item per footprint cell: the render returns a node id
+                    // (the module sets its content/background) and the engine
+                    // stamps its geometry from (x, y) * cellSize.
+                    var cells = grid.cells || [];
+                    for (var ci = 0; ci < cells.length; ci++) {
+                        var cell = cells[ci];
+                        var pid = render({
+                            id: name + '-cell-' + cell.x + '-' + cell.y,
+                            index: ci,
+                            sector: 'cell',
+                            x: cell.x,
+                            y: cell.y,
+                            container: cell.container
+                        });
+                        var itemId = Array.isArray(pid) ? pid[0] : pid;
+                        if (typeof itemId !== 'string' || itemId.length === 0) continue;
+                        itemIds.push(itemId);
+                        var in1 = nodes[itemId];
+                        if (in1) {
+                            if (!in1.options || typeof in1.options !== 'object') in1.options = {};
+                            in1.options.x = cell.x * cellSize + cellInset;
+                            in1.options.y = cell.y * cellSize + cellInset;
+                            in1.options.width = cellSpan;
+                            in1.options.height = cellSpan;
+                            in1.options.cell = cell.x + ',' + cell.y;
+                            in1.options.sector = 'cell';
+                            in1.options.container = cell.container;
+                        }
+                    }
+                    // One node per portal: the engine itself draws a headless
+                    // arrow (a straight shaft of width `thickness`) centered on
+                    // the shared boundary edge. No render lambda is invoked; the
+                    // portal's representation is fixed to this shaft.
+                    var portals = grid.portals || [];
+                    for (var pi = 0; pi < portals.length; pi++) {
+                        var p = portals[pi];
+                        var a = p.a || {};
+                        var side = a.side;
+                        var pc = a.cell || [0, 0];
+                        var span = typeof a.span === 'number' ? a.span : 0;
+                        var len = (typeof a.length === 'number' && a.length > 0) ? a.length : 1;
+                        var pcx = pc[0], pcy = pc[1];
+                        var px, py, pw, ph;
+                        if (side === 'N') {
+                            px = pcx * cellSize + span * cellSize;
+                            py = pcy * cellSize - thickness / 2;
+                            pw = len * cellSize;
+                            ph = thickness;
+                        } else if (side === 'S') {
+                            px = pcx * cellSize + span * cellSize;
+                            py = (pcy + 1) * cellSize - thickness / 2;
+                            pw = len * cellSize;
+                            ph = thickness;
+                        } else if (side === 'W') {
+                            px = pcx * cellSize - thickness / 2;
+                            py = pcy * cellSize + span * cellSize;
+                            pw = thickness;
+                            ph = len * cellSize;
+                        } else {
+                            px = (pcx + 1) * cellSize - thickness / 2;
+                            py = pcy * cellSize + span * cellSize;
+                            pw = thickness;
+                            ph = len * cellSize;
+                        }
+                        var pitemId = register({
+                            id: name + '-portal-' + pi,
+                            kind: 'window',
+                            options: {
+                                x: px,
+                                y: py,
+                                width: pw,
+                                height: ph,
+                                portalArrow: true,
+                                sector: 'portal',
+                                portal: p.id
+                            },
+                            children: []
+                        });
+                        itemIds.push(pitemId);
+                    }
+                }
+                sectorGridItems[name] = itemIds;
+                for (var m = itemIds.length - 1; m >= 0; m--) {
+                    node.children.splice(j, 0, itemIds[m]);
+                }
+                node.children.splice(j + itemIds.length, 1);
+                changed = true;
+                break;
+            }
+            if (changed) i--;
+        }
+    }
+
     /// Drops the node with `id` and every node in its subtree from the
     /// registries (used to undo a container list's materialized items).
     function removeSubtree(id) {
@@ -326,6 +474,17 @@ function (root) {
             var view = nodes[vname];
             if (view && Array.isArray(view.children)) {
                 view.children = [containerViewMarker(vname)];
+            }
+        }
+        for (var sname in sectorGridItems) {
+            var sitems = sectorGridItems[sname];
+            if (sitems) {
+                for (var si = 0; si < sitems.length; si++) removeSubtree(sitems[si]);
+            }
+            sectorGridItems[sname] = [];
+            var sgrid = nodes[sname];
+            if (sgrid && Array.isArray(sgrid.children)) {
+                sgrid.children = [sectorGridMarker(sname)];
             }
         }
     }
@@ -446,6 +605,37 @@ function (root) {
                 children: [containerViewMarker(name)]
             });
         },
+        sectorGrid: function (name, args, render) {
+            if (typeof name !== 'string' || name.length === 0) {
+                throw new Error('ui: sectorGrid mandatory name missing');
+            }
+            if (!args || typeof args !== 'object') {
+                throw new Error('ui: sectorGrid args must be an object with grid');
+            }
+            if (typeof args.grid !== 'string' || args.grid.length === 0) {
+                throw new Error('ui: sectorGrid args.grid must be a non-empty grid id');
+            }
+            if (typeof render !== 'function') {
+                throw new Error('ui: sectorGrid render must be a function(item) => nodeId');
+            }
+            // The view node is a window (it extends panel: x/y/width/height and
+            // background are honored). It carries `grid` (the runtime grid id)
+            // plus optional `cellSize`/`portalThickness`; the engine invokes
+            // `render` once per cell + portal each tick and positions the node
+            // it returns from the grid geometry.
+            sectorGridRenders[name] = render;
+            var opts = {};
+            for (var k in args) {
+                if (Object.prototype.hasOwnProperty.call(args, k)) opts[k] = args[k];
+            }
+            if (typeof opts.cellSize !== 'number' || !(opts.cellSize > 0)) opts.cellSize = 32;
+            return register({
+                id: name,
+                kind: 'window',
+                options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
+                children: [sectorGridMarker(name)]
+            });
+        },
         field: function (id, binding) {
             if (!binding || typeof binding !== 'object') {
                 throw new Error('ui: field binding must be an object with entity, map, name');
@@ -487,12 +677,15 @@ function (root) {
             containerItems = Object.create(null);
             containerViewRenders = Object.create(null);
             containerViewItems = Object.create(null);
+            sectorGridRenders = Object.create(null);
+            sectorGridItems = Object.create(null);
         },
         loadSnapshot: function (arr) {
             nodes = Object.create(null);
             order = [];
             containerItems = Object.create(null);
             containerViewItems = Object.create(null);
+            sectorGridItems = Object.create(null);
             (arr || []).forEach(function (n) {
                 requireId(n.id, n.kind);
                 nodes[n.id] = n;
@@ -504,6 +697,9 @@ function (root) {
         },
         expandContainerViews: function (entitiesFor) {
             expandContainerViews(entitiesFor);
+        },
+        expandSectorGrids: function () {
+            expandSectorGrids();
         },
         resetContainers: function () {
             resetContainers();

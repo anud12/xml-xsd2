@@ -129,6 +129,7 @@ globalThis.hostApi=hostApi;
     if(H.canvas)u.canvas=H.canvas;
     if(H.entityList)u.entityList=H.entityList;
     if(H.containerView)u.containerView=H.containerView;
+    if(H.sectorGrid)u.sectorGrid=H.sectorGrid;
     if(H.setActor)u.setActor=H.setActor;
   }
   // panel is the module-facing surface: positioned/sized/decorated panels are
