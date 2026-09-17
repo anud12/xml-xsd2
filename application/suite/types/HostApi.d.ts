@@ -54,6 +54,15 @@ export type HostApi = {
     /** Sets container fields by container ID. */
     setContainer: (containerId: StringExpression, arguments: ContainerCreationArguments) => void;
 
+    /**
+     * Links two sector openings into an explicit portal. Each opening names its
+     * container, its local cell `[x, y]`, and the boundary side (`"N"|"E"|"S"|"W"`).
+     */
+    linkOpening: (
+      a: { container: string | any, cell: [number, number], side: string },
+      b: { container: string | any, cell: [number, number], side: string },
+    ) => void;
+
     /** Registers (creates or updates) an entity by id, including its field maps. */
     registerEntity: (arguments: { id: string | any } & EntityCreationArguments) => void;
 

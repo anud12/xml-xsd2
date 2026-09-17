@@ -138,6 +138,8 @@ public static class UiSlab
             Add("portalArrow", "true");
         if (o.Unlinked != 0)
             Add("unlinked", "true");
+        if (o.PortalLine != 0)
+            Add("portalLine", "true");
         if (first) return "{}";
         return "{" + sb + "}";
     }

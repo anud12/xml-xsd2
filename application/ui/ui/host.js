@@ -391,51 +391,122 @@ function (root) {
                     // the shared boundary edge. No render lambda is invoked; the
                     // portal's representation is fixed to this shaft.
                     var portals = grid.portals || [];
+                    function endRect(side, cell, span, len) {
+                        var cx = cell[0], cy = cell[1];
+                        if (side === 'N') return { x: cx * cellSize + span * cellSize, y: cy * cellSize - thickness / 2, w: len * cellSize, h: thickness };
+                        if (side === 'S') return { x: cx * cellSize + span * cellSize, y: (cy + 1) * cellSize - thickness / 2, w: len * cellSize, h: thickness };
+                        if (side === 'W') return { x: cx * cellSize - thickness / 2, y: cy * cellSize + span * cellSize, w: thickness, h: len * cellSize };
+                        return { x: (cx + 1) * cellSize - thickness / 2, y: cy * cellSize + span * cellSize, w: thickness, h: len * cellSize };
+                    }
+                    function adjCell(cell, side) {
+                        if (side === 'N') return [cell[0], cell[1] - 1];
+                        if (side === 'E') return [cell[0] + 1, cell[1]];
+                        if (side === 'S') return [cell[0], cell[1] + 1];
+                        return [cell[0] - 1, cell[1]];
+                    }
+                    function oppSide(side) {
+                        return side === 'N' ? 'S' : side === 'S' ? 'N' : side === 'E' ? 'W' : 'E';
+                    }
                     for (var pi = 0; pi < portals.length; pi++) {
                         var p = portals[pi];
                         var a = p.a || {};
-                        var side = a.side;
-                        var pc = a.cell || [0, 0];
-                        var span = typeof a.span === 'number' ? a.span : 0;
-                        var len = (typeof a.length === 'number' && a.length > 0) ? a.length : 1;
-                        var pcx = pc[0], pcy = pc[1];
-                        var px, py, pw, ph;
-                        if (side === 'N') {
-                            px = pcx * cellSize + span * cellSize;
-                            py = pcy * cellSize - thickness / 2;
-                            pw = len * cellSize;
-                            ph = thickness;
-                        } else if (side === 'S') {
-                            px = pcx * cellSize + span * cellSize;
-                            py = (pcy + 1) * cellSize - thickness / 2;
-                            pw = len * cellSize;
-                            ph = thickness;
-                        } else if (side === 'W') {
-                            px = pcx * cellSize - thickness / 2;
-                            py = pcy * cellSize + span * cellSize;
-                            pw = thickness;
-                            ph = len * cellSize;
-                        } else {
-                            px = (pcx + 1) * cellSize - thickness / 2;
-                            py = pcy * cellSize + span * cellSize;
-                            pw = thickness;
-                            ph = len * cellSize;
+                        var b = p.b || {};
+                        var acell = a.cell || [0, 0];
+                        var bcell = b.cell || [0, 0];
+                        var aspan = typeof a.span === 'number' ? a.span : 0;
+                        var alen = (typeof a.length === 'number' && a.length > 0) ? a.length : 1;
+                        var bspan = typeof b.span === 'number' ? b.span : 0;
+                        var blen = (typeof b.length === 'number' && b.length > 0) ? b.length : 1;
+                        var an = adjCell(acell, a.side);
+                        var adjacent = b.cell && b.side &&
+                            bcell[0] === an[0] && bcell[1] === an[1] && b.side === oppSide(a.side);
+                        // A "facing-with-gap" portal joins two openings that face each
+                        // other across one or more empty squares (e.g. sector A's east
+                        // opening to sector B's west opening with a blank row between).
+                        // Render a single line stretching from a's edge to b's edge.
+                        var gapLine = null;
+                        if (!adjacent && b.cell && b.side &&
+                            ((a.side === 'E' && b.side === 'W' && acell[1] === bcell[1] && bcell[0] - acell[0] >= 2) ||
+                             (a.side === 'W' && b.side === 'E' && acell[1] === bcell[1] && acell[0] - bcell[0] >= 2) ||
+                             (a.side === 'S' && b.side === 'N' && acell[0] === bcell[0] && bcell[1] - acell[1] >= 2) ||
+                             (a.side === 'N' && b.side === 'S' && acell[0] === bcell[0] && acell[1] - bcell[1] >= 2))) {
+                            var gx, gy, gw, gh;
+                            if (a.side === 'E' || a.side === 'W') {
+                                var leftCell = a.side === 'E' ? acell : bcell;
+                                var rightCell = a.side === 'E' ? bcell : acell;
+                                var hspan = a.side === 'E' ? aspan : bspan;
+                                var hlen = a.side === 'E' ? alen : blen;
+                                gx = (leftCell[0] + 1) * cellSize;
+                                gw = (rightCell[0] * cellSize) - gx;
+                                gy = (leftCell[1] + hspan + hlen / 2) * cellSize - thickness / 2;
+                                gh = thickness;
+                            } else {
+                                var topCell = a.side === 'S' ? acell : bcell;
+                                var botCell = a.side === 'S' ? bcell : acell;
+                                var vspan = a.side === 'S' ? aspan : bspan;
+                                var vlen = a.side === 'S' ? alen : blen;
+                                gy = (topCell[1] + 1) * cellSize;
+                                gh = (botCell[1] * cellSize) - gy;
+                                gx = (topCell[0] + vspan + vlen / 2) * cellSize - thickness / 2;
+                                gw = thickness;
+                            }
+                            gapLine = { x: gx, y: gy, w: gw, h: gh };
                         }
-                        var pitemId = register({
-                            id: name + '-portal-' + pi,
-                            kind: 'window',
-                            options: {
-                                x: px,
-                                y: py,
-                                width: pw,
-                                height: ph,
-                                portalArrow: true,
-                                sector: 'portal',
-                                portal: p.id
-                            },
-                            children: []
-                        });
-                        itemIds.push(pitemId);
+                        if (gapLine) {
+                            itemIds.push(register({
+                                id: name + '-portal-' + pi,
+                                kind: 'window',
+                                options: {
+                                    x: gapLine.x,
+                                    y: gapLine.y,
+                                    width: gapLine.w,
+                                    height: gapLine.h,
+                                    portalArrow: true,
+                                    portalLine: true,
+                                    sector: 'portal',
+                                    portal: p.id
+                                },
+                                children: []
+                            }));
+                        } else {
+                            var r = endRect(a.side, acell, aspan, alen);
+                            var pitemId = register({
+                                id: name + '-portal-' + pi,
+                                kind: 'window',
+                                options: {
+                                    x: r.x,
+                                    y: r.y,
+                                    width: r.w,
+                                    height: r.h,
+                                    portalArrow: true,
+                                    sector: 'portal',
+                                    portal: p.id
+                                },
+                                children: []
+                            });
+                            itemIds.push(pitemId);
+                            // A wormhole portal joins two NON-adjacent, non-facing
+                            // openings; its far end (side b) sits on a different boundary
+                            // edge, so render a second shaft there. Adjacent portals share
+                            // one boundary edge, already covered by side a's shaft.
+                            if (!adjacent && b.cell && b.side) {
+                                var rb = endRect(b.side, bcell, bspan, blen);
+                                itemIds.push(register({
+                                    id: name + '-portal-' + pi + '-b',
+                                    kind: 'window',
+                                    options: {
+                                        x: rb.x,
+                                        y: rb.y,
+                                        width: rb.w,
+                                        height: rb.h,
+                                        portalArrow: true,
+                                        sector: 'portal',
+                                        portal: p.id
+                                    },
+                                    children: []
+                                }));
+                            }
+                        }
                     }
                     // Unlinked openings: declared openings whose (cell, side) is not
                     // covered by a linked portal (no facing opening on the adjacent

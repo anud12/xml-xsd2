@@ -1,0 +1,6 @@
+{
+  "id": "sector-grid-one-way-link-test",
+  "version": "1.0.0",
+  "name": "Sector Grid One-Way Link Test Module",
+  "entry": "index.js"
+}

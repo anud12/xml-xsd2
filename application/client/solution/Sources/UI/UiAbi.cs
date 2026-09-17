@@ -161,6 +161,7 @@ public static class UiAbi
         public byte ResizableKeepAspect;
         public byte PortalArrow;
         public byte Unlinked;
+        public byte PortalLine;
     }
 
     [StructLayout(LayoutKind.Sequential)]

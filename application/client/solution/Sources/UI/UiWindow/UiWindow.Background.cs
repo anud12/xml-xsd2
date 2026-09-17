@@ -28,7 +28,9 @@ public partial class UiWindow
                 ? (float)ph.GetDouble() : 0f;
             var unlinked = opts.TryGetProperty("unlinked", out var ul)
                 && ul.ValueKind == JsonValueKind.True;
-            ApplyPortalArrow(aw, ah, unlinked);
+            var line = opts.TryGetProperty("portalLine", out var pl)
+                && pl.ValueKind == JsonValueKind.True;
+            ApplyPortalArrow(aw, ah, unlinked, line);
             return;
         }
         if (opts.ValueKind == JsonValueKind.Undefined
@@ -86,10 +88,11 @@ public partial class UiWindow
     {
         public readonly bool Horizontal;
         public readonly bool Unlinked;
+        public readonly bool Line;
         public readonly float W;
         public readonly float H;
-        public PortalArrowSpec(bool horizontal, bool unlinked, float w, float h)
-        { Horizontal = horizontal; Unlinked = unlinked; W = w; H = h; }
+        public PortalArrowSpec(bool horizontal, bool unlinked, bool line, float w, float h)
+        { Horizontal = horizontal; Unlinked = unlinked; Line = line; W = w; H = h; }
     }
     PortalArrowSpec? _portalArrow;
 
@@ -99,6 +102,11 @@ public partial class UiWindow
         // Linked portals are orange; unlinked (a declared opening with no facing
         // sector) are red, so a lone sector's dead-end openings read as "missing".
         var color = a.Unlinked ? new Color(0.85f, 0.22f, 0.22f) : new Color(0.90f, 0.49f, 0.13f);
+        if (a.Line)
+        {
+            DrawRect(new Rect2(0, 0, a.W, a.H), color);
+            return;
+        }
         var shaft = 4f;
         if (a.Horizontal)
         {
@@ -118,9 +126,9 @@ public partial class UiWindow
         }
     }
 
-    void ApplyPortalArrow(float w, float h, bool unlinked)
+    void ApplyPortalArrow(float w, float h, bool unlinked, bool line)
     {
-        _portalArrow = new PortalArrowSpec(w < h, unlinked, w, h);
+        _portalArrow = new PortalArrowSpec(w < h, unlinked, line, w, h);
         // Above sibling cell windows so the arrow (which overflows the thin
         // node into the cell gap) is not occluded by the cell backgrounds.
         ZIndex = 100;

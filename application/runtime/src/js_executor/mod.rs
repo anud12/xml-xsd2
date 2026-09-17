@@ -28,6 +28,7 @@ mod sim_invoke;
 pub mod sim_ctx;
 mod archive_loader;
 mod active_plans;
+mod sector_refresh;
 pub mod behavior_scripts;
 
 pub use extract::extract_from_source;
@@ -35,6 +36,7 @@ pub use archive_loader::{ArchiveResolver, ArchiveLoader};
 pub use simulate::{simulate_action, convert_store_values};
 pub use pending_effects::process_pending_effects;
 pub use scheduled_effects::process_scheduled_effects;
+pub use sector_refresh::recompute_sector_grids;
 pub use active_plans::process_active_plans;
 pub use behavior_scripts::dispatch_action_in_sim;
 pub use behavior_scripts::dispatch_action_in_sim_for;

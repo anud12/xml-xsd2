@@ -8,6 +8,7 @@ mod sector;
 
 pub use patterns::collect_patterns;
 pub use action_map::build_action_to_created;
+pub use sector::recompute_sector_grids_from;
 
 pub fn print_events_from_declarations(
     dec: &Declarations,

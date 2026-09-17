@@ -172,6 +172,7 @@ pub struct UiNodeOptions {
     pub resizable_keep_aspect: u8,
     pub portal_arrow: u8,
     pub unlinked: u8,
+    pub portal_line: u8,
 }
 
 #[repr(C)]
@@ -624,6 +625,7 @@ fn empty_options() -> UiNodeOptions {
         resizable_keep_aspect: 0,
         portal_arrow: 0,
         unlinked: 0,
+        portal_line: 0,
     }
 }
 
@@ -978,6 +980,7 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     }
     o.portal_arrow = opt_bool(opts, "portalArrow") as u8;
     o.unlinked = opt_bool(opts, "unlinked") as u8;
+    o.portal_line = opt_bool(opts, "portalLine") as u8;
     o
 }
 

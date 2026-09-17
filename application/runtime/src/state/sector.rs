@@ -26,7 +26,7 @@ fn sq_deser<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Square, D::Error> 
 }
 
 /// The four footprint sides, in clockwise order starting north.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Side {
     N,
     E,
@@ -120,6 +120,25 @@ pub struct Portal {
     pub b: PortalSide,
 }
 
+/// One end of an explicit link: which container's opening, on which (local)
+/// cell + side. `cell` is relative to that container's own footprint origin.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LinkEndpoint {
+    pub container: String,
+    #[serde(serialize_with = "sq_ser", deserialize_with = "sq_deser")]
+    pub cell: Square,
+    pub side: Side,
+}
+
+/// An explicit, arbitrary portal: connect the opening at `a` to the opening
+/// at `b`. Works across any two sectors (adjacent or not, same or different
+/// container), independent of the adjacency-based portal matching.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExplicitLink {
+    pub a: LinkEndpoint,
+    pub b: LinkEndpoint,
+}
+
 /// A grid square that belongs to some sector.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SectorCell {
@@ -153,6 +172,9 @@ pub struct SectorDeclaration {
     pub at: Square,
     pub footprint: Vec<Square>,
     pub openings: Vec<Opening>,
+    /// Explicit arbitrary portal links this sector declares (each endpoint
+    /// names its own container, so a link may reach any other sector).
+    pub links: Vec<ExplicitLink>,
 }
 
 /// Normalizes a footprint so its min x/y are 0, then translates by `at`.
@@ -203,6 +225,10 @@ pub fn compute_grid(id: &str, decls: &[SectorDeclaration]) -> SectorGridState {
     // Per-square boundary edges + openings, keyed by (container, square, side).
     let mut edges: Vec<(String, Square, Side)> = Vec::new();
     let mut openings: Vec<(String, Square, Side, Opening)> = Vec::new();
+    // Per-container footprint origin (at - min), so an explicit link's local
+    // cell can be translated to grid coords for its (possibly other) container.
+    let mut container_origin: std::collections::HashMap<String, Square> =
+        std::collections::HashMap::new();
 
     for d in decls {
         let min_x = d.footprint.iter().map(|c| c.0).min().unwrap_or(0);
@@ -214,6 +240,7 @@ pub fn compute_grid(id: &str, decls: &[SectorDeclaration]) -> SectorGridState {
         let to_grid = |c: Square| -> Square {
             (d.at.0 + (c.0 - min_x), d.at.1 + (c.1 - min_y))
         };
+        container_origin.insert(d.container.clone(), (d.at.0 - min_x, d.at.1 - min_y));
         let placed = normalize_footprint(&d.footprint, d.at);
         let set: std::collections::HashSet<Square> = placed.iter().cloned().collect();
         for &sq in &placed {
@@ -322,6 +349,55 @@ pub fn compute_grid(id: &str, decls: &[SectorDeclaration]) -> SectorGridState {
             b: PortalSide { cell: neighbor_sq, side: b_side, span: b_span, length: b_len },
         });
     }
+
+    // Explicit links: connect arbitrary openings named by (container, local
+    // cell, side), independent of adjacency. Gathered from every decl's
+    // `links`, deduped by a canonical endpoint pair, and skipped if the
+    // adjacency pass already linked the same two edges.
+    {
+        let mut seen: std::collections::HashSet<((String, Square, Side), (String, Square, Side))> =
+            std::collections::HashSet::new();
+        for d in decls {
+            for link in &d.links {
+                let (Some(a_o), Some(b_o)) = (
+                    container_origin.get(&link.a.container),
+                    container_origin.get(&link.b.container),
+                ) else {
+                    continue;
+                };
+                let a_grid = (link.a.cell.0 + a_o.0, link.a.cell.1 + a_o.1);
+                let b_grid = (link.b.cell.0 + b_o.0, link.b.cell.1 + b_o.1);
+                let (Some(a_open), Some(b_open)) = (
+                    opening_at(&link.a.container, a_grid, link.a.side),
+                    opening_at(&link.b.container, b_grid, link.b.side),
+                ) else {
+                    continue;
+                };
+                let ea = (link.a.container.clone(), a_grid, link.a.side);
+                let eb = (link.b.container.clone(), b_grid, link.b.side);
+                let canon = if ea <= eb { (ea, eb) } else { (eb, ea) };
+                if !seen.insert(canon) {
+                    continue;
+                }
+                let dup = portals.iter().any(|p| {
+                    (p.a.cell == a_grid && p.a.side == link.a.side && p.b.cell == b_grid && p.b.side == link.b.side)
+                        || (p.a.cell == b_grid && p.a.side == link.b.side && p.b.cell == a_grid && p.b.side == link.a.side)
+                });
+                if dup {
+                    continue;
+                }
+                let portal_len = (a_open.length.min(b_open.length)).max(1);
+                let (a_span, a_len) = center_span(a_open.start, a_open.length, portal_len);
+                let (b_span, b_len) = center_span(b_open.start, b_open.length, portal_len);
+                next_portal += 1;
+                portals.push(Portal {
+                    id: format!("p{}", next_portal),
+                    a: PortalSide { cell: a_grid, side: link.a.side, span: a_span, length: a_len },
+                    b: PortalSide { cell: b_grid, side: link.b.side, span: b_span, length: b_len },
+                });
+            }
+        }
+    }
     // Deterministic portal order: by (a cell, a side, b cell, b side).
     portals.sort_by(|p, q| {
         (p.a.cell, p.a.side, p.b.cell, p.b.side).cmp(&(q.a.cell, q.a.side, q.b.cell, q.b.side))
@@ -424,6 +500,7 @@ mod tests {
             at,
             footprint: vec![sq(0, 0)],
             openings: Vec::new(),
+            links: Vec::new(),
         }
     }
 
@@ -445,6 +522,7 @@ mod tests {
             at: (0, 0),
             footprint: vec![sq(0, 0)],
             openings: vec![Opening { cell: sq(0, 0), side: Side::E, start: 0, length: 4 }],
+            links: Vec::new(),
         };
         let b = SectorDeclaration {
             grid: "g".into(),
@@ -452,6 +530,7 @@ mod tests {
             at: (1, 0),
             footprint: vec![sq(0, 0)],
             openings: vec![Opening { cell: sq(0, 0), side: Side::W, start: 0, length: 4 }],
+            links: Vec::new(),
         };
         let state = compute_grid("g", &[a, b]);
         assert_eq!(state.portals.len(), 1);
@@ -476,6 +555,7 @@ mod tests {
             at: (0, 0),
             footprint: vec![sq(0, 0)],
             openings: vec![Opening { cell: sq(0, 0), side: Side::E, start: 0, length: 10 }],
+            links: Vec::new(),
         };
         let b = SectorDeclaration {
             grid: "g".into(),
@@ -483,6 +563,7 @@ mod tests {
             at: (1, 0),
             footprint: vec![sq(0, 0)],
             openings: vec![Opening { cell: sq(0, 0), side: Side::W, start: 0, length: 3 }],
+            links: Vec::new(),
         };
         let state = compute_grid("g", &[a, b]);
         assert_eq!(state.portals.len(), 1);
@@ -508,6 +589,7 @@ mod tests {
                 Opening { cell: sq(1, 0), side: Side::S, start: 0, length: 4 },
                 Opening { cell: sq(0, 1), side: Side::E, start: 0, length: 4 },
             ],
+            links: Vec::new(),
         };
         let b = SectorDeclaration {
             grid: "g".into(),
@@ -518,6 +600,7 @@ mod tests {
                 Opening { cell: sq(0, 0), side: Side::N, start: 0, length: 4 },
                 Opening { cell: sq(0, 0), side: Side::W, start: 0, length: 4 },
             ],
+            links: Vec::new(),
         };
         let state = compute_grid("g", &[a, b]);
         // A's pocket edges (1,0)S and (0,1)E; B's N and W. Four facing pairs,
@@ -533,6 +616,36 @@ mod tests {
     }
 
     #[test]
+    fn explicit_link_connects_non_adjacent_openings() {
+        // One 1x3 vertical strip; openings on (0,0) E and (0,2) W, which are
+        // NOT adjacent. An explicit link joins them into a wormhole portal.
+        let a = SectorDeclaration {
+            grid: "g".into(),
+            container: "room".into(),
+            at: (0, 0),
+            footprint: vec![sq(0, 0), sq(0, 1), sq(0, 2)],
+            openings: vec![
+                Opening { cell: sq(0, 0), side: Side::E, start: 0, length: 1 },
+                Opening { cell: sq(0, 2), side: Side::W, start: 0, length: 1 },
+            ],
+            links: vec![ExplicitLink {
+                a: LinkEndpoint { container: "room".into(), cell: sq(0, 0), side: Side::E },
+                b: LinkEndpoint { container: "room".into(), cell: sq(0, 2), side: Side::W },
+            }],
+        };
+        let state = compute_grid("g", &[a]);
+        // No adjacency portal (openings are on non-adjacent squares), but the
+        // explicit link produces exactly one wormhole portal.
+        assert_eq!(state.cells.len(), 3);
+        assert_eq!(state.portals.len(), 1);
+        let p = &state.portals[0];
+        assert_eq!(p.a.cell, (0, 0));
+        assert_eq!(p.a.side, Side::E);
+        assert_eq!(p.b.cell, (0, 2));
+        assert_eq!(p.b.side, Side::W);
+    }
+
+    #[test]
     fn grid_state_round_trips_through_json() {
         let _g = test_lock();
         let a = SectorDeclaration {
@@ -541,6 +654,7 @@ mod tests {
             at: (0, 0),
             footprint: vec![sq(0, 0)],
             openings: vec![Opening { cell: sq(0, 0), side: Side::N, start: 13, length: 4 }],
+            links: Vec::new(),
         };
         let state = compute_grid("cave", &[a]);
         let json = serde_json::to_string(&state).unwrap();
