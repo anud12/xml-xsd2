@@ -386,17 +386,44 @@ function (root) {
                             in1.options.container = cell.container;
                         }
                     }
-                    // One node per portal: the engine itself draws a headless
-                    // arrow (a straight shaft of width `thickness`) centered on
-                    // the shared boundary edge. No render lambda is invoked; the
-                    // portal's representation is fixed to this shaft.
+                    // One node per portal. Facing portals are a single edge-to-edge
+                    // line; non-facing (diagonal) portals become a Manhattan path of a
+                    // few axis-aligned segments that travel along the GAPS between cells
+                    // (the "streets"), turning only at street intersections. Each segment
+                    // is a headless filled rect of width `thickness`.
                     var portals = grid.portals || [];
-                    function endRect(side, cell, span, len) {
-                        var cx = cell[0], cy = cell[1];
-                        if (side === 'N') return { x: cx * cellSize + span * cellSize, y: cy * cellSize - thickness / 2, w: len * cellSize, h: thickness };
-                        if (side === 'S') return { x: cx * cellSize + span * cellSize, y: (cy + 1) * cellSize - thickness / 2, w: len * cellSize, h: thickness };
-                        if (side === 'W') return { x: cx * cellSize - thickness / 2, y: cy * cellSize + span * cellSize, w: thickness, h: len * cellSize };
-                        return { x: (cx + 1) * cellSize - thickness / 2, y: cy * cellSize + span * cellSize, w: thickness, h: len * cellSize };
+                    // Street center of an E/W door: the gap boundary it faces (a multiple
+                    // of cellSize). The visible building edge sits inset from it.
+                    function streetX(side, cell) {
+                        return side === 'E' ? (cell[0] + 1) * cellSize : cell[0] * cellSize;
+                    }
+                    function streetY(side, cell) {
+                        return side === 'S' ? (cell[1] + 1) * cellSize : cell[1] * cellSize;
+                    }
+                    // Position along an E/W door's street (the opening's span center, y).
+                    function doorY(side, cell, span, len) {
+                        return (cell[1] + span + len / 2) * cellSize;
+                    }
+                    // Position along an N/S door's street (the opening's span center, x).
+                    function doorX(side, cell, span, len) {
+                        return (cell[0] + span + len / 2) * cellSize;
+                    }
+                    // Nearest street line (a multiple of cellSize) to a coordinate.
+                    function nearestStreet(v) {
+                        var k = v / cellSize;
+                        var fl = k - (k % 1);
+                        var fr = fl + 1;
+                        return (k - fl <= fr - k) ? fl * cellSize : fr * cellSize;
+                    }
+                    function hSeg(x1, x2, y) {
+                        var x = x1 < x2 ? x1 : x2;
+                        var w = x2 - x1; if (w < 0) w = -w;
+                        return { x: x, y: y - thickness / 2, w: w, h: thickness };
+                    }
+                    function vSeg(x, y1, y2) {
+                        var y = y1 < y2 ? y1 : y2;
+                        var h = y2 - y1; if (h < 0) h = -h;
+                        return { x: x - thickness / 2, y: y, w: thickness, h: h };
                     }
                     for (var pi = 0; pi < portals.length; pi++) {
                         var p = portals[pi];
@@ -454,34 +481,83 @@ function (root) {
                                 children: []
                             }));
                         } else {
-                            // A wormhole portal joins two non-facing openings on different
-                            // boundary edges; render a headless shaft at each end.
-                            var r = endRect(a.side, acell, aspan, alen);
-                            itemIds.push(register({
-                                id: name + '-portal-' + pi,
-                                kind: 'window',
-                                options: {
-                                    x: r.x,
-                                    y: r.y,
-                                    width: r.w,
-                                    height: r.h,
-                                    portalArrow: true,
-                                    sector: 'portal',
-                                    portal: p.id
-                                },
-                                children: []
-                            }));
-                            if (b.cell && b.side) {
-                                var rb = endRect(b.side, bcell, bspan, blen);
+                            // A non-facing portal (e.g. a diagonal link) joins two openings
+                            // on different boundary edges. Treat the cells as buildings and
+                            // the gaps between them as streets: route an axis-aligned path
+                            // that only runs along street lines (multiples of cellSize) and
+                            // turns at street intersections, from a's door to b's door.
+                            var vertA = a.side === 'E' || a.side === 'W';
+                            var vertB = b.side === 'E' || b.side === 'W';
+                            var segs = [];
+                            if (vertA && vertB) {
+                                // Both doors face a vertical street: A stub, up/down A's
+                                // street to a cross-street, across it, up/down B's street, B stub.
+                                var ax = streetX(a.side, acell);
+                                var ay = doorY(a.side, acell, aspan, alen);
+                                var bx = streetX(b.side, bcell);
+                                var by = doorY(b.side, bcell, bspan, blen);
+                                var aIn = a.side === 'E' ? (acell[0] + 1) * cellSize - cellInset : acell[0] * cellSize + cellInset;
+                                var bIn = b.side === 'E' ? (bcell[0] + 1) * cellSize - cellInset : bcell[0] * cellSize + cellInset;
+                                var cross = nearestStreet((ay + by) / 2);
+                                segs.push(hSeg(aIn, ax, ay));
+                                segs.push(vSeg(ax, ay, cross));
+                                segs.push(hSeg(ax, bx, cross));
+                                segs.push(vSeg(bx, cross, by));
+                                segs.push(hSeg(bx, bIn, by));
+                            } else if (!vertA && !vertB) {
+                                // Both doors face a horizontal street: mirror of the above.
+                                var aay = streetY(a.side, acell);
+                                var aax = doorX(a.side, acell, aspan, alen);
+                                var bay = streetY(b.side, bcell);
+                                var bax = doorX(b.side, bcell, bspan, blen);
+                                var aInY = a.side === 'S' ? (acell[1] + 1) * cellSize - cellInset : acell[1] * cellSize + cellInset;
+                                var bInY = b.side === 'S' ? (bcell[1] + 1) * cellSize - cellInset : bcell[1] * cellSize + cellInset;
+                                var crossX = nearestStreet((aax + bax) / 2);
+                                segs.push(vSeg(aax, aInY, aay));
+                                segs.push(hSeg(aax, crossX, aay));
+                                segs.push(vSeg(crossX, aay, bay));
+                                segs.push(hSeg(crossX, bax, bay));
+                                segs.push(vSeg(bax, bay, bInY));
+                            } else if (vertA) {
+                                // A faces a vertical street, B a horizontal one: L at their
+                                // intersection (A's street-x, B's street-y).
+                                var ax2 = streetX(a.side, acell);
+                                var ay2 = doorY(a.side, acell, aspan, alen);
+                                var bay2 = streetY(b.side, bcell);
+                                var bax2 = doorX(b.side, bcell, bspan, blen);
+                                var aIn2 = a.side === 'E' ? (acell[0] + 1) * cellSize - cellInset : acell[0] * cellSize + cellInset;
+                                var bIn2 = b.side === 'S' ? (bcell[1] + 1) * cellSize - cellInset : bcell[1] * cellSize + cellInset;
+                                segs.push(hSeg(aIn2, ax2, ay2));
+                                segs.push(vSeg(ax2, ay2, bay2));
+                                segs.push(hSeg(ax2, bax2, bay2));
+                                segs.push(vSeg(bax2, bay2, bIn2));
+                            } else {
+                                // A faces a horizontal street, B a vertical one: L at their
+                                // intersection (B's street-x, A's street-y).
+                                var aay3 = streetY(a.side, acell);
+                                var aax3 = doorX(a.side, acell, aspan, alen);
+                                var bax3 = streetX(b.side, bcell);
+                                var bay3 = doorY(b.side, bcell, bspan, blen);
+                                var aIn3 = a.side === 'S' ? (acell[1] + 1) * cellSize - cellInset : acell[1] * cellSize + cellInset;
+                                var bIn3 = b.side === 'E' ? (bcell[0] + 1) * cellSize - cellInset : bcell[0] * cellSize + cellInset;
+                                segs.push(vSeg(aax3, aIn3, aay3));
+                                segs.push(hSeg(aax3, bax3, aay3));
+                                segs.push(vSeg(bax3, aay3, bay3));
+                                segs.push(hSeg(bax3, bay3, bIn3));
+                            }
+                            for (var si = 0; si < segs.length; si++) {
+                                var sr = segs[si];
+                                if (sr.w <= 0 && sr.h <= 0) continue;
                                 itemIds.push(register({
-                                    id: name + '-portal-' + pi + '-b',
+                                    id: name + '-portal-' + pi + (si === 0 ? '' : '-s' + si),
                                     kind: 'window',
                                     options: {
-                                        x: rb.x,
-                                        y: rb.y,
-                                        width: rb.w,
-                                        height: rb.h,
+                                        x: sr.x,
+                                        y: sr.y,
+                                        width: sr.w,
+                                        height: sr.h,
                                         portalArrow: true,
+                                        portalLine: true,
                                         sector: 'portal',
                                         portal: p.id
                                     },
