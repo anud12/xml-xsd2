@@ -8,10 +8,6 @@ namespace GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.SectorGridBoxCorner
 [TestSuite]
 public class SectorGridBoxCornerTests : Steps
 {
-    // cell (x, y) sits at local (x*40 + 4, y*40 + 4) within the view (4px inset
-    // from the 8px cell gap).
-    static Vector2 CellPos(int x, int y) => new(x * 40f + 4f, y * 40f + 4f);
-
     [TestCategory("Stage_10")]
     [TestCase]
     [RequireGodotRuntime]
@@ -57,13 +53,17 @@ public class SectorGridBoxCornerTests : Steps
         Assertions.AssertThat(
             (IsNpS(ps[0]) && IsEpW(ps[1])) || (IsEpW(ps[0]) && IsNpS(ps[1]))).IsTrue();
 
-        // Four cell windows, one per footprint square, each inset 4px and spaced 40px.
+        // Cells of the same container are continuous: the three L cells extend
+        // toward each other (no inset on a shared edge) so they read as one solid
+        // L-shape, while the box (a different container) keeps a 4px inset on every
+        // side. (0,0) touches (1,0) and (0,1); each keeps a 4px inset on its outer
+        // edges and the box-adjacent edges.
         scene.AssertPanelThat("caveview")
             .ViewportIsSize(700, 400)
-            .HasChildPanelNamed("caveview-cell-0-0", c => c.IsPositionEqual(CellPos(0, 0).X, CellPos(0, 0).Y))
-            .HasChildPanelNamed("caveview-cell-1-0", c => c.IsPositionEqual(CellPos(1, 0).X, CellPos(1, 0).Y))
-            .HasChildPanelNamed("caveview-cell-0-1", c => c.IsPositionEqual(CellPos(0, 1).X, CellPos(0, 1).Y))
-            .HasChildPanelNamed("caveview-cell-1-1", c => c.IsPositionEqual(CellPos(1, 1).X, CellPos(1, 1).Y));
+            .HasChildPanelNamed("caveview-cell-0-0", c => c.IsPositionEqual(4, 4).ViewportIsSize(36, 36))
+            .HasChildPanelNamed("caveview-cell-1-0", c => c.IsPositionEqual(40, 4).ViewportIsSize(36, 32))
+            .HasChildPanelNamed("caveview-cell-0-1", c => c.IsPositionEqual(4, 40).ViewportIsSize(32, 36))
+            .HasChildPanelNamed("caveview-cell-1-1", c => c.IsPositionEqual(44, 44).ViewportIsSize(32, 32));
 
         // Two engine-drawn headless shafts centered on the shared boundary edges:
         //   vertical adjacency  -> horizontal shaft 40x6 at (40, 37)
@@ -77,5 +77,7 @@ public class SectorGridBoxCornerTests : Steps
         bool hv = p0!.Position == new Vector2(37, 40) && p0.Size == new Vector2(6, 40);
         bool vh = p1!.Position == new Vector2(40, 37) && p1.Size == new Vector2(40, 6);
         Assertions.AssertThat((h && v) || (hv && vh)).IsTrue();
+
+        DebugSaveScreenshot("debug.png");
     }
 }

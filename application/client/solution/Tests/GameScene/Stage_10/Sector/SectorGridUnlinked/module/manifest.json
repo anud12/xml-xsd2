@@ -1,0 +1,6 @@
+{
+  "id": "sector-grid-unlinked-test",
+  "version": "1.0.0",
+  "name": "Sector Grid Unlinked Portals Test Module",
+  "entry": "index.js"
+}

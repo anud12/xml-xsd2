@@ -26,7 +26,9 @@ public partial class UiWindow
                 ? (float)pw.GetDouble() : 0f;
             var ah = opts.TryGetProperty("height", out var ph) && ph.ValueKind == JsonValueKind.Number
                 ? (float)ph.GetDouble() : 0f;
-            ApplyPortalArrow(aw, ah);
+            var unlinked = opts.TryGetProperty("unlinked", out var ul)
+                && ul.ValueKind == JsonValueKind.True;
+            ApplyPortalArrow(aw, ah, unlinked);
             return;
         }
         if (opts.ValueKind == JsonValueKind.Undefined
@@ -83,17 +85,20 @@ public partial class UiWindow
     readonly struct PortalArrowSpec
     {
         public readonly bool Horizontal;
+        public readonly bool Unlinked;
         public readonly float W;
         public readonly float H;
-        public PortalArrowSpec(bool horizontal, float w, float h)
-        { Horizontal = horizontal; W = w; H = h; }
+        public PortalArrowSpec(bool horizontal, bool unlinked, float w, float h)
+        { Horizontal = horizontal; Unlinked = unlinked; W = w; H = h; }
     }
     PortalArrowSpec? _portalArrow;
 
     public override void _Draw()
     {
         if (_portalArrow is not { } a) return;
-        var color = new Color(0.90f, 0.49f, 0.13f);
+        // Linked portals are orange; unlinked (a declared opening with no facing
+        // sector) are red, so a lone sector's dead-end openings read as "missing".
+        var color = a.Unlinked ? new Color(0.85f, 0.22f, 0.22f) : new Color(0.90f, 0.49f, 0.13f);
         var shaft = 4f;
         if (a.Horizontal)
         {
@@ -113,9 +118,9 @@ public partial class UiWindow
         }
     }
 
-    void ApplyPortalArrow(float w, float h)
+    void ApplyPortalArrow(float w, float h, bool unlinked)
     {
-        _portalArrow = new PortalArrowSpec(w < h, w, h);
+        _portalArrow = new PortalArrowSpec(w < h, unlinked, w, h);
         // Above sibling cell windows so the arrow (which overflows the thin
         // node into the cell gap) is not occluded by the cell backgrounds.
         ZIndex = 100;

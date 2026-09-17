@@ -337,7 +337,6 @@ function (root) {
                     ? node.options.cellGap : 0;
                 if (cellGap >= cellSize) cellGap = cellSize;
                 var cellInset = cellGap / 2;
-                var cellSpan = cellSize - cellGap;
                 var grid = (typeof gridId === 'string') ? grids[gridId] : null;
                 var render = sectorGridRenders[name];
                 var itemIds = [];
@@ -346,6 +345,11 @@ function (root) {
                     // (the module sets its content/background) and the engine
                     // stamps its geometry from (x, y) * cellSize.
                     var cells = grid.cells || [];
+                    // Map of "x,y" -> container so each cell can tell whether an
+                    // adjacent square belongs to the same container.
+                    var containerByXY = Object.create(null);
+                    for (var ck = 0; ck < cells.length; ck++)
+                        containerByXY[cells[ck].x + ',' + cells[ck].y] = cells[ck].container;
                     for (var ci = 0; ci < cells.length; ci++) {
                         var cell = cells[ci];
                         var pid = render({
@@ -362,10 +366,21 @@ function (root) {
                         var in1 = nodes[itemId];
                         if (in1) {
                             if (!in1.options || typeof in1.options !== 'object') in1.options = {};
-                            in1.options.x = cell.x * cellSize + cellInset;
-                            in1.options.y = cell.y * cellSize + cellInset;
-                            in1.options.width = cellSpan;
-                            in1.options.height = cellSpan;
+                            // Extend toward a same-container neighbour (no inset, so
+                            // same-container cells read as one continuous region) and
+                            // inset toward a different/absent neighbour (gap boundary).
+                            var sameL = containerByXY[(cell.x - 1) + ',' + cell.y] === cell.container;
+                            var sameR = containerByXY[(cell.x + 1) + ',' + cell.y] === cell.container;
+                            var sameT = containerByXY[cell.x + ',' + (cell.y - 1)] === cell.container;
+                            var sameB = containerByXY[cell.x + ',' + (cell.y + 1)] === cell.container;
+                            var left = sameL ? cell.x * cellSize : cell.x * cellSize + cellInset;
+                            var right = sameR ? (cell.x + 1) * cellSize : (cell.x + 1) * cellSize - cellInset;
+                            var top = sameT ? cell.y * cellSize : cell.y * cellSize + cellInset;
+                            var bottom = sameB ? (cell.y + 1) * cellSize : (cell.y + 1) * cellSize - cellInset;
+                            in1.options.x = left;
+                            in1.options.y = top;
+                            in1.options.width = right - left;
+                            in1.options.height = bottom - top;
                             in1.options.cell = cell.x + ',' + cell.y;
                             in1.options.sector = 'cell';
                             in1.options.container = cell.container;
@@ -421,6 +436,64 @@ function (root) {
                             children: []
                         });
                         itemIds.push(pitemId);
+                    }
+                    // Unlinked openings: declared openings whose (cell, side) is not
+                    // covered by a linked portal (no facing opening on the adjacent
+                    // square). Rendered as red headless shafts on the boundary edge
+                    // so a lone sector's dead-end openings stay visible.
+                    var linkedSide = Object.create(null);
+                    for (var li = 0; li < portals.length; li++) {
+                        var la = portals[li].a || {}, lb = portals[li].b || {};
+                        var lc = la.cell || [0, 0], lb2 = lb.cell || [0, 0];
+                        linkedSide[lc[0] + ',' + lc[1] + ':' + la.side] = true;
+                        linkedSide[lb2[0] + ',' + lb2[1] + ':' + lb.side] = true;
+                    }
+                    var unlinkedSeq = 0;
+                    for (var uci = 0; uci < cells.length; uci++) {
+                        var uopen = cells[uci].openings || [];
+                        for (var uoi = 0; uoi < uopen.length; uoi++) {
+                            var o = uopen[uoi];
+                            var uc = o.cell || [0, 0];
+                            var ux = uc[0], uy = uc[1], uside = o.side;
+                            if (linkedSide[ux + ',' + uy + ':' + uside]) continue;
+                            var useq = unlinkedSeq++;
+                            var ustart = typeof o.start === 'number' ? o.start : 0;
+                            var ulen = (typeof o.length === 'number' && o.length > 0) ? o.length : 1;
+                            var upx, upy, upw, uph;
+                            if (uside === 'N') {
+                                upx = ux * cellSize + ustart * cellSize;
+                                upy = uy * cellSize - thickness / 2;
+                                upw = ulen * cellSize; uph = thickness;
+                            } else if (uside === 'S') {
+                                upx = ux * cellSize + ustart * cellSize;
+                                upy = (uy + 1) * cellSize - thickness / 2;
+                                upw = ulen * cellSize; uph = thickness;
+                            } else if (uside === 'W') {
+                                upx = ux * cellSize - thickness / 2;
+                                upy = uy * cellSize + ustart * cellSize;
+                                upw = thickness; uph = ulen * cellSize;
+                            } else {
+                                upx = (ux + 1) * cellSize - thickness / 2;
+                                upy = uy * cellSize + ustart * cellSize;
+                                upw = thickness; uph = ulen * cellSize;
+                            }
+                            var uitemId = register({
+                                id: name + '-unlinked-' + useq,
+                                kind: 'window',
+                                options: {
+                                    x: upx,
+                                    y: upy,
+                                    width: upw,
+                                    height: uph,
+                                    portalArrow: true,
+                                    unlinked: true,
+                                    sector: 'portal',
+                                    portal: ''
+                                },
+                                children: []
+                            });
+                            itemIds.push(uitemId);
+                        }
                     }
                 }
                 sectorGridItems[name] = itemIds;
