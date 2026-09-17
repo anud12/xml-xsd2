@@ -63,7 +63,7 @@ public class SectorGridVisualTests : Steps
         // blue L cells + the blue box cell (8px gaps between them), and the
         // orange headless-arrow shaft the engine draws across the gap between
         // the L's arm and the box. Generated on first run, compared after.
-        // scene.AssertPanelThat("caveview").ViewportMatches("expected.png");
+        scene.AssertPanelThat("caveview").ViewportMatches("expected.png");
     }
     
 }

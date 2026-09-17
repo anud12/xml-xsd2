@@ -70,6 +70,11 @@ public class SectorGridUnlinkedTests : Steps
         }
         Assertions.AssertThat(matches).IsEqual(4);
 
+        // Reference screenshot of the whole view: the dark background, the lone
+        // inset cell, and the four red unlinked dead-end shafts on its boundary
+        // edges (no portals). Generated on first run, compared after.
+        scene.AssertPanelThat("caveview").ViewportMatches("expected.png");
+
         DebugSaveScreenshot("debug.png");
     }
 }

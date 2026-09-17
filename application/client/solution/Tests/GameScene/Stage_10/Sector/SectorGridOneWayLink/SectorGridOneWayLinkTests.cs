@@ -68,6 +68,12 @@ public class SectorGridOneWayLinkTests : Steps
         // No portal formed: A has no opening facing B.
         Assertions.AssertThat(scene.GetWindowOrNull("caveview-portal-0")).IsNull();
 
+        // Reference screenshot of the whole view after the build: the two cells
+        // and the single red unlinked shaft on the shared A-B wall (B opens
+        // toward A, but A has no opening back, so no portal forms). Generated on
+        // first run, compared after.
+        scene.AssertPanelThat("caveview").ViewportMatches("expected.png");
+
         DebugSaveScreenshot("debug.png");
     }
 }

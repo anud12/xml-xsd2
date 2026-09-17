@@ -415,16 +415,6 @@ function (root) {
                         var fr = fl + 1;
                         return (k - fl <= fr - k) ? fl * cellSize : fr * cellSize;
                     }
-                    function hSeg(x1, x2, y) {
-                        var x = x1 < x2 ? x1 : x2;
-                        var w = x2 - x1; if (w < 0) w = -w;
-                        return { x: x, y: y - thickness / 2, w: w, h: thickness };
-                    }
-                    function vSeg(x, y1, y2) {
-                        var y = y1 < y2 ? y1 : y2;
-                        var h = y2 - y1; if (h < 0) h = -h;
-                        return { x: x - thickness / 2, y: y, w: thickness, h: h };
-                    }
                     for (var pi = 0; pi < portals.length; pi++) {
                         var p = portals[pi];
                         var a = p.a || {};
@@ -483,79 +473,111 @@ function (root) {
                         } else {
                             // A non-facing portal (e.g. a diagonal link) joins two openings
                             // on different boundary edges. Treat the cells as buildings and
-                            // the gaps between them as streets: route an axis-aligned path
-                            // that only runs along street lines (multiples of cellSize) and
-                            // turns at street intersections, from a's door to b's door.
+                            // the gaps between them as streets: build an axis-aligned
+                            // polyline that only runs along street lines (multiples of
+                            // cellSize), turning at street intersections, from a's door to
+                            // b's door. Stroke it as one rect per segment plus a
+                            // thickness x thickness square at each internal corner so the
+                            // joints read as smooth rectangles rather than notches.
                             var vertA = a.side === 'E' || a.side === 'W';
                             var vertB = b.side === 'E' || b.side === 'W';
-                            var segs = [];
+                            var inX = function (side, cell) {
+                                return side === 'E' ? (cell[0] + 1) * cellSize - cellInset : cell[0] * cellSize + cellInset;
+                            };
+                            var inY = function (side, cell) {
+                                return side === 'S' ? (cell[1] + 1) * cellSize - cellInset : cell[1] * cellSize + cellInset;
+                            };
+                            var pts = [];
                             if (vertA && vertB) {
                                 // Both doors face a vertical street: A stub, up/down A's
                                 // street to a cross-street, across it, up/down B's street, B stub.
-                                var ax = streetX(a.side, acell);
-                                var ay = doorY(a.side, acell, aspan, alen);
-                                var bx = streetX(b.side, bcell);
-                                var by = doorY(b.side, bcell, bspan, blen);
-                                var aIn = a.side === 'E' ? (acell[0] + 1) * cellSize - cellInset : acell[0] * cellSize + cellInset;
-                                var bIn = b.side === 'E' ? (bcell[0] + 1) * cellSize - cellInset : bcell[0] * cellSize + cellInset;
+                                var ax = streetX(a.side, acell), ay = doorY(a.side, acell, aspan, alen);
+                                var bx = streetX(b.side, bcell), by = doorY(b.side, bcell, bspan, blen);
                                 var cross = nearestStreet((ay + by) / 2);
-                                segs.push(hSeg(aIn, ax, ay));
-                                segs.push(vSeg(ax, ay, cross));
-                                segs.push(hSeg(ax, bx, cross));
-                                segs.push(vSeg(bx, cross, by));
-                                segs.push(hSeg(bx, bIn, by));
+                                pts = [
+                                    { x: inX(a.side, acell), y: ay },
+                                    { x: ax, y: ay },
+                                    { x: ax, y: cross },
+                                    { x: bx, y: cross },
+                                    { x: bx, y: by },
+                                    { x: inX(b.side, bcell), y: by }
+                                ];
                             } else if (!vertA && !vertB) {
                                 // Both doors face a horizontal street: mirror of the above.
-                                var aay = streetY(a.side, acell);
-                                var aax = doorX(a.side, acell, aspan, alen);
-                                var bay = streetY(b.side, bcell);
-                                var bax = doorX(b.side, bcell, bspan, blen);
-                                var aInY = a.side === 'S' ? (acell[1] + 1) * cellSize - cellInset : acell[1] * cellSize + cellInset;
-                                var bInY = b.side === 'S' ? (bcell[1] + 1) * cellSize - cellInset : bcell[1] * cellSize + cellInset;
+                                var aax = doorX(a.side, acell, aspan, alen), aay = streetY(a.side, acell);
+                                var bax = doorX(b.side, bcell, bspan, blen), bay = streetY(b.side, bcell);
                                 var crossX = nearestStreet((aax + bax) / 2);
-                                segs.push(vSeg(aax, aInY, aay));
-                                segs.push(hSeg(aax, crossX, aay));
-                                segs.push(vSeg(crossX, aay, bay));
-                                segs.push(hSeg(crossX, bax, bay));
-                                segs.push(vSeg(bax, bay, bInY));
+                                pts = [
+                                    { x: aax, y: inY(a.side, acell) },
+                                    { x: aax, y: aay },
+                                    { x: crossX, y: aay },
+                                    { x: crossX, y: bay },
+                                    { x: bax, y: bay },
+                                    { x: bax, y: inY(b.side, bcell) }
+                                ];
                             } else if (vertA) {
                                 // A faces a vertical street, B a horizontal one: L at their
                                 // intersection (A's street-x, B's street-y).
-                                var ax2 = streetX(a.side, acell);
-                                var ay2 = doorY(a.side, acell, aspan, alen);
-                                var bay2 = streetY(b.side, bcell);
-                                var bax2 = doorX(b.side, bcell, bspan, blen);
-                                var aIn2 = a.side === 'E' ? (acell[0] + 1) * cellSize - cellInset : acell[0] * cellSize + cellInset;
-                                var bIn2 = b.side === 'S' ? (bcell[1] + 1) * cellSize - cellInset : bcell[1] * cellSize + cellInset;
-                                segs.push(hSeg(aIn2, ax2, ay2));
-                                segs.push(vSeg(ax2, ay2, bay2));
-                                segs.push(hSeg(ax2, bax2, bay2));
-                                segs.push(vSeg(bax2, bay2, bIn2));
+                                var ax2 = streetX(a.side, acell), ay2 = doorY(a.side, acell, aspan, alen);
+                                var bax2 = doorX(b.side, bcell, bspan, blen), bay2 = streetY(b.side, bcell);
+                                pts = [
+                                    { x: inX(a.side, acell), y: ay2 },
+                                    { x: ax2, y: ay2 },
+                                    { x: ax2, y: bay2 },
+                                    { x: bax2, y: bay2 },
+                                    { x: bax2, y: inY(b.side, bcell) }
+                                ];
                             } else {
                                 // A faces a horizontal street, B a vertical one: L at their
                                 // intersection (B's street-x, A's street-y).
-                                var aay3 = streetY(a.side, acell);
-                                var aax3 = doorX(a.side, acell, aspan, alen);
-                                var bax3 = streetX(b.side, bcell);
-                                var bay3 = doorY(b.side, bcell, bspan, blen);
-                                var aIn3 = a.side === 'S' ? (acell[1] + 1) * cellSize - cellInset : acell[1] * cellSize + cellInset;
-                                var bIn3 = b.side === 'E' ? (bcell[0] + 1) * cellSize - cellInset : bcell[0] * cellSize + cellInset;
-                                segs.push(vSeg(aax3, aIn3, aay3));
-                                segs.push(hSeg(aax3, bax3, aay3));
-                                segs.push(vSeg(bax3, aay3, bay3));
-                                segs.push(hSeg(bax3, bay3, bIn3));
+                                var aax3 = doorX(a.side, acell, aspan, alen), aay3 = streetY(a.side, acell);
+                                var bax3 = streetX(b.side, bcell), bay3 = doorY(b.side, bcell, bspan, blen);
+                                pts = [
+                                    { x: aax3, y: inY(a.side, acell) },
+                                    { x: aax3, y: aay3 },
+                                    { x: bax3, y: aay3 },
+                                    { x: bax3, y: bay3 },
+                                    { x: inX(b.side, bcell), y: bay3 }
+                                ];
                             }
-                            for (var si = 0; si < segs.length; si++) {
-                                var sr = segs[si];
-                                if (sr.w <= 0 && sr.h <= 0) continue;
+                            var half = thickness / 2;
+                            for (var si = 0; si < pts.length - 1; si++) {
+                                var p1 = pts[si], p2 = pts[si + 1];
+                                var sx, sy, sw, sh;
+                                if (p1.y === p2.y) {
+                                    sx = p1.x < p2.x ? p1.x : p2.x; sw = p2.x - p1.x; if (sw < 0) sw = -sw;
+                                    sy = p1.y - half; sh = thickness;
+                                } else {
+                                    sx = p1.x - half; sw = thickness;
+                                    sy = p1.y < p2.y ? p1.y : p2.y; sh = p2.y - p1.y; if (sh < 0) sh = -sh;
+                                }
+                                if (sw <= 0 && sh <= 0) continue;
                                 itemIds.push(register({
                                     id: name + '-portal-' + pi + (si === 0 ? '' : '-s' + si),
                                     kind: 'window',
                                     options: {
-                                        x: sr.x,
-                                        y: sr.y,
-                                        width: sr.w,
-                                        height: sr.h,
+                                        x: sx,
+                                        y: sy,
+                                        width: sw,
+                                        height: sh,
+                                        portalArrow: true,
+                                        portalLine: true,
+                                        sector: 'portal',
+                                        portal: p.id
+                                    },
+                                    children: []
+                                }));
+                            }
+                            for (var ci = 1; ci < pts.length - 1; ci++) {
+                                var cp = pts[ci];
+                                itemIds.push(register({
+                                    id: name + '-portal-' + pi + '-c' + ci,
+                                    kind: 'window',
+                                    options: {
+                                        x: cp.x - half,
+                                        y: cp.y - half,
+                                        width: thickness,
+                                        height: thickness,
                                         portalArrow: true,
                                         portalLine: true,
                                         sector: 'portal',

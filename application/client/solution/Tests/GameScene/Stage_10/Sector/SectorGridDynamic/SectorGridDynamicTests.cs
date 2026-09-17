@@ -84,6 +84,12 @@ public class SectorGridDynamicTests : Steps
         Assertions.AssertThat(portal!.Position == new Vector2(57, 36) && portal.Size == new Vector2(6, 8)).IsTrue();
         Assertions.AssertThat(scene.GetWindowOrNull("caveview-unlinked-0")).IsNull();
 
+        // Reference screenshot of the whole view after the build: the three L
+        // cells, the new inset room-b cell at (1,1), and the orange edge-to-edge
+        // portal line linking them (the unlinked dead-end is gone). Generated on
+        // first run, compared after.
+        scene.AssertPanelThat("caveview").ViewportMatches("expected.png");
+
         DebugSaveScreenshot("debug.png");
     }
 }

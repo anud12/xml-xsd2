@@ -62,10 +62,6 @@ public class SectorGridDiagonalLinkTests : Steps
         Assertions.AssertThat(p.A.CellX == 0 && p.A.CellY == 0 && p.A.Side == "E").IsTrue();
         Assertions.AssertThat(p.B.CellX == 2 && p.B.CellY == 2 && p.B.Side == "W").IsTrue();
 
-        scene.AssertPanelThat("caveview")
-            .HasChildPanelNamed("caveview-cell-0-0", c => c.IsPositionEqual(4, 4).ViewportIsSize(32, 32))
-            .HasChildPanelNamed("caveview-cell-2-2", c => c.IsPositionEqual(84, 84).ViewportIsSize(32, 32));
-
         // The corridor travels along the streets (the gaps between cells), not through
         // the buildings. From A's east door it steps into the street at x = 40, drops to
         // the cross-street at y = 40, runs east along it to the street at x = 80, drops
@@ -75,25 +71,30 @@ public class SectorGridDiagonalLinkTests : Steps
         //   seg2: (40,37) 40x6   -- east along cross-street y=40 to street x=80
         //   seg3: (77,40) 6x60   -- down street x=80 to B's row
         //   seg4: (80,97) 4x6    -- into B's door
-        var s0 = scene.GetWindowOrNull("caveview-portal-0");
-        Assertions.AssertThat(s0).IsNotNull();
-        Assertions.AssertThat(s0!.Position == new Vector2(36, 17) && s0.Size == new Vector2(4, 6)).IsTrue();
-        var s1 = scene.GetWindowOrNull("caveview-portal-0-s1");
-        Assertions.AssertThat(s1).IsNotNull();
-        Assertions.AssertThat(s1!.Position == new Vector2(37, 20) && s1.Size == new Vector2(6, 20)).IsTrue();
-        var s2 = scene.GetWindowOrNull("caveview-portal-0-s2");
-        Assertions.AssertThat(s2).IsNotNull();
-        Assertions.AssertThat(s2!.Position == new Vector2(40, 37) && s2.Size == new Vector2(40, 6)).IsTrue();
-        var s3 = scene.GetWindowOrNull("caveview-portal-0-s3");
-        Assertions.AssertThat(s3).IsNotNull();
-        Assertions.AssertThat(s3!.Position == new Vector2(77, 40) && s3.Size == new Vector2(6, 60)).IsTrue();
-        var s4 = scene.GetWindowOrNull("caveview-portal-0-s4");
-        Assertions.AssertThat(s4).IsNotNull();
-        Assertions.AssertThat(s4!.Position == new Vector2(80, 97) && s4.Size == new Vector2(4, 6)).IsTrue();
+        // Plus a 6x6 square at each internal corner so the joints are smooth rectangles,
+        // not notched: at the four turn points (40,20), (40,40), (80,40), (80,100).
+        scene.AssertPanelThat("caveview")
+            .HasChildPanelNamed("caveview-cell-0-0", c => c.IsPositionEqual(4, 4).ViewportIsSize(32, 32))
+            .HasChildPanelNamed("caveview-cell-2-2", c => c.IsPositionEqual(84, 84).ViewportIsSize(32, 32))
+            .HasChildPanelNamed("caveview-portal-0", c => c.IsPositionEqual(36, 17).ViewportIsSize(4, 6))
+            .HasChildPanelNamed("caveview-portal-0-s1", c => c.IsPositionEqual(37, 20).ViewportIsSize(6, 20))
+            .HasChildPanelNamed("caveview-portal-0-s2", c => c.IsPositionEqual(40, 37).ViewportIsSize(40, 6))
+            .HasChildPanelNamed("caveview-portal-0-s3", c => c.IsPositionEqual(77, 40).ViewportIsSize(6, 60))
+            .HasChildPanelNamed("caveview-portal-0-s4", c => c.IsPositionEqual(80, 97).ViewportIsSize(4, 6))
+            .HasChildPanelNamed("caveview-portal-0-c1", c => c.IsPositionEqual(37, 17).ViewportIsSize(6, 6))
+            .HasChildPanelNamed("caveview-portal-0-c2", c => c.IsPositionEqual(37, 37).ViewportIsSize(6, 6))
+            .HasChildPanelNamed("caveview-portal-0-c3", c => c.IsPositionEqual(77, 37).ViewportIsSize(6, 6))
+            .HasChildPanelNamed("caveview-portal-0-c4", c => c.IsPositionEqual(77, 97).ViewportIsSize(6, 6));
 
         // Both openings are linked now, so the unlinked dead-ends are gone.
         Assertions.AssertThat(scene.GetWindowOrNull("caveview-unlinked-0")).IsNull();
         Assertions.AssertThat(scene.GetWindowOrNull("caveview-unlinked-1")).IsNull();
+
+        // Reference screenshot of the whole view: the dark background, the two
+        // isolated 32x32 buildings at (0,0) and (2,2), and the orange Manhattan
+        // corridor (street-routed, smooth-cornered) joining them. Generated on
+        // first run, compared after.
+        scene.AssertPanelThat("caveview").ViewportMatches("expected.png");
 
         DebugSaveScreenshot("debug.png");
     }

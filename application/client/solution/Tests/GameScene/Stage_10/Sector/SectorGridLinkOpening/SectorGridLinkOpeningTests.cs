@@ -81,6 +81,12 @@ public class SectorGridLinkOpeningTests : Steps
         Assertions.AssertThat(scene.GetWindowOrNull("caveview-unlinked-0")).IsNull();
         Assertions.AssertThat(scene.GetWindowOrNull("caveview-unlinked-1")).IsNull();
 
+        // Reference screenshot of the whole view after the link: the two isolated
+        // cells and the single orange edge-to-edge portal line stretched across the
+        // blank square between them (both dead-ends gone). Generated on first run,
+        // compared after.
+        scene.AssertPanelThat("caveview").ViewportMatches("expected.png");
+
         DebugSaveScreenshot("debug.png");
     }
 }

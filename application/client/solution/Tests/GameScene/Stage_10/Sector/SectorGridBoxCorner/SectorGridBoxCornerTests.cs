@@ -78,6 +78,12 @@ public class SectorGridBoxCornerTests : Steps
         bool vh = p1!.Position == new Vector2(57, 36) && p1.Size == new Vector2(6, 8);
         Assertions.AssertThat((v && h) || (hv && vh)).IsTrue();
 
+        // Reference screenshot of the whole view: the dark background, the three
+        // continuous L cells (one solid L-shape), the inset box cell, and the two
+        // orange edge-to-edge portal lines where the L meets the box. Generated on
+        // first run, compared after.
+        scene.AssertPanelThat("caveview").ViewportMatches("expected.png");
+
         DebugSaveScreenshot("debug.png");
     }
 }
