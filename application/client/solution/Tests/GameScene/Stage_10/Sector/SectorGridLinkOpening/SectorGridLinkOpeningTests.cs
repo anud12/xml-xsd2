@@ -68,12 +68,13 @@ public class SectorGridLinkOpeningTests : Steps
             .HasChildPanelNamed("caveview-cell-0-0", c => c.IsPositionEqual(4, 4).ViewportIsSize(32, 32))
             .HasChildPanelNamed("caveview-cell-2-0", c => c.IsPositionEqual(84, 4).ViewportIsSize(32, 32));
 
-        // The portal line stretches across the blank square from A's east edge
-        // (x = 40) to B's west edge (x = 80), centered on the opening (y = 20):
-        // a single 40x6 line, no second shaft.
+        // The portal line stretches edge-to-edge across the blank square, from A's
+        // visible east edge (x = 40 - 4 inset = 36) to B's visible west edge
+        // (x = 80 + 4 inset = 84), centered on the opening (y = 20): a single 48x6
+        // line that touches both cells with no gap, no second shaft.
         var line = scene.GetWindowOrNull("caveview-portal-0");
         Assertions.AssertThat(line).IsNotNull();
-        Assertions.AssertThat(line!.Position == new Vector2(40, 17) && line.Size == new Vector2(40, 6)).IsTrue();
+        Assertions.AssertThat(line!.Position == new Vector2(36, 17) && line.Size == new Vector2(48, 6)).IsTrue();
         Assertions.AssertThat(scene.GetWindowOrNull("caveview-portal-0-b")).IsNull();
 
         // Both openings are linked now, so the unlinked dead-ends are gone.

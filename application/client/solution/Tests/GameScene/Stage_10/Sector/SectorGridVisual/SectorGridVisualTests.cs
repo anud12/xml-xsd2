@@ -52,11 +52,12 @@ public class SectorGridVisualTests : Steps
             .HasChildPanelNamed("caveview-cell-0-1", c => c.IsPositionEqual(4, 40).ViewportIsSize(32, 36))
             .HasChildPanelNamed("caveview-cell-2-0", c => c.IsPositionEqual(84, 4).ViewportIsSize(32, 32));
 
-        // The portal renders as an engine-drawn headless arrow (a solid shaft)
-        // centered on the shared edge at x=80 (the right edge of cell (1,0)):
-        // 80 - 6/2 = 77, one cell tall.
+        // The portal is an edge-to-edge line from the L's (1,0) visible east edge
+        // (x = 80 - 4 inset = 76) to the box's (2,0) visible west edge
+        // (x = 80 + 4 inset = 84), centered on the opening (y = 20): an 8x6 line
+        // that touches both cells with no gap and no inset.
         scene.AssertPanelThat("caveview")
-            .HasChildPanelNamed("caveview-portal-0", c => c.IsPositionEqual(77, 0));
+            .HasChildPanelNamed("caveview-portal-0", c => c.IsPositionEqual(76, 17).ViewportIsSize(8, 6));
 
         // Reference screenshot of the whole view: the dark background, the three
         // blue L cells + the blue box cell (8px gaps between them), and the

@@ -65,18 +65,18 @@ public class SectorGridBoxCornerTests : Steps
             .HasChildPanelNamed("caveview-cell-0-1", c => c.IsPositionEqual(4, 40).ViewportIsSize(32, 36))
             .HasChildPanelNamed("caveview-cell-1-1", c => c.IsPositionEqual(44, 44).ViewportIsSize(32, 32));
 
-        // Two engine-drawn headless shafts centered on the shared boundary edges:
-        //   vertical adjacency  -> horizontal shaft 40x6 at (40, 37)
-        //   horizontal adjacency-> vertical shaft   6x40 at (37, 40)
+        // Two edge-to-edge portal lines that touch both cells (no gap, no inset):
+        //   (1,0)S <-> (1,1)N (vertical gap)  -> 6x8 vertical line   at (57, 36)
+        //   (0,1)E <-> (1,1)W (horizontal gap)-> 8x6 horizontal line at (36, 57)
         // Portal id order is an implementation detail, so assert as a set.
         var p0 = scene.GetWindowOrNull("caveview-portal-0");
         var p1 = scene.GetWindowOrNull("caveview-portal-1");
         Assertions.AssertThat(p0 != null && p1 != null).IsTrue();
-        bool h = p0!.Position == new Vector2(40, 37) && p0.Size == new Vector2(40, 6);
-        bool v = p1!.Position == new Vector2(37, 40) && p1.Size == new Vector2(6, 40);
-        bool hv = p0!.Position == new Vector2(37, 40) && p0.Size == new Vector2(6, 40);
-        bool vh = p1!.Position == new Vector2(40, 37) && p1.Size == new Vector2(40, 6);
-        Assertions.AssertThat((h && v) || (hv && vh)).IsTrue();
+        bool v = p0!.Position == new Vector2(57, 36) && p0.Size == new Vector2(6, 8);
+        bool h = p1!.Position == new Vector2(36, 57) && p1.Size == new Vector2(8, 6);
+        bool hv = p0!.Position == new Vector2(36, 57) && p0.Size == new Vector2(8, 6);
+        bool vh = p1!.Position == new Vector2(57, 36) && p1.Size == new Vector2(6, 8);
+        Assertions.AssertThat((v && h) || (hv && vh)).IsTrue();
 
         DebugSaveScreenshot("debug.png");
     }

@@ -72,14 +72,16 @@ public class SectorGridDynamicTests : Steps
         // The view re-rendered: the new room-b cell appeared at (1,1) (no
         // same-container neighbours -> a 4px inset on every side), the L's cells
         // are unchanged, the previously-unlinked doorway is gone, and a linked
-        // portal shaft sits on the shared boundary edge in its place.
+        // portal line now spans edge-to-edge from (1,0)'s visible south edge
+        // (y = 40 - 4 inset = 36) to (1,1)'s visible north edge (y = 44): a 6x8
+        // vertical line touching both cells.
         scene.AssertPanelThat("caveview")
             .HasChildPanelNamed("caveview-cell-1-1", c => c.IsPositionEqual(44, 44).ViewportIsSize(32, 32))
             .HasChildPanelNamed("caveview-cell-1-0", c => c.IsPositionEqual(40, 4).ViewportIsSize(36, 32));
 
         var portal = scene.GetWindowOrNull("caveview-portal-0");
         Assertions.AssertThat(portal).IsNotNull();
-        Assertions.AssertThat(portal!.Position == new Vector2(40, 37) && portal.Size == new Vector2(40, 6)).IsTrue();
+        Assertions.AssertThat(portal!.Position == new Vector2(57, 36) && portal.Size == new Vector2(6, 8)).IsTrue();
         Assertions.AssertThat(scene.GetWindowOrNull("caveview-unlinked-0")).IsNull();
 
         DebugSaveScreenshot("debug.png");
