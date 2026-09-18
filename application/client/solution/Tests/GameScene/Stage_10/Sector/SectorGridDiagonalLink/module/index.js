@@ -1,3 +1,4 @@
+/** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 

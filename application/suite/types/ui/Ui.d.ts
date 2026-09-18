@@ -4,6 +4,7 @@ import {Entity, EntityExpression} from "../Entity";
 import {AnimationRegistrationArguments, GetAnimationFunction} from "../animation/AnimationRegistration";
 import {SpriteResource} from "../texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "../texture/SpriteMap";
+import {AlignOption} from "./Panel";
 
 /**
  * A single node id returned by the ui factories. Factories return the id that
@@ -42,7 +43,7 @@ export type UiPanelOptions = {
   width?: number;
   height?: number;
   anchor?: "top-left" | "top" | "top-right" | "center-left" | "center" | "center-right" | "bottom-left" | "bottom" | "bottom-right" | { x?: number; y?: number };
-  align?: "top" | "top-left" | "top-right" | "center" | "center-left" | "center-right" | "bottom" | "bottom-left" | "bottom-right";
+  align?: AlignOption;
   background?: UiBackground;
   border?: { texture?: UiBackground; thickness?: number; width?: number; height?: number };
    onHover?: { texture?: UiBackground; background?: UiBackground; thickness?: number; emitAction?: string; stopPropagation?: boolean };
@@ -78,7 +79,7 @@ export type UiFieldBinding = {
   map: "number" | "text";
   name: string;
   fallback?: string;
-  align?: string;
+  align?: AlignOption;
 };
 
 /**

@@ -1,3 +1,4 @@
+/** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   hostApi.world.sectorGrid(hostApi.runtime.string.of("cave"));
   // Concave L: (0,0)(1,0) / (0,1). The pocket square (1,1) is faced by both

@@ -5,7 +5,7 @@ import {MaybeExpressionApi} from "./primitives/maybeExpression";
 import {TemporalExpressionApi} from "./primitives/temporalExpression";
 import {RegisterEffectFunction} from "./Effect";
 import {EntityExpressionApi} from "./Entity";
-import {ContainerExpressionApi, ContainerCreationArguments} from "./Contaier";
+import {ContainerExpressionApi, ContainerCreationArguments, SectorSide} from "./Contaier";
 import {NumberMapExpressionApi} from "./numberMap";
 import {TextMapExpressionApi} from "./textMap";
 import {RegisterActionFunction} from "./action";
@@ -59,8 +59,8 @@ export type HostApi = {
      * container, its local cell `[x, y]`, and the boundary side (`"N"|"E"|"S"|"W"`).
      */
     linkOpening: (
-      a: { container: string | any, cell: [number, number], side: string },
-      b: { container: string | any, cell: [number, number], side: string },
+      a: { container: string | any, cell: [number, number], side: SectorSide },
+      b: { container: string | any, cell: [number, number], side: SectorSide },
     ) => void;
 
     /** Registers (creates or updates) an entity by id, including its field maps. */
