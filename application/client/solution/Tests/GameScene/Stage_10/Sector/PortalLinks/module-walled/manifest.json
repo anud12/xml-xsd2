@@ -1,0 +1,6 @@
+{
+  "id": "sector-portal-walled-test",
+  "version": "1.0.0",
+  "name": "Sector Portal Walled Test Module",
+  "entry": "index.js"
+}

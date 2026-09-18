@@ -105,6 +105,15 @@ pub(super) fn host_api_script_set_container()
                 globalThis.__registeredContainers =
                     globalThis.__registeredContainers || [];
                 globalThis.__registeredContainers.push(serialized);
+                // Optional sector attachment: a polyomino footprint on a named
+                // grid. Captured verbatim (plain data) for the Rust sector
+                // layer to normalize, place, and link against neighbours.
+                if (data.sector && typeof data.sector === 'object') {
+                    globalThis.__registeredSectors =
+                        globalThis.__registeredSectors || [];
+                    globalThis.__registeredSectors.push(
+                        JSON.stringify({ id: resolvedId, sector: data.sector }));
+                }
             }
         } catch(e) { /* ignore */ }
     },"#

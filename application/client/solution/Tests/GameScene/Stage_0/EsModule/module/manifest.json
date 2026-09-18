@@ -1,0 +1,6 @@
+{
+  "id": "esmodule",
+  "version": "1.0.0",
+  "name": "ESM Module",
+  "entry": "index.js"
+}

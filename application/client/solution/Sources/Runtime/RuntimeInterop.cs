@@ -400,9 +400,6 @@ public static class RuntimeInterop
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr runtime_fetch_ui_animations();
 
-    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr runtime_fetch_world_state();
-
     /// Full UI tree as a binary slab (`UiAbi.UiSnapshot`); the returned
     /// pointer stays valid until <see cref="FreeUiState"/>.
     public static IntPtr FetchUiState()
@@ -431,14 +428,6 @@ public static class RuntimeInterop
     public static string FetchUiAnimations()
     {
         var ptr = runtime_fetch_ui_animations();
-        if (ptr == IntPtr.Zero) return string.Empty;
-        try { return Marshal.PtrToStringAnsi(ptr) ?? string.Empty; }
-        finally { runtime_free_string(ptr); }
-    }
-
-    public static string FetchWorldState()
-    {
-        var ptr = runtime_fetch_world_state();
         if (ptr == IntPtr.Zero) return string.Empty;
         try { return Marshal.PtrToStringAnsi(ptr) ?? string.Empty; }
         finally { runtime_free_string(ptr); }

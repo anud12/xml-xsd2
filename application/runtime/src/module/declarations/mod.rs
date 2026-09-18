@@ -4,9 +4,11 @@ mod entity_data;
 mod patterns;
 mod action_map;
 mod state_updates;
+mod sector;
 
 pub use patterns::collect_patterns;
 pub use action_map::build_action_to_created;
+pub use sector::recompute_sector_grids_from;
 
 pub fn print_events_from_declarations(
     dec: &Declarations,
@@ -30,6 +32,7 @@ pub fn apply_declarations(dec: &Declarations) {
     set_state_from_declarations(dec);
     entity_data::store_entity_data(dec);
     crate::state::set_last_containers(dec.containers.clone());
+    sector::apply_sector_declarations(dec);
 }
 
 fn log_actions_and_panels(dec: &Declarations) {

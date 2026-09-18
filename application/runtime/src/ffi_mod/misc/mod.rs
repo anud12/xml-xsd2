@@ -14,7 +14,7 @@ pub mod ui_state;
 pub mod actor_busy;
 pub mod actor_interrupt;
 pub mod actor_active_action;
-pub mod world_state;
+pub mod sector_state;
 
 pub use action_ids::runtime_fetch_action_ids;
 pub use free_string::runtime_free_string;
@@ -25,6 +25,9 @@ pub use emit_action::runtime_emit_action_for;
 pub use get_container_by_id::get_container_ids;
 pub use get_container_by_id::get_container_by_id;
 pub use get_container_by_id::runtime_free_container;
+pub use sector_state::sector_grid_ids;
+pub use sector_state::sector_grid_by_id;
+pub use sector_state::runtime_free_sector;
 pub use get_entity_text_map_value::get_entity_text_map_value;
 pub use get_entity_number_map_value::get_entity_number_map_value;
 pub use set_entity_text_map_value::runtime_set_entity_text_map_value;

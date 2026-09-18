@@ -18,11 +18,22 @@ import {RegisterAnimationFunction, GetAnimationFunction} from "./animation/Anima
 import {AutonomyApi} from "./autonomy";
 
 /**
+ * World/sector namespace: `world.sectorGrid(id)` declares a named grid.
+ * Sectors attach to a grid via a container's optional `sector` field.
+ */
+export type WorldApi = {
+  /** Declares a named sector grid and returns a reference to it. */
+  sectorGrid: (id: StringExpression) => { id: string },
+}
+
+/**
  * The top-level host API surface exposed to modules.
  */
 export type HostApi = {
   /** UI-related APIs for panels, textures, and animations. */
   ui: UiApi,
+  /** World/sector namespace for declaring named sector grids. */
+  world: WorldApi,
   /** Runtime APIs for entities, containers, effects, actions, and events. */
   runtime: {
     condition: ConditionExpressionApi,
@@ -42,6 +53,15 @@ export type HostApi = {
 
     /** Sets container fields by container ID. */
     setContainer: (containerId: StringExpression, arguments: ContainerCreationArguments) => void;
+
+    /**
+     * Links two sector openings into an explicit portal. Each opening names its
+     * container, its local cell `[x, y]`, and the boundary side (`"N"|"E"|"S"|"W"`).
+     */
+    linkOpening: (
+      a: { container: string | any, cell: [number, number], side: string },
+      b: { container: string | any, cell: [number, number], side: string },
+    ) => void;
 
     /** Registers (creates or updates) an entity by id, including its field maps. */
     registerEntity: (arguments: { id: string | any } & EntityCreationArguments) => void;

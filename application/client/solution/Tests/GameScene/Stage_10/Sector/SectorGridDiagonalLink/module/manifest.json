@@ -1,0 +1,6 @@
+{
+  "id": "sector-grid-diagonal-link-test",
+  "version": "1.0.0",
+  "name": "Sector Grid Diagonal Link Test Module",
+  "entry": "index.js"
+}

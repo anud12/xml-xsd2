@@ -14,9 +14,25 @@ public partial class UiWindow
     /// full-rect background behind the content), an object with "kind" is a
     /// sprite map (composed from the TIFF mask + layer skins), an object with
     /// "name" is an animation reference whose frames advance per runtime
-    /// elapsed time unit.
+    /// elapsed time unit. options.portalArrow (engine-owned sector portal
+    /// headless arrow) is rendered as a full-rect solid shaft instead.
     void ApplyBackground(JsonElement opts)
     {
+        if (opts.ValueKind == JsonValueKind.Object
+            && opts.TryGetProperty("portalArrow", out var pa)
+            && pa.ValueKind == JsonValueKind.True)
+        {
+            var aw = opts.TryGetProperty("width", out var pw) && pw.ValueKind == JsonValueKind.Number
+                ? (float)pw.GetDouble() : 0f;
+            var ah = opts.TryGetProperty("height", out var ph) && ph.ValueKind == JsonValueKind.Number
+                ? (float)ph.GetDouble() : 0f;
+            var unlinked = opts.TryGetProperty("unlinked", out var ul)
+                && ul.ValueKind == JsonValueKind.True;
+            var line = opts.TryGetProperty("portalLine", out var pl)
+                && pl.ValueKind == JsonValueKind.True;
+            ApplyPortalArrow(aw, ah, unlinked, line);
+            return;
+        }
         if (opts.ValueKind == JsonValueKind.Undefined
             || !opts.TryGetProperty("background", out var bg))
             return;
@@ -61,6 +77,62 @@ public partial class UiWindow
         // elapsed time never advances and _Process would never advance a frame.
         AdvanceAnimationFrame(true);
         }
+    }
+
+    // Sector portal marker: a short headless shaft drawn in _Draw across the
+    // gap between two adjacent cells. A vertical wall (narrow node, w < h)
+    // gets a horizontal shaft; a horizontal wall (wide node, w >= h) gets a
+    // vertical one. The shaft is centered on the node and overflows its thin
+    // extent so it reads as a bridge between the two cells.
+    readonly struct PortalArrowSpec
+    {
+        public readonly bool Horizontal;
+        public readonly bool Unlinked;
+        public readonly bool Line;
+        public readonly float W;
+        public readonly float H;
+        public PortalArrowSpec(bool horizontal, bool unlinked, bool line, float w, float h)
+        { Horizontal = horizontal; Unlinked = unlinked; Line = line; W = w; H = h; }
+    }
+    PortalArrowSpec? _portalArrow;
+
+    public override void _Draw()
+    {
+        if (_portalArrow is not { } a) return;
+        // Linked portals are orange; unlinked (a declared opening with no facing
+        // sector) are red, so a lone sector's dead-end openings read as "missing".
+        var color = a.Unlinked ? new Color(0.85f, 0.22f, 0.22f) : new Color(0.90f, 0.49f, 0.13f);
+        if (a.Line)
+        {
+            DrawRect(new Rect2(0, 0, a.W, a.H), color);
+            return;
+        }
+        var shaft = 4f;
+        if (a.Horizontal)
+        {
+            var len = Mathf.Max(a.W, 14f);
+            var cx = a.W / 2f;
+            var cy = a.H / 2f;
+            var x0 = cx - len / 2f;
+            DrawRect(new Rect2(x0, cy - shaft / 2f, len, shaft), color);
+        }
+        else
+        {
+            var len = Mathf.Max(a.H, 14f);
+            var cx = a.W / 2f;
+            var cy = a.H / 2f;
+            var y0 = cy - len / 2f;
+            DrawRect(new Rect2(cx - shaft / 2f, y0, shaft, len), color);
+        }
+    }
+
+    void ApplyPortalArrow(float w, float h, bool unlinked, bool line)
+    {
+        _portalArrow = new PortalArrowSpec(w < h, unlinked, line, w, h);
+        // Above sibling cell windows so the arrow (which overflows the thin
+        // node into the cell gap) is not occluded by the cell backgrounds.
+        ZIndex = 100;
+        QueueRedraw();
     }
 
     /// A sprite map background: { kind: "spriteMap", map, layers: [{layer,

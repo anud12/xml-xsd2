@@ -27,7 +27,14 @@ fn transform_source(source: &str) -> String {
 }
 
 pub fn eval_entry_in_ctx(ctx: &Context, source: &str) -> Result<String> {
-    let transformed = transform_source(source);
+    // Multi-file modules reference one another with relative `import` statements,
+    // which QuickJS cannot parse in script mode. Bundle them the same way the
+    // extraction path does: resolve each relative import against the archive,
+    // inline its source, and strip the `export` keywords so the entry becomes a
+    // single self-contained script. For single-file modules (no imports) this
+    // is a no-op.
+    let bundled = super::extract::bundle_imports(source);
+    let transformed = transform_source(&bundled);
     ctx.with(|c| {
         c.eval::<(), _>(transformed.clone())
     })?;
@@ -52,6 +59,12 @@ var hostApi={
     },
     registerPanel:h.registerPanel
   },
+  world:{
+    sectorGrid:function(id){
+      var resolvedId=typeof id==='object'?id.value:id;
+      return { id: resolvedId, sectorGrid: true };
+    }
+  },
   runtime:{
     string:{of:function(s){return s;}},
     number:{of:function(n){return n;}},
@@ -66,6 +79,26 @@ var hostApi={
     registerEntity:h.registerEntity,
     setEntity:h.setEntity,
     setContainer:h.setContainer,
+    linkOpening:function(a,b){
+      var g=globalThis.__portalLinks;
+      if(!g){g=globalThis.__portalLinks=[];}
+      function norm(o){
+        if(!o||typeof o!=='object')return null;
+        var cell=o.cell||[0,0];
+        return {container:String(o.container),
+          cell:[cell[0]|0,cell[1]|0],side:String(o.side)};
+      }
+      var na=norm(a),nb=norm(b);
+      if(!na||!nb)return;
+      function key(x,y){return x.container+'|'+x.cell[0]+','+x.cell[1]+':'+x.side+
+        '>>'+y.container+'|'+y.cell[0]+','+y.cell[1]+':'+y.side;}
+      var ka=key(na,nb),kb=key(nb,na);
+      for(var i=0;i<g.length;i++){
+        var e=g[i];
+        if(key(e.a,e.b)===ka||key(e.a,e.b)===kb)return;
+      }
+      g.push({a:na,b:nb});
+    },
     registerBehavior:h.registerBehavior,
     registerAnimation:function(name,args){
       var resolvedName=typeof name==='object'?name.value:name;
@@ -116,6 +149,7 @@ globalThis.hostApi=hostApi;
     if(H.canvas)u.canvas=H.canvas;
     if(H.entityList)u.entityList=H.entityList;
     if(H.containerView)u.containerView=H.containerView;
+    if(H.sectorGrid)u.sectorGrid=H.sectorGrid;
     if(H.setActor)u.setActor=H.setActor;
   }
   // panel is the module-facing surface: positioned/sized/decorated panels are

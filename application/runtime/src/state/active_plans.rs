@@ -1,5 +1,5 @@
 use std::sync::{Mutex, MutexGuard};
-use crate::state::{ActivePlan, Portal, Room};
+use crate::state::ActivePlan;
 
 /// The parked action plans, one entry per actor (a plan arrives for a busy
 /// actor by interrupting, so there is at most one plan per actor).
@@ -91,34 +91,4 @@ pub fn park_active_plan(
 pub fn remove_active_plan_for(action_name: &str, actor: &str) {
     let mut plans = active_plans().lock().unwrap();
     plans.retain(|p| !(p.actor == actor && p.action_name == action_name));
-}
-
-pub fn rooms() -> &'static std::sync::Mutex<Vec<Room>> {
-    super::persisted_flag();
-    unsafe { super::ROOMS.expect("rooms initialized") }
-}
-
-pub fn portals() -> &'static std::sync::Mutex<Vec<Portal>> {
-    super::persisted_flag();
-    unsafe { super::PORTALS.expect("portals initialized") }
-}
-
-pub fn set_rooms(rs: Vec<Room>) {
-    *rooms().lock().unwrap() = rs;
-}
-
-pub fn set_portals(ps: Vec<Portal>) {
-    *portals().lock().unwrap() = ps;
-}
-
-pub fn fetch_room_by_id(id: &str) -> Option<Room> {
-    rooms().lock().unwrap().iter().find(|r| r.id == id).cloned()
-}
-
-/// Rooms + portals as JSON: `{"rooms":[...],"portals":[...]}`.
-pub fn fetch_rooms_json() -> String {
-    let rooms = rooms().lock().unwrap().clone();
-    let portals = portals().lock().unwrap().clone();
-    serde_json::json!({ "rooms": rooms, "portals": portals })
-        .to_string()
 }

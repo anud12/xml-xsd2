@@ -9,12 +9,12 @@ public partial class MainMenu : Control
         GetNode<Button>("Options/ExitButton").Pressed += OnExit;
     }
 
-    void OnNewGame()
+    public void OnNewGame()
     {
         GetTree().ChangeSceneToFile("res://Scenes/GameScene/Game.tscn");
     }
 
-    void OnSettings()
+    public void OnSettings()
     {
         GetTree().ChangeSceneToFile("res://Scenes/Settings/Settings.tscn");
     }

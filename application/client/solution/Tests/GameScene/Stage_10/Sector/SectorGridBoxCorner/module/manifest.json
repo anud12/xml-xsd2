@@ -1,0 +1,6 @@
+{
+  "id": "sector-grid-box-corner-test",
+  "version": "1.0.0",
+  "name": "Sector Grid Box Corner Test Module",
+  "entry": "index.js"
+}

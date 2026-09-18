@@ -1,0 +1,6 @@
+{
+  "id": "sector-grid-link-opening-test",
+  "version": "1.0.0",
+  "name": "Sector Grid Link Opening Test Module",
+  "entry": "index.js"
+}

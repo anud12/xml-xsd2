@@ -21,7 +21,7 @@ fn get_host_api_script() -> String {
     ].join("\n")
 }
 
-fn bundle_imports(source: &str) -> String {
+pub(crate) fn bundle_imports(source: &str) -> String {
     let mut result = String::new();
     let mut pending = vec![("index.js".to_string(), source.to_string())];
     let mut visited = std::collections::HashSet::new();

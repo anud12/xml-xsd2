@@ -65,8 +65,6 @@ public partial class UiWindow : Control
             ApplyText(node);
         else if (node.Kind == UiNodeKind.Image)
             ApplyImage(node);
-        else if (node.Kind == UiNodeKind.Canvas)
-            ApplyCanvas(node);
         else if (node.Kind == UiNodeKind.Window)
             ApplyWindow(node);
         else

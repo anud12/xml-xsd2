@@ -29,7 +29,6 @@ public static class SettingsStore
             {
             }
         }
-        Apply();
     }
 
     public static void Save()

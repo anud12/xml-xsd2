@@ -22,8 +22,11 @@ public partial class Steps
     /// <summary>
     /// Pushes synthetic mouse press + release events at the given control's
     /// center so the control's gui_input handler runs and its signal fires.
+    /// A frame is pumped between press and release so the engine services the
+    /// button-press before the release; pushing both in one frame deadlocks
+    /// the scene-tree's input processing and SimulateFrames never returns.
     /// </summary>
-    public Steps ClickControl(string path, Node root)
+    public async Task<Steps> ClickControl(string path, Node root)
     {
         var control = root.GetNode<Control>(path);
         var viewport = runner.Scene().GetViewport();
@@ -36,6 +39,7 @@ public partial class Steps
             ButtonMask = MouseButtonMask.Left
         };
         viewport.PushInput(press);
+        await runner.SimulateFrames(1);
         var release = new InputEventMouseButton {
             Position = center,
             GlobalPosition = center,

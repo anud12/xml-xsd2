@@ -30,7 +30,6 @@ pub const UI_KIND_TEXT: u32 = 1;
 pub const UI_KIND_FIELD: u32 = 2;
 pub const UI_KIND_WINDOW: u32 = 3;
 pub const UI_KIND_IMAGE: u32 = 4;
-pub const UI_KIND_CANVAS: u32 = 5;
 
 /// Delta ops (`UiDeltaOp::op`).
 pub const UI_OP_ADD: u8 = 0;
@@ -169,15 +168,11 @@ pub struct UiNodeOptions {
     pub on_click: UiOnClick,
     pub on_hover: UiOnHover,
     pub container: u32,
-    pub world_map: u32,
-    pub world_room: u32,
-    pub cam_room: u32,
-    pub cam_x: f32,
-    pub cam_y: f32,
-    pub cam_zoom: f32,
-    pub has_camera: u8,
     pub resizable: u8,
     pub resizable_keep_aspect: u8,
+    pub portal_arrow: u8,
+    pub unlinked: u8,
+    pub portal_line: u8,
 }
 
 #[repr(C)]
@@ -543,8 +538,7 @@ fn plan_node(node: &DomainNode) -> NodePlan {
     };
     let opts = match node {
         DomainNode::Division { options, .. }
-        | DomainNode::Window { options, .. }
-        | DomainNode::Canvas { options, .. } => options,
+        | DomainNode::Window { options, .. } => options,
         _ => return plan,
     };
     if let Some(layout) = opts.get("layout").and_then(|v| v.as_object()) {
@@ -574,8 +568,7 @@ fn node_children(node: &DomainNode) -> &[String] {
         | DomainNode::Text { children, .. }
         | DomainNode::Field { children, .. }
         | DomainNode::Window { children, .. }
-        | DomainNode::Image { children, .. }
-        | DomainNode::Canvas { children, .. } => children,
+        | DomainNode::Image { children, .. } => children,
     }
 }
 
@@ -628,15 +621,11 @@ fn empty_options() -> UiNodeOptions {
             texture: NO_STR,
         },
         container: NO_STR,
-        world_map: NO_STR,
-        world_room: NO_STR,
-        cam_room: NO_STR,
-        cam_x: 0.0,
-        cam_y: 0.0,
-        cam_zoom: 0.0,
-        has_camera: 0,
         resizable: 0,
         resizable_keep_aspect: 0,
+        portal_arrow: 0,
+        unlinked: 0,
+        portal_line: 0,
     }
 }
 
@@ -940,16 +929,6 @@ fn node_to_abi(node: &DomainNode, slab: &mut Slab, r: &NodeRegions) -> UiNode {
             child_count,
             children: children_ptr,
         },
-        DomainNode::Canvas { id, options, .. } => UiNode {
-            kind: UI_KIND_CANVAS,
-            id: slab.intern(id),
-            value: NO_STR,
-            src: NO_STR,
-            binding: empty_binding(),
-            opt: options_to_abi(options, slab, r),
-            child_count,
-            children: children_ptr,
-        },
     }
 }
 
@@ -986,17 +965,6 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
         o.on_hover.thickness = opt_f32(h, "thickness");
     }
     o.container = opt_str(opts, "container", slab);
-    if let Some(w) = opts.get("world").and_then(|w| w.as_object()) {
-        o.world_map = opt_str(w, "map", slab);
-        o.world_room = opt_str(w, "room", slab);
-    }
-    if let Some(c) = opts.get("camera").and_then(|c| c.as_object()) {
-        o.cam_room = opt_str(c, "room", slab);
-        o.cam_x = opt_f32(c, "x");
-        o.cam_y = opt_f32(c, "y");
-        o.cam_zoom = opt_f32(c, "zoom");
-        o.has_camera = 1;
-    }
     // resizable: a bare boolean, or an object { keepAspectRatio }. Both enable
     // resize; the object form additionally locks the aspect ratio.
     match opts.get("resizable") {
@@ -1010,6 +978,9 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
         }
         _ => {}
     }
+    o.portal_arrow = opt_bool(opts, "portalArrow") as u8;
+    o.unlinked = opt_bool(opts, "unlinked") as u8;
+    o.portal_line = opt_bool(opts, "portalLine") as u8;
     o
 }
 
@@ -1277,12 +1248,12 @@ mod tests {
         assert_eq!(s.size_layout, 40);
         assert_eq!(s.size_background, 32);
         assert_eq!(s.size_on_hover, 20);
-        assert_eq!(s.size_options, 200);
-        assert_eq!(s.size_node, 248);
+        assert_eq!(s.size_options, 176);
+        assert_eq!(s.size_node, 224);
         assert_eq!(s.size_animation, 24);
         assert_eq!(s.size_snapshot, 40);
         assert_eq!(s.size_delta, 32);
-        assert_eq!(s.size_delta_op, 256);
+        assert_eq!(s.size_delta_op, 232);
         // Pointer offsets land on 8-byte boundaries.
         for off in [
             s.off_node_children,
@@ -1309,7 +1280,6 @@ mod tests {
             node(r#"{"kind":"text","id":"title","value":"Health","children":[]}"#),
             node(r#"{"kind":"field","id":"hp","binding":{"entity":"ent-1","map":"number","name":"hp","fallback":"n/a"},"value":"7","children":[]}"#),
             node(r#"{"kind":"image","id":"icon","src":"art/icon.png","children":[]}"#),
-            node(r#"{"kind":"canvas","id":"world","options":{"world":{"map":"cave","room":"cave-1"},"camera":{"room":"cave-1","x":1,"y":2,"zoom":3}},"children":["hud"]}"#),
         ];
         let mut anims = HashMap::new();
         anims.insert(
@@ -1319,7 +1289,7 @@ mod tests {
 
         let snap = unsafe { &*build_snapshot(&nodes, &anims) };
         assert_eq!(snap.version, UI_ABI_VERSION);
-        assert_eq!(snap.node_count, 5);
+        assert_eq!(snap.node_count, 4);
         assert_eq!(snap.anim_count, 1);
         let arena = snap.strings;
         let ns = unsafe { std::slice::from_raw_parts(snap.nodes, snap.node_count as usize) };
@@ -1394,14 +1364,6 @@ mod tests {
         assert_eq!(icon.kind, UI_KIND_IMAGE);
         assert_eq!(cstr(arena, icon.src), "art/icon.png");
 
-        // canvas world/camera
-        let world = ns.iter().find(|n| cstr(arena, n.id) == "world").unwrap();
-        assert_eq!(world.kind, UI_KIND_CANVAS);
-        assert_eq!(world.opt.has_camera, 1);
-        assert_eq!(cstr(arena, world.opt.world_map), "cave");
-        assert_eq!(cstr(arena, world.opt.cam_room), "cave-1");
-        assert!((world.opt.cam_zoom - 3.0).abs() < f32::EPSILON);
-
         // animation
         let anims = unsafe { std::slice::from_raw_parts(snap.anims, snap.anim_count as usize) };
         assert_eq!(cstr(arena, anims[0].name), "blink");
@@ -1410,6 +1372,19 @@ mod tests {
         let frames = unsafe { std::slice::from_raw_parts(anims[0].frames, 2) };
         assert_eq!(cstr(arena, frames[1]), "b.png");
 
+        unsafe { free_snapshot(snap as *const UiSnapshot as *mut UiSnapshot) };
+    }
+
+    #[test]
+    fn portal_arrow_option_round_trips() {
+        let nodes = vec![node(
+            r#"{"kind":"window","id":"p","options":{"x":77,"y":0,"width":6,"height":40,"portalArrow":true,"sector":"portal"},"children":[]}"#,
+        )];
+        let snap = unsafe { &*build_snapshot(&nodes, &HashMap::new()) };
+        let arena = snap.strings;
+        let ns = unsafe { std::slice::from_raw_parts(snap.nodes, snap.node_count as usize) };
+        let p = ns.iter().find(|n| cstr(arena, n.id) == "p").unwrap();
+        assert_eq!(p.opt.portal_arrow, 1);
         unsafe { free_snapshot(snap as *const UiSnapshot as *mut UiSnapshot) };
     }
 

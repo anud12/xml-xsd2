@@ -127,28 +127,6 @@ public static class UiSlab
         var hover = SerializeOnHover(o.OnHover, arena);
         if (hover != null) Add("onHover", hover);
         AddStr("container", o.Container);
-        if (o.WorldRoom != UiAbi.NoStr || o.WorldMap != UiAbi.NoStr)
-        {
-            var world = new StringBuilder("{\"room\":");
-            world.Append(JsonEscaped(Str(arena, o.WorldRoom)));
-            if (o.WorldMap != UiAbi.NoStr)
-                world.Append(",\"map\":").Append(JsonEscaped(Str(arena, o.WorldMap)));
-            world.Append('}');
-            Add("world", world.ToString());
-        }
-        if (o.HasCamera != 0)
-        {
-            var cam = new StringBuilder("{");
-            if (o.CamRoom != UiAbi.NoStr)
-                cam.Append("\"room\":").Append(JsonEscaped(Str(arena, o.CamRoom)));
-            if (o.CamZoom > 0f)
-            {
-                if (cam.Length > 1) cam.Append(',');
-                cam.Append("\"zoom\":").Append(Num(o.CamZoom));
-            }
-            cam.Append('}');
-                if (cam.Length > 2) Add("camera", cam.ToString());
-        }
         if (o.Resizable != 0)
         {
             if (o.ResizableKeepAspect != 0)
@@ -156,6 +134,12 @@ public static class UiSlab
             else
                 Add("resizable", "true");
         }
+        if (o.PortalArrow != 0)
+            Add("portalArrow", "true");
+        if (o.Unlinked != 0)
+            Add("unlinked", "true");
+        if (o.PortalLine != 0)
+            Add("portalLine", "true");
         if (first) return "{}";
         return "{" + sb + "}";
     }

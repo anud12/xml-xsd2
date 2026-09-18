@@ -72,6 +72,14 @@ pub extern "C" fn runtime_run_iteration(elapsed_units: i64) -> i64 {
     helpers::log(
         "runtime_run_iteration, RETURNED from process_scheduled_effects");
 
+    // Re-derive sector grids from the live container state: an effect that
+    // created a sector this tick re-computes its grid now, so the view (on the
+    // next UI tick) reflects the new cells/portals.
+    helpers::log("runtime_run_iteration, CALLING recompute_sector_grids");
+    crate::js_executor::recompute_sector_grids();
+    helpers::log(
+        "runtime_run_iteration, RETURNED from recompute_sector_grids");
+
     {
         let nd = crate::state::last_entity_number_data()
             .lock().unwrap().clone();

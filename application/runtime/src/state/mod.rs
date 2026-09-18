@@ -4,11 +4,11 @@ use std::sync::{Once, Mutex};
 use std::collections::HashMap;
 
 mod accessors; mod clear; mod export; mod markers;
-mod persist; mod scheduled; mod active_plans; mod world; mod world_crossing;
+mod persist; mod scheduled; mod active_plans; mod sector;
 
 pub use accessors::*; pub use clear::*; pub use export::*;
 pub use markers::*; pub use persist::*; pub use scheduled::*;
-pub use active_plans::*; pub use world::*; pub use world_crossing::*;
+pub use active_plans::*; pub use sector::*;
 
 static INIT: Once = Once::new();
 static mut PERSISTED_HAS_DATA: Option<&'static AtomicBool> = None;
@@ -30,8 +30,7 @@ static mut LAST_CONTAINERS: Option<&'static Mutex<Vec<String>>> = None;
 static mut ELAPSED_TIME_UNITS: Option<&'static AtomicI64> = None;
 static mut ARCHIVE_FILES: Option<&'static Mutex<HashMap<String, String>>> = None;
 static mut ACTIVE_PLANS: Option<&'static Mutex<Vec<ActivePlan>>> = None;
-static mut ROOMS: Option<&'static Mutex<Vec<Room>>> = None;
-static mut PORTALS: Option<&'static Mutex<Vec<Portal>>> = None;
+static mut SECTOR_GRIDS: Option<&'static Mutex<HashMap<String, SectorGridState>>> = None;
 
 #[derive(Clone, Debug)]
 pub struct ScheduledEffect {
@@ -75,8 +74,7 @@ fn persisted_flag() -> &'static AtomicBool {
             ELAPSED_TIME_UNITS = Some(Box::leak(Box::new(AtomicI64::new(0))));
             ARCHIVE_FILES = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             ACTIVE_PLANS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
-            ROOMS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
-            PORTALS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
+            SECTOR_GRIDS = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
         }
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }

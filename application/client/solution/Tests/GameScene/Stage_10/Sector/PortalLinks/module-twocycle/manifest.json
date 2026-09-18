@@ -1,0 +1,6 @@
+{
+  "id": "sector-portal-twocycle-test",
+  "version": "1.0.0",
+  "name": "Sector Portal Two Cycle Test Module",
+  "entry": "index.js"
+}

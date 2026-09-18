@@ -95,6 +95,46 @@ export type UiContainerViewOptions = UiPanelOptions & {
 };
 
 /**
+ * Arguments for ui.sectorGrid: a sized top-down view of a runtime sector grid.
+ * The engine materializes one cell window per footprint square (positioned by
+ * cellSize, rendered by `render`) and one headless arrow per portal (drawn by
+ * the engine as a straight shaft, width portalThickness), re-resolved every
+ * tick. Portals are engine-owned; the render is never invoked for them.
+ */
+export type UiSectorGridOptions = UiPanelOptions & {
+  /** The runtime sector grid id (declared via world.sectorGrid). */
+  grid: string;
+  /** Edge length of one grid cell in logical units (default 32). */
+  cellSize?: number;
+  /** Gap between adjacent cells in logical units: each cell is inset by half
+   * this on every side, so the space between two neighbors is `cellGap`
+   * (default 0 = cells are flush). */
+  cellGap?: number;
+  /** Shaft width of the engine-drawn portal headless arrows (default 6). */
+  portalThickness?: number;
+};
+
+/**
+ * One item a sector grid view materializes: a footprint cell. The render
+ * receives this descriptor and returns the node id to place; the engine sets
+ * its position/size from the grid. Portals are not passed to the render.
+ */
+export type UiSectorGridItem = {
+  /** Stable id for the item node (e.g. "<view>-cell-<x>-<y>"). */
+  id: string;
+  /** Ordinal index within the view's materialized items. */
+  index: number;
+  /** Always "cell": a footprint square of the sector grid. */
+  sector: "cell";
+  /** The grid square's x. */
+  x?: number;
+  /** The grid square's y. */
+  y?: number;
+  /** The owning container id. */
+  container?: string;
+};
+
+/**
  * Arguments for ui.entityList: a flow list that materializes one child (from
  * the render lambda) per entity in the named container.
  */
@@ -123,6 +163,9 @@ export type UiApi = {
 
   /** A sized view of a container: one panel per entity placed on its cell, re-resolved each tick. */
   containerView: (name: string, args: UiContainerViewOptions, render: (entity: Entity) => UiNodeId) => UiNodeId;
+
+  /** A top-down view of a sector grid: one cell per footprint square (rendered by `render`) + one engine-drawn headless arrow per portal, all positioned by the engine each tick. */
+  sectorGrid: (name: string, args: UiSectorGridOptions, render: (item: UiSectorGridItem) => UiNodeId) => UiNodeId;
 
   spriteMapTIFF: (mapPath: string, layers: MapLayerBinding[]) => SpriteMap;
   getSpritePNG: (path: string) => SpriteResource;

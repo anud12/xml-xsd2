@@ -1,7 +1,9 @@
 using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
 using NewGameProject.Tests.XUnit;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Vector2 = Godot.Vector2;
 
 namespace GdUnit4.Examples.Basics.Setup.Test.Stage_0.Typescript;
@@ -45,11 +47,24 @@ public class TestClass : Steps {
             dir = dir.Parent;
         }
         var repoRoot = dir?.FullName ?? Directory.GetCurrentDirectory();
-        var stageDir = Path.Combine(repoRoot, "Test", "Stage_0", "Typescript");
+        var stageDir = Path.Combine(repoRoot, "Tests", "GameScene", "Stage_0", "Typescript");
 
-        var result = RunNpx(stageDir, "tsc --project src/tsconfig.json");
+        // Build with the TypeScript compiler directly (node.exe tsc.js) instead
+        // of npx: the Godot test-host process does not inherit the shell PATH,
+        // so npx.cmd cannot resolve node/tsc there. Resolving both binaries
+        // explicitly makes the build work in that context.
+        var nodeExe = ResolveNode();
+        var tscJs = ResolveTsc();
+        if (nodeExe == null || tscJs == null)
+        {
+            Assertions.AssertThat(false)
+                .OverrideFailureMessage($"Could not locate node.exe (={nodeExe}) and tsc.js (={tscJs}) to build the stage module")
+                .IsTrue();
+        }
+
+        var result = RunTsc(nodeExe, tscJs, stageDir, "src/tsconfig.json");
         Assertions.AssertThat(result)
-            .OverrideFailureMessage($"tsc failed to build the stage module (dir={stageDir})")
+            .OverrideFailureMessage($"tsc failed to build the stage module (dir={stageDir}, node={nodeExe}, tsc={tscJs})")
             .IsTrue();
         Assertions.AssertThat(File.Exists(Path.Combine(stageDir, "module", "index.js")))
             .OverrideFailureMessage("tsc did not emit module/index.js")
@@ -63,9 +78,52 @@ public class TestClass : Steps {
         return stageDir;
     }
 
-    private static bool RunNpx(string workingDir, string arguments) {
-        var npx = OperatingSystem.IsWindows() ? "npx.cmd" : "npx";
-        var psi = new ProcessStartInfo(npx, arguments) {
+    // Locates node.exe: PATH first, then the conventional install dirs.
+    private static string ResolveNode() {
+        var exe = OperatingSystem.IsWindows() ? "node.exe" : "node";
+        foreach (var dir in (System.Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            try
+            {
+                var p = Path.Combine(dir, exe);
+                if (File.Exists(p)) return p;
+            }
+            catch { /* ignore malformed PATH entries */ }
+        }
+        var candidates = OperatingSystem.IsWindows()
+            ? new[] { @"C:\Program Files\nodejs\node.exe" }
+            : new[] { "/usr/local/bin/node", "/usr/bin/node" };
+        return candidates.FirstOrDefault(File.Exists);
+    }
+
+    // Locates the TypeScript compiler entrypoint (lib/tsc.js). npx normally
+    // resolves it, but the Godot host has no PATH, so probe the npm global
+    // root, the node install dir, and common local caches.
+    private static string ResolveTsc() {
+        var candidates = new List<string>();
+        var home = System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
+        var npmGlobal = OperatingSystem.IsWindows()
+            ? Path.Combine(home, "AppData", "Roaming", "npm", "node_modules")
+            : Path.Combine(home, ".npm", "lib", "node_modules");
+        candidates.Add(npmGlobal);
+        candidates.Add(@"C:\Program Files\nodejs\node_modules");
+        var nodeDir = Path.GetDirectoryName(ResolveNode());
+        if (!string.IsNullOrEmpty(nodeDir)) candidates.Add(Path.Combine(nodeDir, "node_modules"));
+
+        foreach (var searchDir in candidates.Distinct())
+        {
+            if (!Directory.Exists(searchDir)) continue;
+            var match = Directory
+                .GetFiles(searchDir, "tsc.js", SearchOption.AllDirectories)
+                .FirstOrDefault(f => f.Contains(Path.Combine("typescript", "lib")));
+            if (match != null) return match;
+        }
+        return null;
+    }
+
+    private static bool RunTsc(string nodeExe, string tscJs, string workingDir, string project) {
+        var psi = new ProcessStartInfo(nodeExe) {
+            Arguments = $"\"{tscJs}\" --project \"{project}\"",
             WorkingDirectory = workingDir,
             UseShellExecute = false,
             RedirectStandardOutput = true,

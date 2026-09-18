@@ -27,6 +27,15 @@ function (root) {
     var containerViewRenders = Object.create(null);
     // Item node ids materialized per container view by the last expansion.
     var containerViewItems = Object.create(null);
+    // Render lambdas for ui.sectorGrid views, keyed by view name. The render
+    // takes a cell/portal descriptor (the grid's "container expression") and
+    // returns a single node id; the engine positions + sizes that node from the
+    // grid geometry, and the module sets its background/content.
+    var sectorGridRenders = Object.create(null);
+    // Item node ids (cell + portal windows) materialized per sector grid view
+    // by the last expansion, so resetContainers can drop them and restore the
+    // view's marker between engine ticks.
+    var sectorGridItems = Object.create(null);
 
     function transport() {
         var t = root.__uiTransport;
@@ -189,6 +198,18 @@ function (root) {
         return typeof c === 'string' && c.indexOf('$$containerView:') === 0;
     }
 
+    // Marks the children slot of a sector grid view with `name`: same marker
+    // mechanism as container views, but the engine materializes one cell
+    // window per footprint square (positioned by cellSize) and one thin marker
+    // per portal from the runtime's computed grid, not from a render lambda.
+    function sectorGridMarker(name) {
+        return '$$sectorGrid:' + name;
+    }
+
+    function isSectorGridMarker(c) {
+        return typeof c === 'string' && c.indexOf('$$sectorGrid:') === 0;
+    }
+
     /// Replaces the marker in each node's children with the ids the stored
     /// render lambda declared for that node's container entities. The render
     /// lambda is declarative: re-invoking it per entity re-registers the same
@@ -287,6 +308,357 @@ function (root) {
         }
     }
 
+    /// Re-expands every sector grid view's marker against the runtime's
+    /// computed grids (globalThis.__uiSectorGrids, gridId -> { cells, portals
+    /// }). For each footprint cell a window node is placed at
+    /// (x*cellSize, y*cellSize) with span (cellSize, cellSize); for each
+    /// portal a thin marker is centered on the shared boundary edge. The view
+    /// node carries options.grid (grid id), options.cellSize (default 32) and
+    /// options.portalThickness (default 6).
+    function expandSectorGrids() {
+        var grids = root.__uiSectorGrids || {};
+        for (var i = 0; i < order.length; i++) {
+            var node = nodes[order[i]];
+            if (!node || node.kind !== 'window') continue;
+            if (!Array.isArray(node.children)) continue;
+            var changed = false;
+            for (var j = 0; j < node.children.length; j++) {
+                var c = node.children[j];
+                if (!isSectorGridMarker(c)) continue;
+                var name = c.slice('$$sectorGrid:'.length);
+                var gridId = node.options && node.options.grid;
+                var cellSize = (node.options && typeof node.options.cellSize === 'number' && node.options.cellSize > 0)
+                    ? node.options.cellSize : 32;
+                var thickness = (node.options && typeof node.options.portalThickness === 'number' && node.options.portalThickness > 0)
+                    ? node.options.portalThickness : 6;
+                // Gap between adjacent cells: each cell is inset by gap/2 on
+                // every side, so the space between two neighbors is `gap`.
+                var cellGap = (node.options && typeof node.options.cellGap === 'number' && node.options.cellGap > 0)
+                    ? node.options.cellGap : 0;
+                if (cellGap >= cellSize) cellGap = cellSize;
+                var cellInset = cellGap / 2;
+                var grid = (typeof gridId === 'string') ? grids[gridId] : null;
+                var render = sectorGridRenders[name];
+                var itemIds = [];
+                if (render && grid) {
+                    // One item per footprint cell: the render returns a node id
+                    // (the module sets its content/background) and the engine
+                    // stamps its geometry from (x, y) * cellSize.
+                    var cells = grid.cells || [];
+                    // Map of "x,y" -> container so each cell can tell whether an
+                    // adjacent square belongs to the same container.
+                    var containerByXY = Object.create(null);
+                    for (var ck = 0; ck < cells.length; ck++)
+                        containerByXY[cells[ck].x + ',' + cells[ck].y] = cells[ck].container;
+                    for (var ci = 0; ci < cells.length; ci++) {
+                        var cell = cells[ci];
+                        var pid = render({
+                            id: name + '-cell-' + cell.x + '-' + cell.y,
+                            index: ci,
+                            sector: 'cell',
+                            x: cell.x,
+                            y: cell.y,
+                            container: cell.container
+                        });
+                        var itemId = Array.isArray(pid) ? pid[0] : pid;
+                        if (typeof itemId !== 'string' || itemId.length === 0) continue;
+                        itemIds.push(itemId);
+                        var in1 = nodes[itemId];
+                        if (in1) {
+                            if (!in1.options || typeof in1.options !== 'object') in1.options = {};
+                            // Extend toward a same-container neighbour (no inset, so
+                            // same-container cells read as one continuous region) and
+                            // inset toward a different/absent neighbour (gap boundary).
+                            var sameL = containerByXY[(cell.x - 1) + ',' + cell.y] === cell.container;
+                            var sameR = containerByXY[(cell.x + 1) + ',' + cell.y] === cell.container;
+                            var sameT = containerByXY[cell.x + ',' + (cell.y - 1)] === cell.container;
+                            var sameB = containerByXY[cell.x + ',' + (cell.y + 1)] === cell.container;
+                            var left = sameL ? cell.x * cellSize : cell.x * cellSize + cellInset;
+                            var right = sameR ? (cell.x + 1) * cellSize : (cell.x + 1) * cellSize - cellInset;
+                            var top = sameT ? cell.y * cellSize : cell.y * cellSize + cellInset;
+                            var bottom = sameB ? (cell.y + 1) * cellSize : (cell.y + 1) * cellSize - cellInset;
+                            in1.options.x = left;
+                            in1.options.y = top;
+                            in1.options.width = right - left;
+                            in1.options.height = bottom - top;
+                            in1.options.cell = cell.x + ',' + cell.y;
+                            in1.options.sector = 'cell';
+                            in1.options.container = cell.container;
+                        }
+                    }
+                    // One node per portal. Facing portals are a single edge-to-edge
+                    // line; non-facing (diagonal) portals become a Manhattan path of a
+                    // few axis-aligned segments that travel along the GAPS between cells
+                    // (the "streets"), turning only at street intersections. Each segment
+                    // is a headless filled rect of width `thickness`.
+                    var portals = grid.portals || [];
+                    // Street center of an E/W door: the gap boundary it faces (a multiple
+                    // of cellSize). The visible building edge sits inset from it.
+                    function streetX(side, cell) {
+                        return side === 'E' ? (cell[0] + 1) * cellSize : cell[0] * cellSize;
+                    }
+                    function streetY(side, cell) {
+                        return side === 'S' ? (cell[1] + 1) * cellSize : cell[1] * cellSize;
+                    }
+                    // Position along an E/W door's street (the opening's span center, y).
+                    function doorY(side, cell, span, len) {
+                        return (cell[1] + span + len / 2) * cellSize;
+                    }
+                    // Position along an N/S door's street (the opening's span center, x).
+                    function doorX(side, cell, span, len) {
+                        return (cell[0] + span + len / 2) * cellSize;
+                    }
+                    // Nearest street line (a multiple of cellSize) to a coordinate.
+                    function nearestStreet(v) {
+                        var k = v / cellSize;
+                        var fl = k - (k % 1);
+                        var fr = fl + 1;
+                        return (k - fl <= fr - k) ? fl * cellSize : fr * cellSize;
+                    }
+                    for (var pi = 0; pi < portals.length; pi++) {
+                        var p = portals[pi];
+                        var a = p.a || {};
+                        var b = p.b || {};
+                        var acell = a.cell || [0, 0];
+                        var bcell = b.cell || [0, 0];
+                        var aspan = typeof a.span === 'number' ? a.span : 0;
+                        var alen = (typeof a.length === 'number' && a.length > 0) ? a.length : 1;
+                        var bspan = typeof b.span === 'number' ? b.span : 0;
+                        var blen = (typeof b.length === 'number' && b.length > 0) ? b.length : 1;
+                        // A "facing" portal joins two openings on opposing sides that line
+                        // up on the same axis — directly adjacent or across one or more blank
+                        // squares. Render one solid line that starts on a's visible cell edge
+                        // and ends on b's, so there is neither a gap nor an inset at either end.
+                        var facing = b.cell && b.side &&
+                            ((a.side === 'E' && b.side === 'W' && acell[1] === bcell[1] && bcell[0] > acell[0]) ||
+                             (a.side === 'W' && b.side === 'E' && acell[1] === bcell[1] && acell[0] > bcell[0]) ||
+                             (a.side === 'S' && b.side === 'N' && acell[0] === bcell[0] && bcell[1] > acell[1]) ||
+                             (a.side === 'N' && b.side === 'S' && acell[0] === bcell[0] && acell[1] > bcell[1]));
+                        if (facing) {
+                            var lr;
+                            if (a.side === 'E' || a.side === 'W') {
+                                var lcell = a.side === 'E' ? acell : bcell;
+                                var rcell = a.side === 'E' ? bcell : acell;
+                                var hsp = a.side === 'E' ? aspan : bspan;
+                                var hln = a.side === 'E' ? alen : blen;
+                                var x0 = (lcell[0] + 1) * cellSize - cellInset;
+                                var x1 = rcell[0] * cellSize + cellInset;
+                                var cym = (lcell[1] + hsp + hln / 2) * cellSize;
+                                lr = { x: x0, y: cym - thickness / 2, w: x1 - x0, h: thickness };
+                            } else {
+                                var tcell = a.side === 'S' ? acell : bcell;
+                                var ucell = a.side === 'S' ? bcell : acell;
+                                var vsp = a.side === 'S' ? aspan : bspan;
+                                var vln = a.side === 'S' ? alen : blen;
+                                var y0 = (tcell[1] + 1) * cellSize - cellInset;
+                                var y1 = ucell[1] * cellSize + cellInset;
+                                var cxm = (tcell[0] + vsp + vln / 2) * cellSize;
+                                lr = { x: cxm - thickness / 2, y: y0, w: thickness, h: y1 - y0 };
+                            }
+                            itemIds.push(register({
+                                id: name + '-portal-' + pi,
+                                kind: 'window',
+                                options: {
+                                    x: lr.x,
+                                    y: lr.y,
+                                    width: lr.w,
+                                    height: lr.h,
+                                    portalArrow: true,
+                                    portalLine: true,
+                                    sector: 'portal',
+                                    portal: p.id
+                                },
+                                children: []
+                            }));
+                        } else {
+                            // A non-facing portal (e.g. a diagonal link) joins two openings
+                            // on different boundary edges. Treat the cells as buildings and
+                            // the gaps between them as streets: build an axis-aligned
+                            // polyline that only runs along street lines (multiples of
+                            // cellSize), turning at street intersections, from a's door to
+                            // b's door. Stroke it as one rect per segment plus a
+                            // thickness x thickness square at each internal corner so the
+                            // joints read as smooth rectangles rather than notches.
+                            var vertA = a.side === 'E' || a.side === 'W';
+                            var vertB = b.side === 'E' || b.side === 'W';
+                            var inX = function (side, cell) {
+                                return side === 'E' ? (cell[0] + 1) * cellSize - cellInset : cell[0] * cellSize + cellInset;
+                            };
+                            var inY = function (side, cell) {
+                                return side === 'S' ? (cell[1] + 1) * cellSize - cellInset : cell[1] * cellSize + cellInset;
+                            };
+                            var pts = [];
+                            if (vertA && vertB) {
+                                // Both doors face a vertical street: A stub, up/down A's
+                                // street to a cross-street, across it, up/down B's street, B stub.
+                                var ax = streetX(a.side, acell), ay = doorY(a.side, acell, aspan, alen);
+                                var bx = streetX(b.side, bcell), by = doorY(b.side, bcell, bspan, blen);
+                                var cross = nearestStreet((ay + by) / 2);
+                                pts = [
+                                    { x: inX(a.side, acell), y: ay },
+                                    { x: ax, y: ay },
+                                    { x: ax, y: cross },
+                                    { x: bx, y: cross },
+                                    { x: bx, y: by },
+                                    { x: inX(b.side, bcell), y: by }
+                                ];
+                            } else if (!vertA && !vertB) {
+                                // Both doors face a horizontal street: mirror of the above.
+                                var aax = doorX(a.side, acell, aspan, alen), aay = streetY(a.side, acell);
+                                var bax = doorX(b.side, bcell, bspan, blen), bay = streetY(b.side, bcell);
+                                var crossX = nearestStreet((aax + bax) / 2);
+                                pts = [
+                                    { x: aax, y: inY(a.side, acell) },
+                                    { x: aax, y: aay },
+                                    { x: crossX, y: aay },
+                                    { x: crossX, y: bay },
+                                    { x: bax, y: bay },
+                                    { x: bax, y: inY(b.side, bcell) }
+                                ];
+                            } else if (vertA) {
+                                // A faces a vertical street, B a horizontal one: L at their
+                                // intersection (A's street-x, B's street-y).
+                                var ax2 = streetX(a.side, acell), ay2 = doorY(a.side, acell, aspan, alen);
+                                var bax2 = doorX(b.side, bcell, bspan, blen), bay2 = streetY(b.side, bcell);
+                                pts = [
+                                    { x: inX(a.side, acell), y: ay2 },
+                                    { x: ax2, y: ay2 },
+                                    { x: ax2, y: bay2 },
+                                    { x: bax2, y: bay2 },
+                                    { x: bax2, y: inY(b.side, bcell) }
+                                ];
+                            } else {
+                                // A faces a horizontal street, B a vertical one: L at their
+                                // intersection (B's street-x, A's street-y).
+                                var aax3 = doorX(a.side, acell, aspan, alen), aay3 = streetY(a.side, acell);
+                                var bax3 = streetX(b.side, bcell), bay3 = doorY(b.side, bcell, bspan, blen);
+                                pts = [
+                                    { x: aax3, y: inY(a.side, acell) },
+                                    { x: aax3, y: aay3 },
+                                    { x: bax3, y: aay3 },
+                                    { x: bax3, y: bay3 },
+                                    { x: inX(b.side, bcell), y: bay3 }
+                                ];
+                            }
+                            var half = thickness / 2;
+                            for (var si = 0; si < pts.length - 1; si++) {
+                                var p1 = pts[si], p2 = pts[si + 1];
+                                var sx, sy, sw, sh;
+                                if (p1.y === p2.y) {
+                                    sx = p1.x < p2.x ? p1.x : p2.x; sw = p2.x - p1.x; if (sw < 0) sw = -sw;
+                                    sy = p1.y - half; sh = thickness;
+                                } else {
+                                    sx = p1.x - half; sw = thickness;
+                                    sy = p1.y < p2.y ? p1.y : p2.y; sh = p2.y - p1.y; if (sh < 0) sh = -sh;
+                                }
+                                if (sw <= 0 && sh <= 0) continue;
+                                itemIds.push(register({
+                                    id: name + '-portal-' + pi + (si === 0 ? '' : '-s' + si),
+                                    kind: 'window',
+                                    options: {
+                                        x: sx,
+                                        y: sy,
+                                        width: sw,
+                                        height: sh,
+                                        portalArrow: true,
+                                        portalLine: true,
+                                        sector: 'portal',
+                                        portal: p.id
+                                    },
+                                    children: []
+                                }));
+                            }
+                            for (var ci = 1; ci < pts.length - 1; ci++) {
+                                var cp = pts[ci];
+                                itemIds.push(register({
+                                    id: name + '-portal-' + pi + '-c' + ci,
+                                    kind: 'window',
+                                    options: {
+                                        x: cp.x - half,
+                                        y: cp.y - half,
+                                        width: thickness,
+                                        height: thickness,
+                                        portalArrow: true,
+                                        portalLine: true,
+                                        sector: 'portal',
+                                        portal: p.id
+                                    },
+                                    children: []
+                                }));
+                            }
+                        }
+                    }
+                    // Unlinked openings: declared openings whose (cell, side) is not
+                    // covered by a linked portal (no facing opening on the adjacent
+                    // square). Rendered as red headless shafts on the boundary edge
+                    // so a lone sector's dead-end openings stay visible.
+                    var linkedSide = Object.create(null);
+                    for (var li = 0; li < portals.length; li++) {
+                        var la = portals[li].a || {}, lb = portals[li].b || {};
+                        var lc = la.cell || [0, 0], lb2 = lb.cell || [0, 0];
+                        linkedSide[lc[0] + ',' + lc[1] + ':' + la.side] = true;
+                        linkedSide[lb2[0] + ',' + lb2[1] + ':' + lb.side] = true;
+                    }
+                    var unlinkedSeq = 0;
+                    for (var uci = 0; uci < cells.length; uci++) {
+                        var uopen = cells[uci].openings || [];
+                        for (var uoi = 0; uoi < uopen.length; uoi++) {
+                            var o = uopen[uoi];
+                            var uc = o.cell || [0, 0];
+                            var ux = uc[0], uy = uc[1], uside = o.side;
+                            if (linkedSide[ux + ',' + uy + ':' + uside]) continue;
+                            var useq = unlinkedSeq++;
+                            var ustart = typeof o.start === 'number' ? o.start : 0;
+                            var ulen = (typeof o.length === 'number' && o.length > 0) ? o.length : 1;
+                            var upx, upy, upw, uph;
+                            if (uside === 'N') {
+                                upx = ux * cellSize + ustart * cellSize;
+                                upy = uy * cellSize - thickness / 2;
+                                upw = ulen * cellSize; uph = thickness;
+                            } else if (uside === 'S') {
+                                upx = ux * cellSize + ustart * cellSize;
+                                upy = (uy + 1) * cellSize - thickness / 2;
+                                upw = ulen * cellSize; uph = thickness;
+                            } else if (uside === 'W') {
+                                upx = ux * cellSize - thickness / 2;
+                                upy = uy * cellSize + ustart * cellSize;
+                                upw = thickness; uph = ulen * cellSize;
+                            } else {
+                                upx = (ux + 1) * cellSize - thickness / 2;
+                                upy = uy * cellSize + ustart * cellSize;
+                                upw = thickness; uph = ulen * cellSize;
+                            }
+                            var uitemId = register({
+                                id: name + '-unlinked-' + useq,
+                                kind: 'window',
+                                options: {
+                                    x: upx,
+                                    y: upy,
+                                    width: upw,
+                                    height: uph,
+                                    portalArrow: true,
+                                    unlinked: true,
+                                    sector: 'portal',
+                                    portal: ''
+                                },
+                                children: []
+                            });
+                            itemIds.push(uitemId);
+                        }
+                    }
+                }
+                sectorGridItems[name] = itemIds;
+                for (var m = itemIds.length - 1; m >= 0; m--) {
+                    node.children.splice(j, 0, itemIds[m]);
+                }
+                node.children.splice(j + itemIds.length, 1);
+                changed = true;
+                break;
+            }
+            if (changed) i--;
+        }
+    }
+
     /// Drops the node with `id` and every node in its subtree from the
     /// registries (used to undo a container list's materialized items).
     function removeSubtree(id) {
@@ -328,6 +700,17 @@ function (root) {
                 view.children = [containerViewMarker(vname)];
             }
         }
+        for (var sname in sectorGridItems) {
+            var sitems = sectorGridItems[sname];
+            if (sitems) {
+                for (var si = 0; si < sitems.length; si++) removeSubtree(sitems[si]);
+            }
+            sectorGridItems[sname] = [];
+            var sgrid = nodes[sname];
+            if (sgrid && Array.isArray(sgrid.children)) {
+                sgrid.children = [sectorGridMarker(sname)];
+            }
+        }
     }
 
     function register(node) {
@@ -365,18 +748,6 @@ function (root) {
                 id: id,
                 kind: 'window',
                 options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
-                children: childIds(children)
-            });
-        },
-        canvas: function (id, options, children) {
-            var opts = {};
-            if (options && typeof options === 'object') {
-                for (var k in options) { if (Object.prototype.hasOwnProperty.call(options, k)) opts[k] = options[k]; }
-            }
-            return register({
-                id: id,
-                kind: 'canvas',
-                options: opts,
                 children: childIds(children)
             });
         },
@@ -458,6 +829,37 @@ function (root) {
                 children: [containerViewMarker(name)]
             });
         },
+        sectorGrid: function (name, args, render) {
+            if (typeof name !== 'string' || name.length === 0) {
+                throw new Error('ui: sectorGrid mandatory name missing');
+            }
+            if (!args || typeof args !== 'object') {
+                throw new Error('ui: sectorGrid args must be an object with grid');
+            }
+            if (typeof args.grid !== 'string' || args.grid.length === 0) {
+                throw new Error('ui: sectorGrid args.grid must be a non-empty grid id');
+            }
+            if (typeof render !== 'function') {
+                throw new Error('ui: sectorGrid render must be a function(item) => nodeId');
+            }
+            // The view node is a window (it extends panel: x/y/width/height and
+            // background are honored). It carries `grid` (the runtime grid id)
+            // plus optional `cellSize`/`portalThickness`; the engine invokes
+            // `render` once per cell + portal each tick and positions the node
+            // it returns from the grid geometry.
+            sectorGridRenders[name] = render;
+            var opts = {};
+            for (var k in args) {
+                if (Object.prototype.hasOwnProperty.call(args, k)) opts[k] = args[k];
+            }
+            if (typeof opts.cellSize !== 'number' || !(opts.cellSize > 0)) opts.cellSize = 32;
+            return register({
+                id: name,
+                kind: 'window',
+                options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
+                children: [sectorGridMarker(name)]
+            });
+        },
         field: function (id, binding) {
             if (!binding || typeof binding !== 'object') {
                 throw new Error('ui: field binding must be an object with entity, map, name');
@@ -499,12 +901,15 @@ function (root) {
             containerItems = Object.create(null);
             containerViewRenders = Object.create(null);
             containerViewItems = Object.create(null);
+            sectorGridRenders = Object.create(null);
+            sectorGridItems = Object.create(null);
         },
         loadSnapshot: function (arr) {
             nodes = Object.create(null);
             order = [];
             containerItems = Object.create(null);
             containerViewItems = Object.create(null);
+            sectorGridItems = Object.create(null);
             (arr || []).forEach(function (n) {
                 requireId(n.id, n.kind);
                 nodes[n.id] = n;
@@ -516,6 +921,9 @@ function (root) {
         },
         expandContainerViews: function (entitiesFor) {
             expandContainerViews(entitiesFor);
+        },
+        expandSectorGrids: function () {
+            expandSectorGrids();
         },
         resetContainers: function () {
             resetContainers();

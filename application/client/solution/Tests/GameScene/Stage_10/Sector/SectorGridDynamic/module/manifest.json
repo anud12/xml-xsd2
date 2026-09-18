@@ -1,0 +1,6 @@
+{
+  "id": "sector-grid-dynamic-test",
+  "version": "1.0.0",
+  "name": "Sector Grid Dynamic Creation Test Module",
+  "entry": "index.js"
+}

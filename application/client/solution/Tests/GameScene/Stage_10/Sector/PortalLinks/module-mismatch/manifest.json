@@ -1,0 +1,6 @@
+{
+  "id": "sector-portal-mismatch-test",
+  "version": "1.0.0",
+  "name": "Sector Portal Mismatch Test Module",
+  "entry": "index.js"
+}
