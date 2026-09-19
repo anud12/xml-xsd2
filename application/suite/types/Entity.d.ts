@@ -19,9 +19,26 @@ export type EntityExpressionApi = {
   filter: EntityFilterApi,
 }
 
+/** A point in entity-local area units. y increases downward. */
+export type AreaPoint = [number, number]
+
+/**
+ * The polygonal area an entity occupies in the simulation, declared in
+ * entity-local units (y down), implicitly closed. Like `numberMap`, it is
+ * intrinsic to the entity: it moves wherever the entity goes. An entity with
+ * no area has no presence — it cannot contain or be contained by another
+ * area, and is itself treated as the point at its `(getX, getY)`.
+ */
+export type Area = {
+  /** The polygon vertices in entity-local units (>= 3 distinct points). */
+  polygon: Array<AreaPoint>
+}
+
 export type EntityCreationArguments = {
   textMap?: Record<string, StringExpression>
   numberMap?: Record<string, NumberExpression>
+  /** The entity's declared area (see {@link Area}). */
+  area?: Area
 }
 
 export type EntityExpressionType = {
@@ -43,6 +60,20 @@ export type EntityExpression = {
   number_map: { get: (key: string) => MaybeExpression<NumberExpression> };
   /** The entity's text_map accessor (keyed lookups returning MaybeExpressions). */
   text_map: { get: (key: string) => MaybeExpression<StringExpression> };
+  /**
+   * The entities inside this entity's area. Only members of a container this
+   * entity belongs to are considered (areas have no global space); the entity
+   * itself is excluded; the result is deduped by id and ordered by id
+   * ascending. An entity with no area yields an empty list (not an error).
+   * Each element is a minimal entity reference exposing `getId`.
+   */
+  getEntitiesInsideArea: () => ListExpression<EntityInsideAreaReference>
+}
+
+/** A minimal entity reference returned by {@link EntityExpression.getEntitiesInsideArea}. */
+export type EntityInsideAreaReference = {
+  /** The contained entity's id. */
+  getId: () => string
 }
 
 export type Entity = {
@@ -53,5 +84,11 @@ export type Entity = {
   getNumber: (key: StringExpression) => MaybeExpression<NumberExpression>,
   getTextKeys: () => ListExpression<string>,
   getNumberKeys: () => ListExpression<string>,
-  containers: ListExpression<ContainerExpression>
+  containers: ListExpression<ContainerExpression>,
+  /**
+   * The entities inside this entity's area (see
+   * {@link EntityExpression.getEntitiesInsideArea}). An entity with no area
+   * yields an empty list.
+   */
+  getEntitiesInsideArea: () => ListExpression<EntityInsideAreaReference>
 }

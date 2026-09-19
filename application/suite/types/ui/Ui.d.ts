@@ -57,7 +57,23 @@ export type UiPanelOptions = {
      * a drag grows/shrinks both axes in proportion (the dominant edge/corner
      * wins). Only honored for windows (explicitly sized panels).
      */
-    resizable?: boolean | { keepAspectRatio?: boolean };
+     resizable?: boolean | { keepAspectRatio?: boolean };
+   /**
+    * The entity's declared area polygon, drawn over the item sprite as a
+    * solid outline (line color + thickness) and a translucent rgba body.
+    * Engine-owned for container-view items: the engine stamps `points`
+    * (view-local logical units) from the entity's declared area every tick.
+    * An entity with no area gets a 1x1 pixel/rectangle fallback. Modules may
+    * also set this explicitly on any panel to draw an arbitrary polygon.
+    */
+   areaOutline?: {
+     /** Polygon vertices in view-local logical units, implicitly closed. */
+     points: [number, number][];
+     /** Outline line + body fill color as [r, g, b, a] in 0..1 (default white). */
+     color?: [number, number, number, number];
+     /** Outline line thickness in logical units (default 2). */
+     thickness?: number;
+   };
   [key: string]: unknown;
 };
 

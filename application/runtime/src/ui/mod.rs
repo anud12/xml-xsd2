@@ -391,10 +391,12 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
             let Some(item_obj) = item_opts.as_object_mut() else {
                 continue;
             };
-            let Some(entity) = item_obj.get("entity").and_then(|e| e.as_str()) else {
+            let Some(entity) = item_obj.get("entity").and_then(|e| e.as_str())
+                .map(|s| s.to_string())
+            else {
                 continue;
             };
-            let Some(ent_pos) = per_entity.get(entity).and_then(|p| p.as_object()) else {
+            let Some(ent_pos) = per_entity.get(entity.as_str()).and_then(|p| p.as_object()) else {
                 continue;
             };
             let get = |key: &str| ent_pos.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0);
@@ -415,8 +417,60 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
             item_obj.insert("y".into(), num_json(y));
             item_obj.insert("width".into(), num_json(span_x));
             item_obj.insert("height".into(), num_json(span_y));
+            // Stamp the entity's area polygon into the item's options so the
+            // C# renderer can draw it over the sprite. The polygon is in
+            // view-local logical units (same space as x/y/width/height): the
+            // entity's world position is (getX, getY), so view-local is
+            // (getX * cell_w, getY * cell_h) relative to the view origin.
+            stamp_area_outline(item_obj, &entity, get("x"), get("y"), cell_w, cell_h, ox, oy);
         }
     }
+}
+
+/// Stamp the entity's declared area (translated to view-local logical units)
+/// into the item's `options.areaOutline`. An entity with no area gets a 1x1
+/// pixel/rectangle fallback at its view-local position. `cell_w`/`cell_h` are
+/// the per-unit view scale; `ox`/`oy` are the alignment offsets already
+/// applied to x/y so the polygon tracks the marker.
+fn stamp_area_outline(
+    item_obj: &mut serde_json::Map<String, serde_json::Value>,
+    entity: &str,
+    ent_x: f64,
+    ent_y: f64,
+    cell_w: f64,
+    cell_h: f64,
+    ox: f64,
+    oy: f64,
+) {
+    // The entity's view-local top-left (matches the x/y stamp above).
+    let vx = ent_x * cell_w - ox;
+    let vy = ent_y * cell_h - oy;
+    // The entity's declared area, if any, in entity-local units. Translate to
+    // view-local by (vx, vy) and scale by the cell size so the polygon spans
+    // the same region as the item's width/height.
+    let local = crate::state::area_query::entity_area(entity);
+    let points: Vec<serde_json::Value> = match local {
+        Some(poly) => poly
+            .into_iter()
+            .map(|(px, py)| {
+                serde_json::json!([
+                    (px * cell_w + vx) as f64,
+                    (py * cell_h + vy) as f64,
+                ])
+            })
+            .collect(),
+        None => {
+            // No area: a 1x1 pixel/rectangle fallback at the view-local origin.
+            vec![
+                serde_json::json!([vx, vy]),
+                serde_json::json!([vx + 1.0, vy]),
+                serde_json::json!([vx + 1.0, vy + 1.0]),
+                serde_json::json!([vx, vy + 1.0]),
+            ]
+        }
+    };
+    let outline = serde_json::json!({ "points": points });
+    item_obj.insert("areaOutline".into(), outline);
 }
 
 /// Merge a container row's per-entity position maps (getX/getY/getSpanX/
@@ -865,6 +919,12 @@ export default (hostApi) => {
             r#"{"id":"items","entities":["item-a","item-b"]}"#.to_string()]);
     }
 
+    fn seed_grid1_container() {
+        // grid-1: a 100x100 container with room at (10,10) and crate at (40,40).
+        crate::state::set_last_containers(vec![
+            r#"{"id":"grid-1","entities":["room","crate"],"sizeX":{"value":100},"sizeY":{"value":100},"getX":{"room":10,"crate":40},"getY":{"room":10,"crate":40}}"#.to_string()]);
+    }
+
     #[test]
     fn container_list_expands_one_item_per_entity() {
         let _g = lock();
@@ -958,6 +1018,95 @@ export default (hostApi) => {
         assert!(ids.contains(&"items"), "list node missing: {:?}", ids);
         assert!(!ids.iter().any(|id| id.starts_with("item-")),
             "expected zero items, got {:?}", ids);
+    }
+
+    const CONTAINER_VIEW_AREA_MODULE: &str = r#"
+export default (hostApi) => {
+  hostApi.runtime.setEntity(hostApi.runtime.string.of('room'), {
+    numberMap: { column: hostApi.runtime.number.of(10), row: hostApi.runtime.number.of(10) },
+    area: { polygon: [[0, 0], [100, 0], [100, 100], [0, 100]] }
+  });
+  hostApi.runtime.setEntity(hostApi.runtime.string.of('crate'), {
+    numberMap: { column: hostApi.runtime.number.of(40), row: hostApi.runtime.number.of(40) }
+  });
+  hostApi.runtime.setContainer(hostApi.runtime.string.of('grid-1'), {
+    entities: ['room', 'crate'],
+    getX: (entity) => entity.number_map.get('column').orElse(hostApi.runtime.number.of(0)),
+    getY: (entity) => entity.number_map.get('row').orElse(hostApi.runtime.number.of(0)),
+    sizeX: { value: hostApi.runtime.number.of(100), outOfBounds: 'clamp' },
+    sizeY: { value: hostApi.runtime.number.of(100), outOfBounds: 'clamp' }
+  });
+  hostApi.ui.containerView('world', { container: 'grid-1', width: 700, height: 500 },
+    (entity) => hostApi.ui.window(entity.id, {}, []));
+};
+"#;
+
+    #[test]
+    fn container_view_item_gets_area_outline_stamped() {
+        let _g = lock();
+        crate::state::clear_state();
+        seed_grid1_container();
+        // Seed room's declared area directly (the JS module's setEntity area
+        // goes through process_module; here we seed the Rust state store).
+        crate::state::set_entity_area("room", vec![
+            (0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0),
+        ]);
+        install_module(CONTAINER_VIEW_AREA_MODULE);
+        tick();
+
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let nodes = v["nodes"].as_array().unwrap();
+        // room declares a 100x100 local area; view is 700x500 over a 100x100
+        // container, so cell_w = 7, cell_h = 5. room's world pos is (10, 10),
+        // so view-local top-left is (70, 50). The area spans 100x100 local ->
+        // 700x500 view units, so the outline spans (70,50)..(770,550).
+        let room = nodes.iter().find(|n| n["id"] == "room").unwrap_or_else(|| {
+            let dbg_ids: Vec<&str> = nodes.iter().map(|n| n["id"].as_str().unwrap()).collect();
+            panic!("room node missing; ids: {dbg_ids:?}");
+        });
+        let outline = room["options"]["areaOutline"].clone();
+        assert!(outline.is_object(), "room should have areaOutline: {outline}");
+        let pts = outline["points"].as_array().unwrap();
+        assert_eq!(pts.len(), 4, "room area has 4 corners: {pts:?}");
+        // The four view-local corners of the 100x100 area at (70,50):
+        // (70,50),(770,50),(770,550),(70,550). Assert as a set (winding
+        // order is normalized by make_area).
+        // The four view-local corners of the 100x100 area at (70,50):
+        // (70,50),(770,50),(770,550),(70,550). Collect the set of points and
+        // compare against the expected set (winding order is normalized by
+        // make_area, so we compare unordered).
+        let corners: Vec<String> = pts.iter()
+            .map(|p| {
+                let a = p.as_array().unwrap();
+                let x = a[0].as_f64().unwrap();
+                let y = a[1].as_f64().unwrap();
+                format!("{x:.0},{y:.0}")
+            })
+            .collect();
+        let expected = vec![
+            "70,50".to_string(),
+            "770,50".to_string(),
+            "770,550".to_string(),
+            "70,550".to_string(),
+        ];
+        assert_eq!(corners.len(), 4, "room area has 4 corners: {corners:?}");
+        for e in &expected {
+            assert!(corners.contains(e), "missing corner {e}; got {corners:?}");
+        }
+
+        // crate has no declared area: a 1x1 fallback rect at its view-local
+        // origin. crate's world pos is (40, 40) -> view-local (280, 200).
+        let crate_node = nodes.iter().find(|n| n["id"] == "crate").unwrap();
+        let c_outline = crate_node["options"]["areaOutline"].clone();
+        assert!(c_outline.is_object(), "crate should have 1x1 fallback: {c_outline}");
+        let c_pts = c_outline["points"].as_array().unwrap();
+        assert_eq!(c_pts.len(), 4, "crate fallback is a 1x1 rect: {c_pts:?}");
+        let c0 = c_pts[0].as_array().unwrap();
+        assert!((c0[0].as_f64().unwrap() - 280.0).abs() < 1e-6, "crate x0: {}", c0[0]);
+        assert!((c0[1].as_f64().unwrap() - 200.0).abs() < 1e-6, "crate y0: {}", c0[1]);
+        let c1 = c_pts[1].as_array().unwrap();
+        assert!((c1[0].as_f64().unwrap() - 281.0).abs() < 1e-6, "crate x1: {}", c1[0]);
+        assert!((c1[1].as_f64().unwrap() - 200.0).abs() < 1e-6, "crate y1: {}", c1[1]);
     }
 
     #[test]

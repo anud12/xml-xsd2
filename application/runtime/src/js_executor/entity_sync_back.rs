@@ -43,6 +43,24 @@ fn apply_number_and_text_maps(
             }
         }
     }
+    // An entity's `area` (like numberMap) is intrinsic: persist the declared
+    // local polygon so the Rust-side inside-area query can test it. The value
+    // is a `{ polygon: [[x, y], ...] }` object in entity-local units.
+    if let Some(area_obj) = ev.get("area") {
+        let mut poly: Vec<(f64, f64)> = Vec::new();
+        if let Some(arr) = area_obj.get("polygon").and_then(|v| v.as_array()) {
+            for v in arr.iter() {
+                if let Some(pair) = v.as_array() {
+                    if pair.len() >= 2 {
+                        let x = pair[0].as_f64().unwrap_or(0.0);
+                        let y = pair[1].as_f64().unwrap_or(0.0);
+                        poly.push((x, y));
+                    }
+                }
+            }
+        }
+        crate::state::set_entity_area(eid, poly);
+    }
 }
 
 pub fn collect_logs(ctx: &Context) {

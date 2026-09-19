@@ -18,6 +18,9 @@ const SIM_TPL_P2: &str = r#"
             } catch(e) {}
             if (!found && globalThis.__entityStore.length>0) found = globalThis.__entityStore[0];
             if (!found) return cb(null);
+            const foundId = found && typeof found === 'object'
+              ? (found.id || (globalThis.__entityStore.indexOf(found) >= 0 ? String(found) : null))
+              : null;
             const wrapper = { getText: function(key) {
               return { ifPresent: function(cb2) {
                 const nameObj = { concat: function(s) { try {
@@ -27,7 +30,18 @@ const SIM_TPL_P2: &str = r#"
                       if (pk.length>0) found[pk[0]] = String(found[pk[0]]) + String(s); }
                   }
                 } catch(e) {} }}; cb2(nameObj);
-              }}; }, ifPresent: function(cb3) { cb3(wrapper); }};
+              }}; }, ifPresent: function(cb3) { cb3(wrapper); },
+              getEntitiesInsideArea: function() {
+                var ids = (globalThis.__insideArea && globalThis.__insideArea[foundId]) || [];
+                return {
+                  forEach: function(cb) {
+                    for (var i = 0; i < ids.length; i++) {
+                      cb({ getId: function() { return ids[i]; } });
+                    }
+                  },
+                  size: function() { return ids.length; }
+                };
+              }};
             cb(wrapper);
           }};
         }};

@@ -1,8 +1,8 @@
 // PENDING_CTX_JS Part 1: opening + entity getter with number ops
 
 const PENDING_CTX_JS_P1: &str = r#"(function() {
-    var fe = null;
-    for (var eid in globalThis.__entityData) { fe = globalThis.__entityData[eid]; break; }
+    var fe = null, feId = null;
+    for (var eid in globalThis.__entityData) { fe = globalThis.__entityData[eid]; feId = eid; break; }
     globalThis.__context = {
         getEntityBy: function(filter) {
             return { map: function(cb) { if (!fe) return;
@@ -41,6 +41,16 @@ const PENDING_CTX_JS_P1: &str = r#"(function() {
                                 }});
                         }}
                     }}
+                }, getEntitiesInsideArea: function() {
+                    var ids = (globalThis.__insideArea && globalThis.__insideArea[feId]) || [];
+                    return {
+                        forEach: function(cb) {
+                            for (var i = 0; i < ids.length; i++) {
+                                cb({ getId: function() { return ids[i]; } });
+                            }
+                        },
+                        size: function() { return ids.length; }
+                    };
                 });
             }"#;
 

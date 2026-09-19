@@ -1,0 +1,6 @@
+{
+  "id": "area-test",
+  "version": "1.0.0",
+  "name": "Area Inside Test Module",
+  "entry": "index.js"
+}

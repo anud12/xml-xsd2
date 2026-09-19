@@ -140,8 +140,31 @@ public static class UiSlab
             Add("unlinked", "true");
         if (o.PortalLine != 0)
             Add("portalLine", "true");
+        var area = SerializeAreaOutline(o, arena);
+        if (area != null) Add("areaOutline", area);
         if (first) return "{}";
         return "{" + sb + "}";
+    }
+
+    static string SerializeAreaOutline(UiAbi.UiNodeOptions o, IntPtr arena)
+    {
+        if (o.AreaPoints == UiAbi.NoStr) return null;
+        var pts = Str(arena, o.AreaPoints);
+        if (string.IsNullOrEmpty(pts)) return null;
+        var sb = new StringBuilder("{\"points\":");
+        sb.Append(pts);
+        // Emit `color` only when the caller actually set one (all-zero rgb means
+        // "absent"); otherwise the consumer falls back to its default outline color.
+        if (o.AreaR != 0f || o.AreaG != 0f || o.AreaB != 0f)
+        {
+            sb.Append(",\"color\":[")
+              .Append(Num(o.AreaR)).Append(',').Append(Num(o.AreaG)).Append(',').Append(Num(o.AreaB)).Append(',').Append(Num(o.AreaA));
+            sb.Append(']');
+        }
+        if (o.AreaThickness != 0f)
+            sb.Append(",\"thickness\":").Append(Num(o.AreaThickness));
+        sb.Append('}');
+        return sb.ToString();
     }
 
     static string SerializeLayout(UiAbi.UiLayout l, IntPtr arena)

@@ -5,10 +5,15 @@ use std::collections::HashMap;
 
 mod accessors; mod clear; mod export; mod markers;
 mod persist; mod scheduled; mod active_plans; mod sector;
+pub mod area; pub mod area_query;
 
 pub use accessors::*; pub use clear::*; pub use export::*;
 pub use markers::*; pub use persist::*; pub use scheduled::*;
 pub use active_plans::*; pub use sector::*;
+pub use area_query::{
+    clear_entity_areas, entity_area, entity_containers,
+    entities_inside_area, inside_area_map_json, set_entity_area, world_pieces,
+};
 
 static INIT: Once = Once::new();
 static mut PERSISTED_HAS_DATA: Option<&'static AtomicBool> = None;
@@ -31,6 +36,15 @@ static mut ELAPSED_TIME_UNITS: Option<&'static AtomicI64> = None;
 static mut ARCHIVE_FILES: Option<&'static Mutex<HashMap<String, String>>> = None;
 static mut ACTIVE_PLANS: Option<&'static Mutex<Vec<ActivePlan>>> = None;
 static mut SECTOR_GRIDS: Option<&'static Mutex<HashMap<String, SectorGridState>>> = None;
+static mut ENTITY_AREAS: Option<&'static Mutex<HashMap<String, Vec<(f64, f64)>>>> = None;
+
+/// The entity-area store (idempotent with `persisted_flag`). Reached directly
+/// by `area_query` so it shares the same init ordering as every other state
+/// slot in this module.
+pub fn entity_areas_inner() -> &'static Mutex<HashMap<String, Vec<(f64, f64)>>> {
+    persisted_flag();
+    unsafe { ENTITY_AREAS.expect("entity areas initialized") }
+}
 
 #[derive(Clone, Debug)]
 pub struct ScheduledEffect {
@@ -75,6 +89,7 @@ fn persisted_flag() -> &'static AtomicBool {
             ARCHIVE_FILES = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             ACTIVE_PLANS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
             SECTOR_GRIDS = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
+            ENTITY_AREAS = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
         }
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }

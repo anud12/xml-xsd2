@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use super::UiNode as DomainNode;
 use super::UiDeltaOp as DomainDeltaOp;
 
-pub const UI_ABI_VERSION: u32 = 1;
+pub const UI_ABI_VERSION: u32 = 2;
 /// Sentinel string offset: "no string" (absent value/src/optional option).
 pub const NO_STR: u32 = u32::MAX;
 
@@ -173,6 +173,15 @@ pub struct UiNodeOptions {
     pub portal_arrow: u8,
     pub unlinked: u8,
     pub portal_line: u8,
+    /// Container-view area outline: `area_points` is an interned JSON string
+    /// of `[[x, y], ...]` in view-local logical units (NO_STR when absent);
+    /// the four rgba components and `area_thickness` style the outline/body.
+    pub area_points: u32,
+    pub area_r: f32,
+    pub area_g: f32,
+    pub area_b: f32,
+    pub area_a: f32,
+    pub area_thickness: f32,
 }
 
 #[repr(C)]
@@ -263,6 +272,7 @@ pub struct UiAbiSizes {
     pub off_opts_on_click: u32,
     pub off_opts_on_hover: u32,
     pub off_opts_container: u32,
+    pub off_opts_area_points: u32,
     pub off_on_click_steps: u32,
     pub off_click_step_args: u32,
     pub off_layout_col_tracks: u32,
@@ -311,6 +321,7 @@ pub fn abi_sizes() -> UiAbiSizes {
         off_opts_on_click: offset_of!(UiNodeOptions, on_click) as u32,
         off_opts_on_hover: offset_of!(UiNodeOptions, on_hover) as u32,
         off_opts_container: offset_of!(UiNodeOptions, container) as u32,
+        off_opts_area_points: offset_of!(UiNodeOptions, area_points) as u32,
         off_on_click_steps: offset_of!(UiOnClick, steps) as u32,
         off_click_step_args: offset_of!(UiClickStep, args) as u32,
         off_layout_col_tracks: offset_of!(UiLayout, col_tracks) as u32,
@@ -626,6 +637,12 @@ fn empty_options() -> UiNodeOptions {
         portal_arrow: 0,
         unlinked: 0,
         portal_line: 0,
+        area_points: NO_STR,
+        area_r: 0.0,
+        area_g: 0.0,
+        area_b: 0.0,
+        area_a: 0.0,
+        area_thickness: 0.0,
     }
 }
 
@@ -981,6 +998,32 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     o.portal_arrow = opt_bool(opts, "portalArrow") as u8;
     o.unlinked = opt_bool(opts, "unlinked") as u8;
     o.portal_line = opt_bool(opts, "portalLine") as u8;
+    // areaOutline: { points: [[x, y], ...], color?: [r, g, b, a], thickness? }
+    // points are view-local logical units (the same space as x/y/width/height).
+    if let Some(a) = opts.get("areaOutline").and_then(|v| v.as_object()) {
+        if let Some(points) = a.get("points").and_then(|v| v.as_array()) {
+            let mut sb = String::from("[");
+            for (i, p) in points.iter().enumerate() {
+                if i > 0 {
+                    sb.push(',');
+                }
+                sb.push('[');
+                let px = p.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0);
+                let py = p.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0);
+                sb.push_str(&format!("{},{}", px, py));
+                sb.push(']');
+            }
+            sb.push(']');
+            o.area_points = slab.intern(&sb);
+        }
+        if let Some(c) = a.get("color").and_then(|v| v.as_array()) {
+            o.area_r = c.get(0).and_then(|v| v.as_f64()).map(|f| f as f32).unwrap_or(1.0);
+            o.area_g = c.get(1).and_then(|v| v.as_f64()).map(|f| f as f32).unwrap_or(1.0);
+            o.area_b = c.get(2).and_then(|v| v.as_f64()).map(|f| f as f32).unwrap_or(1.0);
+            o.area_a = c.get(3).and_then(|v| v.as_f64()).map(|f| f as f32).unwrap_or(1.0);
+        }
+        o.area_thickness = a.get("thickness").and_then(|v| v.as_f64()).map(|f| f as f32).unwrap_or(2.0);
+    }
     o
 }
 
@@ -1248,12 +1291,12 @@ mod tests {
         assert_eq!(s.size_layout, 40);
         assert_eq!(s.size_background, 32);
         assert_eq!(s.size_on_hover, 20);
-        assert_eq!(s.size_options, 176);
-        assert_eq!(s.size_node, 224);
+        assert_eq!(s.size_options, 200);
+        assert_eq!(s.size_node, 248);
         assert_eq!(s.size_animation, 24);
         assert_eq!(s.size_snapshot, 40);
         assert_eq!(s.size_delta, 32);
-        assert_eq!(s.size_delta_op, 232);
+        assert_eq!(s.size_delta_op, 256);
         // Pointer offsets land on 8-byte boundaries.
         for off in [
             s.off_node_children,
@@ -1385,6 +1428,26 @@ mod tests {
         let ns = unsafe { std::slice::from_raw_parts(snap.nodes, snap.node_count as usize) };
         let p = ns.iter().find(|n| cstr(arena, n.id) == "p").unwrap();
         assert_eq!(p.opt.portal_arrow, 1);
+        unsafe { free_snapshot(snap as *const UiSnapshot as *mut UiSnapshot) };
+    }
+
+    #[test]
+    fn area_outline_option_round_trips() {
+        let nodes = vec![node(
+            r#"{"kind":"window","id":"item","options":{"x":40,"y":40,"width":20,"height":20,"areaOutline":{"points":[[0,0],[20,0],[20,20],[0,20]],"color":[1,0,0,0.5],"thickness":3}},"children":[]}"#,
+        )];
+        let snap = unsafe { &*build_snapshot(&nodes, &HashMap::new()) };
+        let arena = snap.strings;
+        let ns = unsafe { std::slice::from_raw_parts(snap.nodes, snap.node_count as usize) };
+        let item = ns.iter().find(|n| cstr(arena, n.id) == "item").unwrap();
+        assert_ne!(item.opt.area_points, NO_STR);
+        let pts = cstr(arena, item.opt.area_points);
+        assert!(pts.starts_with("[[0,") && pts.contains("[20,0]"), "points: {pts}");
+        assert!((item.opt.area_r - 1.0).abs() < f32::EPSILON);
+        assert!((item.opt.area_g).abs() < f32::EPSILON);
+        assert!((item.opt.area_b).abs() < f32::EPSILON);
+        assert!((item.opt.area_a - 0.5).abs() < f32::EPSILON);
+        assert!((item.opt.area_thickness - 3.0).abs() < f32::EPSILON);
         unsafe { free_snapshot(snap as *const UiSnapshot as *mut UiSnapshot) };
     }
 

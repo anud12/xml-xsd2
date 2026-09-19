@@ -15,7 +15,12 @@ pub mod actor_busy;
 pub mod actor_interrupt;
 pub mod actor_active_action;
 pub mod sector_state;
+pub mod entity_area;
 
+pub use entity_area::runtime_get_entities_inside_area;
+pub use entity_area::runtime_get_entity_containers;
+pub use entity_area::runtime_free_inside_area;
+pub use entity_area::runtime_set_entity_area;
 pub use action_ids::runtime_fetch_action_ids;
 pub use free_string::runtime_free_string;
 pub use clear_state::runtime_clear_state;
