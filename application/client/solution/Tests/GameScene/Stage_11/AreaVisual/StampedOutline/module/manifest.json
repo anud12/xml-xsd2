@@ -1,0 +1,6 @@
+{
+  "id": "area-visual-stamp-test",
+  "version": "1.0.0",
+  "name": "Area Visual Stamp Test Module",
+  "entry": "index.js"
+}
