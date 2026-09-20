@@ -16,10 +16,10 @@ public class AreaFindEntitiesInsideTests : Steps
             .EnsureDllAccessible()
             .ProcessArchive();
 
-        // The room's area spans (10,10)..(110,110) in the container's world
-        // space. The crate (overlap) and npc-in (point) are inside; npc-out
-        // (500,500) is far outside.
-        var inside = RuntimeInterop.GetEntitiesInsideArea("room");
+        // The room's "floor" area spans (10,10)..(110,110) in the container's
+        // world space. The crate (overlap) and npc-in (point) are inside;
+        // npc-out (500,500) is far outside.
+        var inside = RuntimeInterop.GetEntitiesInsideArea("room", "floor");
         Assertions.AssertThat(inside.Length).IsEqual(2);
         Assertions.AssertThat(inside.Contains("crate")).IsTrue();
         Assertions.AssertThat(inside.Contains("npc-in")).IsTrue();

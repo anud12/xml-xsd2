@@ -58,22 +58,29 @@ export type UiPanelOptions = {
      * wins). Only honored for windows (explicitly sized panels).
      */
      resizable?: boolean | { keepAspectRatio?: boolean };
-   /**
-    * The entity's declared area polygon, drawn over the item sprite as a
-    * solid outline (line color + thickness) and a translucent rgba body.
-    * Engine-owned for container-view items: the engine stamps `points`
-    * (view-local logical units) from the entity's declared area every tick.
-    * An entity with no area gets a 1x1 pixel/rectangle fallback. Modules may
-    * also set this explicitly on any panel to draw an arbitrary polygon.
-    */
-   areaOutline?: {
-     /** Polygon vertices in view-local logical units, implicitly closed. */
-     points: [number, number][];
-     /** Outline line + body fill color as [r, g, b, a] in 0..1 (default white). */
-     color?: [number, number, number, number];
-     /** Outline line thickness in logical units (default 2). */
-     thickness?: number;
-   };
+    /**
+     * The entity's declared area polygons, drawn over the item sprite as a
+     * solid outline (line color + thickness) and a translucent rgba body each.
+     * Engine-owned for container-view items: the engine stamps `polygons`
+     * (view-local logical units) from the entity's declared areas every tick
+     * (the areas selected by the view's `area` option, or the entity's first
+     * declared area with default styling when omitted). An entity with no
+     * matching area gets a 1x1 pixel/rectangle fallback polygon. Modules may
+     * also set this explicitly on any panel to draw arbitrary polygons.
+     */
+    areaOutline?: {
+      /** The polygons to draw; each carries its own vertices and outline style. */
+      polygons: {
+        /** Polygon vertices in view-local logical units, implicitly closed. */
+        points: [number, number][];
+        /** Outline line color as [r, g, b, a] in 0..1 (default red). */
+        color?: [number, number, number, number];
+        /** Body fill color as [r, g, b, a] in 0..1 (default green). */
+        bodyColor?: [number, number, number, number];
+        /** Outline line thickness in logical units (default 2). */
+        thickness?: number;
+      }[];
+    };
   [key: string]: unknown;
 };
 
@@ -109,6 +116,22 @@ export type UiContainerViewOptions = UiPanelOptions & {
   width: number;
   /** Total view height in logical units (the whole view, not per-cell). */
   height: number;
+  /**
+   * The declared areas to draw as outlines, one entry per area. Each entry
+   * selects a named area and the outline style for it. When omitted, the
+   * entity's first declared area (id ascending) is drawn with default styling
+   * (red outline / green body / thickness 2).
+   */
+  area?: {
+    /** The entity's declared area name (a key in the entity's areaMap). */
+    name: string;
+    /** Outline line color as [r, g, b, a] in 0..1. */
+    color: [number, number, number, number];
+    /** Body fill color as [r, g, b, a] in 0..1. */
+    bodyColor: [number, number, number, number];
+    /** Outline line thickness in logical units. */
+    thickness: number;
+  }[];
 };
 
 /**

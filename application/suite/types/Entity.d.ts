@@ -37,8 +37,13 @@ export type Area = {
 export type EntityCreationArguments = {
   textMap?: Record<string, StringExpression>
   numberMap?: Record<string, NumberExpression>
-  /** The entity's declared area (see {@link Area}). */
-  area?: Area
+  /**
+   * The entity's named areas (entityMap): area name -> polygon. Areas are
+   * always declared here (there is no unnamed area). Each named area can be
+   * queried independently via
+   * {@link EntityExpression.getEntitiesInsideArea}.
+   */
+  areaMap?: Record<string, Area>
 }
 
 export type EntityExpressionType = {
@@ -61,13 +66,15 @@ export type EntityExpression = {
   /** The entity's text_map accessor (keyed lookups returning MaybeExpressions). */
   text_map: { get: (key: string) => MaybeExpression<StringExpression> };
   /**
-   * The entities inside this entity's area. Only members of a container this
-   * entity belongs to are considered (areas have no global space); the entity
-   * itself is excluded; the result is deduped by id and ordered by id
-   * ascending. An entity with no area yields an empty list (not an error).
-   * Each element is a minimal entity reference exposing `getId`.
+   * The entities inside one *named* area of this entity. The area name is
+   * required: it is resolved first, then the containment/overlap test runs.
+   * Only members of a container this entity belongs to are considered (areas
+   * have no global space); the entity itself is excluded; the result is
+   * deduped by id and ordered by id ascending. An entity with no such area
+   * yields an empty list (not an error). Each element is a minimal entity
+   * reference exposing `getId`.
    */
-  getEntitiesInsideArea: () => ListExpression<EntityInsideAreaReference>
+  getEntitiesInsideArea: (areaName: string) => ListExpression<EntityInsideAreaReference>
 }
 
 /** A minimal entity reference returned by {@link EntityExpression.getEntitiesInsideArea}. */
@@ -86,9 +93,9 @@ export type Entity = {
   getNumberKeys: () => ListExpression<string>,
   containers: ListExpression<ContainerExpression>,
   /**
-   * The entities inside this entity's area (see
-   * {@link EntityExpression.getEntitiesInsideArea}). An entity with no area
-   * yields an empty list.
+   * The entities inside one *named* area of this entity (see
+   * {@link EntityExpression.getEntitiesInsideArea}). The area name is
+   * required; an entity with no such area yields an empty list.
    */
-  getEntitiesInsideArea: () => ListExpression<EntityInsideAreaReference>
+  getEntitiesInsideArea: (areaName: string) => ListExpression<EntityInsideAreaReference>
 }

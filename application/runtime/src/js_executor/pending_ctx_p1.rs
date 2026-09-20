@@ -41,8 +41,9 @@ const PENDING_CTX_JS_P1: &str = r#"(function() {
                                 }});
                         }}
                     }}
-                }, getEntitiesInsideArea: function() {
-                    var ids = (globalThis.__insideArea && globalThis.__insideArea[feId]) || [];
+                }, getEntitiesInsideArea: function(areaName) {
+                    var areaMap = (globalThis.__insideArea && globalThis.__insideArea[feId]) || {};
+                    var ids = areaMap[areaName] || [];
                     return {
                         forEach: function(cb) {
                             for (var i = 0; i < ids.length; i++) {

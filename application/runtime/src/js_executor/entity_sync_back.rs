@@ -43,24 +43,31 @@ fn apply_number_and_text_maps(
             }
         }
     }
-    // An entity's `area` (like numberMap) is intrinsic: persist the declared
-    // local polygon so the Rust-side inside-area query can test it. The value
-    // is a `{ polygon: [[x, y], ...] }` object in entity-local units.
-    if let Some(area_obj) = ev.get("area") {
-        let mut poly: Vec<(f64, f64)> = Vec::new();
-        if let Some(arr) = area_obj.get("polygon").and_then(|v| v.as_array()) {
-            for v in arr.iter() {
-                if let Some(pair) = v.as_array() {
-                    if pair.len() >= 2 {
-                        let x = pair[0].as_f64().unwrap_or(0.0);
-                        let y = pair[1].as_f64().unwrap_or(0.0);
-                        poly.push((x, y));
-                    }
+    // An entity's areas (like numberMap) are intrinsic: persist each declared
+    // local polygon so the Rust-side inside-area query can test it. Areas are
+    // always declared as a named `areaMap: { name: { polygon } }` entityMap.
+    if let Some(areas_obj) = ev.get("areaMap").and_then(|v| v.as_object()) {
+        for (name, area_obj) in areas_obj {
+            crate::state::set_entity_area(eid, name, parse_polygon(area_obj));
+        }
+    }
+}
+
+/// Read `{ polygon: [[x, y], ...] }` into local points (empty when absent).
+fn parse_polygon(area_obj: &serde_json::Value) -> Vec<(f64, f64)> {
+    let mut poly: Vec<(f64, f64)> = Vec::new();
+    if let Some(arr) = area_obj.get("polygon").and_then(|v| v.as_array()) {
+        for v in arr.iter() {
+            if let Some(pair) = v.as_array() {
+                if pair.len() >= 2 {
+                    let x = pair[0].as_f64().unwrap_or(0.0);
+                    let y = pair[1].as_f64().unwrap_or(0.0);
+                    poly.push((x, y));
                 }
             }
         }
-        crate::state::set_entity_area(eid, poly);
     }
+    poly
 }
 
 pub fn collect_logs(ctx: &Context) {

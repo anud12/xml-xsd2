@@ -11,8 +11,9 @@ pub use accessors::*; pub use clear::*; pub use export::*;
 pub use markers::*; pub use persist::*; pub use scheduled::*;
 pub use active_plans::*; pub use sector::*;
 pub use area_query::{
-    clear_entity_areas, entity_area, entity_containers,
-    entities_inside_area, inside_area_map_json, set_entity_area, world_pieces,
+    clear_entity_areas, entity_area, entity_area_ids, entity_containers,
+    entities_inside_area, inside_area_map_json,
+    set_entity_area, world_pieces,
 };
 
 static INIT: Once = Once::new();
@@ -36,12 +37,14 @@ static mut ELAPSED_TIME_UNITS: Option<&'static AtomicI64> = None;
 static mut ARCHIVE_FILES: Option<&'static Mutex<HashMap<String, String>>> = None;
 static mut ACTIVE_PLANS: Option<&'static Mutex<Vec<ActivePlan>>> = None;
 static mut SECTOR_GRIDS: Option<&'static Mutex<HashMap<String, SectorGridState>>> = None;
-static mut ENTITY_AREAS: Option<&'static Mutex<HashMap<String, Vec<(f64, f64)>>>> = None;
+static mut ENTITY_AREAS: Option<&'static Mutex<HashMap<String, HashMap<String, Vec<(f64, f64)>>>>> = None;
 
 /// The entity-area store (idempotent with `persisted_flag`). Reached directly
 /// by `area_query` so it shares the same init ordering as every other state
-/// slot in this module.
-pub fn entity_areas_inner() -> &'static Mutex<HashMap<String, Vec<(f64, f64)>>> {
+/// slot in this module. An entity maps to the entityMap of its named areas:
+/// area id -> the local polygon (entity-local units, y down).
+pub fn entity_areas_inner()
+    -> &'static Mutex<HashMap<String, HashMap<String, Vec<(f64, f64)>>>> {
     persisted_flag();
     unsafe { ENTITY_AREAS.expect("entity areas initialized") }
 }

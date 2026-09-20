@@ -8,8 +8,10 @@ export default (hostApi) => {
   // polygon maps to view-local (70,50)..(490,450) — fully inside the view.
   hostApi.runtime.setEntity(string.of("room"), {
     numberMap: { column: number.of(10), row: number.of(10) },
-    area: {
-      polygon: [[0, 0], [40, 0], [60, 20], [60, 80], [0, 80]],
+    areaMap: {
+      floor: {
+        polygon: [[0, 0], [40, 0], [60, 20], [60, 80], [0, 80]],
+      },
     },
   });
 
@@ -32,5 +34,8 @@ export default (hostApi) => {
     container: "grid-1",
     width: 700,
     height: 500,
+    area: [
+      { name: "floor", color: [1, 0, 0, 1], bodyColor: [0, 1, 0, 1], thickness: 3 },
+    ],
   }, (entity) => hostApi.ui.window(entity.id, {}, []));
 };

@@ -998,24 +998,51 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     o.portal_arrow = opt_bool(opts, "portalArrow") as u8;
     o.unlinked = opt_bool(opts, "unlinked") as u8;
     o.portal_line = opt_bool(opts, "portalLine") as u8;
-    // areaOutline: { points: [[x, y], ...], color?: [r, g, b, a], thickness? }
+    // areaOutline: { polygons: [ { points: [[x, y], ...],
+    //   color?: [r,g,b,a], bodyColor?: [r,g,b,a], thickness?: number }, ... ] }
     // points are view-local logical units (the same space as x/y/width/height).
+    // Per-polygon color/bodyColor/thickness are optional; the renderer falls
+    // back to its defaults (red / green / 2) when a polygon omits them.
     if let Some(a) = opts.get("areaOutline").and_then(|v| v.as_object()) {
-        if let Some(points) = a.get("points").and_then(|v| v.as_array()) {
+        if let Some(polys) = a.get("polygons").and_then(|v| v.as_array()) {
             let mut sb = String::from("[");
-            for (i, p) in points.iter().enumerate() {
+            for (i, poly) in polys.iter().enumerate() {
                 if i > 0 {
                     sb.push(',');
                 }
-                sb.push('[');
-                let px = p.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0);
-                let py = p.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0);
-                sb.push_str(&format!("{},{}", px, py));
-                sb.push(']');
+                sb.push_str("{\"points\":");
+                if let Some(points) = poly.get("points").and_then(|v| v.as_array()) {
+                    sb.push('[');
+                    for (j, p) in points.iter().enumerate() {
+                        if j > 0 {
+                            sb.push(',');
+                        }
+                        sb.push('[');
+                        let px = p.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0);
+                        let py = p.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0);
+                        sb.push_str(&format!("{},{}", px, py));
+                        sb.push(']');
+                    }
+                    sb.push(']');
+                } else {
+                    sb.push(']');
+                }
+                if let Some(c) = poly.get("color").and_then(|v| v.as_array()) {
+                    sb.push_str(&format!(",\"color\":[{}]", rgba_json(c)));
+                }
+                if let Some(bc) = poly.get("bodyColor").and_then(|v| v.as_array()) {
+                    sb.push_str(&format!(",\"bodyColor\":[{}]", rgba_json(bc)));
+                }
+                if let Some(t) = poly.get("thickness").and_then(|v| v.as_f64()) {
+                    sb.push_str(&format!(",\"thickness\":{t}"));
+                }
+                sb.push('}');
             }
             sb.push(']');
             o.area_points = slab.intern(&sb);
         }
+        // Back-compat: a top-level color/thickness (no per-polygon style) is
+        // preserved on the legacy scalar fields so older renderers still work.
         if let Some(c) = a.get("color").and_then(|v| v.as_array()) {
             o.area_r = c.get(0).and_then(|v| v.as_f64()).map(|f| f as f32).unwrap_or(1.0);
             o.area_g = c.get(1).and_then(|v| v.as_f64()).map(|f| f as f32).unwrap_or(1.0);
@@ -1025,6 +1052,19 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
         o.area_thickness = a.get("thickness").and_then(|v| v.as_f64()).map(|f| f as f32).unwrap_or(2.0);
     }
     o
+}
+
+/// Serialize an `rgba` JSON array `[r, g, b, a]` as a JSON number array,
+/// defaulting any missing/non-numeric component to 1.0.
+fn rgba_json(arr: &[serde_json::Value]) -> String {
+    let comps: Vec<f64> = (0..4)
+        .map(|i| arr.get(i).and_then(|v| v.as_f64()).unwrap_or(1.0))
+        .collect();
+    comps
+        .iter()
+        .map(|c| c.to_string())
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn animation_to_abi(name: &str, def: &Value, slab: &mut Slab, frames_base: *mut u32) -> UiAnimation {
@@ -1434,7 +1474,7 @@ mod tests {
     #[test]
     fn area_outline_option_round_trips() {
         let nodes = vec![node(
-            r#"{"kind":"window","id":"item","options":{"x":40,"y":40,"width":20,"height":20,"areaOutline":{"points":[[0,0],[20,0],[20,20],[0,20]],"color":[1,0,0,0.5],"thickness":3}},"children":[]}"#,
+            r#"{"kind":"window","id":"item","options":{"x":40,"y":40,"width":20,"height":20,"areaOutline":{"polygons":[{"points":[[0,0],[20,0],[20,20],[0,20]]}],"color":[1,0,0,0.5],"thickness":3}},"children":[]}"#,
         )];
         let snap = unsafe { &*build_snapshot(&nodes, &HashMap::new()) };
         let arena = snap.strings;
@@ -1442,7 +1482,7 @@ mod tests {
         let item = ns.iter().find(|n| cstr(arena, n.id) == "item").unwrap();
         assert_ne!(item.opt.area_points, NO_STR);
         let pts = cstr(arena, item.opt.area_points);
-        assert!(pts.starts_with("[[0,") && pts.contains("[20,0]"), "points: {pts}");
+        assert!(pts.starts_with("[{\"points\":[[0,") && pts.contains("[20,0]"), "points: {pts}");
         assert!((item.opt.area_r - 1.0).abs() < f32::EPSILON);
         assert!((item.opt.area_g).abs() < f32::EPSILON);
         assert!((item.opt.area_b).abs() < f32::EPSILON);

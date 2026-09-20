@@ -2,20 +2,25 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  // A large "room" that declares a 100x100 local area. Its container world
-  // position is (10, 10), so its world polygon spans (10,10)..(110,110).
+  // A large "room" that declares a named 100x100 local area ("floor"). Its
+  // container world position is (10, 10), so its world polygon spans
+  // (10,10)..(110,110).
   hostApi.runtime.setEntity(string.of("room"), {
     numberMap: { column: number.of(10), row: number.of(10) },
-    area: {
-      polygon: [[0, 0], [100, 0], [100, 100], [0, 100]],
+    areaMap: {
+      floor: {
+        polygon: [[0, 0], [100, 0], [100, 100], [0, 100]],
+      },
     },
   });
 
-  // A "crate" with its own 20x20 area, world (40,40): fully inside the room.
+  // A "crate" with its own named 20x20 area, world (40,40): fully inside the room.
   hostApi.runtime.setEntity(string.of("crate"), {
     numberMap: { column: number.of(40), row: number.of(40) },
-    area: {
-      polygon: [[0, 0], [20, 0], [20, 20], [0, 20]],
+    areaMap: {
+      footprint: {
+        polygon: [[0, 0], [20, 0], [20, 20], [0, 20]],
+      },
     },
   });
 
@@ -50,7 +55,7 @@ export default (hostApi) => {
       );
       entity.ifPresent((e) => {
         let out = [];
-        e.getEntitiesInsideArea().forEach((member) => {
+        e.getEntitiesInsideArea(hostApi.runtime.string.of("floor")).forEach((member) => {
           out.push(member.getId());
         });
         hostApi.runtime.log("___area-inside:" + out.join(",") + "___");

@@ -97,18 +97,25 @@ public partial class UiWindow
     }
     PortalArrowSpec? _portalArrow;
 
-    /// Container-view area outline: the entity's declared area polygon
+    /// A single area polygon to draw: its vertices (view-local logical units)
+    /// plus its own outline line color, body fill color, and outline thickness.
+    class AreaPoly
+    {
+        public List<Vector2> Points = new();
+        public Color OutlineColor = new(1f, 0f, 0f, 1f);
+        public Color BodyColor = new(0f, 1f, 0f, 1f);
+        public float Thickness = 2f;
+    }
+
+    /// Container-view area outline: the entity's declared area polygons
     /// (view-local logical units) drawn as a solid outline + rgba body fill
     /// over the item sprite. `null` when the node has no area outline.
     class AreaOutlineSpec
     {
-        public List<Vector2> Points = new();
-        // Outline line color (default red) and body fill color (default green).
-        public Color OutlineColor = new(1f, 0f, 0f, 1f);
-        public Color BodyColor = new(0f, 1f, 0f, 1f);
-        public float Thickness = 3f;
-        // The item's own view-local origin (x/y stamp): the polygon is translated
-        // by this so it spans the node's local rect rather than view space.
+        public List<AreaPoly> Polygons = new();
+        // The item's own view-local origin (x/y stamp): each polygon is
+        // translated by this so it spans the node's local rect rather than
+        // view space.
         public Vector2 Origin = Vector2.Zero;
     }
     AreaOutlineSpec _areaOutline;
@@ -119,7 +126,7 @@ public partial class UiWindow
         {
             DrawPortalArrow(a);
         }
-        if (_areaOutline is { } ao && ao.Points.Count >= 3)
+        if (_areaOutline is { } ao && ao.Polygons.Count > 0)
         {
             DrawAreaOutline(ao);
         }
@@ -154,24 +161,30 @@ public partial class UiWindow
         }
     }
 
-    /// Draws the area outline over the sprite: a translucent rgba body fill
-    /// plus a solid outline line of `thickness`. The stamped polygon is in
-    /// view-local logical units; it is translated by the item's own x/y
-    /// (`ao.Origin`) so it spans this node's local rect.
+    /// Draws the area outlines over the sprite: each polygon gets a
+    /// translucent rgba body fill (its own body color) plus a solid outline
+    /// line of its own color/thickness. The stamped polygons are in view-local
+    /// logical units; each is translated by the item's own x/y (`ao.Origin`)
+    /// so it spans this node's local rect.
     void DrawAreaOutline(AreaOutlineSpec ao)
     {
-        // The stamped polygon is in view-local logical units; this item's own
-        // _Draw space is local to the node (a 7x5 box at its cell origin).
-        // Translate by the item's own x/y so the polygon spans the node rect
-        // (otherwise it lands hundreds of px away and is clipped to nothing).
-        var arr = ao.Points.Select(p => p - ao.Origin).ToArray();
-        // Body fill: a translucent version of the body (green) color.
-        var fill = new Color(ao.BodyColor.R, ao.BodyColor.G, ao.BodyColor.B, ao.BodyColor.A * 0.35f);
-        DrawColoredPolygon(arr, fill, null, null);
-        // Solid outline line (red), drawn last so it sits over the body fill.
-        for (int i = 0; i < arr.Length; i++)
+        foreach (var poly in ao.Polygons)
         {
-            DrawLine(arr[i], arr[(i + 1) % arr.Length], ao.OutlineColor, ao.Thickness, false);
+            // The stamped polygon is in view-local logical units; this item's
+            // own _Draw space is local to the node (a 7x5 box at its cell
+            // origin). Translate by the item's own x/y so the polygon spans
+            // the node rect (otherwise it lands hundreds of px away and is
+            // clipped to nothing).
+            var arr = poly.Points.Select(p => p - ao.Origin).ToArray();
+            if (arr.Length < 3) continue;
+            // Body fill: a translucent version of this polygon's body color.
+            var fill = new Color(poly.BodyColor.R, poly.BodyColor.G, poly.BodyColor.B, poly.BodyColor.A * 0.35f);
+            DrawColoredPolygon(arr, fill, null, null);
+            // Solid outline line, drawn after the fill so it sits over it.
+            for (int i = 0; i < arr.Length; i++)
+            {
+                DrawLine(arr[i], arr[(i + 1) % arr.Length], poly.OutlineColor, poly.Thickness, false);
+            }
         }
     }
 
@@ -184,9 +197,12 @@ public partial class UiWindow
         QueueRedraw();
     }
 
-    /// options.areaOutline: { points: [[x, y], ...], color?: [r, g, b, a],
-    /// thickness? } — the entity's declared area polygon in view-local logical
-    /// units, drawn over the item sprite as a translucent body + solid outline.
+    /// options.areaOutline: { polygons: [ { points: [[x, y], ...],
+    /// color?: [r, g, b, a], bodyColor?: [r, g, b, a], thickness? }, ... ] } —
+    /// the entity's declared area polygons in view-local logical units, drawn
+    /// over the item sprite as a translucent body + solid outline each. Each
+    /// polygon carries its own color/bodyColor/thickness (defaults red/green/2
+    /// when omitted).
     void ApplyAreaOutline(JsonElement opts)
     {
         if (opts.ValueKind != JsonValueKind.Object
@@ -196,45 +212,61 @@ public partial class UiWindow
             return;
         }
         if (ao.ValueKind != JsonValueKind.Object
-            || !ao.TryGetProperty("points", out var pts)
-            || pts.ValueKind != JsonValueKind.Array)
+            || !ao.TryGetProperty("polygons", out var polys)
+            || polys.ValueKind != JsonValueKind.Array)
         {
             _areaOutline = null;
             return;
         }
         var spec = new AreaOutlineSpec();
-        foreach (var p in pts.EnumerateArray())
+        foreach (var poly in polys.EnumerateArray())
         {
-            if (p.ValueKind != JsonValueKind.Array) continue;
-            var x = 0f; var y = 0f;
-            var idx = 0;
-            foreach (var comp in p.EnumerateArray())
+            if (poly.ValueKind != JsonValueKind.Object
+                || !poly.TryGetProperty("points", out var pts)
+                || pts.ValueKind != JsonValueKind.Array)
             {
-                if (idx == 0 && comp.ValueKind == JsonValueKind.Number) x = (float)comp.GetDouble();
-                else if (idx == 1 && comp.ValueKind == JsonValueKind.Number) y = (float)comp.GetDouble();
-                idx++;
+                continue;
             }
-            spec.Points.Add(new Vector2(x, y));
+            var ap = new AreaPoly();
+            foreach (var p in pts.EnumerateArray())
+            {
+                if (p.ValueKind != JsonValueKind.Array) continue;
+                var x = 0f; var y = 0f;
+                var idx = 0;
+                foreach (var comp in p.EnumerateArray())
+                {
+                    if (idx == 0 && comp.ValueKind == JsonValueKind.Number) x = (float)comp.GetDouble();
+                    else if (idx == 1 && comp.ValueKind == JsonValueKind.Number) y = (float)comp.GetDouble();
+                    idx++;
+                }
+                ap.Points.Add(new Vector2(x, y));
+            }
+            if (ap.Points.Count < 3)
+            {
+                continue;
+            }
+            // Per-polygon styling (defaults red/green/2 when a field is omitted).
+            if (poly.TryGetProperty("color", out var col) && col.ValueKind == JsonValueKind.Array)
+            {
+                ap.OutlineColor = ParseRgba(col, new Color(1f, 0f, 0f, 1f));
+            }
+            if (poly.TryGetProperty("bodyColor", out var bc) && bc.ValueKind == JsonValueKind.Array)
+            {
+                ap.BodyColor = ParseRgba(bc, new Color(0f, 1f, 0f, 1f));
+            }
+            if (poly.TryGetProperty("thickness", out var t) && t.ValueKind == JsonValueKind.Number)
+            {
+                ap.Thickness = (float)t.GetDouble();
+            }
+            spec.Polygons.Add(ap);
         }
-        if (spec.Points.Count < 3)
+        if (spec.Polygons.Count == 0)
         {
             _areaOutline = null;
             return;
         }
-        // The outline color (default red). `color` overrides it if provided.
-        if (ao.TryGetProperty("color", out var col) && col.ValueKind == JsonValueKind.Array)
-        {
-            spec.OutlineColor = ParseRgba(col, new Color(1f, 0f, 0f, 1f));
-        }
-        // The body fill color (default green). `bodyColor` overrides if provided.
-        if (ao.TryGetProperty("bodyColor", out var bc) && bc.ValueKind == JsonValueKind.Array)
-        {
-            spec.BodyColor = ParseRgba(bc, new Color(0f, 1f, 0f, 1f));
-        }
-        if (ao.TryGetProperty("thickness", out var t) && t.ValueKind == JsonValueKind.Number)
-            spec.Thickness = (float)t.GetDouble();
         // The item's view-local origin (the x/y stamp): used to translate the
-        // view-local polygon into this node's local _Draw space.
+        // view-local polygons into this node's local _Draw space.
         var ox = TryNum(opts, "x", out var px) ? px : 0f;
         var oy = TryNum(opts, "y", out var py) ? py : 0f;
         spec.Origin = new Vector2(ox, oy);

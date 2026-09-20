@@ -151,7 +151,7 @@ public static class UiSlab
         if (o.AreaPoints == UiAbi.NoStr) return null;
         var pts = Str(arena, o.AreaPoints);
         if (string.IsNullOrEmpty(pts)) return null;
-        var sb = new StringBuilder("{\"points\":");
+        var sb = new StringBuilder("{\"polygons\":");
         sb.Append(pts);
         // Emit `color` only when the caller actually set one (all-zero rgb means
         // "absent"); otherwise the consumer falls back to its default outline color.

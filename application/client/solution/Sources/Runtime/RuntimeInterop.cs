@@ -387,19 +387,26 @@ public static class RuntimeInterop
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr runtime_get_entities_inside_area(
-        [MarshalAs(UnmanagedType.LPStr)] string entityId);
+        [MarshalAs(UnmanagedType.LPStr)] string entityId,
+        [MarshalAs(UnmanagedType.LPStr)] string areaId);
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern void runtime_free_inside_area(IntPtr ptr);
 
-    /// The ids of the entities inside the named entity's area (id ascending,
-    /// self excluded, deduped across containers). An entity with no area — or
-    /// in no container — yields an empty array.
-    public static string[] GetEntitiesInsideArea(string? entityId)
+    /// The ids of the entities inside one *named* area of the entity (id
+    /// ascending, self excluded, deduped across containers). The area name is
+    /// required: it is resolved first, then the containment/overlap test runs.
+    /// An entity with no such area — or in no container — yields an empty array.
+    public static string[] GetEntitiesInsideArea(string? entityId, string? areaId)
     {
-        if (entityId == null) return Array.Empty<string>();
-        var ptr = runtime_get_entities_inside_area(entityId);
+        if (entityId == null || areaId == null) return Array.Empty<string>();
+        var ptr = runtime_get_entities_inside_area(entityId, areaId);
         if (ptr == IntPtr.Zero) return Array.Empty<string>();
+        return ReadInsideArea(ptr);
+    }
+
+    private static string[] ReadInsideArea(IntPtr ptr)
+    {
         try
         {
             var json = Marshal.PtrToStringAnsi(ptr) ?? "[]";

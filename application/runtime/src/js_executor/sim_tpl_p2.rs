@@ -31,8 +31,9 @@ const SIM_TPL_P2: &str = r#"
                   }
                 } catch(e) {} }}; cb2(nameObj);
               }}; }, ifPresent: function(cb3) { cb3(wrapper); },
-              getEntitiesInsideArea: function() {
-                var ids = (globalThis.__insideArea && globalThis.__insideArea[foundId]) || [];
+              getEntitiesInsideArea: function(areaName) {
+                var areaMap = (globalThis.__insideArea && globalThis.__insideArea[foundId]) || {};
+                var ids = areaMap[areaName] || [];
                 return {
                   forEach: function(cb) {
                     for (var i = 0; i < ids.length; i++) {

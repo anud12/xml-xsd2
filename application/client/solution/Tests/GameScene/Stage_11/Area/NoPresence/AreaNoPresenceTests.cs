@@ -17,8 +17,8 @@ public class AreaNoPresenceTests : Steps
             .ProcessArchive();
 
         // npc-in has no declared area, so it has no presence: nothing is
-        // "inside" it.
-        var inside = RuntimeInterop.GetEntitiesInsideArea("npc-in");
+        // "inside" it, even when an area name is supplied.
+        var inside = RuntimeInterop.GetEntitiesInsideArea("npc-in", "floor");
         Assertions.AssertThat(inside.Length).IsEqual(0);
     }
 }

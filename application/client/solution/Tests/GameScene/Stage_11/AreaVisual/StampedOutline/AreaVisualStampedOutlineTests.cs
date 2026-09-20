@@ -56,25 +56,33 @@ public class AreaVisualStampedOutlineTests : Steps
             Assertions.AssertThat(crateCorners.Contains(c)).IsTrue();
     }
 
-    // Reads the stamped options.areaOutline.points from a node's re-serialized
-    // options JSON and returns the view-local corner set as "x,y" strings
-    // (rounded to whole units; the stamp uses exact integer view positions).
+    // Reads the stamped options.areaOutline.polygons from a node's re-serialized
+    // options JSON and returns the view-local corner set of the first polygon
+    // as "x,y" strings (rounded to whole units; the stamp uses exact integer
+    // view positions).
     static HashSet<string>? OutlineCorners(string optionsJson)
     {
         using var doc = JsonDocument.Parse(optionsJson);
         if (!doc.RootElement.TryGetProperty("areaOutline", out var ao)
             || ao.ValueKind != JsonValueKind.Object
-            || !ao.TryGetProperty("points", out var pts)
-            || pts.ValueKind != JsonValueKind.Array)
+            || !ao.TryGetProperty("polygons", out var polys)
+            || polys.ValueKind != JsonValueKind.Array)
             return null;
         var set = new HashSet<string>();
-        foreach (var p in pts.EnumerateArray())
+        foreach (var poly in polys.EnumerateArray())
         {
-            var a = p.EnumerateArray().ToArray();
-            if (a.Length < 2) continue;
-            var x = Math.Round(a[0].GetDouble(), 3);
-            var y = Math.Round(a[1].GetDouble(), 3);
-            set.Add($"{x},{y}");
+            if (poly.ValueKind != JsonValueKind.Object
+                || !poly.TryGetProperty("points", out var pts)
+                || pts.ValueKind != JsonValueKind.Array)
+                continue;
+            foreach (var p in pts.EnumerateArray())
+            {
+                var a = p.EnumerateArray().ToArray();
+                if (a.Length < 2) continue;
+                var x = Math.Round(a[0].GetDouble(), 3);
+                var y = Math.Round(a[1].GetDouble(), 3);
+                set.Add($"{x},{y}");
+            }
         }
         return set;
     }
