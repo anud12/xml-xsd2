@@ -3,8 +3,6 @@ using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
 using NewGameProject.Runtime;
 
-using Vector2 = Godot.Vector2;
-
 public partial class Game : Node {
     public static string? ARCHIVE_DIR;
     public static bool RUN_RUNTIME_LOOP = true;
@@ -34,22 +32,8 @@ public partial class Game : Node {
         // UI layers: coreUI (hardcoded UI: settings, actions buttons) is the
         // base layer; moduleUI (the JS-module UI painted by RootNode) sits on
         // top of it, above the play area.
-        var uiLayers = new Control { Name = "uiLayers" };
-        uiLayers.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        uiLayers.MouseFilter = Control.MouseFilterEnum.Ignore;
-        AddChild(uiLayers);
-
-        var moduleUI = new Control { Name = "moduleUI" };
-        moduleUI.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        moduleUI.MouseFilter = Control.MouseFilterEnum.Ignore;
-        moduleUI.ZIndex = 2;
-        uiLayers.AddChild(moduleUI);
-
-        var coreUI = new Control { Name = "coreUI" };
-        coreUI.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        coreUI.MouseFilter = Control.MouseFilterEnum.Ignore;
-        coreUI.ZIndex = 1;
-        uiLayers.AddChild(coreUI);
+        var moduleUI = GetNode<Control>("uiLayers/moduleUI");
+        var coreUI = GetNode<Control>("uiLayers/coreUI");
         if (!TEST_MODE) {
             // Remove all existing children (cleanup from previous runs)
             while (moduleUI.GetChildCount() > 0) {
@@ -65,17 +49,8 @@ public partial class Game : Node {
         }
 
         // Settings button is available in both game and test modes.
-        var settingsButton = new Button { Text = "Settings", Name = "SettingsButton" };
-        settingsButton.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-        settingsButton.Position = new Vector2(8, 8);
-        settingsButton.Pressed += OnSettingsButton;
-        coreUI.AddChild(settingsButton);
-
-        var actionsButton = new Button { Text = "Actions", Name = "ActionsButton" };
-        actionsButton.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-        actionsButton.Position = new Vector2(110, 8);
-        actionsButton.Pressed += ToggleActionsWindow;
-        coreUI.AddChild(actionsButton);
+        GetNode<Button>("uiLayers/coreUI/SettingsButton").Pressed += OnSettingsButton;
+        GetNode<Button>("uiLayers/coreUI/ActionsButton").Pressed += ToggleActionsWindow;
 
         RuntimeInterop.emitAction("increment");
 
