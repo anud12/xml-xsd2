@@ -15,7 +15,7 @@ public partial class TestClass : Steps
     {
         await AttachUiScene();
         var scene = runner.Scene();
-        var settingsButton = scene.GetNodeOrNull<Button>("SettingsButton");
+        var settingsButton = scene.GetNodeOrNull<Button>("uiLayers/coreUI/SettingsButton");
         Assertions.AssertThat(settingsButton).IsNotNull();
         if (settingsButton is null) return;
 
@@ -31,7 +31,7 @@ public partial class TestClass : Steps
     {
         await AttachUiScene();
         var scene = runner.Scene();
-        var settingsButton = scene.GetNodeOrNull<Button>("SettingsButton");
+        var settingsButton = scene.GetNodeOrNull<Button>("uiLayers/coreUI/SettingsButton");
         if (settingsButton is null)
         {
             Assertions.AssertThat(true).OverrideFailureMessage("SettingsButton not found in game scene").IsFalse();

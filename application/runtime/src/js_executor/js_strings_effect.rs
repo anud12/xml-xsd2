@@ -1,20 +1,33 @@
 use rquickjs::Context;
 
 const PREPARE_JS: &str = r#"(function(){
+    globalThis.__dbg = { step: 'start' };
     if (globalThis.__foundEffect &&
         typeof globalThis.__foundEffect.prepare === 'function') {
+        globalThis.__dbg.step = 'found-prepare';
         try { globalThis.__prepared =
             globalThis.__foundEffect.prepare(globalThis.__context);
-        } catch(e) {}
+        globalThis.__dbg.step = 'prepare-ok';
+        } catch(e) { globalThis.__dbg.err = String(e); }
+    } else {
+        globalThis.__dbg.step = 'no-prepare';
     }
 })()"#;
 
 const APPLY_JS: &str = r#"(function(){
+    globalThis.__dbg = globalThis.__dbg || { step: 'start' };
+    globalThis.__dbg.applyStep = 'start';
     if (globalThis.__foundEffect &&
         typeof globalThis.__foundEffect.apply === 'function') {
-        try { globalThis.__foundEffect.apply(
-            globalThis.__context, globalThis.__prepared);
-        } catch(e) {}
+        globalThis.__dbg.applyStep = 'found-apply';
+        try {
+            globalThis.__dbg.applyStep = 'calling';
+            globalThis.__foundEffect.apply(
+                globalThis.__context, globalThis.__prepared);
+            globalThis.__dbg.applyStep = 'apply-ok';
+        } catch(e) { globalThis.__dbg.applyErr = String(e); }
+    } else {
+        globalThis.__dbg.applyStep = 'no-apply';
     }
 })()"#;
 

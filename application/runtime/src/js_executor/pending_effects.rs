@@ -47,7 +47,8 @@ fn run_pending_effects_in_sim(
     sync_entity_data(ctx);
 
     for effect_name in effects.iter() {
-        if !lookup_effect(ctx, effect_name) { continue; }
+        let found = lookup_effect(ctx, effect_name);
+        if !found { continue; }
 
         build_effect_context_pending(ctx);
         call_effect_prepare(ctx);

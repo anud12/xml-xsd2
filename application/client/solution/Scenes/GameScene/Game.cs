@@ -31,18 +31,37 @@ public partial class Game : Node {
 
         _ready = true;
 
+        // UI layers: coreUI (hardcoded UI: settings, actions buttons) is the
+        // base layer; moduleUI (the JS-module UI painted by RootNode) sits on
+        // top of it, above the play area.
+        var uiLayers = new Control { Name = "uiLayers" };
+        uiLayers.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        uiLayers.MouseFilter = Control.MouseFilterEnum.Ignore;
+        AddChild(uiLayers);
+
+        var moduleUI = new Control { Name = "moduleUI" };
+        moduleUI.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        moduleUI.MouseFilter = Control.MouseFilterEnum.Ignore;
+        moduleUI.ZIndex = 2;
+        uiLayers.AddChild(moduleUI);
+
+        var coreUI = new Control { Name = "coreUI" };
+        coreUI.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        coreUI.MouseFilter = Control.MouseFilterEnum.Ignore;
+        coreUI.ZIndex = 1;
+        uiLayers.AddChild(coreUI);
         if (!TEST_MODE) {
             // Remove all existing children (cleanup from previous runs)
-            while (GetChildCount() > 0) {
-                var child = GetChild(0);
-                RemoveChild(child);
+            while (moduleUI.GetChildCount() > 0) {
+                var child = moduleUI.GetChild(0);
+                moduleUI.RemoveChild(child);
                 child.QueueFree();
             }
 
             // Create fresh RootNode with panels from current archive state
             var root = new RootNode();
             root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            AddChild(root);
+            moduleUI.AddChild(root);
         }
 
         // Settings button is available in both game and test modes.
@@ -50,13 +69,13 @@ public partial class Game : Node {
         settingsButton.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         settingsButton.Position = new Vector2(8, 8);
         settingsButton.Pressed += OnSettingsButton;
-        AddChild(settingsButton);
+        coreUI.AddChild(settingsButton);
 
         var actionsButton = new Button { Text = "Actions", Name = "ActionsButton" };
         actionsButton.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         actionsButton.Position = new Vector2(110, 8);
         actionsButton.Pressed += ToggleActionsWindow;
-        AddChild(actionsButton);
+        coreUI.AddChild(actionsButton);
 
         RuntimeInterop.emitAction("increment");
 
@@ -79,6 +98,7 @@ public partial class Game : Node {
                 _runtimeRunning = false;
             }).Start();
         }
+
     }
 
     void OnSettingsButton() {
@@ -92,7 +112,7 @@ public partial class Game : Node {
             return;
         }
         _actionsWindow = new ActionsWindow();
-        AddChild(_actionsWindow);
+        GetNode<Control>("uiLayers/coreUI").AddChild(_actionsWindow);
     }
 
     string CreateArchive(string dir) {

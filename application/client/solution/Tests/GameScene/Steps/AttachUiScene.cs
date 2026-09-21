@@ -28,8 +28,13 @@ public partial class Steps
     public async Task<AssertScene> AttachUiScene()
     {
         var scene = await LoadTestScene();
+        var moduleUI = new Control { Name = "moduleUI" };
+        moduleUI.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        moduleUI.MouseFilter = Control.MouseFilterEnum.Ignore;
+        moduleUI.ZIndex = 2;
+        scene.AddChild(moduleUI);
         var root = new RootNode { Name = "root" };
-        scene.AddChild(root);
+        moduleUI.AddChild(root);
         // Establish a deterministic initial mouse position so hover tracking
         // starts from a known, off-window state. RootNode.SimulatedMouse is
         // static and can leak between tests when a prior test fails before
