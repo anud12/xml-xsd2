@@ -6,7 +6,8 @@ export default (hostApi) => {
 
   // An L-shaped sector occupying (0,0),(1,0),(0,1). Its (1,0) arm opens east
   // toward the box sector's west edge.
-  hostApi.runtime.setContainer(string.of("room-l"), {
+  hostApi.runtime.setContainer({
+    id: string.of("room-l"),
     entities: [],
     sector: {
       grid: string.of("cave"),
@@ -19,7 +20,8 @@ export default (hostApi) => {
   });
 
   // A 1x1 sector at (2,0), directly east of the L's (1,0) arm.
-  hostApi.runtime.setContainer(string.of("room-b"), {
+  hostApi.runtime.setContainer({
+    id: string.of("room-b"),
     entities: [],
     sector: {
       grid: string.of("cave"),
@@ -33,11 +35,11 @@ export default (hostApi) => {
 
   // Solid-color textures for the view background and the cells. Portals are
   // drawn by the engine as headless arrows (a solid shaft), not by the module.
-  hostApi.runtime.registerAnimation(string.of("viewbg"), {
+  hostApi.runtime.setAnimation(string.of("viewbg"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("viewbg.png") }],
     duration: number.of(1),
   });
-  hostApi.runtime.registerAnimation(string.of("cell"), {
+  hostApi.runtime.setAnimation(string.of("cell"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("cell.png") }],
     duration: number.of(1),
   });

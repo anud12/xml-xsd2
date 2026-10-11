@@ -38,105 +38,95 @@ pub(super) fn host_api_script_create_entity()
 pub(super) fn host_api_script_set_entity()
     -> &'static str
 {
-    r#"setEntity(id, data) {
+    r#"setEntity(arg) {
         globalThis.__entityData =
             globalThis.__entityData || {};
-        if (typeof id === 'string' && data
-            && typeof data === 'object') {
-            globalThis.__entityData[id] = data;
-            if (data.behavior !== undefined) {
-                var b = data.behavior;
-                var bVal = typeof b === 'object' ? b : { name: b };
-                globalThis.__behaviors =
-                    globalThis.__behaviors || {};
-                globalThis.__behaviors[id] = bVal;
-                globalThis.__logs = globalThis.__logs || [];
-                globalThis.__logs.push('behavior attached: ' + id + ' -> ' + bVal.name);
-            }
+        if (!arg || typeof arg !== 'object') return;
+        var idRaw = arg.id;
+        var id = (idRaw && typeof idRaw === 'object')
+            ? idRaw.value : idRaw;
+        if (typeof id !== 'string' || id === '') return;
+        globalThis.__entityData[id] = arg;
+        if (arg.behavior !== undefined) {
+            var b = arg.behavior;
+            var bVal = typeof b === 'object' ? b : { name: b };
+            globalThis.__behaviors =
+                globalThis.__behaviors || {};
+            globalThis.__behaviors[id] = bVal;
+            globalThis.__logs = globalThis.__logs || [];
+            globalThis.__logs.push('behavior attached: ' + id + ' -> ' + (bVal ? bVal.name : ''));
         }
-    },"#
-}
-
-pub(super) fn host_api_script_register_entity()
-    -> &'static str
-{
-    r#"registerEntity(obj) {
-        globalThis.__entityData =
-            globalThis.__entityData || {};
-        try {
-            if (obj && typeof obj === 'object') {
-                var id = obj.id || String(obj);
-                globalThis.__entityData[id] = obj;
-            }
-        } catch(e) { /* ignore */ }
     },"#
 }
 
 pub(super) fn host_api_script_set_container()
     -> &'static str
 {
-    r#"setContainer(id, data) {
+    r#"setContainer(arg) {
         try {
-            var resolvedId = typeof id === 'object' ? id.value : id;
+            if (!arg || typeof arg !== 'object') return;
+            var idRaw = arg.id;
+            var resolvedId = (idRaw && typeof idRaw === 'object')
+                ? idRaw.value : idRaw;
             globalThis.__containerData =
                 globalThis.__containerData || {};
-            if (typeof resolvedId === 'string' && data
-                && typeof data === 'object') {
-                data.id = resolvedId;
-                globalThis.__containerData[resolvedId] = data;
-                var out = {id: resolvedId};
-                if (data.entities) {
-                    out.entities = data.entities.map(function(e) { return String(e); });
-                }
-                if (data.textMap) out.textMap = data.textMap;
-                if (data.numberMap) out.numberMap = data.numberMap;
-                if (data.getX) out.getX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getX) : {};
-                if (data.getY) out.getY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getY) : {};
-                if (data.getSpanX) out.getSpanX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanX) : {};
-                if (data.getSpanY) out.getSpanY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanY) : {};
-                if (data.sizeX) out.sizeX = data.sizeX;
-                if (data.sizeY) out.sizeY = data.sizeY;
-                if (data.alignment !== undefined) out.alignment = data.alignment;
-                if (globalThis.__posKey) {
-                    if (data.getX) out.xKey = globalThis.__posKey(data.getX, "x");
-                    if (data.getY) out.yKey = globalThis.__posKey(data.getY, "y");
-                }
-                var serialized = JSON.stringify(out);
-                globalThis.__registeredContainers =
-                    globalThis.__registeredContainers || [];
+            if (typeof resolvedId !== 'string' || resolvedId === '') return;
+            arg.id = resolvedId;
+            globalThis.__containerData[resolvedId] = arg;
+            var data = arg;
+            var out = {id: resolvedId};
+            if (data.entities) {
+                out.entities = data.entities.map(function(e) { return String(e); });
+            }
+            if (data.textMap) out.textMap = data.textMap;
+            if (data.numberMap) out.numberMap = data.numberMap;
+            if (data.getX) out.getX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getX) : {};
+            if (data.getY) out.getY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getY) : {};
+            if (data.getSpanX) out.getSpanX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanX) : {};
+            if (data.getSpanY) out.getSpanY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanY) : {};
+            if (data.sizeX) out.sizeX = data.sizeX;
+            if (data.sizeY) out.sizeY = data.sizeY;
+            if (data.alignment !== undefined) out.alignment = data.alignment;
+            if (globalThis.__posKey) {
+                if (data.getX) out.xKey = globalThis.__posKey(data.getX, "x");
+                if (data.getY) out.yKey = globalThis.__posKey(data.getY, "y");
+            }
+            var serialized = JSON.stringify(out);
+            globalThis.__registeredContainers =
+                globalThis.__registeredContainers || [];
+            // Upsert: replace any existing entry with the same id, else push.
+            var __found = -1;
+            for (var __i = 0; __i < globalThis.__registeredContainers.length; __i++) {
+                try {
+                    var __p = JSON.parse(globalThis.__registeredContainers[__i]);
+                    if (__p && __p.id === resolvedId) { __found = __i; break; }
+                } catch (e) { /* ignore */ }
+            }
+            if (__found >= 0) {
+                globalThis.__registeredContainers[__found] = serialized;
+            } else {
                 globalThis.__registeredContainers.push(serialized);
-                // Optional sector attachment: a polyomino footprint on a named
-                // grid. Captured verbatim (plain data) for the Rust sector
-                // layer to normalize, place, and link against neighbours.
-                if (data.sector && typeof data.sector === 'object') {
-                    globalThis.__registeredSectors =
-                        globalThis.__registeredSectors || [];
-                    globalThis.__registeredSectors.push(
-                        JSON.stringify({ id: resolvedId, sector: data.sector }));
+            }
+            // Optional sector attachment: a polyomino footprint on a named
+            // grid. Captured verbatim (plain data) for the Rust sector
+            // layer to normalize, place, and link against neighbours.
+            if (data.sector && typeof data.sector === 'object') {
+                globalThis.__registeredSectors =
+                    globalThis.__registeredSectors || [];
+                var __secFound = -1;
+                for (var __s = 0; __s < globalThis.__registeredSectors.length; __s++) {
+                    try {
+                        var __sp = JSON.parse(globalThis.__registeredSectors[__s]);
+                        if (__sp && __sp.id === resolvedId) { __secFound = __s; break; }
+                    } catch (e) { /* ignore */ }
+                }
+                var __sec = JSON.stringify({ id: resolvedId, sector: data.sector });
+                if (__secFound >= 0) {
+                    globalThis.__registeredSectors[__secFound] = __sec;
+                } else {
+                    globalThis.__registeredSectors.push(__sec);
                 }
             }
         } catch(e) { /* ignore */ }
-    },"#
-}
-
-pub(super) fn host_api_script_register_container()
-    -> &'static str
-{
-    r#"registerContainer(c) {
-        try {
-            var toPush = c;
-            if (c && typeof c === 'object') {
-                toPush = JSON.stringify(
-                    globalThis.serializeContainer(c));
-            }
-            globalThis.__registeredContainers =
-                globalThis.__registeredContainers || [];
-            globalThis.__registeredContainers.push(toPush);
-            globalThis.__logs = globalThis.__logs || [];
-            globalThis.__logs.push('container registered: ' + (c.id || c));
-        } catch(e) {
-            globalThis.__logs = globalThis.__logs || [];
-            globalThis.__logs.push('ERROR registerContainer: ' + e);
-        }
     },"#
 }

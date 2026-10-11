@@ -3,12 +3,13 @@ export default (hostApi) => {
   
   const {string, number} = hostApi.runtime;
   
-  hostApi.runtime.registerAnimation(string.of("marker"), {
+  hostApi.runtime.setAnimation(string.of("marker"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("marker.png") }],
     duration: number.of(1),
   });
 
-  hostApi.runtime.setEntity(string.of("node-1"), {
+  hostApi.runtime.setEntity({
+    id: string.of("node-1"),
     numberMap: {
       column: number.of(0),
       row: number.of(0),
@@ -17,7 +18,8 @@ export default (hostApi) => {
 
   // A 10x5 container: the 700x500 plane is split into 10 columns of 70 and 5
   // rows of 100, so each container cell maps to exactly one grid cell.
-  hostApi.runtime.setContainer(string.of("grid-1"), {
+  hostApi.runtime.setContainer({
+    id: string.of("grid-1"),
     entities: [string.of("node-1")],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
@@ -37,7 +39,7 @@ export default (hostApi) => {
   // A speed-1 move toward (3,2): advances one cell per tick along a diagonal.
   // The shorter axis (y) settles at 2 and holds; the move keeps going until x
   // also reaches its target — the destination (3,2) — at which point it stops.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("move-to-cursor"),
     apply: (ctx) => {
       
@@ -71,7 +73,7 @@ export default (hostApi) => {
     hostApi.ui.field("row-value", { entity: "node-1", map: "number", name: "row", fallback: "0" }),
   ]);
 
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("bar-loop"), {
+  hostApi.runtime.setAnimation(hostApi.runtime.string.of("bar-loop"), {
     frames: [
       {sprite: hostApi.ui.getSpritePNG("frame_2.png")},
       {sprite: hostApi.ui.getSpritePNG("frame_3.png")},
@@ -82,7 +84,7 @@ export default (hostApi) => {
     loop: true,
   });
   
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+  hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
       frames: [
         {sprite: hostApi.ui.getSpritePNG("frame_1.png")},
       ],
@@ -125,7 +127,8 @@ export default (hostApi) => {
   // };
   // const key = string.of("key");
   //
-  // hostApi.runtime.setEntity(string.of("entity_id"), {
+  // hostApi.runtime.setEntity({
+  //   id: string.of("entity_id"),
   //   numberMap: {
   //     "key": number.of(0)
   //   },
@@ -134,7 +137,7 @@ export default (hostApi) => {
   //   }
   // })
   //
-  // hostApi.runtime.registerEffect({
+  // hostApi.runtime.setEffect({
   //   name: "key-modify-if-par",
   //   prepare: (context, input) => {
   //     const output = context.getEntityBy(filter).get(number.of(0)).flatMap(v => {
@@ -154,7 +157,7 @@ export default (hostApi) => {
   //   }
   // })
   //
-  // hostApi.runtime.registerEffect({
+  // hostApi.runtime.setEffect({
   //   name: "repeat",
   //   reoccurAfterMs: (context, executionCount, input, output) => {
   //     return context.getEntityBy(filter)
@@ -176,13 +179,13 @@ export default (hostApi) => {
   //
   // hostApi.runtime.emitEvent("repeat", {});
   //
-  // hostApi.runtime.registerAnimation(hostApi.runtime.string.of("hover"), {
+  // hostApi.runtime.setAnimation(hostApi.runtime.string.of("hover"), {
   //   frames: [
   //     {sprite: hostApi.ui.getSpritePNG("hover.png")},
   //   ],
   //   duration: hostApi.runtime.number.of(1),
   // });
-  // hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+  // hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
   //   frames: [
   //     {sprite: hostApi.ui.getSpritePNG("frame_1.png")},
   //     {sprite: hostApi.ui.getSpritePNG("frame_2.png")},
@@ -193,7 +196,7 @@ export default (hostApi) => {
   //   duration: hostApi.runtime.number.of(5),
   //   loop: true,
   // });
-  // hostApi.runtime.registerAnimation(hostApi.runtime.string.of("textureSlow"), {
+  // hostApi.runtime.setAnimation(hostApi.runtime.string.of("textureSlow"), {
   //   frames: [
   //     {sprite: hostApi.ui.getSpritePNG("frame_1.png")},
   //     {sprite: hostApi.ui.getSpritePNG("frame_2.png")},
@@ -205,7 +208,7 @@ export default (hostApi) => {
   //   loop: true,
   // });
   //
-  // hostApi.runtime.registerContainer({
+  // hostApi.runtime.setContainer({
   //   id: "grid-1",
   //   entities: [
   //     hostApi.runtime.string.of("node-1"),
@@ -225,7 +228,7 @@ export default (hostApi) => {
   //   },
   // });
   //
-  // hostApi.runtime.registerAction({
+  // hostApi.runtime.setAction({
   //   name: string.of("teleport-to-cursor"),
   //   apply: (ctx) => {
   //     ctx.teleportTo({

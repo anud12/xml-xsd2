@@ -1,7 +1,7 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "worker-1",
     numberMap: {
       column: number.of(0),
@@ -11,19 +11,19 @@ export default (hostApi) => {
 
   // Each operation is an effect that logs a distinct line, so the test can
   // tell which operations actually ran and which were dropped.
-  hostApi.runtime.registerEffect({
+  hostApi.runtime.setEffect({
     name: "task-start",
     apply: () => { hostApi.runtime.log("___interrupt task start fired___"); },
   });
-  hostApi.runtime.registerEffect({
+  hostApi.runtime.setEffect({
     name: "task-step-one",
     apply: () => { hostApi.runtime.log("___interrupt task step one fired___"); },
   });
-  hostApi.runtime.registerEffect({
+  hostApi.runtime.setEffect({
     name: "task-step-two",
     apply: () => { hostApi.runtime.log("___interrupt task step two fired___"); },
   });
-  hostApi.runtime.registerEffect({
+  hostApi.runtime.setEffect({
     name: "instant-step",
     apply: () => { hostApi.runtime.log("___interrupt instant fired___"); },
   });
@@ -31,7 +31,7 @@ export default (hostApi) => {
   // Main action: one operation before it allows interruption, then two more
   // after a wait with a wait between them. While parked it stays interruptible,
   // so a repeated submit drops the parked plan instead of queueing behind it.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("begin-task"),
     apply: (ctx) => {
       ctx.emitEffect("task-start", {});
@@ -45,7 +45,7 @@ export default (hostApi) => {
   });
 
   // Instant action: a single operation, no wait. It replaces any parked plan.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("instant-task"),
     apply: (ctx) => {
       ctx.emitEffect("instant-step", {});

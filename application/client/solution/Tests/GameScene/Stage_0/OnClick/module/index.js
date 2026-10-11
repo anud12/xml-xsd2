@@ -1,13 +1,13 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {string} = hostApi.runtime;
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("stageAction"),
     apply: () => {
         hostApi.runtime.log("___From module stageAction fired line___")
     }
   });
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("childAction"),
     apply: () => {
         hostApi.runtime.log("___From module childAction fired line___")

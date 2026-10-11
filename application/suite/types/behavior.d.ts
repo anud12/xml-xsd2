@@ -92,7 +92,7 @@ export type BehaviorReference = {
 /**
  * API for creating behavior graphs and attaching them to entities.
  *
- * Exposed as `hostApi.runtime.registerBehavior` inside module scripts.
+  * Exposed as `hostApi.runtime.setBehavior` inside module scripts.
  * Attach to entities via the `behavior` field in `setEntity` arguments.
  */
 export type BehaviorApi = {
@@ -134,5 +134,5 @@ export type BehaviorApi = {
    *   the behavior graph root (`priority` or `utility`).
    * @returns BehaviorReference for the `behavior` field in `setEntity`.
    */
-  registerBehavior: (definition: { name: StringExpression } & BehaviorNode) => BehaviorReference;
+   setBehavior: (definition: { name: StringExpression } & BehaviorNode) => BehaviorReference;
 };

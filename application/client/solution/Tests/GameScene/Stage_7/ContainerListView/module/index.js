@@ -2,24 +2,28 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.runtime.setEntity(string.of("item-a"), {
+  hostApi.runtime.setEntity({
+    id: string.of("item-a"),
     numberMap: { value: number.of(1) },
   });
-  hostApi.runtime.setEntity(string.of("item-b"), {
+  hostApi.runtime.setEntity({
+    id: string.of("item-b"),
     numberMap: { value: number.of(2) },
   });
-  hostApi.runtime.setEntity(string.of("item-c"), {
+  hostApi.runtime.setEntity({
+    id: string.of("item-c"),
     numberMap: { value: number.of(3) },
   });
-  hostApi.runtime.setContainer(string.of("items-container"), {
+  hostApi.runtime.setContainer({
+    id: string.of("items-container"),
     entities: [string.of("item-a"), string.of("item-b"), string.of("item-c")],
   });
 
-  hostApi.runtime.registerAnimation(string.of("texture"), {
+  hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("texture.png") }],
     duration: number.of(1),
   });
-  hostApi.runtime.registerAnimation(string.of("texture2"), {
+  hostApi.runtime.setAnimation(string.of("texture2"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("texture2.png") }],
     duration: number.of(1),
   });

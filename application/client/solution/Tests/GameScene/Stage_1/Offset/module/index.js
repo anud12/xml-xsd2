@@ -1,6 +1,6 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+  hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],

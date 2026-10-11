@@ -31,15 +31,13 @@ var hostApi={
     string:{of:function(s){return s;}},
     number:{of:function(n){return n;}},
     emitEvent:h.emitEvent,
-    registerEvent:h.registerEvent,
-    registerAction:h.registerAction,
-    registerEffect:h.registerEffect,
-    registerContainer:h.registerContainer,
-    registerEntity:h.registerEntity,
+    setEvent:h.setEvent,
+    setAction:h.setAction,
+    setEffect:h.setEffect,
     setEntity:h.setEntity,
     setContainer:h.setContainer,
-    registerBehavior:h.registerBehavior,
-    registerAnimation:function(name,args){
+    setBehavior:h.setBehavior,
+    setAnimation:function(name,args){
       var resolvedName=typeof name==='object'?name.value:name;
       if(typeof resolvedName==='string'){
         __registeredAnimations[resolvedName]=args;
@@ -76,18 +74,21 @@ var hostApi={
 // Record behavior attachments (setEntity with a behavior field) so the
 // per-tick behavior machine can drive each entity's step script.
 var __origSetEntity=hostApi.runtime.setEntity;
-hostApi.runtime.setEntity=function(id,data){
-  var resolvedId=typeof id==='object'?id.value:id;
-  if(data&&typeof data==='object'&&data.behavior!==undefined){
-    var b=data.behavior;
-    var bName=typeof b==='object'?b.name:b;
-    var bVal=typeof b==='object'?b:(b!==undefined?{name:b}:undefined);
-    globalThis.__behaviors=globalThis.__behaviors||{};
-    globalThis.__behaviors[resolvedId]=bVal;
-    globalThis.__logs=globalThis.__logs||[];
-    globalThis.__logs.push('behavior attached: '+resolvedId+' -> '+(typeof bName==='object'?bName.name:bName));
+hostApi.runtime.setEntity=function(arg){
+  if(arg&&typeof arg==='object'){
+    var idRaw=arg.id;
+    var resolvedId=(idRaw&&typeof idRaw==='object')?idRaw.value:idRaw;
+    if(arg.behavior!==undefined){
+      var b=arg.behavior;
+      var bName=typeof b==='object'?b.name:b;
+      var bVal=typeof b==='object'?b:(b!==undefined?{name:b}:undefined);
+      globalThis.__behaviors=globalThis.__behaviors||{};
+      globalThis.__behaviors[resolvedId]=bVal;
+      globalThis.__logs=globalThis.__logs||[];
+      globalThis.__logs.push('behavior attached: '+resolvedId+' -> '+(typeof bName==='object'?bName.name:bName));
+    }
   }
-  if(__origSetEntity) return __origSetEntity(id,data);
+  if(__origSetEntity) return __origSetEntity(arg);
   return undefined;
 };
 globalThis.hostApi=hostApi;

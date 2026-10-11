@@ -5,7 +5,8 @@ export default (hostApi) => {
   hostApi.world.sectorGrid(string.of("cave"));
 
   // Sector A: a single 1x1 cell at [0,0]. It opens on its RIGHT (east) edge.
-  hostApi.runtime.setContainer(string.of("room-a"), {
+  hostApi.runtime.setContainer({
+    id: string.of("room-a"),
     entities: [],
     sector: {
       grid: string.of("cave"),
@@ -21,7 +22,8 @@ export default (hostApi) => {
   // two cells down), with blank squares between. It opens on its LEFT (west) edge.
   // A's east opening and B's west opening are NOT facing (they sit on different
   // rows), so with no explicit link both are unlinked dead-ends and no portal forms.
-  hostApi.runtime.setContainer(string.of("room-b"), {
+  hostApi.runtime.setContainer({
+    id: string.of("room-b"),
     entities: [],
     sector: {
       grid: string.of("cave"),
@@ -34,7 +36,7 @@ export default (hostApi) => {
   });
 
   // The action the test fires: it delegates to an effect.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("link-ab"),
     apply: (ctx) => { ctx.emitEffect("do-link", {}); },
   });
@@ -42,7 +44,7 @@ export default (hostApi) => {
   // The effect: links the two diagonal openings — A's east opening (0,0) and B's
   // west opening (global (2,2)). Because they do not face each other, the engine
   // must route a Manhattan (orthogonal) corridor between them through the gaps.
-  hostApi.runtime.registerEffect({
+  hostApi.runtime.setEffect({
     name: "do-link",
     apply: () => {
       hostApi.runtime.linkOpening(
@@ -52,11 +54,11 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerAnimation(string.of("viewbg"), {
+  hostApi.runtime.setAnimation(string.of("viewbg"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("viewbg.png") }],
     duration: number.of(1),
   });
-  hostApi.runtime.registerAnimation(string.of("cell"), {
+  hostApi.runtime.setAnimation(string.of("cell"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("cell.png") }],
     duration: number.of(1),
   });

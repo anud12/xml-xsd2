@@ -2,13 +2,14 @@
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
 
-  hostApi.runtime.setEntity(string.of("entity_id"), {
+  hostApi.runtime.setEntity({
+    id: string.of("entity_id"),
     numberMap: {
       "key": number.of(0)
     }
   })
 
-  hostApi.runtime.registerEffect({
+  hostApi.runtime.setEffect({
     name:"repeat",
     reoccurAfterMs: (context, executionCount, input, output) => {
       return hostApi.runtime.maybe.of(number.of(10));
@@ -25,7 +26,7 @@ export default (hostApi) => {
 
   hostApi.runtime.emitEvent("repeat", {});
 
-  hostApi.runtime.registerAnimation(string.of("texture"), {
+  hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],

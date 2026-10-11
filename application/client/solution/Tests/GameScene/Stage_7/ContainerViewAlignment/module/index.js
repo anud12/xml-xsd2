@@ -4,16 +4,19 @@ export default (hostApi) => {
   // Each container holds one 2x2-span entity at top-left cell (2,1). The two
   // containers are identical except for the alignment flag, so the marker
   // position difference isolates the centering behavior.
-  hostApi.runtime.setEntity(string.of("node-a"), {
+  hostApi.runtime.setEntity({
+    id: string.of("node-a"),
     numberMap: { column: number.of(2), row: number.of(1), span: number.of(2) },
   });
-  hostApi.runtime.setEntity(string.of("node-b"), {
+  hostApi.runtime.setEntity({
+    id: string.of("node-b"),
     numberMap: { column: number.of(2), row: number.of(1), span: number.of(2) },
   });
 
   // grid-center declares alignment "center": the marker is centered on the
   // midpoint of its span.
-  hostApi.runtime.setContainer(string.of("grid-center"), {
+  hostApi.runtime.setContainer({
+    id: string.of("grid-center"),
     entities: [string.of("node-a")],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
@@ -26,7 +29,8 @@ export default (hostApi) => {
 
   // grid-default omits the alignment flag: the marker pins its top-left
   // corner to (x, y) (the default "top-left" behavior).
-  hostApi.runtime.setContainer(string.of("grid-default"), {
+  hostApi.runtime.setContainer({
+    id: string.of("grid-default"),
     entities: [string.of("node-b")],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),

@@ -2,13 +2,14 @@
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
 
-  hostApi.runtime.setEntity(string.of("entity_id"), {
+  hostApi.runtime.setEntity({
+    id: string.of("entity_id"),
     numberMap: {
       "numberKey": number.of(42)
     }
   })
 
-  hostApi.runtime.registerAnimation(string.of("texture"), {
+  hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],

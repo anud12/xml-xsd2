@@ -1,7 +1,7 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "node-1",
     numberMap: {
       column: number.of(2),
@@ -9,7 +9,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerContainer({
+  hostApi.runtime.setContainer({
     id: "grid-1",
     entities: [
       hostApi.runtime.string.of("node-1"),
@@ -29,7 +29,7 @@ export default (hostApi) => {
   });
 
   // The click handler forwards the cursor cell as the teleport destination.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("teleport-to-cursor"),
     apply: (ctx) => {
       ctx.teleportTo({

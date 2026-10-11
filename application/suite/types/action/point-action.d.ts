@@ -12,9 +12,9 @@ export type PointActionTarget = {
 };
 
 /**
- * Arguments for registering a point action via hostApi.registerPointAction
+ * Arguments for setting a point action via hostApi.setPointAction
  */
-export type RegisterPointActionArgs = {
+export type SetPointActionArgs = {
   name: string;
   description?: string;
   cooldownGroup?: string;
@@ -24,6 +24,6 @@ export type RegisterPointActionArgs = {
 };
 
 /**
- * Type for registerPointAction function.
+ * Type for setPointAction function.
  */
-export type RegisterPointActionFunction = (args: RegisterPointActionArgs) => void;
+export type SetPointActionFunction = (args: SetPointActionArgs) => void;

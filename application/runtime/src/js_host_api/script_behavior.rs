@@ -1,5 +1,5 @@
 pub fn host_api_script_behavior() -> &'static str {
-    r#"registerBehavior(definition) {
+    r#"setBehavior(definition) {
         if (!definition || typeof definition !== 'object') {
             throw new Error('behavior: missing definition');
         }
@@ -10,10 +10,6 @@ pub fn host_api_script_behavior() -> &'static str {
         }
         globalThis.__behaviorDefinitions =
             globalThis.__behaviorDefinitions || {};
-        if (resolvedName in globalThis.__behaviorDefinitions) {
-            throw new Error('behavior: duplicate name '
-                + resolvedName);
-        }
         function checkUtilityRule(rule, owner) {
             if (!rule || typeof rule !== 'object'
                 || typeof rule.label !== 'string') {

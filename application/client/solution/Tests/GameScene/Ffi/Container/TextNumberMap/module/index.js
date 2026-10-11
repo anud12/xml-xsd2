@@ -1,6 +1,6 @@
 export default (hostApi) => {
   const { number } = hostApi.runtime;
-  hostApi.runtime.registerContainer({
+  hostApi.runtime.setContainer({
     id: "bag-1",
     textMap: {
       label: "Main Bag",

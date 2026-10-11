@@ -17,7 +17,7 @@ pub fn host_api_script_log() -> &'static str {
 }
 
 pub fn host_api_script_animation() -> &'static str {
-    r#"registerAnimation(name, args) {
+    r#"setAnimation(name, args) {
         globalThis.__registeredAnimations =
             globalThis.__registeredAnimations || {};
         var resolvedName = typeof name === 'object' ? name.value : name;
@@ -58,16 +58,14 @@ pub fn host_api_script_rest() -> String {
         host_api_script_create_entity,
         host_api_script_set_entity,
         host_api_script_set_container,
-        host_api_script_register_entity,
-        host_api_script_register_container,
     };
     let mut parts: Vec<String> = Vec::new();
     parts.push(
-        host_api_script_register_block("registerEvent"));
+        host_api_script_register_block("setEvent"));
     parts.push(
-        host_api_script_register_block("registerAction"));
+        host_api_script_register_block("setAction"));
     parts.push(
-        host_api_script_register_block("registerEffect"));
+        host_api_script_register_block("setEffect"));
     parts.push(host_api_script_panel().to_string());
     parts.push(
         host_api_script_create_entity().to_string());
@@ -75,10 +73,6 @@ pub fn host_api_script_rest() -> String {
         host_api_script_set_entity().to_string());
     parts.push(
         host_api_script_set_container().to_string());
-    parts.push(
-        host_api_script_register_entity().to_string());
-    parts.push(
-        host_api_script_register_container().to_string());
     parts.push(host_api_script_behavior().to_string());
     parts.push(host_api_script_condition().to_string());
     parts.push(host_api_script_entity_filter().to_string());

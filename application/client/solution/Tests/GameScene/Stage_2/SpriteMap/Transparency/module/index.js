@@ -9,7 +9,7 @@ export default (hostApi) => {
     },
   ];
 
-  hostApi.runtime.registerAnimation(string.of("idle"), {
+  hostApi.runtime.setAnimation(string.of("idle"), {
     frames: [
       { sprite: hostApi.ui.spriteMapTIFF("maps/idle_frame1.tiff", layerBindings) },
     ],

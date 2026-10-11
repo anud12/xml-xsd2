@@ -1,7 +1,7 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "node-1",
     numberMap: {
       column: number.of(0),
@@ -9,7 +9,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "node-2",
     numberMap: {
       column: number.of(0),
@@ -18,7 +18,7 @@ export default (hostApi) => {
   });
 
   // node-3 starts to the east; the negative-x test walks it back to the origin.
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "node-3",
     numberMap: {
       column: number.of(5),
@@ -28,7 +28,7 @@ export default (hostApi) => {
 
   // node-4 starts in the first quadrant; the negative diagonal test walks it
   // toward the origin (negative x AND negative y).
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "node-4",
     numberMap: {
       column: number.of(5),
@@ -38,7 +38,7 @@ export default (hostApi) => {
 
   // node-5 starts at the origin; the odd-angle test walks it to (10,3) —
   // atan2(3,10) ≈ 16.7°, neither 45° nor axis-aligned.
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "node-5",
     numberMap: {
       column: number.of(0),
@@ -46,7 +46,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerContainer({
+  hostApi.runtime.setContainer({
     id: "grid-1",
     entities: [
       hostApi.runtime.string.of("node-1"),
@@ -71,7 +71,7 @@ export default (hostApi) => {
 
   // A straight-line move at speed 1: advances one cell per tick, interruptible
   // by default (no denyInterrupt).
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("march-node-1"),
     apply: (ctx) => {
       ctx.moveTo({
@@ -85,7 +85,7 @@ export default (hostApi) => {
   });
 
   // A fast move at speed 3: covers three cells per tick.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("dash-node-1"),
     apply: (ctx) => {
       ctx.moveTo({
@@ -101,7 +101,7 @@ export default (hostApi) => {
   // A high-speed diagonal move: (0,0) -> (10,10) at speed 10. Without the
   // remaining-path clamp the final tick overshoots the destination and the
   // move never lands; with it the actor stops exactly at (10,10).
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("blitz-node-1"),
     apply: (ctx) => {
       ctx.moveTo({
@@ -116,7 +116,7 @@ export default (hostApi) => {
 
   // A move whose target exceeds the container size: walks to the bound edge
   // and stops there ("try, then stop").
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("march-node-1-out-of-bounds"),
     apply: (ctx) => {
       ctx.moveTo({
@@ -130,7 +130,7 @@ export default (hostApi) => {
   });
 
   // A move in the negative-x direction: walks from (5,0) back toward (0,0).
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("march-node-3-west"),
     apply: (ctx) => {
       ctx.moveTo({
@@ -144,7 +144,7 @@ export default (hostApi) => {
   });
 
   // A diagonal move toward the origin in negative x AND negative y.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("march-node-4-to-origin"),
     apply: (ctx) => {
       ctx.moveTo({
@@ -162,7 +162,7 @@ export default (hostApi) => {
   // whole units only when their fraction has accumulated to 1 — the actor
   // walks a straight ~16.7° line, not a 45°-then-axis staircase, and lands
   // on the target exactly.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("march-node-5-odd-angle"),
     apply: (ctx) => {
       ctx.moveTo({
@@ -176,7 +176,7 @@ export default (hostApi) => {
   });
 
   // A non-interruptible move: a new action for the actor is rejected mid-move.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("hold-march-node-1"),
     apply: (ctx) => {
       ctx.denyInterrupt();
@@ -192,7 +192,7 @@ export default (hostApi) => {
 
   // An instant move (speed large enough to finish in one tick) used to verify
   // interruption mid-move of an interruptible plan.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("relocate-node-1"),
     apply: (ctx) => {
       ctx.teleportTo({

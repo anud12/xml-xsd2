@@ -10,7 +10,7 @@
 //! the C# HostApiSetup `__panelEmit` JSON shape and record each node into
 //! `globalThis.__registeredPanels`, which the extraction declaration script
 //! picks up. `getAnimation` reads `globalThis.__registeredAnimations` (the
-//! object filled by the host script's registerAnimation) instead of a
+//! object filled by the host script's setAnimation) instead of a
 //! shadowing local, so a background registered before a panel resolves.
 
 pub const SHIM_JS: &str = r#"
@@ -20,14 +20,14 @@ var __hapi_getAnimation = function (name, animationDuration) {
   if (store[resolvedName]) { return store[resolvedName]; }
   return null;
 };
-var __hapi_registerAnimation = function (name, args) {
+var __hapi_setAnimation = function (name, args) {
   globalThis.__registeredAnimations =
     globalThis.__registeredAnimations || {};
   var resolvedName = typeof name === 'object' ? name.value : name;
   if (typeof resolvedName === 'string') {
     if (!args || typeof args !== 'object' ||
         typeof args.duration !== 'number') {
-      throw new Error("registerAnimation '" + resolvedName +
+      throw new Error("setAnimation '" + resolvedName +
         "': duration is required");
     }
     globalThis.__registeredAnimations[resolvedName] = args;
@@ -233,16 +233,14 @@ if(!__hapi_runtime.temporal){
   };
 }
 if(!__hapi_runtime.emitEvent){__hapi_runtime.emitEvent=h.emitEvent;}
-if(!__hapi_runtime.registerEvent){__hapi_runtime.registerEvent=h.registerEvent;}
-if(!__hapi_runtime.registerAction){__hapi_runtime.registerAction=h.registerAction;}
-if(!__hapi_runtime.registerEffect){__hapi_runtime.registerEffect=h.registerEffect;}
-if(!__hapi_runtime.registerContainer){__hapi_runtime.registerContainer=h.registerContainer;}
-if(!__hapi_runtime.registerEntity){__hapi_runtime.registerEntity=h.registerEntity;}
+if(!__hapi_runtime.setEvent){__hapi_runtime.setEvent=h.setEvent;}
+if(!__hapi_runtime.setAction){__hapi_runtime.setAction=h.setAction;}
+if(!__hapi_runtime.setEffect){__hapi_runtime.setEffect=h.setEffect;}
 if(!__hapi_runtime.setEntity){__hapi_runtime.setEntity=h.setEntity;}
 if(!__hapi_runtime.setContainer){__hapi_runtime.setContainer=h.setContainer;}
-if(!__hapi_runtime.registerBehavior){__hapi_runtime.registerBehavior=h.registerBehavior;}
-if(!__hapi_runtime.registerAnimation){
-  __hapi_runtime.registerAnimation=__hapi_registerAnimation;
+if(!__hapi_runtime.setBehavior){__hapi_runtime.setBehavior=h.setBehavior;}
+if(!__hapi_runtime.setAnimation){
+  __hapi_runtime.setAnimation=__hapi_setAnimation;
 }
 if(!__hapi_runtime.getAnimation){
   __hapi_runtime.getAnimation=__hapi_getAnimation;

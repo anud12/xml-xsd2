@@ -1,31 +1,31 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("parentHover:enter"),
     apply: () => {
       hostApi.runtime.log("___parent hover enter fired line___");
     }
   });
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("parentHover:exit"),
     apply: () => {
       hostApi.runtime.log("___parent hover exit fired line___");
     }
   });
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("childHover:enter"),
     apply: () => {
       hostApi.runtime.log("___child hover enter fired line___");
     }
   });
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("childHover:exit"),
     apply: () => {
       hostApi.runtime.log("___child hover exit fired line___");
     }
   });
-  hostApi.runtime.registerAnimation(string.of("texture"), {
+  hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],

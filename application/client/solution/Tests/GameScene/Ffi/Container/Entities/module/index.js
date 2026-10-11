@@ -1,6 +1,6 @@
 export default (hostApi) => {
   const { string } = hostApi.runtime;
-  hostApi.runtime.registerContainer({
+  hostApi.runtime.setContainer({
     id: "bag-1",
     entities: [
       string.of("sword-1"),

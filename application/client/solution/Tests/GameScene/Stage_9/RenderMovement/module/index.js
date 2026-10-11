@@ -1,12 +1,13 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.runtime.registerAnimation(string.of("marker"), {
+  hostApi.runtime.setAnimation(string.of("marker"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("marker.png") }],
     duration: number.of(1),
   });
 
-  hostApi.runtime.setEntity(string.of("node-1"), {
+  hostApi.runtime.setEntity({
+    id: string.of("node-1"),
     numberMap: {
       column: number.of(0),
       row: number.of(0),
@@ -15,7 +16,8 @@ export default (hostApi) => {
 
   // A 10x5 container: the 700x500 plane is split into 10 columns of 70 and 5
   // rows of 100, so each container cell maps to exactly one grid cell.
-  hostApi.runtime.setContainer(string.of("grid-1"), {
+  hostApi.runtime.setContainer({
+    id: string.of("grid-1"),
     entities: [string.of("node-1")],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
@@ -34,7 +36,7 @@ export default (hostApi) => {
   // A speed-1 move toward (3,2): advances one cell per tick along a diagonal.
   // The shorter axis (y) settles at 2 and holds; the move keeps going until x
   // also reaches its target — the destination (3,2) — at which point it stops.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("march-node-1"),
     apply: (ctx) => {
       ctx.moveTo({

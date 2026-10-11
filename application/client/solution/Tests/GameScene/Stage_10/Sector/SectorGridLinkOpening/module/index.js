@@ -5,7 +5,8 @@ export default (hostApi) => {
   hostApi.world.sectorGrid(string.of("cave"));
 
   // Sector A: a single 1x1 cell at [0,0]. It opens on its RIGHT (east) edge.
-  hostApi.runtime.setContainer(string.of("room-a"), {
+  hostApi.runtime.setContainer({
+    id: string.of("room-a"),
     entities: [],
     sector: {
       grid: string.of("cave"),
@@ -20,7 +21,8 @@ export default (hostApi) => {
   // Sector B: a single 1x1 cell at [2,0] — one blank square east of A. It opens
   // on its LEFT (west) edge. With no explicit link, both openings are unlinked
   // dead-ends: nothing connects A and B by adjacency (a blank square sits between).
-  hostApi.runtime.setContainer(string.of("room-b"), {
+  hostApi.runtime.setContainer({
+    id: string.of("room-b"),
     entities: [],
     sector: {
       grid: string.of("cave"),
@@ -33,7 +35,7 @@ export default (hostApi) => {
   });
 
   // The action the test fires: it delegates to an effect.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("link-ab"),
     apply: (ctx) => { ctx.emitEffect("do-link", {}); },
   });
@@ -41,7 +43,7 @@ export default (hostApi) => {
   // The effect: calls linkOpening, passing the two openings to link — A's east
   // opening and B's west opening. Each endpoint names its container, its local
   // cell, and its boundary side.
-  hostApi.runtime.registerEffect({
+  hostApi.runtime.setEffect({
     name: "do-link",
     apply: () => {
       hostApi.runtime.linkOpening(
@@ -51,11 +53,11 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerAnimation(string.of("viewbg"), {
+  hostApi.runtime.setAnimation(string.of("viewbg"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("viewbg.png") }],
     duration: number.of(1),
   });
-  hostApi.runtime.registerAnimation(string.of("cell"), {
+  hostApi.runtime.setAnimation(string.of("cell"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("cell.png") }],
     duration: number.of(1),
   });

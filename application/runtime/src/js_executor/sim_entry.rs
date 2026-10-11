@@ -72,11 +72,9 @@ var hostApi={
       ofFrames:function(n){return{type:'frames',frames:n};},
       ofSeconds:function(n){return{type:'seconds',seconds:n};}},
     emitEvent:h.emitEvent,
-    registerEvent:h.registerEvent,
-    registerAction:h.registerAction,
-    registerEffect:h.registerEffect,
-    registerContainer:h.registerContainer,
-    registerEntity:h.registerEntity,
+    setEvent:h.setEvent,
+    setAction:h.setAction,
+    setEffect:h.setEffect,
     setEntity:h.setEntity,
     setContainer:h.setContainer,
     linkOpening:function(a,b){
@@ -99,8 +97,8 @@ var hostApi={
       }
       g.push({a:na,b:nb});
     },
-    registerBehavior:h.registerBehavior,
-    registerAnimation:function(name,args){
+    setBehavior:h.setBehavior,
+    setAnimation:function(name,args){
       var resolvedName=typeof name==='object'?name.value:name;
       if(typeof resolvedName==='string'){
         __registeredAnimations[resolvedName]=args;

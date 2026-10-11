@@ -3,18 +3,18 @@ import {NumberExpressionApi} from "./primitives/numberExpression";
 import {StringExpression, StringExpressionApi} from "./primitives/stringExpression";
 import {MaybeExpressionApi} from "./primitives/maybeExpression";
 import {TemporalExpressionApi} from "./primitives/temporalExpression";
-import {RegisterEffectFunction} from "./Effect";
+import {SetEffectFunction} from "./Effect";
 import {EntityExpressionApi} from "./Entity";
 import {ContainerExpressionApi, ContainerCreationArguments, SectorSide} from "./Contaier";
 import {NumberMapExpressionApi} from "./numberMap";
 import {TextMapExpressionApi} from "./textMap";
-import {RegisterActionFunction} from "./action";
+import {SetActionFunction} from "./action";
 import {RegisterPanelFunction} from "./ui/Panel";
 import {UiApi} from "./ui/Ui";
 import {SpriteResource} from "./texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "./texture/SpriteMap";
 import {EntityCreationArguments} from "./Entity";
-import {RegisterAnimationFunction, GetAnimationFunction} from "./animation/AnimationRegistration";
+import {SetAnimationFunction, GetAnimationFunction} from "./animation/AnimationRegistration";
 import {AutonomyApi} from "./autonomy";
 
 /**
@@ -48,11 +48,11 @@ export type HostApi = {
     entity: EntityExpressionApi,
     container: ContainerExpressionApi,
 
-    /** Sets entity fields (numberMap, textMap) by entity ID. */
-    setEntity: (entityId: StringExpression, arguments: EntityCreationArguments & { behavior?: any }) => void;
+    /** Sets (creates or updates) an entity by id, including its field maps. */
+    setEntity: (arguments: { id: string | any } & EntityCreationArguments & { behavior?: any }) => void;
 
-    /** Sets container fields by container ID. */
-    setContainer: (containerId: StringExpression, arguments: ContainerCreationArguments) => void;
+    /** Sets (creates or updates) a container by id, including its geometry and members. */
+    setContainer: (arguments: { id: string | any } & ContainerCreationArguments) => void;
 
     /**
      * Links two sector openings into an explicit portal. Each opening names its
@@ -63,14 +63,8 @@ export type HostApi = {
       b: { container: string | any, cell: [number, number], side: SectorSide },
     ) => void;
 
-    /** Registers (creates or updates) an entity by id, including its field maps. */
-    registerEntity: (arguments: { id: string | any } & EntityCreationArguments) => void;
-
-    /** Registers (creates or updates) a container by id, including its geometry and members. */
-    registerContainer: (arguments: { id: string | any } & ContainerCreationArguments) => void;
-
-    /** Registers a named behavior (priority/utility policy) for entities to attach. */
-    registerBehavior: (arguments: {
+    /** Sets (creates or updates) a named behavior (priority/utility policy) for entities to attach. */
+    setBehavior: (arguments: {
       name: string | any;
       priority?: Array<{
         label?: string;
@@ -83,12 +77,12 @@ export type HostApi = {
       }>;
     }) => { name: string; [key: string]: any };
 
-    /** Registers an effect handler in the runtime. */
-    registerEffect: RegisterEffectFunction,
-    /** Registers an action handler in the runtime. */
-    registerAction: RegisterActionFunction,
-    /** Registers an animation with the given name and frame definitions. */
-    registerAnimation: RegisterAnimationFunction,
+    /** Sets (creates or updates) an effect handler in the runtime. */
+    setEffect: SetEffectFunction,
+    /** Sets (creates or updates) an action handler in the runtime. */
+    setAction: SetActionFunction,
+    /** Sets (creates or updates) an animation with the given name and frame definitions. */
+    setAnimation: SetAnimationFunction,
     /** Returns the animation registration for the given name and duration configuration. */
     getAnimation: GetAnimationFunction,
 

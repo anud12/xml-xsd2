@@ -1,13 +1,13 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number} = hostApi.runtime;
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("hover"), {
+  hostApi.runtime.setAnimation(hostApi.runtime.string.of("hover"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("hover.png") },
     ],
     duration: hostApi.runtime.number.of(1),
   });
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("texture"), {
+  hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],

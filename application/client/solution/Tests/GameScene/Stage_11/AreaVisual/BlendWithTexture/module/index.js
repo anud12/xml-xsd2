@@ -4,7 +4,7 @@ export default (hostApi) => {
 
   // Register the item's sprite texture so the container-view item can paint
   // it as its background (a solid bright yellow 10x10 png).
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("item"), {
+  hostApi.runtime.setAnimation(hostApi.runtime.string.of("item"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("item.png") },
     ],
@@ -16,7 +16,8 @@ export default (hostApi) => {
   // view-local (70, 50). The area box (30 x 20) covers only the TOP half of
   // the 30x40 item texture, so the bottom of the texture stays uncovered:
   // the outline+body blend over the top, the bare yellow texture shows below.
-  hostApi.runtime.setEntity(string.of("room"), {
+  hostApi.runtime.setEntity({
+    id: string.of("room"),
     numberMap: { column: number.of(10), row: number.of(10) },
     areaMap: {
       floor: {
@@ -25,7 +26,8 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.setContainer(string.of("grid-1"), {
+  hostApi.runtime.setContainer({
+    id: string.of("grid-1"),
     entities: [string.of("room")],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),

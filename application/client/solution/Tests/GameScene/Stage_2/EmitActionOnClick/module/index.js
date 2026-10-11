@@ -1,25 +1,25 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("action"),
     apply: () => {
         hostApi.runtime.log("___From module action fired line___")
     }
   });
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("childAction"),
     apply: () => {
         hostApi.runtime.log("___From module childAction fired line___")
     }
   });
-  hostApi.runtime.registerAnimation(string.of("texture"), {
+  hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
     duration: number.of(1),
   });
-  hostApi.runtime.registerAnimation(string.of("texture_2"), {
+  hostApi.runtime.setAnimation(string.of("texture_2"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture_2.png") },
     ],

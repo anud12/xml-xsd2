@@ -2,7 +2,7 @@
 export default (hostApi) => {
   const {number, string, condition} = hostApi.runtime;
 
-  const first = hostApi.runtime.registerAction({
+  const first = hostApi.runtime.setAction({
     name: string.of("first"),
     apply: () => {
       hostApi.runtime.log("___action-exists first action fired___");
@@ -10,7 +10,7 @@ export default (hostApi) => {
   });
 
   
-  hostApi.runtime.registerBehavior({
+  hostApi.runtime.setBehavior({
     name: string.of("action-exists-behavior"),
     priority: [
       {

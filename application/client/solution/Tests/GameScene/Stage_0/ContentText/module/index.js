@@ -2,7 +2,8 @@
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
 
-  hostApi.runtime.setEntity(string.of("entity_id"), {
+  hostApi.runtime.setEntity({
+    id: string.of("entity_id"),
     textMap: {
       "textKey": string.of("textValue")
     },

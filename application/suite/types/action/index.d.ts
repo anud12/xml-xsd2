@@ -2,13 +2,13 @@
 export { ActionContext, ContainerPoint } from "./common";
 
 // Entity actions
-export type { EntityActionTarget, RegisterEntityActionArgs, RegisterEntityActionFunction } from "./entity-action";
+export type { EntityActionTarget, SetEntityActionArgs, SetEntityActionFunction } from "./entity-action";
 
 // Container actions
-export type { ContainerActionTarget, RegisterContainerActionArgs, RegisterContainerActionFunction } from "./container-action";
+export type { ContainerActionTarget, SetContainerActionArgs, SetContainerActionFunction } from "./container-action";
 
 // Point actions
-export type { PointActionTarget, RegisterPointActionArgs, RegisterPointActionFunction } from "./point-action";
+export type { PointActionTarget, SetPointActionArgs, SetPointActionFunction } from "./point-action";
 
 // No-input actions
-export type { RegisterActionArgs, RegisterActionFunction } from "./no-input-action";
+export type { SetActionArgs, SetActionFunction } from "./no-input-action";

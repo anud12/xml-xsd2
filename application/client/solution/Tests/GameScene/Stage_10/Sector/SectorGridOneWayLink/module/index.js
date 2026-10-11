@@ -7,7 +7,8 @@ export default (hostApi) => {
   // A single-cell sector "room-a" at [0,0]. It declares NO openings, so it
   // can never link to a neighbour: a doorway on the other side of the shared
   // wall is not enough to form a portal.
-  hostApi.runtime.setContainer(string.of("room-a"), {
+  hostApi.runtime.setContainer({
+    id: string.of("room-a"),
     entities: [],
     sector: {
       grid: string.of("cave"),
@@ -18,7 +19,7 @@ export default (hostApi) => {
   });
 
   // The action the test fires: it delegates to an effect.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("build-b"),
     apply: (ctx) => { ctx.emitEffect("create-b", {}); },
   });
@@ -26,10 +27,11 @@ export default (hostApi) => {
   // The effect: creates "room-b" at (1,0), directly east of A, with a WEST
   // opening facing A. Because A has no opening facing back, this opening is
   // unlinked: a red dead-end shaft on the A-B wall, and no portal forms.
-  hostApi.runtime.registerEffect({
+  hostApi.runtime.setEffect({
     name: "create-b",
     apply: () => {
-      hostApi.runtime.setContainer(string.of("room-b"), {
+      hostApi.runtime.setContainer({
+    id: string.of("room-b"),
         entities: [],
         sector: {
           grid: string.of("cave"),
@@ -43,11 +45,11 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerAnimation(string.of("viewbg"), {
+  hostApi.runtime.setAnimation(string.of("viewbg"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("viewbg.png") }],
     duration: number.of(1),
   });
-  hostApi.runtime.registerAnimation(string.of("cell"), {
+  hostApi.runtime.setAnimation(string.of("cell"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("cell.png") }],
     duration: number.of(1),
   });

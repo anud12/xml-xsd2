@@ -209,7 +209,7 @@ fn tick_inner() -> Result<()> {
     resolve_container_view_positions(&mut snapshot);
 
     // Keep the animation-definition store in sync for the fetch FFI (the
-    // module's registerAnimation calls filled __registeredAnimations at
+    // module's setAnimation calls filled __registeredAnimations at
     // install time).
     match eval_string(
         &ctx,

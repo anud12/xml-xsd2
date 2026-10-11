@@ -1,6 +1,6 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("border"), {
+  hostApi.runtime.setAnimation(hostApi.runtime.string.of("border"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("border.png") },
     ],

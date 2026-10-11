@@ -1,7 +1,7 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "node-1",
     numberMap: {
       column: number.of(2),
@@ -9,7 +9,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "node-2",
     numberMap: {
       column: number.of(0),
@@ -17,7 +17,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerContainer({
+  hostApi.runtime.setContainer({
     id: "grid-1",
     entities: [
       hostApi.runtime.string.of("node-1"),
@@ -37,7 +37,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("relocate-node-1"),
     apply: (ctx) => {
       ctx.teleportTo({
@@ -50,7 +50,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("relocate-node-1-out-of-bounds"),
     apply: (ctx) => {
       ctx.teleportTo({

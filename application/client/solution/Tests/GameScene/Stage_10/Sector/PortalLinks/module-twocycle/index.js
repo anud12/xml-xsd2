@@ -3,7 +3,8 @@ export default (hostApi) => {
   hostApi.world.sectorGrid(hostApi.runtime.string.of("cave"));
   // Concave L: (0,0)(1,0) / (0,1). The pocket square (1,1) is faced by both
   // (1,0) S and (0,1) E -> a 2-cycle when a sector fills the pocket.
-  hostApi.runtime.setContainer(hostApi.runtime.string.of("room-a"), {
+  hostApi.runtime.setContainer({
+    id: hostApi.runtime.string.of("room-a"),
     entities: [],
     sector: {
       grid: hostApi.runtime.string.of("cave"),
@@ -16,7 +17,8 @@ export default (hostApi) => {
     },
   });
   // Pocket filler at (1,1).
-  hostApi.runtime.setContainer(hostApi.runtime.string.of("room-b"), {
+  hostApi.runtime.setContainer({
+    id: hostApi.runtime.string.of("room-b"),
     entities: [],
     sector: {
       grid: hostApi.runtime.string.of("cave"),

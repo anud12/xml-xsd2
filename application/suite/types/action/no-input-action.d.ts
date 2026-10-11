@@ -3,9 +3,9 @@ import { TemporalExpression } from "../primitives/temporalExpression";
 import { ActionContext } from "./common";
 
 /**
- * Arguments for registering a no-input action via hostApi.registerAction
+ * Arguments for setting a no-input action via hostApi.setAction
  */
-export type RegisterActionArgs = {
+export type SetActionArgs = {
   name: string | any;
   description?: string;
   cooldownGroup?: string;
@@ -21,6 +21,6 @@ export type RegisteredAction = {
 };
 
 /**
- * Type for registerAction function (no-input actions).
+ * Type for setAction function (no-input actions).
  */
-export type RegisterActionFunction = (args: RegisterActionArgs) => RegisteredAction;
+export type SetActionFunction = (args: SetActionArgs) => RegisteredAction;

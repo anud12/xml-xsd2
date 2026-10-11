@@ -25,7 +25,7 @@ export type AnimationRegistrationArguments = {
 /**
  * Callback signature for registering a named animation with frame definitions.
  */
-export type RegisterAnimationFunction = (name: StringExpression, arguments: AnimationRegistrationArguments) => void;
+export type SetAnimationFunction = (name: StringExpression, arguments: AnimationRegistrationArguments) => void;
 
 /**
  * Options configuration for retrieving an animation.

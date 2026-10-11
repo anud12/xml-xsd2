@@ -2,21 +2,21 @@
 export default (hostApi) => {
   const {number, string, condition} = hostApi.runtime;
 
-  const first = hostApi.runtime.registerAction({
+  const first = hostApi.runtime.setAction({
     name: string.of("first"),
     apply: () => {
       hostApi.runtime.log("___wait-test first action fired___");
     }
   });
 
-  const second = hostApi.runtime.registerAction({
+  const second = hostApi.runtime.setAction({
     name: string.of("second"),
     apply: () => {
       hostApi.runtime.log("___wait-test second action fired___");
     }
   });
 
-  const guardBehavior = hostApi.runtime.registerBehavior({
+  const guardBehavior = hostApi.runtime.setBehavior({
     name: string.of("wait-behavior"),
     priority: [
       {
@@ -37,7 +37,8 @@ export default (hostApi) => {
     ]
   });
 
-  hostApi.runtime.setEntity(string.of("guard"), {
+  hostApi.runtime.setEntity({
+    id: string.of("guard"),
     textMap: {
       "state": string.of("idle")
     },

@@ -8,7 +8,8 @@ export default (hostApi) => {
   // No neighbouring sector exists, so none of these openings can link; every
   // one is an unlinked dead-end that renders as a red headless shaft on its
   // boundary edge (in contrast to a linked portal, which is orange).
-  hostApi.runtime.setContainer(string.of("room-a"), {
+  hostApi.runtime.setContainer({
+    id: string.of("room-a"),
     entities: [],
     sector: {
       grid: string.of("cave"),
@@ -24,11 +25,11 @@ export default (hostApi) => {
   });
 
   // Solid-color textures for the view background and the cells.
-  hostApi.runtime.registerAnimation(string.of("viewbg"), {
+  hostApi.runtime.setAnimation(string.of("viewbg"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("viewbg.png") }],
     duration: number.of(1),
   });
-  hostApi.runtime.registerAnimation(string.of("cell"), {
+  hostApi.runtime.setAnimation(string.of("cell"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("cell.png") }],
     duration: number.of(1),
   });

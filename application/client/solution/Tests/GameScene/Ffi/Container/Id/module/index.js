@@ -1,5 +1,5 @@
 export default (hostApi) => {
-  hostApi.runtime.registerContainer({
+  hostApi.runtime.setContainer({
     id: "bag-1",
   });
 }

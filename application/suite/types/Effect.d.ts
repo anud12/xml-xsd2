@@ -7,7 +7,7 @@ import {Entity, EntityExpression} from "./Entity";
 import {EntityFilter} from "./EntityFilter";
 import {ListExpression} from "./primitives/ListExpression";
 
-export type RegisterEffectFunction = <Input, Output>(argument: RegisterEventArgs<Input, Output>) => void;
+export type SetEffectFunction = <Input, Output>(argument: SetEventArgs<Input, Output>) => void;
 
 export type EventContext = {
   /**
@@ -62,7 +62,7 @@ export type EventContext = {
    getEntityBy: (entityFilter: EntityFilter | { id: (fn: (id: any) => any) => any; [key: string]: any }) => ListExpression<Entity>;
 }
 
-export type RegisterEventArgs<Input, Output> = {
+export type SetEventArgs<Input, Output> = {
   name: string;
   description?: string;
   input?: Record<string, { type: ExpressionTypes; description?: string }>;

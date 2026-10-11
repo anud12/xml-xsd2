@@ -1,7 +1,8 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
-  hostApi.runtime.setEntity(string.of("hero"), {
+  hostApi.runtime.setEntity({
+    id: string.of("hero"),
     numberMap: { hp: number.of(7) }
   });
   hostApi.ui.window("slab-win", { width: 200, height: 100 }, [

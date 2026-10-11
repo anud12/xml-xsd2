@@ -5,7 +5,8 @@ export default (hostApi) => {
   // A "room" that declares TWO named areas so the view can draw both at once.
   // Container world position is (10, 10). In the 700x500 view (cell_w = 7,
   // cell_h = 5) each local point (px, py) maps to view-local (px*7+70, py*5+50).
-  hostApi.runtime.setEntity(string.of("room"), {
+  hostApi.runtime.setEntity({
+    id: string.of("room"),
     numberMap: { column: number.of(10), row: number.of(10) },
     areaMap: {
       floor: {
@@ -17,7 +18,8 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.setContainer(string.of("grid-1"), {
+  hostApi.runtime.setContainer({
+    id: string.of("grid-1"),
     entities: [string.of("room")],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),

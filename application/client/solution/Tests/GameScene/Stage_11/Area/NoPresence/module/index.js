@@ -5,7 +5,8 @@ export default (hostApi) => {
   // A large "room" that declares a named 100x100 local area ("floor"). Its
   // container world position is (10, 10), so its world polygon spans
   // (10,10)..(110,110).
-  hostApi.runtime.setEntity(string.of("room"), {
+  hostApi.runtime.setEntity({
+    id: string.of("room"),
     numberMap: { column: number.of(10), row: number.of(10) },
     areaMap: {
       floor: {
@@ -15,7 +16,8 @@ export default (hostApi) => {
   });
 
   // A "crate" with its own named 20x20 area, world (40,40): fully inside the room.
-  hostApi.runtime.setEntity(string.of("crate"), {
+  hostApi.runtime.setEntity({
+    id: string.of("crate"),
     numberMap: { column: number.of(40), row: number.of(40) },
     areaMap: {
       footprint: {
@@ -25,14 +27,17 @@ export default (hostApi) => {
   });
 
   // Point members (no area): a point at (30,40) is inside, (500,500) is not.
-  hostApi.runtime.setEntity(string.of("npc-in"), {
+  hostApi.runtime.setEntity({
+    id: string.of("npc-in"),
     numberMap: { column: number.of(30), row: number.of(40) },
   });
-  hostApi.runtime.setEntity(string.of("npc-out"), {
+  hostApi.runtime.setEntity({
+    id: string.of("npc-out"),
     numberMap: { column: number.of(500), row: number.of(500) },
   });
 
-  hostApi.runtime.setContainer(string.of("cave"), {
+  hostApi.runtime.setContainer({
+    id: string.of("cave"),
     entities: [
       string.of("room"),
       string.of("crate"),
@@ -47,7 +52,7 @@ export default (hostApi) => {
 
   // The room's declared area contains the crate (overlap) and npc-in (point),
   // but not npc-out. The query is read from the Rust-side precomputed map.
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("query-room"),
     apply: (ctx) => {
       const entity = ctx.getEntityBy(

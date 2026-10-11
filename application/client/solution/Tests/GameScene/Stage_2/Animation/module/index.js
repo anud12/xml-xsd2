@@ -10,12 +10,12 @@ export default (hostApi) => {
     { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
   ];
 
-  hostApi.runtime.registerAnimation(string.of("fastSequence"), {
+  hostApi.runtime.setAnimation(string.of("fastSequence"), {
     frames: frames,
     duration: number.of(5),
   });
 
-  hostApi.runtime.registerAnimation(string.of("slowSequence"), {
+  hostApi.runtime.setAnimation(string.of("slowSequence"), {
     frames: frames,
     duration: number.of(10),
   });

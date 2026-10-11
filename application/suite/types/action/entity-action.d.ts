@@ -11,9 +11,9 @@ export type EntityActionTarget = {
 };
 
 /**
- * Arguments for registering an entity action via hostApi.registerEntityAction
+ * Arguments for setting an entity action via hostApi.setEntityAction
  */
-export type RegisterEntityActionArgs = {
+export type SetEntityActionArgs = {
   name: string;
   description?: string;
   cooldownGroup?: string;
@@ -23,6 +23,6 @@ export type RegisterEntityActionArgs = {
 };
 
 /**
- * Type for registerEntityAction function.
+ * Type for setEntityAction function.
  */
-export type RegisterEntityActionFunction = (args: RegisterEntityActionArgs) => void;
+export type SetEntityActionFunction = (args: SetEntityActionArgs) => void;

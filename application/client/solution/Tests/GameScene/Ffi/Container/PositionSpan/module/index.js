@@ -1,7 +1,7 @@
 export default (hostApi) => {
   const { number } = hostApi.runtime;
 
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "sword-1",
     numberMap: {
       slotIndex: number.of(3),
@@ -9,7 +9,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "potion-1",
     numberMap: {
       slotIndex: number.of(0),
@@ -17,7 +17,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerEntity({
+  hostApi.runtime.setEntity({
     id: "shield-1",
     numberMap: {
       slotIndex: number.of(5),
@@ -25,7 +25,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.registerContainer({
+  hostApi.runtime.setContainer({
     id: "bag-1",
     entities: [
       hostApi.runtime.string.of("sword-1"),

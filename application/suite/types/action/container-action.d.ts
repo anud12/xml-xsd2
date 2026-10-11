@@ -11,9 +11,9 @@ export type ContainerActionTarget = {
 };
 
 /**
- * Arguments for registering a container action via hostApi.registerContainerAction
+ * Arguments for setting a container action via hostApi.setContainerAction
  */
-export type RegisterContainerActionArgs = {
+export type SetContainerActionArgs = {
   name: string;
   description?: string;
   cooldownGroup?: string;
@@ -23,6 +23,6 @@ export type RegisterContainerActionArgs = {
 };
 
 /**
- * Type for registerContainerAction function.
+ * Type for setContainerAction function.
  */
-export type RegisterContainerActionFunction = (args: RegisterContainerActionArgs) => void;
+export type SetContainerActionFunction = (args: SetContainerActionArgs) => void;

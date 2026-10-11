@@ -6,7 +6,8 @@ export default (hostApi) => {
   // box with the top-right corner cut off (the diagonal [40,0] -> [60,20]).
   // Container world position is (10, 10). In the 700x500 view (cell 7x5) the
   // polygon maps to view-local (70,50)..(490,450) — fully inside the view.
-  hostApi.runtime.setEntity(string.of("room"), {
+  hostApi.runtime.setEntity({
+    id: string.of("room"),
     numberMap: { column: number.of(10), row: number.of(10) },
     areaMap: {
       floor: {
@@ -16,11 +17,13 @@ export default (hostApi) => {
   });
 
   // A "crate" with no declared area (the 1x1 fallback case).
-  hostApi.runtime.setEntity(string.of("crate"), {
+  hostApi.runtime.setEntity({
+    id: string.of("crate"),
     numberMap: { column: number.of(40), row: number.of(40) },
   });
 
-  hostApi.runtime.setContainer(string.of("grid-1"), {
+  hostApi.runtime.setContainer({
+    id: string.of("grid-1"),
     entities: [string.of("room"), string.of("crate")],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),

@@ -8,7 +8,8 @@ export default (hostApi) => {
   // an opening on the south edge, facing the (currently empty) square (1,1).
   // With no sector there yet, that opening is unlinked: a dead-end doorway
   // rendered as a red shaft on the L's boundary edge.
-  hostApi.runtime.setContainer(string.of("room-l"), {
+  hostApi.runtime.setContainer({
+    id: string.of("room-l"),
     entities: [],
     sector: {
       grid: string.of("cave"),
@@ -22,7 +23,7 @@ export default (hostApi) => {
 
   // The action the test fires: it does nothing itself, it delegates to an
   // effect (an action -> effect indirection).
-  hostApi.runtime.registerAction({
+  hostApi.runtime.setAction({
     name: string.of("build-room"),
     apply: (ctx) => {
       ctx.emitEffect("create-room", {});
@@ -33,10 +34,11 @@ export default (hostApi) => {
   // directly south of the L's (1,0) arm, with a north opening that faces the
   // L's south opening. This links the two sectors and forms a portal, and the
   // L's previously-unlinked doorway resolves into that linked portal.
-  hostApi.runtime.registerEffect({
+  hostApi.runtime.setEffect({
     name: "create-room",
     apply: () => {
-      hostApi.runtime.setContainer(string.of("room-b"), {
+      hostApi.runtime.setContainer({
+    id: string.of("room-b"),
         entities: [],
         sector: {
           grid: string.of("cave"),
@@ -51,11 +53,11 @@ export default (hostApi) => {
   });
 
   // Solid-color textures for the view background and the cells.
-  hostApi.runtime.registerAnimation(string.of("viewbg"), {
+  hostApi.runtime.setAnimation(string.of("viewbg"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("viewbg.png") }],
     duration: number.of(1),
   });
-  hostApi.runtime.registerAnimation(string.of("cell"), {
+  hostApi.runtime.setAnimation(string.of("cell"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("cell.png") }],
     duration: number.of(1),
   });

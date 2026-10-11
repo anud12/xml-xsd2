@@ -1,12 +1,12 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("background"), {
+  hostApi.runtime.setAnimation(hostApi.runtime.string.of("background"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("background.png") },
     ],
     duration: hostApi.runtime.number.of(1),
   });
-  hostApi.runtime.registerAnimation(hostApi.runtime.string.of("border"), {
+  hostApi.runtime.setAnimation(hostApi.runtime.string.of("border"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("border.png") },
     ],

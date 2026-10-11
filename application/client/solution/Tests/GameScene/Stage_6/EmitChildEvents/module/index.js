@@ -7,7 +7,8 @@ export default (hostApi) => {
   };
   const key = string.of("key")
 
-  hostApi.runtime.setEntity(string.of("entity_id"), {
+  hostApi.runtime.setEntity({
+    id: string.of("entity_id"),
     numberMap: {
       "key": number.of(0)
     },
@@ -16,7 +17,7 @@ export default (hostApi) => {
     }
   })
 
-  hostApi.runtime.registerEffect({
+  hostApi.runtime.setEffect({
     name: "key-modify-if-par",
     prepare: (context, input) => {
       const output = context.getEntityBy(filter).get(number.of(0)).flatMap(v => {
@@ -42,7 +43,7 @@ export default (hostApi) => {
     }
   })
 
-  hostApi.runtime.registerEffect({
+  hostApi.runtime.setEffect({
     name: "event",
     reoccurAfterMs: (context, executionCount, input, output) => {
       return hostApi.runtime.maybe.of(number.of(10));
@@ -73,7 +74,7 @@ export default (hostApi) => {
 
   hostApi.runtime.emitEvent("event", {});
 
-  hostApi.runtime.registerAnimation(string.of("texture"), {
+  hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
