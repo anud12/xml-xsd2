@@ -12,7 +12,7 @@ namespace NewGameProject.UI;
 /// offset into that arena; `NoStr` means "no string".
 public static class UiAbi
 {
-    public const uint AbiVersion = 1;
+    public const uint AbiVersion = 2;
     public const uint NoStr = uint.MaxValue;
 
     public const uint KindDivision = 0;
@@ -162,6 +162,12 @@ public static class UiAbi
         public byte PortalArrow;
         public byte Unlinked;
         public byte PortalLine;
+        public uint AreaPoints;
+        public float AreaR;
+        public float AreaG;
+        public float AreaB;
+        public float AreaA;
+        public float AreaThickness;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -259,6 +265,7 @@ public static class UiAbi
         public uint OffOptsOnClick;
         public uint OffOptsOnHover;
         public uint OffOptsContainer;
+        public uint OffOptsAreaPoints;
         public uint OffOnClickSteps;
         public uint OffClickStepArgs;
         public uint OffLayoutColTracks;

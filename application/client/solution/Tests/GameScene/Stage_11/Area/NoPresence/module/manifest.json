@@ -1,0 +1,6 @@
+{
+  "id": "area-no-area-test",
+  "version": "1.0.0",
+  "name": "Area No-Presence Test Module",
+  "entry": "index.js"
+}

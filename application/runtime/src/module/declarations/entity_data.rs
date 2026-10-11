@@ -12,11 +12,48 @@ pub fn store_entity_data(dec: &Declarations) {
         for (entity_id, entity_val) in entities {
             extract_text_map(entity_id, entity_val, &mut text_data);
             extract_number_map(entity_id, entity_val, &mut number_data);
+            extract_area(entity_id, entity_val);
         }
         crate::state::set_last_entity_data(text_data.clone());
         crate::state::set_last_entity_number_data(number_data);
         crate::state::set_initial_entity_data(text_data);
     }
+}
+
+/// An entity's declared areas (like numberMap) are intrinsic: each is
+/// registered in the entity's area entityMap so the Rust-side inside-area
+/// query can test it. Areas are declared as a named
+/// `areaMap: { name: { polygon }, ... }` entityMap — one entry per name.
+/// There is no unnamed/default area. Vertices are entity-local units (y down),
+/// implicitly closed. A polygon with fewer than 3 distinct points is ignored
+/// (no presence).
+fn extract_area(
+    entity_id: &str,
+    entity_val: &serde_json::Value,
+) {
+    if let Some(areas_obj) = entity_val.get("areaMap").and_then(|v| v.as_object()) {
+        for (name, area_obj) in areas_obj {
+            let poly = parse_polygon(area_obj);
+            crate::state::set_entity_area(entity_id, name, poly);
+        }
+    }
+}
+
+/// Read `{ polygon: [[x, y], ...] }` into local points (empty when absent).
+fn parse_polygon(area_obj: &serde_json::Value) -> Vec<(f64, f64)> {
+    let mut poly: Vec<(f64, f64)> = Vec::new();
+    if let Some(arr) = area_obj.get("polygon").and_then(|v| v.as_array()) {
+        for v in arr.iter() {
+            if let Some(pair) = v.as_array() {
+                if pair.len() >= 2 {
+                    let x = pair[0].as_f64().unwrap_or(0.0);
+                    let y = pair[1].as_f64().unwrap_or(0.0);
+                    poly.push((x, y));
+                }
+            }
+        }
+    }
+    poly
 }
 
 fn extract_text_map(

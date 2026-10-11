@@ -2,5 +2,50 @@
 
 [ext_resource type="Script" uid="uid://dcdakpochm7xn" path="res://Scenes/GameScene/Game.cs" id="1_ebmjs"]
 
-[node name="Game" type="Node"]
+[node name="Game" type="Node" unique_id=1861671214]
 script = ExtResource("1_ebmjs")
+
+[node name="uiLayers" type="Control" parent="." unique_id=466692790]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="moduleUI" type="Control" parent="uiLayers" unique_id=1563903417]
+z_index = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="coreUI" type="Control" parent="uiLayers" unique_id=553797703]
+z_index = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SettingsButton" type="Button" parent="uiLayers/coreUI" unique_id=1290333409]
+layout_mode = 1
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 90.0
+offset_bottom = 44.0
+text = "Settings"
+
+[node name="ActionsButton" type="Button" parent="uiLayers/coreUI" unique_id=1675157809]
+layout_mode = 1
+offset_left = 110.0
+offset_top = 8.0
+offset_right = 190.0
+offset_bottom = 44.0
+text = "Actions"

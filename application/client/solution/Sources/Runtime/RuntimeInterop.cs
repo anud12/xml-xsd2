@@ -386,6 +386,70 @@ public static class RuntimeInterop
     public static long GetElapsedTimeUnits() => runtime_get_elapsed_time_units();
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_get_entities_inside_area(
+        [MarshalAs(UnmanagedType.LPStr)] string entityId,
+        [MarshalAs(UnmanagedType.LPStr)] string areaId);
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_free_inside_area(IntPtr ptr);
+
+    /// The ids of the entities inside one *named* area of the entity (id
+    /// ascending, self excluded, deduped across containers). The area name is
+    /// required: it is resolved first, then the containment/overlap test runs.
+    /// An entity with no such area — or in no container — yields an empty array.
+    public static string[] GetEntitiesInsideArea(string? entityId, string? areaId)
+    {
+        if (entityId == null || areaId == null) return Array.Empty<string>();
+        var ptr = runtime_get_entities_inside_area(entityId, areaId);
+        if (ptr == IntPtr.Zero) return Array.Empty<string>();
+        return ReadInsideArea(ptr);
+    }
+
+    private static string[] ReadInsideArea(IntPtr ptr)
+    {
+        try
+        {
+            var json = Marshal.PtrToStringAnsi(ptr) ?? "[]";
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var ids = new List<string>();
+            if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var id in doc.RootElement.EnumerateArray())
+                    ids.Add(id.GetString() ?? "");
+            }
+            return ids.ToArray();
+        }
+        catch { return Array.Empty<string>(); }
+        finally { runtime_free_inside_area(ptr); }
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_get_entity_containers(
+        [MarshalAs(UnmanagedType.LPStr)] string entityId);
+
+    /// The ids of the containers the named entity is a member of (diagnostics).
+    public static string[] GetEntityContainers(string? entityId)
+    {
+        if (entityId == null) return Array.Empty<string>();
+        var ptr = runtime_get_entity_containers(entityId);
+        if (ptr == IntPtr.Zero) return Array.Empty<string>();
+        try
+        {
+            var json = Marshal.PtrToStringAnsi(ptr) ?? "[]";
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var ids = new List<string>();
+            if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var id in doc.RootElement.EnumerateArray())
+                    ids.Add(id.GetString() ?? "");
+            }
+            return ids.ToArray();
+        }
+        catch { return Array.Empty<string>(); }
+        finally { runtime_free_inside_area(ptr); }
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr runtime_fetch_ui_state();
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]

@@ -291,6 +291,30 @@ fn resolve_field_values(snapshot: &mut [UiNode]) {
     }
 }
 
+/// A per-area outline style parsed from a container-view's `area` option
+/// entry. Every field is required: the named area to draw plus its outline
+/// line color, body fill color, and outline thickness.
+struct AreaStyle {
+    name: String,
+    color: [f64; 4],
+    body_color: [f64; 4],
+    thickness: f64,
+}
+
+/// Read an `rgba` JSON array `[r, g, b, a]` into a `[f64; 4]`, defaulting any
+/// missing/non-numeric component to 1.0.
+fn rgba(v: Option<&serde_json::Value>) -> [f64; 4] {
+    let mut out = [1.0f64; 4];
+    if let Some(arr) = v.and_then(|x| x.as_array()) {
+        for (i, c) in arr.iter().take(4).enumerate() {
+            if let Some(n) = c.as_f64() {
+                out[i] = n;
+            }
+        }
+    }
+    out
+}
+
 /// Re-resolve every container-view item's geometry (x/y/width/height) from
 /// its entity's container position, so the id-diff sees live moves as updates
 /// and the C# `ApplyWindow` re-positions the panel. A view node carries
@@ -331,7 +355,9 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
     // center flag, item child ids). The cell size is precomputed so the
     // second pass owns all the data it needs and never borrows `geom` or the
     // snapshot.
-    let mut views: Vec<(String, f64, f64, bool, Vec<String>)> = Vec::new();
+    let mut views: Vec<
+        (String, f64, f64, bool, Vec<String>, Vec<AreaStyle>),
+    > = Vec::new();
     for node in snapshot.iter() {
         let UiNode::Window { options, children, .. } = node else {
             continue;
@@ -354,12 +380,39 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
             Some((_, Some(a), Some(b), c, _)) => (*a, *b, *c),
             _ => continue,
         };
+        // `area` (optional) selects which of each entity's named areas the
+        // outline renders and the outline style for each. It is an array of
+        // entries, every field required:
+        //   { name, color: [r,g,b,a], bodyColor: [r,g,b,a], thickness: number }
+        // When omitted, the entity's first declared area (id ascending) is
+        // drawn with the renderer's default red/green/thickness.
+        let mut area_styles: Vec<AreaStyle> = Vec::new();
+        if let Some(arr) = opts_obj.get("area").and_then(|a| a.as_array()) {
+            for entry in arr {
+                let Some(obj) = entry.as_object() else {
+                    continue;
+                };
+                let Some(name) = obj.get("name").and_then(|v| v.as_str()) else {
+                    continue;
+                };
+                let color = rgba(obj.get("color"));
+                let body_color = rgba(obj.get("bodyColor"));
+                let thickness = obj.get("thickness").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                area_styles.push(AreaStyle {
+                    name: name.to_string(),
+                    color,
+                    body_color,
+                    thickness,
+                });
+            }
+        }
         views.push((
             cid.to_string(),
             view_w / sx,
             view_h / sy,
             center,
             children.clone(),
+            area_styles,
         ));
     }
 
@@ -370,7 +423,7 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
         index.insert(node.id().to_string(), i);
     }
 
-    for (cid, cell_w, cell_h, center, children) in views {
+    for (cid, cell_w, cell_h, center, children, area_styles) in views {
         let Some(per_entity) = geom
             .iter()
             .find(|g| g.0 == cid)
@@ -391,10 +444,12 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
             let Some(item_obj) = item_opts.as_object_mut() else {
                 continue;
             };
-            let Some(entity) = item_obj.get("entity").and_then(|e| e.as_str()) else {
+            let Some(entity) = item_obj.get("entity").and_then(|e| e.as_str())
+                .map(|s| s.to_string())
+            else {
                 continue;
             };
-            let Some(ent_pos) = per_entity.get(entity).and_then(|p| p.as_object()) else {
+            let Some(ent_pos) = per_entity.get(entity.as_str()).and_then(|p| p.as_object()) else {
                 continue;
             };
             let get = |key: &str| ent_pos.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0);
@@ -415,8 +470,116 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
             item_obj.insert("y".into(), num_json(y));
             item_obj.insert("width".into(), num_json(span_x));
             item_obj.insert("height".into(), num_json(span_y));
+            // Stamp the entity's area polygons into the item's options so the
+            // C# renderer can draw them over the sprite. Each polygon is in
+            // view-local logical units (same space as x/y/width/height): the
+            // entity's world position is (getX, getY), so view-local is
+            // (getX * cell_w, getY * cell_h) relative to the view origin. The
+            // view's `area` selects which named areas to draw and the outline
+            // style for each (first declared area with defaults when omitted).
+            stamp_area_outline(
+                item_obj,
+                &entity,
+                get("x"),
+                get("y"),
+                cell_w,
+                cell_h,
+                ox,
+                oy,
+                &area_styles,
+            );
         }
     }
+}
+
+/// Stamp the entity's declared areas (translated to view-local logical units)
+/// into the item's `options.areaOutline`. `area_styles` selects which named
+/// areas to draw and the outline style for each (every field required on each
+/// entry). When `area_styles` is empty (the view omitted `area`), the
+/// entity's first declared area (id ascending) is drawn with the renderer's
+/// default red/green/thickness. The result is a list of polygons, each with
+/// its own `points`, `color`, `bodyColor` and `thickness`:
+///   { polygons: [ { points, color, bodyColor, thickness }, ... ] }
+/// An entity with no matching area gets a 1x1 pixel/rectangle fallback polygon
+/// at its view-local position. `cell_w`/`cell_h` are the per-unit view scale;
+/// `ox`/`oy` are the alignment offsets already applied to x/y so each polygon
+/// tracks the marker.
+fn stamp_area_outline(
+    item_obj: &mut serde_json::Map<String, serde_json::Value>,
+    entity: &str,
+    ent_x: f64,
+    ent_y: f64,
+    cell_w: f64,
+    cell_h: f64,
+    ox: f64,
+    oy: f64,
+    area_styles: &[AreaStyle],
+) {
+    // The entity's view-local top-left (matches the x/y stamp above).
+    let vx = ent_x * cell_w - ox;
+    let vy = ent_y * cell_h - oy;
+
+    // The per-area styles to render (owned names so the borrow of
+    // `area_styles` ends before the mutable `item_obj` writes below). When the
+    // view omitted `area`, draw the entity's first declared area (id
+    // ascending) with default styling.
+    let styled: Vec<(String, [f64; 4], [f64; 4], f64)> = if area_styles.is_empty() {
+        let first = crate::state::area_query::entity_area_ids(entity).into_iter().next();
+        match first {
+            Some(name) => vec![(name, [1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0], 2.0)],
+            None => Vec::new(),
+        }
+    } else {
+        area_styles
+            .iter()
+            .map(|s| (s.name.clone(), s.color, s.body_color, s.thickness))
+            .collect()
+    };
+
+    let fallback_points = || {
+        // No area: a 1x1 pixel/rectangle fallback at the view-local origin.
+        vec![
+            serde_json::json!([vx, vy]),
+            serde_json::json!([vx + 1.0, vy]),
+            serde_json::json!([vx + 1.0, vy + 1.0]),
+            serde_json::json!([vx, vy + 1.0]),
+        ]
+    };
+
+    let mut polys: Vec<serde_json::Value> = Vec::new();
+    for (name, color, body_color, thickness) in &styled {
+        let points = match crate::state::area_query::entity_area(entity, name) {
+            Some(poly) => poly
+                .into_iter()
+                .map(|(px, py)| {
+                    serde_json::json!([
+                        (px * cell_w + vx) as f64,
+                        (py * cell_h + vy) as f64,
+                    ])
+                })
+                .collect(),
+            None => fallback_points(),
+        };
+        polys.push(serde_json::json!({
+            "points": points,
+            "color": [color[0], color[1], color[2], color[3]],
+            "bodyColor": [body_color[0], body_color[1], body_color[2], body_color[3]],
+            "thickness": thickness,
+        }));
+    }
+
+    if polys.is_empty() {
+        // The entity declares no areas at all: a single 1x1 fallback polygon.
+        polys.push(serde_json::json!({
+            "points": fallback_points(),
+            "color": [1.0, 0.0, 0.0, 1.0],
+            "bodyColor": [0.0, 1.0, 0.0, 1.0],
+            "thickness": 2.0,
+        }));
+    }
+
+    let outline = serde_json::json!({ "polygons": polys });
+    item_obj.insert("areaOutline".into(), outline);
 }
 
 /// Merge a container row's per-entity position maps (getX/getY/getSpanX/
@@ -865,6 +1028,12 @@ export default (hostApi) => {
             r#"{"id":"items","entities":["item-a","item-b"]}"#.to_string()]);
     }
 
+    fn seed_grid1_container() {
+        // grid-1: a 100x100 container with room at (10,10) and crate at (40,40).
+        crate::state::set_last_containers(vec![
+            r#"{"id":"grid-1","entities":["room","crate"],"sizeX":{"value":100},"sizeY":{"value":100},"getX":{"room":10,"crate":40},"getY":{"room":10,"crate":40}}"#.to_string()]);
+    }
+
     #[test]
     fn container_list_expands_one_item_per_entity() {
         let _g = lock();
@@ -958,6 +1127,127 @@ export default (hostApi) => {
         assert!(ids.contains(&"items"), "list node missing: {:?}", ids);
         assert!(!ids.iter().any(|id| id.starts_with("item-")),
             "expected zero items, got {:?}", ids);
+    }
+
+    const CONTAINER_VIEW_AREA_MODULE: &str = r#"
+export default (hostApi) => {
+  hostApi.runtime.setEntity(hostApi.runtime.string.of('room'), {
+    numberMap: { column: hostApi.runtime.number.of(10), row: hostApi.runtime.number.of(10) },
+    areaMap: { floor: { polygon: [[0, 0], [100, 0], [100, 100], [0, 100]] } }
+  });
+  hostApi.runtime.setEntity(hostApi.runtime.string.of('crate'), {
+    numberMap: { column: hostApi.runtime.number.of(40), row: hostApi.runtime.number.of(40) }
+  });
+  hostApi.runtime.setContainer(hostApi.runtime.string.of('grid-1'), {
+    entities: ['room', 'crate'],
+    getX: (entity) => entity.number_map.get('column').orElse(hostApi.runtime.number.of(0)),
+    getY: (entity) => entity.number_map.get('row').orElse(hostApi.runtime.number.of(0)),
+    sizeX: { value: hostApi.runtime.number.of(100), outOfBounds: 'clamp' },
+    sizeY: { value: hostApi.runtime.number.of(100), outOfBounds: 'clamp' }
+  });
+  hostApi.ui.containerView('world', {
+    container: 'grid-1',
+    width: 700,
+    height: 500,
+    area: [
+      { name: 'floor', color: [1, 0, 0, 1], bodyColor: [0, 1, 0, 1], thickness: 3 }
+    ]
+  }, (entity) => hostApi.ui.window(entity.id, {}, []));
+};
+"#;
+
+    #[test]
+    fn container_view_item_gets_area_outline_stamped() {
+        let _g = lock();
+        crate::state::clear_state();
+        seed_grid1_container();
+        // Seed room's declared area directly (the JS module's setEntity area
+        // goes through process_module; here we seed the Rust state store).
+        crate::state::set_entity_area("room", "floor", vec![
+            (0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0),
+        ]);
+        install_module(CONTAINER_VIEW_AREA_MODULE);
+        tick();
+
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let nodes = v["nodes"].as_array().unwrap();
+        // room declares a 100x100 local area; view is 700x500 over a 100x100
+        // container, so cell_w = 7, cell_h = 5. room's world pos is (10, 10),
+        // so view-local top-left is (70, 50). The area spans 100x100 local ->
+        // 700x500 view units, so the outline spans (70,50)..(770,550).
+        let room = nodes.iter().find(|n| n["id"] == "room").unwrap_or_else(|| {
+            let dbg_ids: Vec<&str> = nodes.iter().map(|n| n["id"].as_str().unwrap()).collect();
+            panic!("room node missing; ids: {dbg_ids:?}");
+        });
+        let outline = room["options"]["areaOutline"].clone();
+        assert!(outline.is_object(), "room should have areaOutline: {outline}");
+        // The view's `area` selects room's "floor" area, so exactly one
+        // polygon is stamped, carrying the view's per-area styling.
+        let polys = outline["polygons"].as_array().unwrap();
+        assert_eq!(polys.len(), 1, "room should stamp one polygon: {outline}");
+        // Per-polygon styling from the view's `area` entry.
+        let color = polys[0]["color"].as_array().unwrap();
+        assert_eq!(
+            (color[0].as_f64().unwrap(), color[1].as_f64().unwrap(), color[2].as_f64().unwrap(), color[3].as_f64().unwrap()),
+            (1.0, 0.0, 0.0, 1.0),
+            "room outline color: {polys:?}");
+        let body = polys[0]["bodyColor"].as_array().unwrap();
+        assert_eq!(
+            (body[0].as_f64().unwrap(), body[1].as_f64().unwrap(), body[2].as_f64().unwrap(), body[3].as_f64().unwrap()),
+            (0.0, 1.0, 0.0, 1.0),
+            "room body color: {polys:?}");
+        assert!((polys[0]["thickness"].as_f64().unwrap() - 3.0).abs() < 1e-9,
+            "room thickness: {polys:?}");
+        let pts = polys[0]["points"].as_array().unwrap();
+        assert_eq!(pts.len(), 4, "room area has 4 corners: {pts:?}");
+        // The four view-local corners of the 100x100 area at (70,50):
+        // (70,50),(770,50),(770,550),(70,550). Collect the set of points and
+        // compare against the expected set (winding order is normalized by
+        // make_area, so we compare unordered).
+        let corners: Vec<String> = pts.iter()
+            .map(|p| {
+                let a = p.as_array().unwrap();
+                let x = a[0].as_f64().unwrap();
+                let y = a[1].as_f64().unwrap();
+                format!("{x:.0},{y:.0}")
+            })
+            .collect();
+        let expected = vec![
+            "70,50".to_string(),
+            "770,50".to_string(),
+            "770,550".to_string(),
+            "70,550".to_string(),
+        ];
+        assert_eq!(corners.len(), 4, "room area has 4 corners: {corners:?}");
+        for e in &expected {
+            assert!(corners.contains(e), "missing corner {e}; got {corners:?}");
+        }
+
+        // crate has no declared area: a 1x1 fallback rect at its view-local
+        // origin. crate's world pos is (40, 40) -> view-local (280, 200).
+        let crate_node = nodes.iter().find(|n| n["id"] == "crate").unwrap();
+        let c_outline = crate_node["options"]["areaOutline"].clone();
+        assert!(c_outline.is_object(), "crate should have 1x1 fallback: {c_outline}");
+        // crate declares no areas: a single 1x1 fallback polygon.
+        let c_polys = c_outline["polygons"].as_array().unwrap();
+        assert_eq!(c_polys.len(), 1, "crate should stamp one fallback polygon: {c_outline}");
+        // The view requested the "floor" style; crate declares no "floor"
+        // area, so its 1x1 fallback carries that same requested style.
+        let c_color = c_polys[0]["color"].as_array().unwrap();
+        assert_eq!(
+            (c_color[0].as_f64().unwrap(), c_color[1].as_f64().unwrap()),
+            (1.0, 0.0),
+            "crate fallback color: {c_polys:?}");
+        assert!((c_polys[0]["thickness"].as_f64().unwrap() - 3.0).abs() < 1e-9,
+            "crate fallback thickness: {c_polys:?}");
+        let c_pts = c_polys[0]["points"].as_array().unwrap();
+        assert_eq!(c_pts.len(), 4, "crate fallback is a 1x1 rect: {c_pts:?}");
+        let c0 = c_pts[0].as_array().unwrap();
+        assert!((c0[0].as_f64().unwrap() - 280.0).abs() < 1e-6, "crate x0: {}", c0[0]);
+        assert!((c0[1].as_f64().unwrap() - 200.0).abs() < 1e-6, "crate y0: {}", c0[1]);
+        let c1 = c_pts[1].as_array().unwrap();
+        assert!((c1[0].as_f64().unwrap() - 281.0).abs() < 1e-6, "crate x1: {}", c1[0]);
+        assert!((c1[1].as_f64().unwrap() - 200.0).abs() < 1e-6, "crate y1: {}", c1[1]);
     }
 
     #[test]

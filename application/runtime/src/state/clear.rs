@@ -20,6 +20,7 @@ pub fn clear_state() {
     *super::last_containers().lock().unwrap() = Vec::new();
     *super::active_plans().lock().unwrap() = Vec::new();
     super::sector_grids().lock().unwrap().clear();
+    super::entity_areas_inner().lock().unwrap().clear();
     super::elapsed_time_units().store(0, Ordering::SeqCst);
     super::persisted_flag().store(false, Ordering::SeqCst);
 }

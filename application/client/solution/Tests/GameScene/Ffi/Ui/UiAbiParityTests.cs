@@ -59,6 +59,7 @@ public class UiAbiParityTests : Steps
         Check(s.OffOptsOnClick, typeof(UiAbi.UiNodeOptions), nameof(UiAbi.UiNodeOptions.OnClick));
         Check(s.OffOptsOnHover, typeof(UiAbi.UiNodeOptions), nameof(UiAbi.UiNodeOptions.OnHover));
         Check(s.OffOptsContainer, typeof(UiAbi.UiNodeOptions), nameof(UiAbi.UiNodeOptions.Container));
+        Check(s.OffOptsAreaPoints, typeof(UiAbi.UiNodeOptions), nameof(UiAbi.UiNodeOptions.AreaPoints));
         Check(s.OffOnClickSteps, typeof(UiAbi.UiOnClick), nameof(UiAbi.UiOnClick.Steps));
         Check(s.OffClickStepArgs, typeof(UiAbi.UiClickStep), nameof(UiAbi.UiClickStep.Args));
         Check(s.OffLayoutColTracks, typeof(UiAbi.UiLayout), nameof(UiAbi.UiLayout.ColTracks));
