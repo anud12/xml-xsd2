@@ -1,13 +1,13 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
-  hostApi.runtime.setAction({
+  const action = hostApi.runtime.setAction({
     name: string.of("action"),
     apply: () => {
         hostApi.runtime.log("___From module action fired line___")
     }
   });
-  hostApi.runtime.setAction({
+  const childAction = hostApi.runtime.setAction({
     name: string.of("childAction"),
     apply: () => {
         hostApi.runtime.log("___From module childAction fired line___")
@@ -30,7 +30,7 @@ export default (hostApi) => {
     height: 100,
     background: hostApi.ui.getAnimation(string.of("texture")),
     onClick: (ctx) => {
-      ctx.emitAction("action");
+      ctx.emitAction(action);
     },
   }, [
     hostApi.ui.panel("child", {
@@ -40,7 +40,7 @@ export default (hostApi) => {
       height: 10,
       background: hostApi.ui.getAnimation(string.of("texture_2")),
       onClick: (ctx) => {
-        ctx.emitAction("childAction");
+        ctx.emitAction(childAction);
       },
     }, [])
   ])

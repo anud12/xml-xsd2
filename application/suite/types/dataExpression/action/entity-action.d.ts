@@ -1,5 +1,7 @@
-import { ConditionExpression } from "../primitives/conditionExpression";
-import { TemporalExpression } from "../primitives/temporalExpression";
+import { ConditionExpression } from "../../primitives/conditionExpression";
+import { TemporalExpression } from "../../primitives/temporalExpression";
+import { StringExpression } from "../../primitives/stringExpression";
+import { EntityExpression } from "../Entity";
 import { ActionContext } from "./common";
 
 /**
@@ -7,14 +9,15 @@ import { ActionContext } from "./common";
  */
 export type EntityActionTarget = {
   type: "entity";
-  id: string;
+  /** The entity the action is applied to (an {@link EntityExpression} reference). */
+  id: EntityExpression;
 };
 
 /**
  * Arguments for setting an entity action via hostApi.setEntityAction
  */
 export type SetEntityActionArgs = {
-  name: string;
+  name: StringExpression;
   description?: string;
   cooldownGroup?: string;
   guard?: (context: ActionContext, target: EntityActionTarget) => ConditionExpression;

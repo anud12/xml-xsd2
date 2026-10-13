@@ -2,22 +2,22 @@
 export default (hostApi) => {
   const {string, temporal} = hostApi.runtime;
 
-  hostApi.runtime.setEffect({
-    name: "restStart",
+  const restStart = hostApi.runtime.setEffect({
+    name: string.of("restStart"),
     apply: () => {
       hostApi.runtime.log("___busy-test rest start fired___");
     }
   });
 
-  hostApi.runtime.setEffect({
-    name: "restEnd",
+  const restEnd = hostApi.runtime.setEffect({
+    name: string.of("restEnd"),
     apply: () => {
       hostApi.runtime.log("___busy-test rest end fired___");
     }
   });
 
-  hostApi.runtime.setEffect({
-    name: "dashTick",
+  const dashTick = hostApi.runtime.setEffect({
+    name: string.of("dashTick"),
     apply: () => {
       hostApi.runtime.log("___busy-test dash fired___");
     }
@@ -27,9 +27,9 @@ export default (hostApi) => {
   hostApi.runtime.setAction({
     name: string.of("rest"),
     apply: (ctx) => {
-      ctx.emitEffect("restStart", {});
+      ctx.emitEffect(restStart, {});
       ctx.wait(temporal.ofTicks(2));
-      ctx.emitEffect("restEnd", {});
+      ctx.emitEffect(restEnd, {});
     }
   });
 
@@ -37,7 +37,7 @@ export default (hostApi) => {
   hostApi.runtime.setAction({
     name: string.of("dash"),
     apply: (ctx) => {
-      ctx.emitEffect("dashTick", {});
+      ctx.emitEffect(dashTick, {});
     }
   });
 

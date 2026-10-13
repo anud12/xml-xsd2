@@ -1,7 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   hostApi.runtime.setAction({
-    name:"action",
+    name:hostApi.runtime.string.of("action"),
     apply: () => {
       hostApi.runtime.log("action called")
     }

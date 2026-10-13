@@ -5,7 +5,7 @@ export default (hostApi) => {
   // A large "room" that declares a named 100x100 local area ("floor"). Its
   // container world position is (10, 10), so its world polygon spans
   // (10,10)..(110,110).
-  hostApi.runtime.setEntity({
+  const room = hostApi.runtime.setEntity({
     id: string.of("room"),
     numberMap: { column: number.of(10), row: number.of(10) },
     areaMap: {
@@ -16,7 +16,7 @@ export default (hostApi) => {
   });
 
   // A "crate" with its own named 20x20 area, world (40,40): fully inside the room.
-  hostApi.runtime.setEntity({
+  const crate = hostApi.runtime.setEntity({
     id: string.of("crate"),
     numberMap: { column: number.of(40), row: number.of(40) },
     areaMap: {
@@ -27,11 +27,11 @@ export default (hostApi) => {
   });
 
   // Point members (no area): a point at (30,40) is inside, (500,500) is not.
-  hostApi.runtime.setEntity({
+  const npcIn = hostApi.runtime.setEntity({
     id: string.of("npc-in"),
     numberMap: { column: number.of(30), row: number.of(40) },
   });
-  hostApi.runtime.setEntity({
+  const npcOut = hostApi.runtime.setEntity({
     id: string.of("npc-out"),
     numberMap: { column: number.of(500), row: number.of(500) },
   });
@@ -39,10 +39,10 @@ export default (hostApi) => {
   hostApi.runtime.setContainer({
     id: string.of("cave"),
     entities: [
-      string.of("room"),
-      string.of("crate"),
-      string.of("npc-in"),
-      string.of("npc-out"),
+      room,
+      crate,
+      npcIn,
+      npcOut,
     ],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),

@@ -1,13 +1,13 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {string} = hostApi.runtime;
-  hostApi.runtime.setAction({
+  const stageAction = hostApi.runtime.setAction({
     name: string.of("stageAction"),
     apply: () => {
         hostApi.runtime.log("___From module stageAction fired line___")
     }
   });
-  hostApi.runtime.setAction({
+  const childAction = hostApi.runtime.setAction({
     name: string.of("childAction"),
     apply: () => {
         hostApi.runtime.log("___From module childAction fired line___")
@@ -18,7 +18,7 @@ export default (hostApi) => {
     width: 100,
     height: 100,
     onClick: (ctx) => {
-      ctx.emitAction("stageAction");
+      ctx.emitAction(stageAction);
     },
   }, [
     hostApi.ui.panel("child", {
@@ -27,7 +27,7 @@ export default (hostApi) => {
       x: 10,
       y: 10,
       onClick: (ctx) => {
-        ctx.emitAction("childAction");
+        ctx.emitAction(childAction);
       },
     }, [])
   ])

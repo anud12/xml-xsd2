@@ -25,6 +25,18 @@ export default (hostApi) => {
       hostApi.runtime.log("___child hover exit fired line___");
     }
   });
+  const parentHover = hostApi.runtime.setAction({
+    name: string.of("parentHover"),
+    apply: () => {
+      hostApi.runtime.log("___parentHover fired line___");
+    }
+  });
+  const childHover = hostApi.runtime.setAction({
+    name: string.of("childHover"),
+    apply: () => {
+      hostApi.runtime.log("___childHover fired line___");
+    }
+  });
   hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
@@ -36,7 +48,7 @@ export default (hostApi) => {
     height: 100,
     background: hostApi.ui.getAnimation(string.of("texture")),
     onHover: {
-      emitAction: "parentHover",
+      emitAction: parentHover,
     },
   }, [
     hostApi.ui.panel("child", {
@@ -45,7 +57,7 @@ export default (hostApi) => {
       x: 40,
       y: 40,
       onHover: {
-        emitAction: "childHover",
+        emitAction: childHover,
         stopPropagation: true,
       },
     }, [])

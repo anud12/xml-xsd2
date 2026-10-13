@@ -1,6 +1,7 @@
 import { ConditionExpression } from "./primitives/conditionExpression";
 import { NumberExpression } from "./primitives/numberExpression";
-import { StringExpression } from "./primitives/stringExpression";
+import { EntityExpression } from "./dataExpression/Entity";
+import { ActionExpression } from "./dataExpression/action/no-input-action";
 
 /**
  * Level 0 script builder — a linear sequence of atomic steps.
@@ -8,8 +9,8 @@ import { StringExpression } from "./primitives/stringExpression";
 export type ScriptBuilder = {
   /** Wait for a duration (in game time units). */
   wait: (duration: NumberExpression) => ScriptBuilder;
-  /** Execute a named action. */
-  executeAction: (action: StringExpression) => ScriptBuilder;
+  /** Execute an action (an {@link ActionExpression} reference). */
+  executeAction: (action: ActionExpression) => ScriptBuilder;
   /** Navigate to a position. */
   navigateTo: (x: NumberExpression, y: NumberExpression) => ScriptBuilder;
   /** Transition to a named reaction state. */
@@ -59,11 +60,11 @@ export type AutonomyApi = {
   /**
    * Register a reactive autonomy state machine for an entity.
    *
-   * @param entityName - Name or ID of the entity to attach autonomy to.
+   * @param entityName - The entity to attach autonomy to (an {@link EntityExpression} reference).
    * @param fn         - Callback receiving the autonomy builder.
    */
   setAutonomy: (
-    entityName: string,
+    entityName: EntityExpression,
     fn: (builder: AutonomyBuilder) => void
   ) => void;
 };

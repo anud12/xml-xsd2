@@ -7,7 +7,7 @@ export default (hostApi) => {
   };
   const key = string.of("key")
 
-  hostApi.runtime.setEntity({
+  const entity = hostApi.runtime.setEntity({
     id: string.of("entity_id"),
     numberMap: {
       "key": number.of(0)
@@ -17,8 +17,8 @@ export default (hostApi) => {
     }
   })
 
-  hostApi.runtime.setEffect({
-    name: "key-modify-if-par",
+  const keyModifyIfPar = hostApi.runtime.setEffect({
+    name: string.of("key-modify-if-par"),
     prepare: (context, input) => {
       const output = context.getEntityBy(filter).get(number.of(0)).flatMap(v => {
         return v.getNumber(key)
@@ -43,14 +43,14 @@ export default (hostApi) => {
     }
   })
 
-  hostApi.runtime.setEffect({
-    name: "event",
+  const event = hostApi.runtime.setEffect({
+    name: string.of("event"),
     reoccurAfterMs: (context, executionCount, input, output) => {
       return hostApi.runtime.maybe.of(number.of(10));
     },
     prepare: (context, input) => {
       /** Value must be condition expression, returned by prepare function */
-      const value = context.emitEvent(string.of("key-modify-if-par"), {});
+      const value = context.emitEvent(keyModifyIfPar, {});
       return {value};
     },
     apply: (context, output) => {
@@ -72,7 +72,7 @@ export default (hostApi) => {
     }
   })
 
-  hostApi.runtime.emitEvent("event", {});
+  hostApi.runtime.emitEvent(event, {});
 
   hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
@@ -89,7 +89,7 @@ export default (hostApi) => {
     align: "center",
     background: hostApi.ui.getAnimation(string.of("texture")),
   }, [
-    hostApi.ui.field("centerContent", { entity: "entity_id", map: "number", name: "key", fallback: "0" }),
+    hostApi.ui.field("centerContent", { entity: entity, map: "number", name: "key", fallback: "0" }),
   ])
 
   hostApi.ui.panel("isModifiedPanel", {
@@ -101,6 +101,6 @@ export default (hostApi) => {
     align: "center",
     background: hostApi.ui.getAnimation(string.of("texture")),
   }, [
-    hostApi.ui.field("isModifiedContent", { entity: "entity_id", map: "text", name: "isModified", fallback: "No" }),
+    hostApi.ui.field("isModifiedContent", { entity: entity, map: "text", name: "isModified", fallback: "No" }),
   ])
 }

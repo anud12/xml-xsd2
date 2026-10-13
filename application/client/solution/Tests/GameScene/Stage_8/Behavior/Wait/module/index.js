@@ -27,9 +27,9 @@ export default (hostApi) => {
             label: "sequence",
             score: () => number.of(1),
             do: (ctx) => [
-              ctx.action(string.of("first")),
+              ctx.action(first),
               ctx.wait(number.of(2)),
-              ctx.action(string.of("second"))
+              ctx.action(second)
             ]
           }
         ]
@@ -42,6 +42,6 @@ export default (hostApi) => {
     textMap: {
       "state": string.of("idle")
     },
-    behavior: guardBehavior.name
+    behavior: guardBehavior
   });
 };

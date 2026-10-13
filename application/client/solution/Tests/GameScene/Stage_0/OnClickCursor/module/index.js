@@ -2,7 +2,7 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.runtime.setEntity({
+  const node_1 = hostApi.runtime.setEntity({
     id: "node-1",
     numberMap: {
       column: number.of(0),
@@ -10,11 +10,9 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.setContainer({
+  const grid_1 = hostApi.runtime.setContainer({
     id: "grid-1",
-    entities: [
-      hostApi.runtime.string.of("node-1"),
-    ],
+    entities: [node_1],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
     getSpanX: (entity) => number.of(1),
@@ -29,7 +27,7 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.setAction({
+  const action = hostApi.runtime.setAction({
     name: string.of("move"),
     apply: (ctx) => {
       hostApi.runtime.log(
@@ -41,13 +39,13 @@ export default (hostApi) => {
   hostApi.ui.panel("board", {
     width: 300,
     height: 300,
-    container: string.of("grid-1"),
+    container: grid_1,
     layout: {
       columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
       rows: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
     },
     onClick: (ctx) => {
-      ctx.emitAction("move", {
+      ctx.emitAction(action, {
         x: ctx.cursor.getX(),
         y: ctx.cursor.getY(),
       });

@@ -8,7 +8,7 @@ export default (hostApi) => {
     duration: number.of(1),
   });
 
-  hostApi.runtime.setEntity({
+  const node1 = hostApi.runtime.setEntity({
     id: string.of("node-1"),
     numberMap: {
       column: number.of(0),
@@ -18,9 +18,9 @@ export default (hostApi) => {
 
   // A 10x5 container: the 700x500 plane is split into 10 columns of 70 and 5
   // rows of 100, so each container cell maps to exactly one grid cell.
-  hostApi.runtime.setContainer({
+  const grid1 = hostApi.runtime.setContainer({
     id: string.of("grid-1"),
-    entities: [string.of("node-1")],
+    entities: [node1],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
     getSpanX: (entity) => number.of(10),
@@ -39,13 +39,13 @@ export default (hostApi) => {
   // A speed-1 move toward (3,2): advances one cell per tick along a diagonal.
   // The shorter axis (y) settles at 2 and holds; the move keeps going until x
   // also reaches its target — the destination (3,2) — at which point it stops.
-  hostApi.runtime.setAction({
+  const moveToCursor = hostApi.runtime.setAction({
     name: string.of("move-to-cursor"),
     apply: (ctx) => {
-      
+
       ctx.moveTo({
-        containerId: string.of("grid-1"),
-        entityId: string.of("node-1"),
+        containerId: grid1,
+        entityId: node1,
         x: ctx.args.x,
         y: ctx.args.y,
         speed: 2,
@@ -61,7 +61,7 @@ export default (hostApi) => {
     x: 10,
     y: 20,
   }, [
-    hostApi.ui.field("col-value", { entity: "node-1", map: "number", name: "column", fallback: "0" }),
+    hostApi.ui.field("col-value", { entity: node1, map: "number", name: "column", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("row", {
@@ -70,7 +70,7 @@ export default (hostApi) => {
     x: 100,
     y: 20,
   }, [
-    hostApi.ui.field("row-value", { entity: "node-1", map: "number", name: "row", fallback: "0" }),
+    hostApi.ui.field("row-value", { entity: node1, map: "number", name: "row", fallback: "0" }),
   ]);
 
   hostApi.runtime.setAnimation(hostApi.runtime.string.of("bar-loop"), {
@@ -96,7 +96,7 @@ export default (hostApi) => {
   // the view places the entity panel exactly on its cell, re-resolved each tick
   // so the panel tracks the move.
   hostApi.ui.containerView("plane", {
-    container: "grid-1",
+    container: grid1,
     width: 500,
     height: 500,
     x: 10,
@@ -110,7 +110,7 @@ export default (hostApi) => {
     background: hostApi.ui.getAnimation(string.of("marker")),
     onClick: (ctx) => {
       hostApi.runtime.log("plane click col=" + ctx.cursor.getX() + " row=" + ctx.cursor.getY());
-      ctx.emitAction("move-to-cursor", {
+      ctx.emitAction(moveToCursor, {
         x: ctx.cursor.getX(),
         y: ctx.cursor.getY(),
       });

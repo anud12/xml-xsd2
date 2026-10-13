@@ -13,6 +13,13 @@ export default (hostApi) => {
       hostApi.runtime.log("___hover prop exit fired line___");
     }
   });
+  // The hover emitAction reference is the base action name; the engine appends
+  // ":enter"/":exit" when firing, so the handle must name the base.
+  const hoverProp = hostApi.runtime.setAction({
+    name: string.of("hoverProp"),
+    apply: () => {
+    }
+  });
   hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
@@ -24,7 +31,7 @@ export default (hostApi) => {
     height: 100,
     background: hostApi.ui.getAnimation(string.of("texture")),
     onHover: {
-      emitAction: "hoverProp",
+      emitAction: hoverProp,
     },
   }, [
     hostApi.ui.panel("inner", {

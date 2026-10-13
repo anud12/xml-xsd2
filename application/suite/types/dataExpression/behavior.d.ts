@@ -1,7 +1,8 @@
-import { NumberExpression } from "./primitives/numberExpression";
-import { StringExpression } from "./primitives/stringExpression";
-import { ConditionExpression } from "./primitives/conditionExpression";
+import { NumberExpression } from "../primitives/numberExpression";
+import { StringExpression } from "../primitives/stringExpression";
+import { ConditionExpression } from "../primitives/conditionExpression";
 import { Entity } from "./Entity";
+import { ActionExpression } from "./action/no-input-action";
 
 /**
  * A single atomic step within a behavior rule's execution script.
@@ -16,8 +17,8 @@ import { Entity } from "./Entity";
  */
 export type BehaviorStep =
   | {
-      /** The action name to execute. */
-      action: StringExpression;
+      /** The action to execute (an {@link ActionExpression} reference). */
+      action: ActionExpression;
       /** Arbitrary payload passed to the action at emit time. */
       payload?: Record<string, any>;
     }
@@ -33,8 +34,8 @@ export type BehaviorStep =
  * (queries, state, rng) is deliberately out of reach.
  */
 export type DoContext = {
-  /** Declare a step that executes the action. */
-  action: (name: StringExpression, payload?: Record<string, any>) => BehaviorStep;
+  /** Declare a step that executes the action (an {@link ActionExpression} reference). */
+  action: (action: ActionExpression, payload?: Record<string, any>) => BehaviorStep;
   /** Declare a step that waits for the given duration. */
   wait: (duration: NumberExpression) => BehaviorStep;
 };
@@ -81,12 +82,13 @@ export type BehaviorNode =
   | { utility: UtilityRule[] };
 
 /**
- * A reference to a registered behavior.
- * Attach to entities via the `behavior` field in `setEntity` arguments.
+ * A read-only reference to a registered behavior, returned by
+ * `hostApi.runtime.setBehavior`. Attach to entities via the `behavior`
+ * field in `setEntity` arguments.
  */
-export type BehaviorReference = {
-  /** The name expression used to register this behavior. */
-  readonly name: StringExpression;
+export type BehaviorExpression = {
+  /** The behavior's name. */
+  readonly name: string;
 };
 
 /**
@@ -132,7 +134,7 @@ export type BehaviorApi = {
    *
    * @param definition - Declarative behavior definition: a name plus
    *   the behavior graph root (`priority` or `utility`).
-   * @returns BehaviorReference for the `behavior` field in `setEntity`.
+   * @returns BehaviorExpression for the `behavior` field in `setEntity`.
    */
-   setBehavior: (definition: { name: StringExpression } & BehaviorNode) => BehaviorReference;
+    setBehavior: (definition: { name: StringExpression } & BehaviorNode) => BehaviorExpression;
 };

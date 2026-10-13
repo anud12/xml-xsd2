@@ -1,13 +1,22 @@
-import {StringExpression} from "./primitives/stringExpression";
-import {ExpressionTypes} from "./primitives/expression";
-import {MaybeExpression} from "./primitives/maybeExpression";
-import {NumberExpression} from "./primitives/numberExpression";
-import {ConditionExpression} from "./primitives/conditionExpression";
+import {StringExpression} from "../primitives/stringExpression";
+import {ExpressionTypes} from "../primitives/expression";
+import {MaybeExpression} from "../primitives/maybeExpression";
+import {NumberExpression} from "../primitives/numberExpression";
+import {ConditionExpression} from "../primitives/conditionExpression";
 import {Entity, EntityExpression} from "./Entity";
-import {EntityFilter} from "./EntityFilter";
-import {ListExpression} from "./primitives/ListExpression";
+import {EntityFilter} from "../EntityFilter";
+import {ListExpression} from "../primitives/ListExpression";
 
-export type SetEffectFunction = <Input, Output>(argument: SetEventArgs<Input, Output>) => void;
+/**
+ * A read-only reference to a registered effect, returned by
+ * `hostApi.runtime.setEffect`. Use it anywhere an effect is referenced.
+ */
+export type EffectExpression = {
+  /** The effect's name. */
+  name: string;
+}
+
+export type SetEffectFunction = <Input, Output>(argument: SetEventArgs<Input, Output>) => EffectExpression;
 
 export type EventContext = {
   /**
@@ -20,7 +29,7 @@ export type EventContext = {
    * The runtime enforces a recursion guard to prevent infinite synchronous
    * emission chains.
    */
-  emitEvent: <T>(eventName: StringExpression, input: Record<string, any>) => T;
+  emitEvent: <T>(effect: EffectExpression, input: Record<string, any>) => T;
 
   /**
    * Create a new entity during the effect's `apply` phase.
@@ -63,7 +72,7 @@ export type EventContext = {
 }
 
 export type SetEventArgs<Input, Output> = {
-  name: string;
+  name: StringExpression;
   description?: string;
   input?: Record<string, { type: ExpressionTypes; description?: string }>;
   output?: Record<string, { type: ExpressionTypes; description?: string }>;

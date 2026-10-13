@@ -2,7 +2,7 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.world.sectorGrid(string.of("cave"));
+  const cave = hostApi.world.sectorGrid(string.of("cave"));
 
   // An L-shaped sector at [0,0] over cells (0,0),(1,0),(0,1). Its (1,0) arm has
   // an opening on the south edge, facing the (currently empty) square (1,1).
@@ -12,7 +12,7 @@ export default (hostApi) => {
     id: string.of("room-l"),
     entities: [],
     sector: {
-      grid: string.of("cave"),
+      grid: cave,
       footprint: [[0, 0], [1, 0], [0, 1]],
       at: [0, 0],
       openings: [
@@ -21,27 +21,18 @@ export default (hostApi) => {
     },
   });
 
-  // The action the test fires: it does nothing itself, it delegates to an
-  // effect (an action -> effect indirection).
-  hostApi.runtime.setAction({
-    name: string.of("build-room"),
-    apply: (ctx) => {
-      ctx.emitEffect("create-room", {});
-    },
-  });
-
   // The effect: creates a brand-new single-cell sector "room-b" at (1,1),
   // directly south of the L's (1,0) arm, with a north opening that faces the
   // L's south opening. This links the two sectors and forms a portal, and the
   // L's previously-unlinked doorway resolves into that linked portal.
-  hostApi.runtime.setEffect({
-    name: "create-room",
+  const createRoom = hostApi.runtime.setEffect({
+    name: string.of("create-room"),
     apply: () => {
       hostApi.runtime.setContainer({
     id: string.of("room-b"),
         entities: [],
         sector: {
-          grid: string.of("cave"),
+          grid: cave,
           footprint: [[0, 0]],
           at: [1, 1],
           openings: [
@@ -49,6 +40,15 @@ export default (hostApi) => {
           ],
         },
       });
+    },
+  });
+
+  // The action the test fires: it does nothing itself, it delegates to an
+  // effect (an action -> effect indirection).
+  hostApi.runtime.setAction({
+    name: string.of("build-room"),
+    apply: (ctx) => {
+      ctx.emitEffect(createRoom, {});
     },
   });
 
@@ -65,7 +65,7 @@ export default (hostApi) => {
   // A top-down view of the grid. The L occupies (0,0),(1,0),(0,1); the
   // dynamically created room-b appears at (1,1) after the action fires.
   hostApi.ui.sectorGrid("caveview", {
-    grid: "cave",
+    grid: cave,
     cellSize: 40,
     cellGap: 8,
     width: 700,

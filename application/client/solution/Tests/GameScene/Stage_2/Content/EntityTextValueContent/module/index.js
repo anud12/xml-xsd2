@@ -1,7 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
-  hostApi.runtime.setEntity({
+  const entity = hostApi.runtime.setEntity({
     id: string.of("entity_id"),
     textMap: {
       "textKey": string.of("textValue")
@@ -19,6 +19,6 @@ export default (hostApi) => {
     background: hostApi.ui.getAnimation(string.of("texture")),
     align: "center",
   }, [
-    hostApi.ui.field("content", { entity: "entity_id", map: "text", name: "textKey", fallback: "" }),
+    hostApi.ui.field("content", { entity: entity, map: "text", name: "textKey", fallback: "" }),
   ])
 }

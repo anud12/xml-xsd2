@@ -56,6 +56,12 @@ pub(super) fn host_api_script_set_entity()
             globalThis.__logs = globalThis.__logs || [];
             globalThis.__logs.push('behavior attached: ' + id + ' -> ' + (bVal ? bVal.name : ''));
         }
+        return {
+            id: id,
+            value: id,
+            toString: function() { return id; },
+            toJSON: function() { return id; }
+        };
     },"#
 }
 
@@ -75,8 +81,11 @@ pub(super) fn host_api_script_set_container()
             globalThis.__containerData[resolvedId] = arg;
             var data = arg;
             var out = {id: resolvedId};
+            // Members are stored as the references the module passed (or plain
+            // ids). A reference resolves to its own id at serialization time
+            // via `toJSON`, so nothing here unwraps it.
             if (data.entities) {
-                out.entities = data.entities.map(function(e) { return String(e); });
+                out.entities = data.entities.slice();
             }
             if (data.textMap) out.textMap = data.textMap;
             if (data.numberMap) out.numberMap = data.numberMap;
@@ -127,6 +136,12 @@ pub(super) fn host_api_script_set_container()
                     globalThis.__registeredSectors.push(__sec);
                 }
             }
+            return {
+                id: resolvedId,
+                value: resolvedId,
+                toString: function() { return resolvedId; },
+                toJSON: function() { return resolvedId; }
+            };
         } catch(e) { /* ignore */ }
     },"#
 }

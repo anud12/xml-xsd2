@@ -1,11 +1,9 @@
-import {NumberMapExpression} from "./numberMap";
-import {TextMapExpression} from "./textMap";
 import {ContainerExpression} from "./Contaier";
-import {StringExpression} from "./primitives/stringExpression";
-import {ListExpression} from "./primitives/ListExpression";
-import {NumberExpression} from "./primitives/numberExpression";
-import {MaybeExpression} from "./primitives/maybeExpression";
-import {EntityFilterApi} from "./EntityFilter";
+import {StringExpression} from "../primitives/stringExpression";
+import {ListExpression} from "../primitives/ListExpression";
+import {NumberExpression} from "../primitives/numberExpression";
+import {MaybeExpression} from "../primitives/maybeExpression";
+import {EntityFilterApi} from "../EntityFilter";
 
 export type EntityExpressionApi = {
   /** Create an empty entity builder */
@@ -51,12 +49,6 @@ export type EntityExpressionType = {
 }
 
 export type EntityExpression = {
-  /** Replace the entity's text_map with the supplied TextMapExpression */
-  withTextMap: (textMap: TextMapExpression) => EntityExpression,
-  /** Replace the entity's number_map with the supplied NumberMapExpression */
-  withNumberMap: (numberMap: NumberMapExpression) => EntityExpression,
-  /** Append a container membership (ContainerExpression or ContainerReference) */
-  withContainer: (container: ContainerExpression) => EntityExpression,
   /** The containers this entity belongs to. */
   containers: ListExpression<ContainerExpression>;
   /** The entity's id. */

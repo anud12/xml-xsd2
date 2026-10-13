@@ -2,15 +2,15 @@
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
 
-  hostApi.runtime.setEntity({
+  const entity = hostApi.runtime.setEntity({
     id: string.of("entity_id"),
     numberMap: {
       "key": number.of(0)
     }
   })
 
-  hostApi.runtime.setEffect({
-    name:"repeat",
+  const repeat = hostApi.runtime.setEffect({
+    name: string.of("repeat"),
     reoccurAfterMs: (context, executionCount, input, output) => {
       return hostApi.runtime.maybe.none();
     },
@@ -24,7 +24,7 @@ export default (hostApi) => {
     }
   })
 
-  hostApi.runtime.emitEvent("repeat", {});
+  hostApi.runtime.emitEvent(repeat, {});
 
   hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
@@ -39,6 +39,6 @@ export default (hostApi) => {
     align: "center",
     background: hostApi.ui.getAnimation(string.of("texture")),
   }, [
-    hostApi.ui.field("content", { entity: "entity_id", map: "number", name: "key", fallback: "0" }),
+    hostApi.ui.field("content", { entity: entity, map: "number", name: "key", fallback: "0" }),
   ])
 }

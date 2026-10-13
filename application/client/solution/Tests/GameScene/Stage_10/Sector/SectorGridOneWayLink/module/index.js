@@ -2,7 +2,7 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.world.sectorGrid(string.of("cave"));
+  const cave = hostApi.world.sectorGrid(string.of("cave"));
 
   // A single-cell sector "room-a" at [0,0]. It declares NO openings, so it
   // can never link to a neighbour: a doorway on the other side of the shared
@@ -11,30 +11,24 @@ export default (hostApi) => {
     id: string.of("room-a"),
     entities: [],
     sector: {
-      grid: string.of("cave"),
+      grid: cave,
       footprint: [[0, 0]],
       at: [0, 0],
       openings: [],
     },
   });
 
-  // The action the test fires: it delegates to an effect.
-  hostApi.runtime.setAction({
-    name: string.of("build-b"),
-    apply: (ctx) => { ctx.emitEffect("create-b", {}); },
-  });
-
   // The effect: creates "room-b" at (1,0), directly east of A, with a WEST
   // opening facing A. Because A has no opening facing back, this opening is
   // unlinked: a red dead-end shaft on the A-B wall, and no portal forms.
-  hostApi.runtime.setEffect({
-    name: "create-b",
+  const createB = hostApi.runtime.setEffect({
+    name: string.of("create-b"),
     apply: () => {
       hostApi.runtime.setContainer({
     id: string.of("room-b"),
         entities: [],
         sector: {
-          grid: string.of("cave"),
+          grid: cave,
           footprint: [[0, 0]],
           at: [1, 0],
           openings: [
@@ -43,6 +37,12 @@ export default (hostApi) => {
         },
       });
     },
+  });
+
+  // The action the test fires: it delegates to an effect.
+  hostApi.runtime.setAction({
+    name: string.of("build-b"),
+    apply: (ctx) => { ctx.emitEffect(createB, {}); },
   });
 
   hostApi.runtime.setAnimation(string.of("viewbg"), {
@@ -55,7 +55,7 @@ export default (hostApi) => {
   });
 
   hostApi.ui.sectorGrid("caveview", {
-    grid: "cave",
+    grid: cave,
     cellSize: 40,
     cellGap: 8,
     width: 700,

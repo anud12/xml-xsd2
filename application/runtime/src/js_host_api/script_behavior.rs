@@ -46,18 +46,25 @@ pub fn host_api_script_behavior() -> &'static str {
                         'behavior: invalid step in ' + rule.label);
                 }
                 if (st.action !== undefined) {
+                    var actRef = st.action;
+                    var actName = (actRef && typeof actRef === 'object')
+                        ? (typeof actRef.name === 'string' ? actRef.name
+                            : (typeof actRef.value === 'string' ? actRef.value
+                                : String(actRef)))
+                        : actRef;
+                    st.action = actName;
                     var found = false;
                     for (var a = 0; a < registered.length; a++) {
                         var act = registered[a];
                         if (act && typeof act === 'object'
-                            && act.name === st.action) {
+                            && act.name === actName) {
                             found = true;
                             break;
                         }
                     }
                     if (!found) {
                         throw new Error('behavior: action '
-                            + st.action + ' not registered in '
+                            + actName + ' not registered in '
                             + rule.label);
                     }
                 }
@@ -106,6 +113,11 @@ pub fn host_api_script_behavior() -> &'static str {
         globalThis.__behaviorDefinitions[resolvedName] = definition;
         globalThis.__logs = globalThis.__logs || [];
         globalThis.__logs.push('behavior registered: ' + resolvedName);
-        return { name: definition.name };
+        return {
+            name: resolvedName,
+            value: resolvedName,
+            toString: function() { return resolvedName; },
+            toJSON: function() { return resolvedName; }
+        };
     },"#
 }

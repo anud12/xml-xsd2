@@ -24,7 +24,11 @@ var hostApi={
   world:{
     sectorGrid:function(id){
       var resolvedId=typeof id==='object'?id.value:id;
-      return { id: resolvedId, sectorGrid: true };
+      return {
+        id: resolvedId, value: resolvedId, sectorGrid: true,
+        toString: function() { return resolvedId; },
+        toJSON: function() { return resolvedId; }
+      };
     }
   },
   runtime:{
@@ -41,6 +45,7 @@ var hostApi={
       var resolvedName=typeof name==='object'?name.value:name;
       if(typeof resolvedName==='string'){
         __registeredAnimations[resolvedName]=args;
+        return { name:resolvedName, value:resolvedName, toString:function(){return resolvedName;}, toJSON:function(){return resolvedName;} };
       }
     },
     getAnimation:function(name,animationDuration){

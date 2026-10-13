@@ -2,7 +2,7 @@
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
 
-  hostApi.runtime.setEntity({
+  const entity = hostApi.runtime.setEntity({
     id: string.of("entity_id"),
     textMap: {
       "textKey": string.of("textValue")
@@ -24,7 +24,7 @@ export default (hostApi) => {
     height: 100,
     x: 150,
   }, [
-    hostApi.ui.field("field-text", { entity: "entity_id", map: "text", name: "textKey", fallback: "fallback" }),
+    hostApi.ui.field("field-text", { entity: entity, map: "text", name: "textKey", fallback: "fallback" }),
   ])
 
   hostApi.ui.panel("number-host", {
@@ -32,6 +32,6 @@ export default (hostApi) => {
     height: 100,
     x: 300,
   }, [
-    hostApi.ui.field("number-text", { entity: "entity_id", map: "number", name: "numberKey", fallback: "?" }),
+    hostApi.ui.field("number-text", { entity: entity, map: "number", name: "numberKey", fallback: "?" }),
   ])
 }

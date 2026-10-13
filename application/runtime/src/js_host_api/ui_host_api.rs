@@ -31,6 +31,11 @@ var __hapi_setAnimation = function (name, args) {
         "': duration is required");
     }
     globalThis.__registeredAnimations[resolvedName] = args;
+    return {
+      name: resolvedName, value: resolvedName,
+      toString: function() { return resolvedName; },
+      toJSON: function() { return resolvedName; }
+    };
   }
 };
 var __hapi_isAnimation = function (v) {
@@ -276,7 +281,11 @@ if(!hostApi.world){
   hostApi.world={
     sectorGrid:function(id){
       var resolvedId=typeof id==='object'?id.value:id;
-      return { id: resolvedId, sectorGrid: true };
+      return {
+        id: resolvedId, value: resolvedId, sectorGrid: true,
+        toString: function() { return resolvedId; },
+        toJSON: function() { return resolvedId; }
+      };
     }
   };
 }

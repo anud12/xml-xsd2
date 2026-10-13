@@ -16,7 +16,7 @@ export default (hostApi) => {
   // view-local (70, 50). The area box (30 x 20) covers only the TOP half of
   // the 30x40 item texture, so the bottom of the texture stays uncovered:
   // the outline+body blend over the top, the bare yellow texture shows below.
-  hostApi.runtime.setEntity({
+  const room = hostApi.runtime.setEntity({
     id: string.of("room"),
     numberMap: { column: number.of(10), row: number.of(10) },
     areaMap: {
@@ -26,9 +26,9 @@ export default (hostApi) => {
     },
   });
 
-  hostApi.runtime.setContainer({
+  const grid1 = hostApi.runtime.setContainer({
     id: string.of("grid-1"),
-    entities: [string.of("room")],
+    entities: [room],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
     // Give the item a 30x40 span so its yellow texture stretches across the
@@ -45,7 +45,7 @@ export default (hostApi) => {
   // as the background; the outline must render OVER that texture, so the
   // red outline edge must beat the yellow texture at the edge pixels.
   hostApi.ui.containerView("world", {
-    container: "grid-1",
+    container: grid1,
     width: 700,
     height: 500,
     area: [

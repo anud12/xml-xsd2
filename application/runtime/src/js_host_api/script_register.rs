@@ -44,9 +44,7 @@ pub(super) fn host_api_script_register_block(
     s.push_str("scanFn(ev.prepare, owner); ");
     s.push_str("scanFn(ev.apply, owner); ");
     s.push_str("} catch(e) { /* ignore */ } ");
-    if kind == "setAction" || kind == "setEffect" {
-        s.push_str("return { name: n }; ");
-    }
+    s.push_str("return { name: n, value: n, toString: function() { return n; }, toJSON: function() { return n; } }; ");
     s.push_str("},");
     s
 }

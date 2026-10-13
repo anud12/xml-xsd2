@@ -1,5 +1,7 @@
-import { ConditionExpression } from "../primitives/conditionExpression";
-import { TemporalExpression } from "../primitives/temporalExpression";
+import { ConditionExpression } from "../../primitives/conditionExpression";
+import { TemporalExpression } from "../../primitives/temporalExpression";
+import { StringExpression } from "../../primitives/stringExpression";
+import { ContainerExpression } from "../Contaier";
 import { ActionContext, ContainerPoint } from "./common";
 
 /**
@@ -7,7 +9,8 @@ import { ActionContext, ContainerPoint } from "./common";
  */
 export type PointActionTarget = {
   type: "point";
-  containerId: string;
+  /** The container the point is in (a {@link ContainerExpression} reference). */
+  containerId: ContainerExpression;
   position: ContainerPoint;
 };
 
@@ -15,7 +18,7 @@ export type PointActionTarget = {
  * Arguments for setting a point action via hostApi.setPointAction
  */
 export type SetPointActionArgs = {
-  name: string;
+  name: StringExpression;
   description?: string;
   cooldownGroup?: string;
   guard?: (context: ActionContext, target: PointActionTarget) => ConditionExpression;

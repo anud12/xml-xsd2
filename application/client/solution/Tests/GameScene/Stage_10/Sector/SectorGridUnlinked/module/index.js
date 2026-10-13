@@ -2,7 +2,7 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.world.sectorGrid(string.of("cave"));
+  const cave = hostApi.world.sectorGrid(string.of("cave"));
 
   // A single-cell sector at [1,1] with openings on all four boundary edges.
   // No neighbouring sector exists, so none of these openings can link; every
@@ -12,7 +12,7 @@ export default (hostApi) => {
     id: string.of("room-a"),
     entities: [],
     sector: {
-      grid: string.of("cave"),
+      grid: cave,
       footprint: [[0, 0]],
       at: [1, 1],
       openings: [
@@ -37,7 +37,7 @@ export default (hostApi) => {
   // A top-down view of the grid. The lone cell (1,1) sits at local 44..76;
   // its four unlinked openings render as shafts on the cell's boundary edges.
   hostApi.ui.sectorGrid("caveview", {
-    grid: "cave",
+    grid: cave,
     cellSize: 40,
     cellGap: 8,
     width: 700,

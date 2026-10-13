@@ -1,7 +1,7 @@
 import { StringExpression } from "./primitives/stringExpression";
 import { NumberExpression } from "./primitives/numberExpression";
 import { ConditionExpression } from "./primitives/conditionExpression";
-import { ContainerExpression } from "./Contaier";
+import { ContainerExpression } from "./dataExpression/Contaier";
 
 /** API surface for building composable entity filters used by queries/rules/effects. */
 export type EntityFilterApi = {

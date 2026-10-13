@@ -2,7 +2,7 @@
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
 
-  hostApi.runtime.setEntity({
+  const entity = hostApi.runtime.setEntity({
     id: string.of("entity_id"),
     numberMap: {
       "numberKey": number.of(42)
@@ -22,6 +22,6 @@ export default (hostApi) => {
     align: "center",
     background: hostApi.ui.getAnimation(string.of("texture")),
   }, [
-    hostApi.ui.field("content", { entity: "entity_id", map: "number", name: "numberKey", fallback: "0" }),
+    hostApi.ui.field("content", { entity: entity, map: "number", name: "numberKey", fallback: "0" }),
   ])
 }

@@ -54,6 +54,25 @@ function (root) {
         }
     }
 
+    // Cross-structure reference edges accept either a raw id string or a
+    // registered *Expression handle (the object returned by set*/world.sectorGrid).
+    // A handle carries its id on `.value`/`.name`/`.id` and a `toString`; this
+    // normalizes it back to the plain id string the engine stores and matches on.
+    function resolveId(v) {
+        if (v == null) return v;
+        if (typeof v === 'string') return v;
+        if (typeof v === 'object') {
+            if (typeof v.value === 'string' && v.value.length > 0) return v.value;
+            if (typeof v.name === 'string' && v.name.length > 0) return v.name;
+            if (typeof v.id === 'string' && v.id.length > 0) return v.id;
+            if (typeof v.toString === 'function') {
+                var s = String(v);
+                if (s.length > 0 && s !== '[object Object]') return s;
+            }
+        }
+        return String(v);
+    }
+
     function childIds(children) {
         return (children || []).map(function (c) {
             if (typeof c !== 'string' || c.length === 0) {
@@ -778,7 +797,8 @@ function (root) {
             if (!args || typeof args !== 'object') {
                 throw new Error('ui: entityList args must be an object with container');
             }
-            if (typeof args.container !== 'string' || args.container.length === 0) {
+            var entityListContainer = resolveId(args.container);
+            if (typeof entityListContainer !== 'string' || entityListContainer.length === 0) {
                 throw new Error('ui: entityList args.container must be a non-empty container id');
             }
             if (typeof render !== 'function') {
@@ -788,7 +808,7 @@ function (root) {
             return register({
                 id: name,
                 kind: 'division',
-                options: { container: args.container },
+                options: { container: entityListContainer },
                 children: [containerMarker(name)]
             });
         },
@@ -799,7 +819,8 @@ function (root) {
             if (!args || typeof args !== 'object') {
                 throw new Error('ui: containerView args must be an object with container, width, height');
             }
-            if (typeof args.container !== 'string' || args.container.length === 0) {
+            var containerViewContainer = resolveId(args.container);
+            if (typeof containerViewContainer !== 'string' || containerViewContainer.length === 0) {
                 throw new Error('ui: containerView args.container must be a non-empty container id');
             }
             if (typeof args.width !== 'number' || !(args.width > 0)) {
@@ -820,6 +841,7 @@ function (root) {
             for (var k in args) {
                 if (Object.prototype.hasOwnProperty.call(args, k)) opts[k] = args[k];
             }
+            opts.container = containerViewContainer;
             opts.viewWidth = args.width;
             opts.viewHeight = args.height;
             return register({
@@ -836,7 +858,8 @@ function (root) {
             if (!args || typeof args !== 'object') {
                 throw new Error('ui: sectorGrid args must be an object with grid');
             }
-            if (typeof args.grid !== 'string' || args.grid.length === 0) {
+            var sectorGridId = resolveId(args.grid);
+            if (typeof sectorGridId !== 'string' || sectorGridId.length === 0) {
                 throw new Error('ui: sectorGrid args.grid must be a non-empty grid id');
             }
             if (typeof render !== 'function') {
@@ -852,6 +875,7 @@ function (root) {
             for (var k in args) {
                 if (Object.prototype.hasOwnProperty.call(args, k)) opts[k] = args[k];
             }
+            opts.grid = sectorGridId;
             if (typeof opts.cellSize !== 'number' || !(opts.cellSize > 0)) opts.cellSize = 32;
             return register({
                 id: name,
@@ -864,7 +888,8 @@ function (root) {
             if (!binding || typeof binding !== 'object') {
                 throw new Error('ui: field binding must be an object with entity, map, name');
             }
-            if (typeof binding.entity !== 'string' || binding.entity.length === 0) {
+            var fieldEntity = resolveId(binding.entity);
+            if (typeof fieldEntity !== 'string' || fieldEntity.length === 0) {
                 throw new Error('ui: field binding.entity must be a non-empty entity id');
             }
             if (binding.map !== 'number' && binding.map !== 'text') {
@@ -878,7 +903,7 @@ function (root) {
                 id: id,
                 kind: 'field',
                 binding: {
-                    entity: binding.entity,
+                    entity: fieldEntity,
                     map: binding.map,
                     name: binding.name,
                     fallback: fallback

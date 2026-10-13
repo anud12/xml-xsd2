@@ -1,9 +1,10 @@
 import {NumberExpression} from "../primitives/numberExpression";
-import {StringExpression} from "../primitives/stringExpression";
-import {Entity, EntityExpression} from "../Entity";
-import {AnimationRegistrationArguments, GetAnimationFunction} from "../animation/AnimationRegistration";
+import {Entity, EntityExpression} from "../dataExpression/Entity";
+import {AnimationRegistrationArguments, AnimationExpression, GetAnimationFunction} from "../dataExpression/animation/AnimationRegistration";
 import {SpriteResource} from "../texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "../texture/SpriteMap";
+import {ContainerExpression, GridExpression} from "../dataExpression/Contaier";
+import {ActionExpression} from "../dataExpression/action/no-input-action";
 import {AlignOption} from "./Panel";
 
 /**
@@ -16,7 +17,7 @@ export type UiNodeId = string;
  * A panel background: an animation registration (with a name/duration/loop
  * resolved by the host) or a raw texture reference.
  */
-export type UiBackground = AnimationRegistrationArguments | SpriteResource;
+export type UiBackground = AnimationExpression | AnimationRegistrationArguments | SpriteResource;
 
 /**
  * Grid layout tracks. Modules use either weighted columns or explicit scale
@@ -46,10 +47,10 @@ export type UiPanelOptions = {
   align?: AlignOption;
   background?: UiBackground;
   border?: { texture?: UiBackground; thickness?: number; width?: number; height?: number };
-   onHover?: { texture?: UiBackground; background?: UiBackground; thickness?: number; emitAction?: string; stopPropagation?: boolean };
+    onHover?: { texture?: UiBackground; background?: UiBackground; thickness?: number; emitAction?: ActionExpression; stopPropagation?: boolean };
    onClick?: (ctx: UiClickContext) => void;
-   container?: string | any;
-   layout?: UiLayout;
+    container?: ContainerExpression;
+    layout?: UiLayout;
     /**
      * Enables user edge/corner drag-resize. A bare `true` allows free resizing
      * on all four edges and corners. An object form accepts options:
@@ -88,7 +89,7 @@ export type UiPanelOptions = {
  * Click context handed to a panel's onClick handler.
  */
 export type UiClickContext = {
-  emitAction: (actionName: string, args?: Record<string, unknown>) => void;
+  emitAction: (action: ActionExpression, args?: Record<string, unknown>) => void;
   cursor?: { getX: () => number; getY: () => number };
   [key: string]: unknown;
 };
@@ -98,7 +99,7 @@ export type UiClickContext = {
  * it as the field's text/number value.
  */
 export type UiFieldBinding = {
-  entity: string;
+  entity: EntityExpression | Entity;
   map: "number" | "text";
   name: string;
   fallback?: string;
@@ -111,7 +112,7 @@ export type UiFieldBinding = {
  * is re-laid-out every tick so panels track movement.
  */
 export type UiContainerViewOptions = UiPanelOptions & {
-  container: string;
+  container: ContainerExpression;
   /** Total view width in logical units (the whole view, not per-cell). */
   width: number;
   /** Total view height in logical units (the whole view, not per-cell). */
@@ -142,8 +143,8 @@ export type UiContainerViewOptions = UiPanelOptions & {
  * tick. Portals are engine-owned; the render is never invoked for them.
  */
 export type UiSectorGridOptions = UiPanelOptions & {
-  /** The runtime sector grid id (declared via world.sectorGrid). */
-  grid: string;
+  /** The runtime sector grid (a {@link GridExpression} reference, declared via world.sectorGrid). */
+  grid: GridExpression;
   /** Edge length of one grid cell in logical units (default 32). */
   cellSize?: number;
   /** Gap between adjacent cells in logical units: each cell is inset by half
@@ -179,7 +180,7 @@ export type UiSectorGridItem = {
  * the render lambda) per entity in the named container.
  */
 export type UiEntityListOptions = {
-  container: string;
+  container: ContainerExpression;
   vertical?: boolean;
 };
 

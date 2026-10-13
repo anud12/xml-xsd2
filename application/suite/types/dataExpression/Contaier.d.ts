@@ -1,8 +1,6 @@
 import {EntityExpression} from "./Entity";
-import {NumberExpression} from "./primitives/numberExpression";
-import {StringExpression} from "./primitives/stringExpression";
-import {TextMapExpression} from "./textMap";
-import {NumberMapExpression} from "./numberMap";
+import {NumberExpression} from "../primitives/numberExpression";
+import {StringExpression} from "../primitives/stringExpression";
 
 export type ContainerCreationArguments = {
   /** Keyed string metadata for the container */
@@ -31,7 +29,12 @@ export type ContainerCreationArguments = {
   /** Optional sector/portal attachment on a named grid (see WorldApi). */
   sector?: SectorDeclaration
 
-  entities: Array<StringExpression>
+  /**
+   * Member entities. Each entry is an {@link EntityExpression} reference
+   * (the value returned by `hostApi.runtime.setEntity`, or an entity from
+   * `getEntityBy`), resolved to its id by the runtime.
+   */
+  entities: Array<EntityExpression>
 }
 
 /** A grid square coordinate [x, y]. y increases downward. */
@@ -51,9 +54,19 @@ export type SectorOpening = {
   length: NumberExpression,
 }
 
+/**
+ * A read-only reference to a named sector grid, returned by
+ * `hostApi.world.sectorGrid`. Use it anywhere a grid is referenced.
+ */
+export type GridExpression = {
+  /** The grid's id. */
+  id: string;
+}
+
 /** A polyomino footprint placed on a named grid; shapes topology only. */
 export type SectorDeclaration = {
-  grid: StringExpression,
+  /** The named grid this footprint is placed on (a {@link GridExpression} reference). */
+  grid: GridExpression,
   /** Footprint square offsets, normalized to min x/y = 0. */
   footprint: Array<SectorCoord>,
   /** Grid coordinate the whole footprint is placed at. */
@@ -80,22 +93,28 @@ export type ContainerExpressionType = {
 export type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
 
 export type ContainerExpression = {
-  /** Append an inline member entity built using EntityExpression */
-  withEntity: (entity: EntityExpression) => ContainerExpression,
-  /** Replace the entity's text_map with the supplied TextMapExpression */
-  withTextMap: (textMap: TextMapExpression) => ContainerExpression,
-  /** Replace the entity's number_map with the supplied NumberMapExpression */
-  withNumberMap: (numberMap: NumberMapExpression) => ContainerExpression,
-  /** Declare the x-coordinate function */
-  withGetX: (getX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
-  /** Declare the y-coordinate function */
-  withGetY: (getY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
-  /** Declare the x-span function */
-  withGetSpanX: (getSpanX: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
-  /** Declare the y-span function */
-  withGetSpanY: (getSpanY: (entity: EntityExpression) => NumberExpression) => ContainerExpression,
-  /** Declare the x-axis size bounds */
-  withSizeX: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
-  /** Declare the y-axis size bounds */
-  withSizeY: (value: NumberExpression, outOfBounds: OutOfBoundsRule) => ContainerExpression,
+  /** The container's id. */
+  id: string;
+  /** Member entities (an {@link EntityExpression} reference). */
+  entities: Array<EntityExpression>;
+  /** Keyed string metadata. */
+  textMap?: Record<string, StringExpression>;
+  /** Keyed numeric metadata. */
+  numberMap?: Record<string, NumberExpression>;
+  /** The x-coordinate function. */
+  getX?: (entity: EntityExpression) => NumberExpression;
+  /** The y-coordinate function. */
+  getY?: (entity: EntityExpression) => NumberExpression;
+  /** The x-span function. */
+  getSpanX?: (entity: EntityExpression) => NumberExpression;
+  /** The y-span function. */
+  getSpanY?: (entity: EntityExpression) => NumberExpression;
+  /** The x-axis size bounds. */
+  sizeX?: { value: NumberExpression, outOfBounds: OutOfBoundsRule };
+  /** The y-axis size bounds. */
+  sizeY?: { value: NumberExpression, outOfBounds: OutOfBoundsRule };
+  /** Marker placement over each entity's span. */
+  alignment?: ContainerAlignment;
+  /** Optional sector/portal attachment. */
+  sector?: SectorDeclaration;
 }

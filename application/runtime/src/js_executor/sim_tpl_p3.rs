@@ -9,6 +9,10 @@ const SIM_TPL_P3: &str = r#"
     if (typeof ef.apply === 'function') { try { ef.apply(buildEventContext(), prepared); } catch(e) {} }
   }
   function emitEvent(name, payload) {
+    if (name && typeof name === 'object') {
+      name = (typeof name.name === 'string') ? name.name
+        : ((typeof name.value === 'string') ? name.value : String(name));
+    }
     globalThis.__pendingEffects = globalThis.__pendingEffects || [];
     globalThis.__pendingEffects.push({ name: name, payload: payload });
   }

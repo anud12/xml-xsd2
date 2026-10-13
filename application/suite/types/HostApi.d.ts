@@ -3,27 +3,28 @@ import {NumberExpressionApi} from "./primitives/numberExpression";
 import {StringExpression, StringExpressionApi} from "./primitives/stringExpression";
 import {MaybeExpressionApi} from "./primitives/maybeExpression";
 import {TemporalExpressionApi} from "./primitives/temporalExpression";
-import {SetEffectFunction} from "./Effect";
-import {EntityExpressionApi} from "./Entity";
-import {ContainerExpressionApi, ContainerCreationArguments, SectorSide} from "./Contaier";
+import {SetEffectFunction, EffectExpression} from "./dataExpression/Effect";
+import {EntityExpressionApi, EntityExpression} from "./dataExpression/Entity";
+import {ContainerExpressionApi, ContainerExpression, ContainerCreationArguments, SectorSide, GridExpression} from "./dataExpression/Contaier";
 import {NumberMapExpressionApi} from "./numberMap";
 import {TextMapExpressionApi} from "./textMap";
-import {SetActionFunction} from "./action";
+import {SetActionFunction} from "./dataExpression/action";
 import {RegisterPanelFunction} from "./ui/Panel";
 import {UiApi} from "./ui/Ui";
 import {SpriteResource} from "./texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "./texture/SpriteMap";
-import {EntityCreationArguments} from "./Entity";
-import {SetAnimationFunction, GetAnimationFunction} from "./animation/AnimationRegistration";
+import {EntityCreationArguments} from "./dataExpression/Entity";
+import {SetAnimationFunction, GetAnimationFunction} from "./dataExpression/animation/AnimationRegistration";
 import {AutonomyApi} from "./autonomy";
+import {BehaviorExpression} from "./dataExpression/behavior";
 
 /**
  * World/sector namespace: `world.sectorGrid(id)` declares a named grid.
  * Sectors attach to a grid via a container's optional `sector` field.
  */
 export type WorldApi = {
-  /** Declares a named sector grid and returns a reference to it. */
-  sectorGrid: (id: StringExpression) => { id: string },
+  /** Declares a named sector grid and returns a {@link GridExpression} reference to it. */
+  sectorGrid: (id: StringExpression) => GridExpression,
 }
 
 /**
@@ -48,24 +49,31 @@ export type HostApi = {
     entity: EntityExpressionApi,
     container: ContainerExpressionApi,
 
-    /** Sets (creates or updates) an entity by id, including its field maps. */
-    setEntity: (arguments: { id: string | any } & EntityCreationArguments & { behavior?: any }) => void;
+    /**
+     * Sets (creates or updates) an entity by id, including its field maps.
+     * Returns an {@link EntityExpression} reference to the entity, usable
+     * anywhere an entity id is expected (e.g. `setContainer` `entities`).
+     */
+    setEntity: (arguments: { id: string | any } & EntityCreationArguments & { behavior?: BehaviorExpression }) => EntityExpression;
 
-    /** Sets (creates or updates) a container by id, including its geometry and members. */
-    setContainer: (arguments: { id: string | any } & ContainerCreationArguments) => void;
+    /**
+     * Sets (creates or updates) a container by id, including its geometry and
+     * members. Returns a {@link ContainerExpression} reference to the container.
+     */
+    setContainer: (arguments: { id: string | any } & ContainerCreationArguments) => ContainerExpression;
 
     /**
      * Links two sector openings into an explicit portal. Each opening names its
      * container, its local cell `[x, y]`, and the boundary side (`"N"|"E"|"S"|"W"`).
      */
     linkOpening: (
-      a: { container: string | any, cell: [number, number], side: SectorSide },
-      b: { container: string | any, cell: [number, number], side: SectorSide },
+      a: { container: ContainerExpression, cell: [number, number], side: SectorSide },
+      b: { container: ContainerExpression, cell: [number, number], side: SectorSide },
     ) => void;
 
     /** Sets (creates or updates) a named behavior (priority/utility policy) for entities to attach. */
     setBehavior: (arguments: {
-      name: string | any;
+      name: StringExpression;
       priority?: Array<{
         label?: string;
         condition?: (ctx?: any) => any;
@@ -75,7 +83,7 @@ export type HostApi = {
           do?: (ctx: any) => any;
         }>;
       }>;
-    }) => { name: string; [key: string]: any };
+    }) => BehaviorExpression;
 
     /** Sets (creates or updates) an effect handler in the runtime. */
     setEffect: SetEffectFunction,
@@ -86,8 +94,8 @@ export type HostApi = {
     /** Returns the animation registration for the given name and duration configuration. */
     getAnimation: GetAnimationFunction,
 
-    /** Emits a named event with arbitrary payload. */
-    emitEvent: <T>(eventName: string, arguments: T) => void
+    /** Emits a registered event (an {@link EffectExpression} reference) with arbitrary payload. */
+    emitEvent: <T>(effect: EffectExpression, arguments: T) => void
     /** Logs a string message to the runtime log. */
     log:(string:string) => void;
 

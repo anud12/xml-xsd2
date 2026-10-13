@@ -2,21 +2,21 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.runtime.setEntity({
+  const itemA = hostApi.runtime.setEntity({
     id: string.of("item-a"),
     numberMap: { value: number.of(1) },
   });
-  hostApi.runtime.setEntity({
+  const itemB = hostApi.runtime.setEntity({
     id: string.of("item-b"),
     numberMap: { value: number.of(2) },
   });
-  hostApi.runtime.setEntity({
+  const itemC = hostApi.runtime.setEntity({
     id: string.of("item-c"),
     numberMap: { value: number.of(3) },
   });
-  hostApi.runtime.setContainer({
+  const itemsContainer = hostApi.runtime.setContainer({
     id: string.of("items-container"),
-    entities: [string.of("item-a"), string.of("item-b"), string.of("item-c")],
+    entities: [itemA, itemB, itemC],
   });
 
   hostApi.runtime.setAnimation(string.of("texture"), {
@@ -35,7 +35,7 @@ export default (hostApi) => {
     align: "center",
     background: hostApi.ui.getAnimation(string.of("texture")),
   }, [
-    hostApi.ui.entityList("items", { container: "items-container" },
+    hostApi.ui.entityList("items", { container: itemsContainer },
       (entity) => [
         hostApi.ui.panel(entity.id, {
           width: 50,
@@ -43,7 +43,7 @@ export default (hostApi) => {
           background: hostApi.ui.getAnimation(string.of("texture2")),
         }, [
           hostApi.ui.field(entity.id + ":value", {
-            entity: entity.id,
+            entity: entity,
             map: "number",
             name: "value",
             fallback: "0",

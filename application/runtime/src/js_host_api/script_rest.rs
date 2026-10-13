@@ -23,6 +23,12 @@ pub fn host_api_script_animation() -> &'static str {
         var resolvedName = typeof name === 'object' ? name.value : name;
         if (typeof resolvedName === 'string') {
             globalThis.__registeredAnimations[resolvedName] = args;
+            return {
+                name: resolvedName,
+                value: resolvedName,
+                toString: function() { return resolvedName; },
+                toJSON: function() { return resolvedName; }
+            };
         }
     },
     getAnimation(name, animationDuration) {

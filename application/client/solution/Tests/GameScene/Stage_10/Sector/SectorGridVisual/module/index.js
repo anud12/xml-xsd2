@@ -2,7 +2,7 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.world.sectorGrid(string.of("cave"));
+  const cave = hostApi.world.sectorGrid(string.of("cave"));
 
   // An L-shaped sector occupying (0,0),(1,0),(0,1). Its (1,0) arm opens east
   // toward the box sector's west edge.
@@ -10,7 +10,7 @@ export default (hostApi) => {
     id: string.of("room-l"),
     entities: [],
     sector: {
-      grid: string.of("cave"),
+      grid: cave,
       footprint: [[0, 0], [1, 0], [0, 1]],
       at: [0, 0],
       openings: [
@@ -24,7 +24,7 @@ export default (hostApi) => {
     id: string.of("room-b"),
     entities: [],
     sector: {
-      grid: string.of("cave"),
+      grid: cave,
       footprint: [[0, 0]],
       at: [2, 0],
       openings: [
@@ -49,7 +49,7 @@ export default (hostApi) => {
   // own background; the render is invoked once per cell and returns the node to
   // place. Portals are rendered by the engine itself (headless arrows).
   hostApi.ui.sectorGrid("caveview", {
-    grid: "cave",
+    grid: cave,
     cellSize: 40,
     cellGap: 8,
     width: 700,

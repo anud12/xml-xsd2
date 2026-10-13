@@ -19,7 +19,7 @@ export default (hostApi) => {
           {
             label: "patrol",
             score: () => number.of(1),
-            do: (ctx) => [ctx.action(string.of("patrol"))]
+            do: (ctx) => [ctx.action(patrol)]
           }
         ]
       }
@@ -31,6 +31,6 @@ export default (hostApi) => {
     textMap: {
       "state": string.of("idle")
     },
-    behavior: guardBehavior.name
+    behavior: guardBehavior
   });
 };

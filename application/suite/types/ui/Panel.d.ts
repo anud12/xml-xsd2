@@ -1,8 +1,10 @@
 import {NumberExpression} from "../primitives/numberExpression";
 import {SpriteResource} from "../texture/SpriteResource";
 import {StringExpression} from "../primitives/stringExpression";
-import {Entity, EntityExpression} from "../Entity";
-import {AnimationRegistrationArguments} from "../animation/AnimationRegistration";
+import {Entity, EntityExpression} from "../dataExpression/Entity";
+import {AnimationRegistrationArguments, AnimationExpression} from "../dataExpression/animation/AnimationRegistration";
+import {ContainerExpression} from "../dataExpression/Contaier";
+import {ActionExpression} from "../dataExpression/action/no-input-action";
 
 /**
  * Callback signature for registering a panel with the UI host.
@@ -40,16 +42,16 @@ export type PanelOptions = {
   };
   /** Panel dimensions in logical units. */
   size: { width: NumberExpression; height: NumberExpression };
-  /** Background animation applied to the panel. */
-  background: AnimationRegistrationArguments;
+  /** Background animation applied to the panel (an animation reference or its definition). */
+  background: AnimationExpression | AnimationRegistrationArguments;
   /** Content component rendered inside the panel. */
   content?: PanelContent
   /** Handler invoked when the panel is clicked. */
   onClick?: PanelOnClickHandler;
   /** Hover state configuration. */
   hover?: {
-    /** Animation shown on hover. */
-    texture: AnimationRegistrationArguments;
+    /** Animation shown on hover (an animation reference or its definition). */
+    texture: AnimationExpression | AnimationRegistrationArguments;
     /** Border thickness in logical units. */
     thickness: number;
   };
@@ -95,8 +97,8 @@ export type EntityTextValueComponent = {
   type: "entityTextValue"
   /** Name of the entity field to read. */
   name: StringExpression,
-  /** Optional entity ID override; defaults to the panel's bound entity. */
-  entityId?: StringExpression,
+  /** Optional entity override; defaults to the panel's bound entity. */
+  entityId?: EntityExpression,
 }
 
 /**
@@ -117,8 +119,8 @@ export type EntityNumberValueComponent = {
   type: "entityNumberValue"
   /** Name of the entity field to read. */
   name: StringExpression,
-  /** Optional entity ID override; defaults to the panel's bound entity. */
-  entityId?: StringExpression,
+  /** Optional entity override; defaults to the panel's bound entity. */
+  entityId?: EntityExpression,
 }
 
 /**
@@ -138,8 +140,8 @@ export type ConstantNumberComponent = {
 export type ContainerListViewComponent = {
   /** Discriminant type identifier. */
   type: "containerListView"
-  /** ID of the container whose entities are rendered as list items. */
-  containerId: StringExpression
+  /** The container whose entities are rendered as list items (a {@link ContainerExpression} reference). */
+  containerId: ContainerExpression
   /** When `true` (default), children stack vertically. When `false`, they stack horizontally. */
   vertical?: boolean
   template:(entity:Entity, index:number) => PanelOptions
@@ -151,8 +153,8 @@ export type ContainerListViewComponent = {
 export type PanelOnClickHandler = {
   /** Discriminant handler type. */
   type: "emitAction",
-  /** Name of the action to emit when the panel is clicked. */
-  actionName: StringExpression
+  /** The action to emit when the panel is clicked (an {@link ActionExpression} reference). */
+  actionName: ActionExpression
 }
 
 /**

@@ -1,6 +1,8 @@
-import { TemporalExpression } from "../primitives/temporalExpression";
-import { NumberExpression } from "../primitives/numberExpression";
-import { StringExpression } from "../primitives/stringExpression";
+import { TemporalExpression } from "../../primitives/temporalExpression";
+import { NumberExpression } from "../../primitives/numberExpression";
+import { EntityExpression } from "../Entity";
+import { ContainerExpression } from "../Contaier";
+import { EffectExpression } from "../Effect";
 
 /**
  * A single recorded step of an action plan.
@@ -14,12 +16,12 @@ import { StringExpression } from "../primitives/stringExpression";
  * is instant.
  */
 export type ActionPlanStep =
-  | { emit: { eventName: string; payload: Record<string, any> } }
+  | { emit: { effect: EffectExpression; payload: Record<string, any> } }
   | { wait: TemporalExpression }
   | {
       move: {
-        containerId: StringExpression;
-        entityId: StringExpression;
+        containerId: ContainerExpression;
+        entityId: EntityExpression;
         x: NumberExpression;
         y: NumberExpression;
         speed: NumberExpression;

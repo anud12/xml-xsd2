@@ -1,6 +1,6 @@
-import {StringExpression} from "../primitives/stringExpression";
-import {NumberExpression} from "../primitives/numberExpression";
-import {SpriteResource} from "../texture/SpriteResource";
+import {StringExpression} from "../../primitives/stringExpression";
+import {NumberExpression} from "../../primitives/numberExpression";
+import {SpriteResource} from "../../texture/SpriteResource";
 
 /**
  * A single frame in an animation, referencing a sprite resource.
@@ -23,9 +23,19 @@ export type AnimationRegistrationArguments = {
 }
 
 /**
- * Callback signature for registering a named animation with frame definitions.
+ * A read-only reference to a registered animation, returned by
+ * `hostApi.runtime.setAnimation`. Use it anywhere an animation is referenced.
  */
-export type SetAnimationFunction = (name: StringExpression, arguments: AnimationRegistrationArguments) => void;
+export type AnimationExpression = {
+  /** The animation's name. */
+  name: string;
+};
+
+/**
+ * Callback signature for registering a named animation with frame definitions.
+ * Returns a reference to the registered animation.
+ */
+export type SetAnimationFunction = (name: StringExpression, arguments: AnimationRegistrationArguments) => AnimationExpression;
 
 /**
  * Options configuration for retrieving an animation.

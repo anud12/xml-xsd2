@@ -10,7 +10,11 @@ var hostApi={
   world:{
     sectorGrid:function(id){
       var resolvedId=typeof id==='object'?id.value:id;
-      return { id: resolvedId, sectorGrid: true };
+      return {
+        id: resolvedId, value: resolvedId, sectorGrid: true,
+        toString: function() { return resolvedId; },
+        toJSON: function() { return resolvedId; }
+      };
     }
   },
   runtime:{

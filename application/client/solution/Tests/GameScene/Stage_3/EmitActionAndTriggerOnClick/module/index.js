@@ -1,17 +1,8 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
     const {number, string} = hostApi.runtime;
-    hostApi.runtime.setAction({
-        name: string.of("action"),
-        apply: (context) => {
-          context.actor.containers
-            hostApi.runtime.log("___From module action fired line___")
-            context.emitEffect("effect", {})
-        }
-    });
-
-    hostApi.runtime.setEffect({
-        name: "effect",
+    const effect = hostApi.runtime.setEffect({
+        name: string.of("effect"),
 
         prepare: () => {
             hostApi.runtime.log("___From module effect prepare fired line___")
@@ -21,6 +12,15 @@ export default (hostApi) => {
             hostApi.runtime.log("___From module effect fired line___")
         }
     })
+
+    const action = hostApi.runtime.setAction({
+        name: string.of("action"),
+        apply: (context) => {
+          context.actor.containers
+            hostApi.runtime.log("___From module action fired line___")
+            context.emitEffect(effect, {})
+        }
+    });
 
     hostApi.runtime.setAnimation(string.of("texture"), {
         frames: [
@@ -35,7 +35,7 @@ export default (hostApi) => {
         anchor: "center",
         background: hostApi.ui.getAnimation(string.of("texture")),
         onClick: (ctx) => {
-            ctx.emitAction("action");
+            ctx.emitAction(action);
         },
     }, [])
 }
