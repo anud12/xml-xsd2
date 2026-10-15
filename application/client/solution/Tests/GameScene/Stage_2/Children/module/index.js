@@ -13,23 +13,29 @@ export default (hostApi) => {
     duration: hostApi.runtime.number.of(1),
   });
   hostApi.ui.panel("center", {
-    width: 100,
-    height: 100,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    panel: {
+      width: 100,
+      height: 100,
+      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    },
   }, [
     hostApi.ui.panel("child", {
-      width: 10,
-      height: 10,
-      x: 0,
-      y: 0,
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture_2")),
+      panel: {
+        width: 10,
+        height: 10,
+        x: 0,
+        y: 0,
+        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture_2")),
+      },
     }, []),
     hostApi.ui.panel("child_2", {
-      width: 10,
-      height: 10,
-      x: 0,
-      y: 10,
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture_2")),
+      panel: {
+        width: 10,
+        height: 10,
+        x: 0,
+        y: 10,
+        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture_2")),
+      },
     }, []),
   ])
 }

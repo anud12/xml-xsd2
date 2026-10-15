@@ -14,17 +14,21 @@ export default (hostApi) => {
     duration: hostApi.runtime.number.of(1),
   });
   hostApi.ui.panel("hover", {
-    width: 100,
-    height: 100,
-    onHover: {
-      texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
-      thickness: 5,
+    panel: {
+      width: 100,
+      height: 100,
+      onHover: {
+        texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
+        thickness: 5,
+      },
+      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
     },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
   })
   hostApi.ui.panel("no-hover", {
-    width: 100,
-    height: 100,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    panel: {
+      width: 100,
+      height: 100,
+      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    },
   })
 }

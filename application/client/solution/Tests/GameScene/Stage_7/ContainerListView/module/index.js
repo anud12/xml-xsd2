@@ -29,18 +29,22 @@ export default (hostApi) => {
   });
 
   hostApi.ui.panel("list-panel", {
-    width: 300,
-    height: 300,
-    anchor: "center",
-    align: "center",
-    background: hostApi.ui.getAnimation(string.of("texture")),
+    panel: {
+      width: 300,
+      height: 300,
+      anchor: "center",
+      align: "center",
+      background: hostApi.ui.getAnimation(string.of("texture")),
+    },
   }, [
     hostApi.ui.entityList("items", { container: itemsContainer },
       (entity) => [
         hostApi.ui.panel(entity.id, {
-          width: 50,
-          height: 50,
-          background: hostApi.ui.getAnimation(string.of("texture2")),
+          panel: {
+            width: 50,
+            height: 50,
+            background: hostApi.ui.getAnimation(string.of("texture2")),
+          },
         }, [
           hostApi.ui.field(entity.id + ":value", {
             entity: entity,

@@ -37,18 +37,20 @@ export default (hostApi) => {
   });
 
   hostApi.ui.panel("board", {
-    width: 300,
-    height: 300,
-    container: grid_1,
-    layout: {
-      columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
-      rows: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
-    },
-    onClick: (ctx) => {
-      ctx.emitAction(action, {
-        x: ctx.cursor.getX(),
-        y: ctx.cursor.getY(),
-      });
+    panel: {
+      width: 300,
+      height: 300,
+      layout: {
+        columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
+        rows: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
+        container: grid_1,
+      },
+      onClick: (ctx) => {
+        ctx.emitAction(action, {
+          x: ctx.cursor.getX(),
+          y: ctx.cursor.getY(),
+        });
+      },
     },
   }, [])
 }

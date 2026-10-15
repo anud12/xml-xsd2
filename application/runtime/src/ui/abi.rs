@@ -566,16 +566,18 @@ fn plan_node(node: &DomainNode) -> NodePlan {
         | DomainNode::Progress { options, .. } => options,
         _ => return plan,
     };
-    if let Some(layout) = opts.get("layout").and_then(|v| v.as_object()) {
+    let empty_map = serde_json::Map::new();
+    let panel = opts.get("panel").and_then(|v| v.as_object()).unwrap_or(&empty_map);
+    if let Some(layout) = panel.get("layout").and_then(|v| v.as_object()) {
         plan.col_tracks = layout.get("columns").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
         plan.row_tracks = layout.get("rows").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
     }
-    if let Some(bg) = opts.get("background").and_then(|v| v.as_object()) {
+    if let Some(bg) = panel.get("background").and_then(|v| v.as_object()) {
         if bg.get("map").and_then(|v| v.as_str()).is_some() {
             plan.layers = bg.get("layers").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
         }
     }
-    if let Some(steps) = opts.get("onClick").and_then(|v| v.as_object())
+    if let Some(steps) = panel.get("onClick").and_then(|v| v.as_object())
         .and_then(|o| o.get("steps"))
         .and_then(|v| v.as_array())
     {
@@ -1034,37 +1036,57 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     let Some(opts) = opts.as_object() else {
         return o;
     };
-    let has_x = opt_num(opts, "x").is_some();
-    let has_y = opt_num(opts, "y").is_some();
-    o.x = opt_f32(opts, "x");
-    o.y = opt_f32(opts, "y");
+    // Panel config is nested under `panel` (the canonical node-options shape);
+    // progress presentation and sector metadata stay top-level on `opts`.
+    let empty: Map<String, Value> = Map::new();
+    let panel = opts.get("panel").and_then(Value::as_object).unwrap_or(&empty);
+    let has_x = opt_num(panel, "x").is_some();
+    let has_y = opt_num(panel, "y").is_some();
+    o.x = opt_f32(panel, "x");
+    o.y = opt_f32(panel, "y");
     o.has_xy = (has_x || has_y) as u8;
-    o.anchor = opt_str(opts, "anchor", slab);
-    o.align = opt_str(opts, "align", slab);
-    let has_w = opt_num(opts, "width").is_some();
-    let has_h = opt_num(opts, "height").is_some();
-    o.width = opt_f32(opts, "width");
-    o.height = opt_f32(opts, "height");
+    o.anchor = opt_str(panel, "anchor", slab);
+    o.align = opt_str(panel, "align", slab);
+    let has_w = opt_num(panel, "width").is_some();
+    let has_h = opt_num(panel, "height").is_some();
+    o.width = opt_f32(panel, "width");
+    o.height = opt_f32(panel, "height");
     o.has_size = (has_w || has_h) as u8;
-    o.layout = parse_layout(opts, slab, r.col_tracks, r.row_tracks);
-    o.background = parse_background(opts, slab, r.layers);
-    if let Some(border) = opts.get("border").and_then(|b| b.as_object()) {
+    o.layout = parse_layout(panel, slab, r.col_tracks, r.row_tracks);
+    o.background = parse_background(panel, slab, r.layers);
+    if let Some(border) = panel.get("border").and_then(|b| b.as_object()) {
         o.border_texture = opt_str(border, "texture", slab);
         o.border_width = opt_f32(border, "width");
         o.has_border = 1;
     }
-    o.on_click = parse_on_click(opts, slab, r.steps, &r.arg_bases);
-    if let Some(h) = opts.get("onHover").and_then(|h| h.as_object()) {
+    o.on_click = parse_on_click(panel, slab, r.steps, &r.arg_bases);
+    if let Some(h) = panel.get("onHover").and_then(|h| h.as_object()) {
         o.on_hover.emit_action = opt_str(h, "emitAction", slab);
         o.on_hover.stop_propagation = opt_bool(h, "stopPropagation") as u8;
         o.on_hover.background = opt_str(h, "background", slab);
         o.on_hover.texture = opt_str(h, "texture", slab);
         o.on_hover.thickness = opt_f32(h, "thickness");
     }
-    o.container = opt_str(opts, "container", slab);
+    // The click-cursor container: for a board panel it lives in the layout
+    // spec (panel.layout.container); for a container-view it is the top-level
+    // `container` (the grid being viewed). Prefer the layout container (board
+    // pattern), else the top-level container (container-view).
+    o.container = panel
+        .get("layout")
+        .and_then(|l| l.as_object())
+        .and_then(|l| l.get("container"))
+        .and_then(|c| c.as_str())
+        .filter(|s| !s.is_empty())
+        .or_else(|| {
+            opts.get("container")
+                .and_then(|c| c.as_str())
+                .filter(|s| !s.is_empty())
+        })
+        .map(|s| slab.intern(s))
+        .unwrap_or(NO_STR);
     // resizable: a bare boolean, or an object { keepAspectRatio }. Both enable
     // resize; the object form additionally locks the aspect ratio.
-    match opts.get("resizable") {
+    match panel.get("resizable") {
         Some(Value::Bool(b)) => {
             o.resizable = *b as u8;
         }
@@ -1083,7 +1105,7 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     // points are view-local logical units (the same space as x/y/width/height).
     // Per-polygon color/bodyColor/thickness are optional; the renderer falls
     // back to its defaults (red / green / 2) when a polygon omits them.
-    if let Some(a) = opts.get("areaOutline").and_then(|v| v.as_object()) {
+    if let Some(a) = panel.get("areaOutline").and_then(|v| v.as_object()) {
         if let Some(polys) = a.get("polygons").and_then(|v| v.as_array()) {
             let mut sb = String::from("[");
             for (i, poly) in polys.iter().enumerate() {
@@ -1454,7 +1476,7 @@ mod tests {
     #[test]
     fn snapshot_round_trips_nodes_options_and_strings() {
         let nodes = vec![
-            node(r#"{"kind":"window","id":"hud","options":{"x":10,"y":-20,"anchor":"top-left","align":"top-left","width":200,"height":100,"layout":{"columns":[{"min":50,"scale":1},{"max":120},80],"rows":[],"rowFirst":true,"gap":{"row":4,"column":2}},"background":{"map":"art/map.tiff","layers":[{"texture":"skin/a.png","layer":0},{"texture":"skin/b.png","layer":1}]},"border":{"texture":"art/border.png","width":3},"onClick":{"steps":[{"action":"click-a","args":{"col":{"__cursor":"x"},"row":{"__cursor":"y"},"entity":"ent-1","count":5}},{"action":"click-b","args":{}}]},"onHover":{"emitAction":"hud-hover","stopPropagation":true,"background":"art/hover.png","texture":"art/outline.png","thickness":2},"container":"items"},"children":["title","hp"]}"#),
+            node(r#"{"kind":"window","id":"hud","options":{"panel":{"x":10,"y":-20,"anchor":"top-left","align":"top-left","width":200,"height":100,"layout":{"columns":[{"min":50,"scale":1},{"max":120},80],"rows":[],"rowFirst":true,"gap":{"row":4,"column":2},"container":"items"},"background":{"map":"art/map.tiff","layers":[{"texture":"skin/a.png","layer":0},{"texture":"skin/b.png","layer":1}]},"border":{"texture":"art/border.png","width":3},"onClick":{"steps":[{"action":"click-a","args":{"col":{"__cursor":"x"},"row":{"__cursor":"y"},"entity":"ent-1","count":5}},{"action":"click-b","args":{}}]},"onHover":{"emitAction":"hud-hover","stopPropagation":true,"background":"art/hover.png","texture":"art/outline.png","thickness":2}}},"children":["title","hp"]}"#),
             node(r#"{"kind":"text","id":"title","value":"Health","children":[]}"#),
             node(r#"{"kind":"field","id":"hp","binding":{"entity":"ent-1","map":"number","name":"hp","fallback":"n/a"},"value":"7","children":[]}"#),
             node(r#"{"kind":"image","id":"icon","src":"art/icon.png","children":[]}"#),
@@ -1556,7 +1578,7 @@ mod tests {
     #[test]
     fn portal_arrow_option_round_trips() {
         let nodes = vec![node(
-            r#"{"kind":"window","id":"p","options":{"x":77,"y":0,"width":6,"height":40,"portalArrow":true,"sector":"portal"},"children":[]}"#,
+            r#"{"kind":"window","id":"p","options":{"panel":{"x":77,"y":0,"width":6,"height":40},"portalArrow":true,"sector":"portal"},"children":[]}"#,
         )];
         let snap = unsafe { &*build_snapshot(&nodes, &HashMap::new()) };
         let arena = snap.strings;
@@ -1569,7 +1591,7 @@ mod tests {
     #[test]
     fn area_outline_option_round_trips() {
         let nodes = vec![node(
-            r#"{"kind":"window","id":"item","options":{"x":40,"y":40,"width":20,"height":20,"areaOutline":{"polygons":[{"points":[[0,0],[20,0],[20,20],[0,20]]}],"color":[1,0,0,0.5],"thickness":3}},"children":[]}"#,
+            r#"{"kind":"window","id":"item","options":{"panel":{"x":40,"y":40,"width":20,"height":20,"areaOutline":{"polygons":[{"points":[[0,0],[20,0],[20,20],[0,20]]}],"color":[1,0,0,0.5],"thickness":3}}},"children":[]}"#,
         )];
         let snap = unsafe { &*build_snapshot(&nodes, &HashMap::new()) };
         let arena = snap.strings;
@@ -1589,7 +1611,7 @@ mod tests {
     #[test]
     fn progress_node_round_trips_slab() {
         let nodes = vec![
-            node(r#"{"kind":"progress","id":"hp-bar","value":0.7,"binding":{"entity":"ent-1","map":"number","name":"hp","fallback":0.25},"options":{"x":40,"y":120,"width":220,"height":24,"fill":"art/fill.png","track":"art/track.png","orientation":"vertical","max":10},"children":[]}"#),
+            node(r#"{"kind":"progress","id":"hp-bar","value":0.7,"binding":{"entity":"ent-1","map":"number","name":"hp","fallback":0.25},"options":{"panel":{"x":40,"y":120,"width":220,"height":24},"fill":"art/fill.png","track":"art/track.png","orientation":"vertical","max":10},"children":[]}"#),
             node(r#"{"kind":"progress","id":"static-bar","value":1,"options":{"fill":"art/f.png","orientation":"horizontal"},"children":[]}"#),
             node(r#"{"kind":"progress","id":"anim-bar","value":0.5,"options":{"fill":{"name":"fill-anim","duration":2,"loop":true},"track":"art/track.png"},"children":[]}"#),
         ];

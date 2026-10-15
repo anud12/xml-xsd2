@@ -17,8 +17,10 @@ export default (hostApi) => {
   });
   
   hostApi.ui.panel("characterPanel", {
-    width: 10,
-    height: 10,
-    background: hostApi.ui.getAnimation(string.of("idle")),
+    panel: {
+      width: 10,
+      height: 10,
+      background: hostApi.ui.getAnimation(string.of("idle")),
+    },
   }, [])
 }

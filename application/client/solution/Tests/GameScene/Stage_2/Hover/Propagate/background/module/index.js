@@ -13,18 +13,22 @@ export default (hostApi) => {
     duration: hostApi.runtime.number.of(1),
   });
   hostApi.ui.panel("hoverParent", {
-    width: 100,
-    height: 100,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
-    onHover: {
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
+    panel: {
+      width: 100,
+      height: 100,
+      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+      onHover: {
+        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
+      },
     },
   }, [
     hostApi.ui.panel("inner", {
-      width: 30,
-      height: 30,
-      x: 20,
-      y: 20,
+      panel: {
+        width: 30,
+        height: 30,
+        x: 20,
+        y: 20,
+      },
     }, [])
   ])
 }

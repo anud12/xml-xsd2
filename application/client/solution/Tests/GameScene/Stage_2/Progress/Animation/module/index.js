@@ -15,7 +15,9 @@ export default (hostApi) => {
     numberMap: { hp: number.of(5), max: number.of(10) }
   });
   hostApi.ui.progress("prog-anim", {
-    x: 100, y: 100, width: 200, height: 50,
+    panel: {
+      x: 100, y: 100, width: 200, height: 50,
+    },
     progress: {
       fill: hostApi.ui.getAnimation(string.of("fillAnim")),
       track: hostApi.ui.getSpritePNG("track.png"),

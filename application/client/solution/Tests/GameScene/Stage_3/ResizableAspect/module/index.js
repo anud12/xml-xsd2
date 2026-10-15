@@ -7,11 +7,13 @@ export default (hostApi) => {
     duration: hostApi.runtime.number.of(1),
   });
   hostApi.ui.panel("aspect", {
-    width: 200,
-    height: 100,
-    x: 100,
-    y: 100,
-    resizable: { keepAspectRatio: true },
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    panel: {
+      width: 200,
+      height: 100,
+      x: 100,
+      y: 100,
+      resizable: { keepAspectRatio: true },
+      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    },
   }, []);
 }

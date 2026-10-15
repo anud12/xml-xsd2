@@ -11,9 +11,11 @@ export default (hostApi) => {
     duration: hostApi.runtime.number.of(1),
   });
   hostApi.ui.panel("panel_entity", {
-    width: 100,
-    height: 100,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    panel: {
+      width: 100,
+      height: 100,
+      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    },
   }, [
     hostApi.ui.field("panel_entity-content", { entity: entityId, map: "text", name: "playerName", fallback: "" }),
   ])

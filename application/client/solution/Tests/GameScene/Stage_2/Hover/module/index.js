@@ -14,12 +14,14 @@ export default (hostApi) => {
     duration: number.of(1),
   });
   hostApi.ui.panel("hoverPanel", {
-    width: 100,
-    height: 100,
-    background: hostApi.ui.getAnimation(string.of("texture")),
-    onHover: {
-      texture: hostApi.ui.getAnimation(string.of("hover")),
-      thickness: 10,
+    panel: {
+      width: 100,
+      height: 100,
+      background: hostApi.ui.getAnimation(string.of("texture")),
+      onHover: {
+        texture: hostApi.ui.getAnimation(string.of("hover")),
+        thickness: 10,
+      },
     },
   }, [])
 }

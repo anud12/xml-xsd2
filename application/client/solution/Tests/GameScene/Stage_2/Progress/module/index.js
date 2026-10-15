@@ -9,7 +9,9 @@ export default (hostApi) => {
     }
   });
   hostApi.ui.progress("prog-x", {
-    x: 100, y: 100, width: 200, height: 50,
+    panel: {
+      x: 100, y: 100, width: 200, height: 50,
+    },
     progress: {
       fill: hostApi.ui.getSpritePNG("fill.png"),
       track: hostApi.ui.getSpritePNG("track.png"),
@@ -20,7 +22,9 @@ export default (hostApi) => {
     }
   });
   hostApi.ui.progress("prog-y", {
-    x: 100, y: 200, width: 50, height: 200,
+    panel: {
+      x: 100, y: 200, width: 50, height: 200,
+    },
     progress: {
       fill: hostApi.ui.getSpritePNG("fill.png"),
       track: hostApi.ui.getSpritePNG("track.png"),

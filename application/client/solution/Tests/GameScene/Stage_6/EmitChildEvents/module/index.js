@@ -81,25 +81,29 @@ export default (hostApi) => {
     duration: number.of(1),
   });
   hostApi.ui.panel("center", {
-    x: 200,
-    y: 450,
-    width: 100,
-    height: 100,
-    anchor: "center",
-    align: "center",
-    background: hostApi.ui.getAnimation(string.of("texture")),
+    panel: {
+      x: 200,
+      y: 450,
+      width: 100,
+      height: 100,
+      anchor: "center",
+      align: "center",
+      background: hostApi.ui.getAnimation(string.of("texture")),
+    },
   }, [
     hostApi.ui.field("centerContent", { entity: entity, map: "number", name: "key", fallback: "0" }),
   ])
 
   hostApi.ui.panel("isModifiedPanel", {
-    x: 700,
-    y: 450,
-    width: 100,
-    height: 100,
-    anchor: "center",
-    align: "center",
-    background: hostApi.ui.getAnimation(string.of("texture")),
+    panel: {
+      x: 700,
+      y: 450,
+      width: 100,
+      height: 100,
+      anchor: "center",
+      align: "center",
+      background: hostApi.ui.getAnimation(string.of("texture")),
+    },
   }, [
     hostApi.ui.field("isModifiedContent", { entity: entity, map: "text", name: "isModified", fallback: "No" }),
   ])

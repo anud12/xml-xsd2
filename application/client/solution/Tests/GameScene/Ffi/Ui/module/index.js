@@ -5,7 +5,7 @@ export default (hostApi) => {
     id: string.of("hero"),
     numberMap: { hp: number.of(7), max: number.of(10) }
   });
-  hostApi.ui.window("slab-win", { width: 200, height: 100 }, [
+  hostApi.ui.window("slab-win", { panel: { width: 200, height: 100 } }, [
     hostApi.ui.text("slab-text", "slab"),
     hostApi.ui.field("slab-field", {
       entity: hero,
@@ -15,6 +15,7 @@ export default (hostApi) => {
     })
   ]);
   hostApi.ui.progress("slab-progress", {
+    panel: {},
     progress: {
       fill: "art/fill.png",
       track: "art/track.png",

@@ -44,21 +44,25 @@ export default (hostApi) => {
     duration: number.of(1),
   });
   hostApi.ui.panel("parent", {
-    width: 100,
-    height: 100,
-    background: hostApi.ui.getAnimation(string.of("texture")),
-    onHover: {
-      emitAction: parentHover,
+    panel: {
+      width: 100,
+      height: 100,
+      background: hostApi.ui.getAnimation(string.of("texture")),
+      onHover: {
+        emitAction: parentHover,
+      },
     },
   }, [
     hostApi.ui.panel("child", {
-      width: 20,
-      height: 20,
-      x: 40,
-      y: 40,
-      onHover: {
-        emitAction: childHover,
-        stopPropagation: true,
+      panel: {
+        width: 20,
+        height: 20,
+        x: 40,
+        y: 40,
+        onHover: {
+          emitAction: childHover,
+          stopPropagation: true,
+        },
       },
     }, [])
   ])

@@ -456,10 +456,11 @@ function (root) {
                             var right = sameR ? (cell.x + 1) * cellSize : (cell.x + 1) * cellSize - cellInset;
                             var top = sameT ? cell.y * cellSize : cell.y * cellSize + cellInset;
                             var bottom = sameB ? (cell.y + 1) * cellSize : (cell.y + 1) * cellSize - cellInset;
-                            in1.options.x = left;
-                            in1.options.y = top;
-                            in1.options.width = right - left;
-                            in1.options.height = bottom - top;
+                            if (!in1.options.panel || typeof in1.options.panel !== 'object') in1.options.panel = {};
+                            in1.options.panel.x = left;
+                            in1.options.panel.y = top;
+                            in1.options.panel.width = right - left;
+                            in1.options.panel.height = bottom - top;
                             in1.options.cell = cell.x + ',' + cell.y;
                             in1.options.sector = 'cell';
                             in1.options.container = cell.container;
@@ -538,10 +539,7 @@ function (root) {
                                 id: name + '-portal-' + pi,
                                 kind: 'window',
                                 options: {
-                                    x: lr.x,
-                                    y: lr.y,
-                                    width: lr.w,
-                                    height: lr.h,
+                                    panel: { x: lr.x, y: lr.y, width: lr.w, height: lr.h },
                                     portalArrow: true,
                                     portalLine: true,
                                     sector: 'portal',
@@ -635,10 +633,7 @@ function (root) {
                                     id: name + '-portal-' + pi + (si === 0 ? '' : '-s' + si),
                                     kind: 'window',
                                     options: {
-                                        x: sx,
-                                        y: sy,
-                                        width: sw,
-                                        height: sh,
+                                        panel: { x: sx, y: sy, width: sw, height: sh },
                                         portalArrow: true,
                                         portalLine: true,
                                         sector: 'portal',
@@ -653,10 +648,7 @@ function (root) {
                                     id: name + '-portal-' + pi + '-c' + ci,
                                     kind: 'window',
                                     options: {
-                                        x: cp.x - half,
-                                        y: cp.y - half,
-                                        width: thickness,
-                                        height: thickness,
+                                        panel: { x: cp.x - half, y: cp.y - half, width: thickness, height: thickness },
                                         portalArrow: true,
                                         portalLine: true,
                                         sector: 'portal',
@@ -711,10 +703,7 @@ function (root) {
                                 id: name + '-unlinked-' + useq,
                                 kind: 'window',
                                 options: {
-                                    x: upx,
-                                    y: upy,
-                                    width: upw,
-                                    height: uph,
+                                    panel: { x: upx, y: upy, width: upw, height: uph },
                                     portalArrow: true,
                                     unlinked: true,
                                     sector: 'portal',
@@ -807,26 +796,20 @@ function (root) {
 
     var api = {
         div: function (id, options, children) {
-            var opts = {};
-            if (options && typeof options === 'object') {
-                for (var k in options) { if (Object.prototype.hasOwnProperty.call(options, k)) opts[k] = options[k]; }
-            }
+            var panel = (options && typeof options.panel === 'object' && options.panel) ? options.panel : {};
             return register({
                 id: id,
                 kind: 'division',
-                options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
+                options: { panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))) },
                 children: childIds(children)
             });
         },
         window: function (id, options, children) {
-            var opts = {};
-            if (options && typeof options === 'object') {
-                for (var k in options) { if (Object.prototype.hasOwnProperty.call(options, k)) opts[k] = options[k]; }
-            }
+            var panel = (options && typeof options.panel === 'object' && options.panel) ? options.panel : {};
             return register({
                 id: id,
                 kind: 'window',
-                options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
+                options: { panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))) },
                 children: childIds(children)
             });
         },
@@ -877,37 +860,38 @@ function (root) {
                 throw new Error('ui: containerView mandatory name missing');
             }
             if (!args || typeof args !== 'object') {
-                throw new Error('ui: containerView args must be an object with container, width, height');
+                throw new Error('ui: containerView args must be an object with container and panel');
             }
             var containerViewContainer = resolveId(args.container);
             if (typeof containerViewContainer !== 'string' || containerViewContainer.length === 0) {
                 throw new Error('ui: containerView args.container must be a non-empty container id');
             }
-            if (typeof args.width !== 'number' || !(args.width > 0)) {
-                throw new Error('ui: containerView args.width must be a positive number (view width)');
+            var panel = (args.panel && typeof args.panel === 'object') ? args.panel : {};
+            if (typeof panel.width !== 'number' || !(panel.width > 0)) {
+                throw new Error('ui: containerView panel.width must be a positive number (view width)');
             }
-            if (typeof args.height !== 'number' || !(args.height > 0)) {
-                throw new Error('ui: containerView args.height must be a positive number (view height)');
+            if (typeof panel.height !== 'number' || !(panel.height > 0)) {
+                throw new Error('ui: containerView panel.height must be a positive number (view height)');
             }
             if (typeof render !== 'function') {
                 throw new Error('ui: containerView render must be a function(entity) => panelId');
             }
             containerViewRenders[name] = render;
-            // The view node is a window (it extends panel: x/y/width/height/
-            // background/anchor are all honored). It carries `container`,
-            // `viewWidth`, `viewHeight` for the per-tick position pass, plus
-            // the standard panel options (minus container/viewWidth/viewHeight).
-            var opts = {};
-            for (var k in args) {
-                if (Object.prototype.hasOwnProperty.call(args, k)) opts[k] = args[k];
-            }
-            opts.container = containerViewContainer;
-            opts.viewWidth = args.width;
-            opts.viewHeight = args.height;
+            // The view node is a window (it extends panel: the size/position/
+            // background/anchor live in `panel`). It carries `container`,
+            // `viewWidth`, `viewHeight` (top-level, for the per-tick position
+            // pass) plus `area?` and the resolved `panel` config.
+            var opts = {
+                container: containerViewContainer,
+                viewWidth: panel.width,
+                viewHeight: panel.height
+            };
+            if (args.area != null) opts.area = args.area;
+            opts.panel = resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel)));
             return register({
                 id: name,
                 kind: 'window',
-                options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
+                options: opts,
                 children: [containerViewMarker(name)]
             });
         },
@@ -925,22 +909,25 @@ function (root) {
             if (typeof render !== 'function') {
                 throw new Error('ui: sectorGrid render must be a function(item) => nodeId');
             }
-            // The view node is a window (it extends panel: x/y/width/height and
-            // background are honored). It carries `grid` (the runtime grid id)
-            // plus optional `cellSize`/`portalThickness`; the engine invokes
+            // The view node is a window (it extends panel: the size/position/
+            // background live in `panel`). It carries `grid` (the runtime grid
+            // id) plus optional `cellSize`/`cellGap`/`portalThickness`
+            // (top-level, read by the expansion pass); the engine invokes
             // `render` once per cell + portal each tick and positions the node
             // it returns from the grid geometry.
             sectorGridRenders[name] = render;
-            var opts = {};
-            for (var k in args) {
-                if (Object.prototype.hasOwnProperty.call(args, k)) opts[k] = args[k];
-            }
-            opts.grid = sectorGridId;
-            if (typeof opts.cellSize !== 'number' || !(opts.cellSize > 0)) opts.cellSize = 32;
+            var panel = (args.panel && typeof args.panel === 'object') ? args.panel : {};
+            var opts = {
+                grid: sectorGridId,
+                panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel)))
+            };
+            opts.cellSize = (typeof args.cellSize === 'number' && args.cellSize > 0) ? args.cellSize : 32;
+            if (args.cellGap != null) opts.cellGap = args.cellGap;
+            if (args.portalThickness != null) opts.portalThickness = args.portalThickness;
             return register({
                 id: name,
                 kind: 'window',
-                options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
+                options: opts,
                 children: [sectorGridMarker(name)]
             });
         },
@@ -1044,21 +1031,23 @@ function (root) {
                 minFallback: minR.fallback
             };
             if (minR.key != null) binding.minName = minR.key;
-            var opts = {};
-            for (var k in options) {
-                if (Object.prototype.hasOwnProperty.call(options, k)) opts[k] = options[k];
-            }
-            delete opts.progress;
-            opts.fill = fill;
+            // The panel config (size/position/background/border/anchor) lives in
+            // `options.panel`; the progress presentation (fill/track/orientation/
+            // steps) stays top-level for the renderer.
+            var panel = (options.panel && typeof options.panel === 'object') ? options.panel : {};
+            var opts = {
+                panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))),
+                fill: fill,
+                orientation: orientation,
+                steps: steps
+            };
             if (track != null) opts.track = track;
-            opts.orientation = orientation;
-            opts.steps = steps;
             return register({
                 id: id,
                 kind: 'progress',
                 value: 0,
                 binding: binding,
-                options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
+                options: opts,
                 children: []
             });
         },

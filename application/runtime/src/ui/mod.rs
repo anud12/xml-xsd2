@@ -535,19 +535,25 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
             };
             let x = get("x") * cell_w - ox;
             let y = get("y") * cell_h - oy;
-            item_obj.insert("x".into(), num_json(x));
-            item_obj.insert("y".into(), num_json(y));
-            item_obj.insert("width".into(), num_json(span_x));
-            item_obj.insert("height".into(), num_json(span_y));
-            // Stamp the entity's area polygons into the item's options so the
-            // C# renderer can draw them over the sprite. Each polygon is in
-            // view-local logical units (same space as x/y/width/height): the
+            // Position/size/area live in `options.panel` (the canonical node
+            // shape); `entity` stays top-level metadata on the item.
+            if !item_obj.contains_key("panel") {
+                item_obj.insert("panel".into(), serde_json::json!({}));
+            }
+            let panel = item_obj.get_mut("panel").unwrap().as_object_mut().unwrap();
+            panel.insert("x".into(), num_json(x));
+            panel.insert("y".into(), num_json(y));
+            panel.insert("width".into(), num_json(span_x));
+            panel.insert("height".into(), num_json(span_y));
+            // Stamp the entity's area polygons into the item's `panel` options
+            // so the C# renderer can draw them over the sprite. Each polygon is
+            // in view-local logical units (same space as x/y/width/height): the
             // entity's world position is (getX, getY), so view-local is
             // (getX * cell_w, getY * cell_h) relative to the view origin. The
             // view's `area` selects which named areas to draw and the outline
             // style for each (first declared area with defaults when omitted).
             stamp_area_outline(
-                item_obj,
+                panel,
                 &entity,
                 get("x"),
                 get("y"),
@@ -562,7 +568,7 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
 }
 
 /// Stamp the entity's declared areas (translated to view-local logical units)
-/// into the item's `options.areaOutline`. `area_styles` selects which named
+/// into the item's `options.panel.areaOutline`. `area_styles` selects which named
 /// areas to draw and the outline style for each (every field required on each
 /// entry). When `area_styles` is empty (the view omitted `area`), the
 /// entity's first declared area (id ascending) is drawn with the renderer's
@@ -574,7 +580,7 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
 /// `ox`/`oy` are the alignment offsets already applied to x/y so each polygon
 /// tracks the marker.
 fn stamp_area_outline(
-    item_obj: &mut serde_json::Map<String, serde_json::Value>,
+    panel: &mut serde_json::Map<String, serde_json::Value>,
     entity: &str,
     ent_x: f64,
     ent_y: f64,
@@ -589,7 +595,7 @@ fn stamp_area_outline(
     let vy = ent_y * cell_h - oy;
 
     // The per-area styles to render (owned names so the borrow of
-    // `area_styles` ends before the mutable `item_obj` writes below). When the
+    // `area_styles` ends before the mutable `panel` writes below). When the
     // view omitted `area`, draw the entity's first declared area (id
     // ascending) with default styling.
     let styled: Vec<(String, [f64; 4], [f64; 4], f64)> = if area_styles.is_empty() {
@@ -648,7 +654,7 @@ fn stamp_area_outline(
     }
 
     let outline = serde_json::json!({ "polygons": polys });
-    item_obj.insert("areaOutline".into(), outline);
+    panel.insert("areaOutline".into(), outline);
 }
 
 /// Merge a container row's per-entity position maps (getX/getY/getSpanX/
@@ -946,7 +952,7 @@ export default (hostApi) => {
         prev_store_ids().lock().unwrap().clear();
         apply_diff(&[
             node_json(
-                r#"{"kind":"division","id":"d","options":{"layout":"column"},"children":["t"]}"#),
+                r#"{"kind":"division","id":"d","options":{"panel":{"layout":"column"}},"children":["t"]}"#),
             node_json(
                 r#"{"kind":"text","id":"t","value":"spine","children":[]}"#),
         ]).unwrap();
@@ -965,7 +971,7 @@ export default (hostApi) => {
         prev_store_ids().lock().unwrap().clear();
         ui_delta().lock().unwrap().take();
         let win = node_json(
-            r#"{"kind":"window","id":"win-a","options":{"x":10,"y":-20,"anchor":"top-left","align":"top-left","width":200,"height":100},"children":["t"]}"#);
+            r#"{"kind":"window","id":"win-a","options":{"panel":{"x":10,"y":-20,"anchor":"top-left","align":"top-left","width":200,"height":100}},"children":["t"]}"#);
         assert!(matches!(&win, UiNode::Window { id, .. } if id == "win-a"));
         let text = node_json(
             r#"{"kind":"text","id":"t","value":"hi","children":[]}"#);
@@ -979,12 +985,12 @@ export default (hostApi) => {
             UiDeltaOp::Add { node } => match node {
                 UiNode::Window { id, options, children } => {
                     assert_eq!(id, "win-a");
-                    assert_eq!(options["x"], 10);
-                    assert_eq!(options["y"], -20);
-                    assert_eq!(options["anchor"], "top-left");
-                    assert_eq!(options["align"], "top-left");
-                    assert_eq!(options["width"], 200);
-                    assert_eq!(options["height"], 100);
+                    assert_eq!(options["panel"]["x"], 10);
+                    assert_eq!(options["panel"]["y"], -20);
+                    assert_eq!(options["panel"]["anchor"], "top-left");
+                    assert_eq!(options["panel"]["align"], "top-left");
+                    assert_eq!(options["panel"]["width"], 200);
+                    assert_eq!(options["panel"]["height"], 100);
                     assert_eq!(children, &vec!["t".to_string()]);
                 }
                 other => panic!("expected window node, got {:?}", other),
@@ -998,12 +1004,12 @@ export default (hostApi) => {
         let win_el = v["nodes"].as_array().unwrap().iter()
             .find(|n| n["id"] == "win-a").unwrap();
         assert_eq!(win_el["kind"], "window");
-        assert_eq!(win_el["options"]["anchor"], "top-left");
-        assert_eq!(win_el["options"]["align"], "top-left");
-        assert_eq!(win_el["options"]["x"], 10);
-        assert_eq!(win_el["options"]["y"], -20);
-        assert_eq!(win_el["options"]["width"], 200);
-        assert_eq!(win_el["options"]["height"], 100);
+        assert_eq!(win_el["options"]["panel"]["anchor"], "top-left");
+        assert_eq!(win_el["options"]["panel"]["align"], "top-left");
+        assert_eq!(win_el["options"]["panel"]["x"], 10);
+        assert_eq!(win_el["options"]["panel"]["y"], -20);
+        assert_eq!(win_el["options"]["panel"]["width"], 200);
+        assert_eq!(win_el["options"]["panel"]["height"], 100);
         assert_eq!(win_el["children"][0], "t");
     }
 
@@ -1014,16 +1020,16 @@ export default (hostApi) => {
         prev_store_ids().lock().unwrap().clear();
         ui_delta().lock().unwrap().take();
         let div = node_json(
-            r#"{"kind":"division","id":"btn","options":{"layout":"column","onClick":"do-thing","onHover":{"background":"hover.png","emitAction":"btn-hover"}},"children":[]}"#);
+            r#"{"kind":"division","id":"btn","options":{"panel":{"layout":"column","onClick":"do-thing","onHover":{"background":"hover.png","emitAction":"btn-hover"}}},"children":[]}"#);
         apply_diff(&[div]).unwrap();
 
         let json = fetch_ui_state_json();
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();
         let el = v["nodes"].as_array().unwrap().iter()
             .find(|n| n["id"] == "btn").unwrap();
-        assert_eq!(el["options"]["onClick"], "do-thing");
-        assert_eq!(el["options"]["onHover"]["background"], "hover.png");
-        assert_eq!(el["options"]["onHover"]["emitAction"], "btn-hover");
+        assert_eq!(el["options"]["panel"]["onClick"], "do-thing");
+        assert_eq!(el["options"]["panel"]["onHover"]["background"], "hover.png");
+        assert_eq!(el["options"]["panel"]["onHover"]["emitAction"], "btn-hover");
     }
 
     #[test]
@@ -1261,10 +1267,10 @@ export default (hostApi) => {
   hostApi.runtime.setContainer('items', {
     entities: ['item-a', 'item-b']
   });
-  hostApi.ui.window('list-panel', { width: 300, height: 300 }, [
+  hostApi.ui.window('list-panel', { panel: { width: 300, height: 300 } }, [
     hostApi.ui.entityList('items', { container: 'items' },
       (entity) => [
-        hostApi.ui.window(entity.id, { width: 100, height: 50 }, [
+        hostApi.ui.window(entity.id, { panel: { width: 100, height: 50 } }, [
           hostApi.ui.field(entity.id + ':value', {
             entity: entity.id,
             map: 'number',
@@ -1403,8 +1409,7 @@ export default (hostApi) => {
   });
   hostApi.ui.containerView('world', {
     container: 'grid-1',
-    width: 700,
-    height: 500,
+    panel: { width: 700, height: 500 },
     area: [
       { name: 'floor', color: [1, 0, 0, 1], bodyColor: [0, 1, 0, 1], thickness: 3 }
     ]
@@ -1435,7 +1440,7 @@ export default (hostApi) => {
             let dbg_ids: Vec<&str> = nodes.iter().map(|n| n["id"].as_str().unwrap()).collect();
             panic!("room node missing; ids: {dbg_ids:?}");
         });
-        let outline = room["options"]["areaOutline"].clone();
+        let outline = room["options"]["panel"]["areaOutline"].clone();
         assert!(outline.is_object(), "room should have areaOutline: {outline}");
         // The view's `area` selects room's "floor" area, so exactly one
         // polygon is stamped, carrying the view's per-area styling.
@@ -1482,7 +1487,7 @@ export default (hostApi) => {
         // crate has no declared area: a 1x1 fallback rect at its view-local
         // origin. crate's world pos is (40, 40) -> view-local (280, 200).
         let crate_node = nodes.iter().find(|n| n["id"] == "crate").unwrap();
-        let c_outline = crate_node["options"]["areaOutline"].clone();
+        let c_outline = crate_node["options"]["panel"]["areaOutline"].clone();
         assert!(c_outline.is_object(), "crate should have 1x1 fallback: {c_outline}");
         // crate declares no areas: a single 1x1 fallback polygon.
         let c_polys = c_outline["polygons"].as_array().unwrap();
@@ -1514,7 +1519,7 @@ export default (hostApi) => {
         ui_delta().lock().unwrap().take();
         apply_diff(&[
             node_json(
-                r#"{"kind":"window","id":"win-a","options":{"x":10,"y":-20,"anchor":"top-left","width":200,"height":100},"children":["t"]}"#),
+                r#"{"kind":"window","id":"win-a","options":{"panel":{"x":10,"y":-20,"anchor":"top-left","width":200,"height":100}},"children":["t"]}"#),
             node_json(
                 r#"{"kind":"text","id":"t","value":"spine","children":[]}"#),
             node_json(

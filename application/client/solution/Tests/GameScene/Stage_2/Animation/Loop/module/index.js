@@ -15,10 +15,12 @@ export default (hostApi) => {
   });
 
   hostApi.ui.panel("loopPanel", {
-    width: 100,
-    height: 100,
-    x: 100,
-    y: 100,
-    background: hostApi.ui.getAnimation(string.of("sequence")),
+    panel: {
+      width: 100,
+      height: 100,
+      x: 100,
+      y: 100,
+      background: hostApi.ui.getAnimation(string.of("sequence")),
+    },
   }, []);
 }

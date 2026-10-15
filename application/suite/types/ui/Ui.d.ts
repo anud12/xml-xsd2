@@ -31,25 +31,33 @@ export type UiLayout = {
   rowFirst?: boolean;
   reverse?: boolean;
   gap?: { row?: number; column?: number };
+  /**
+   * The sim-container this layout's cell grid maps to for click->cursor
+   * resolution (the "board" pattern): a click resolves to a container cell
+   * from the container's sizeX/sizeY, independent of the layout tracks.
+   */
+  container?: ContainerExpression;
 } | "column" | "row";
 
 /**
- * Options accepted by the positioned/decorated ui panel surface (window or
- * division). All fields are optional; a panel is "positioned" when it carries
- * any of x/y/width/height/background/onHover/onClick/anchor.
+ * Options for the positioned/decorated ui panel surface (window or division).
+ * The panel configuration is nested under a required `panel` key; all of its
+ * fields are optional, and a panel is "positioned" when it carries any of
+ * x/y/width/height/background/onHover/onClick/anchor. The host passes it
+ * through as the node's `options.panel` (the renderer reads `panel.*`).
  */
 export type UiPanelOptions = {
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  anchor?: "top-left" | "top" | "top-right" | "center-left" | "center" | "center-right" | "bottom-left" | "bottom" | "bottom-right" | { x?: number; y?: number };
-  align?: AlignOption;
-  background?: UiBackground;
-  border?: { texture?: UiBackground; thickness?: number; width?: number; height?: number };
+  panel: {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    anchor?: "top-left" | "top" | "top-right" | "center-left" | "center" | "center-right" | "bottom-left" | "bottom" | "bottom-right" | { x?: number; y?: number };
+    align?: AlignOption;
+    background?: UiBackground;
+    border?: { texture?: UiBackground; thickness?: number; width?: number; height?: number };
     onHover?: { texture?: UiBackground; background?: UiBackground; thickness?: number; emitAction?: ActionExpression; stopPropagation?: boolean };
-   onClick?: (ctx: UiClickContext) => void;
-    container?: ContainerExpression;
+    onClick?: (ctx: UiClickContext) => void;
     layout?: UiLayout;
     /**
      * Enables user edge/corner drag-resize. A bare `true` allows free resizing
@@ -58,7 +66,7 @@ export type UiPanelOptions = {
      * a drag grows/shrinks both axes in proportion (the dominant edge/corner
      * wins). Only honored for windows (explicitly sized panels).
      */
-     resizable?: boolean | { keepAspectRatio?: boolean };
+    resizable?: boolean | { keepAspectRatio?: boolean };
     /**
      * The entity's declared area polygons, drawn over the item sprite as a
      * solid outline (line color + thickness) and a translucent rgba body each.
@@ -82,7 +90,8 @@ export type UiPanelOptions = {
         thickness?: number;
       }[];
     };
-  [key: string]: unknown;
+    [key: string]: unknown;
+  }
 };
 
 /**
@@ -165,14 +174,11 @@ export type UiProgressOptions = UiPanelOptions & {
 /**
  * Arguments for ui.containerView: a sized view of a container where each
  * entity is placed by its container coordinates (getX/getY/span) and the view
- * is re-laid-out every tick so panels track movement.
+ * is re-laid-out every tick so panels track movement. The view's total
+ * width/height live in `panel` (host-validated as positive).
  */
 export type UiContainerViewOptions = UiPanelOptions & {
   container: ContainerExpression;
-  /** Total view width in logical units (the whole view, not per-cell). */
-  width: number;
-  /** Total view height in logical units (the whole view, not per-cell). */
-  height: number;
   /**
    * The declared areas to draw as outlines, one entry per area. Each entry
    * selects a named area and the outline style for it. When omitted, the

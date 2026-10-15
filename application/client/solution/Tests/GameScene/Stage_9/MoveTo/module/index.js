@@ -208,73 +208,89 @@ export default (hostApi) => {
   // Readouts bind each mover's column/row number values: the labels
   // re-resolve from the entity store every frame, so they follow the moves.
   hostApi.ui.panel("col-1", {
-    width: 80,
-    height: 40,
-    x: 10,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 10,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("col-1-value", { entity: "node-1", map: "number", name: "column", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("row-1", {
-    width: 80,
-    height: 40,
-    x: 100,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 100,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("row-1-value", { entity: "node-1", map: "number", name: "row", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("col-3", {
-    width: 80,
-    height: 40,
-    x: 190,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 190,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("col-3-value", { entity: "node-3", map: "number", name: "column", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("row-3", {
-    width: 80,
-    height: 40,
-    x: 280,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 280,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("row-3-value", { entity: "node-3", map: "number", name: "row", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("col-4", {
-    width: 80,
-    height: 40,
-    x: 370,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 370,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("col-4-value", { entity: "node-4", map: "number", name: "column", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("row-4", {
-    width: 80,
-    height: 40,
-    x: 460,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 460,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("row-4-value", { entity: "node-4", map: "number", name: "row", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("col-5", {
-    width: 80,
-    height: 40,
-    x: 550,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 550,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("col-5-value", { entity: "node-5", map: "number", name: "column", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("row-5", {
-    width: 80,
-    height: 40,
-    x: 640,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 640,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("row-5-value", { entity: "node-5", map: "number", name: "row", fallback: "0" }),
   ]);

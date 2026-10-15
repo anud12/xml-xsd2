@@ -17,42 +17,43 @@ var __anchorMap = {
 };
 var __nodeToPanel = function (id, node, all) {
   var o = node.options || {};
+  var p = o.panel || {};
   var out = { id: id };
   var hasSurface = node.kind === 'window'
-    || o.x !== undefined || o.y !== undefined
-    || o.width !== undefined || o.height !== undefined
-    || o.background !== undefined || o.onHover !== undefined
-    || o.onClick !== undefined || o.anchor !== undefined;
+    || p.x !== undefined || p.y !== undefined
+    || p.width !== undefined || p.height !== undefined
+    || p.background !== undefined || p.onHover !== undefined
+    || p.onClick !== undefined || p.anchor !== undefined;
   if (hasSurface) {
     var anchor = [0.5, 0.5];
-    if (o.anchor) {
-      if (typeof o.anchor === 'string' && __anchorMap[o.anchor]) anchor = __anchorMap[o.anchor];
-      else if (typeof o.anchor === 'object') {
-        anchor = [o.anchor.x !== undefined ? o.anchor.x : 0.5,
-                  o.anchor.y !== undefined ? o.anchor.y : 0.5];
+    if (p.anchor) {
+      if (typeof p.anchor === 'string' && __anchorMap[p.anchor]) anchor = __anchorMap[p.anchor];
+      else if (typeof p.anchor === 'object') {
+        anchor = [p.anchor.x !== undefined ? p.anchor.x : 0.5,
+                  p.anchor.y !== undefined ? p.anchor.y : 0.5];
       }
     }
-    if (o.background !== undefined) out.background = o.background;
+    if (p.background !== undefined) out.background = p.background;
     out.surface = true;
-    out.size = { width: o.width || 0, height: o.height || 0 };
+    out.size = { width: p.width || 0, height: p.height || 0 };
     out.anchor = { x: anchor[0], y: anchor[1] };
     out.offset = {
-      top: o.y || 0, bottom: 0,
-      left: o.x || 0,
-      right: o.width ? (o.width - (o.x || 0)) : 0
+      top: p.y || 0, bottom: 0,
+      left: p.x || 0,
+      right: p.width ? (p.width - (p.x || 0)) : 0
     };
-    if (o.onHover) {
+    if (p.onHover) {
       out.hover = {
-        texture: o.onHover.texture !== undefined ? o.onHover.texture : null,
-        thickness: o.onHover.thickness !== undefined ? o.onHover.thickness : 0,
-        background: o.onHover.background !== undefined ? o.onHover.background : null,
-        emitAction: o.onHover.emitAction || null,
-        stopPropagation: o.onHover.stopPropagation || false
+        texture: p.onHover.texture !== undefined ? p.onHover.texture : null,
+        thickness: p.onHover.thickness !== undefined ? p.onHover.thickness : 0,
+        background: p.onHover.background !== undefined ? p.onHover.background : null,
+        emitAction: p.onHover.emitAction || null,
+        stopPropagation: p.onHover.stopPropagation || false
       };
     }
-    if (o.onClick !== undefined) {
-      out.onClick = typeof o.onClick === 'string' && o.onClick !== '__jsHandler'
-        ? { type: 'emitAction', actionName: o.onClick }
+    if (p.onClick !== undefined) {
+      out.onClick = typeof p.onClick === 'string' && p.onClick !== '__jsHandler'
+        ? { type: 'emitAction', actionName: p.onClick }
         : { type: 'jsHandler' };
     }
   }
@@ -70,16 +71,17 @@ var __nodeToPanel = function (id, node, all) {
       fallback: node.binding.fallback
     };
   }
-  if (o.border && typeof o.border === 'object') {
+  if (p.border && typeof p.border === 'object') {
     out.border = {
-      width: o.border.width !== undefined ? o.border.width : 1,
-      texture: o.border.texture !== undefined ? o.border.texture : null
+      width: p.border.width !== undefined ? p.border.width : 1,
+      texture: p.border.texture !== undefined ? p.border.texture : null
     };
   }
-  if (o.container !== undefined) out.container = o.container;
-  if (o.layout !== undefined) {
-    out.layout = typeof o.layout === 'object' ? o.layout
-      : (o.layout === 'row' ? { rowFirst: true } : { rowFirst: false });
+  var __containerId = (p.layout && p.layout.container) || o.container;
+  if (__containerId !== undefined) out.container = __containerId;
+  if (p.layout !== undefined) {
+    out.layout = typeof p.layout === 'object' ? p.layout
+      : (p.layout === 'row' ? { rowFirst: true } : { rowFirst: false });
   }
   var children = (node.children || []).filter(function (c) {
     return typeof c === 'string' && c.indexOf('$$') !== 0;

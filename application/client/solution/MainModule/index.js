@@ -56,19 +56,23 @@ export default (hostApi) => {
 
   // Readouts bind node-1's column/row so the rendered labels follow the move.
   hostApi.ui.panel("col", {
-    width: 80,
-    height: 40,
-    x: 10,
-    y: 20,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 10,
+      y: 20,
+    },
   }, [
     hostApi.ui.field("col-value", { entity: node1, map: "number", name: "column", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("row", {
-    width: 80,
-    height: 40,
-    x: 100,
-    y: 20,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 100,
+      y: 20,
+    },
   }, [
     hostApi.ui.field("row-value", { entity: node1, map: "number", name: "row", fallback: "0" }),
   ]);
@@ -97,27 +101,31 @@ export default (hostApi) => {
   // so the panel tracks the move.
   hostApi.ui.containerView("plane", {
     container: grid1,
-    width: 500,
-    height: 500,
-    x: 10,
-    y: 80,
-    resizable: {
-      keepAspectRatio: true
+    panel: {
+      width: 500,
+      height: 500,
+      x: 10,
+      y: 80,
+      resizable: {
+        keepAspectRatio: true
+      },
+      border: {
+        texture: hostApi.ui.getSpritePNG("black_pixel.png")
+      },
+      background: hostApi.ui.getAnimation(string.of("marker")),
+      onClick: (ctx) => {
+        hostApi.runtime.log("plane click col=" + ctx.cursor.getX() + " row=" + ctx.cursor.getY());
+        ctx.emitAction(moveToCursor, {
+          x: ctx.cursor.getX(),
+          y: ctx.cursor.getY(),
+        });
+      },
     },
-    border: {
-      texture: hostApi.ui.getSpritePNG("black_pixel.png")
-    },
-    background: hostApi.ui.getAnimation(string.of("marker")),
-    onClick: (ctx) => {
-      hostApi.runtime.log("plane click col=" + ctx.cursor.getX() + " row=" + ctx.cursor.getY());
-      ctx.emitAction(moveToCursor, {
-        x: ctx.cursor.getX(),
-        y: ctx.cursor.getY(),
-      });
-    },
-  }, entity => hostApi.ui.window(entity.id, {}, [
+  }, entity => hostApi.ui.window(entity.id, { panel: {} }, [
     hostApi.ui.panel(entity.id + "-marker", {
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+      panel: {
+        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+      },
     }),
   ]))
   

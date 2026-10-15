@@ -27,18 +27,22 @@ export default (hostApi) => {
     duration: number.of(1),
   });
   hostApi.ui.panel("hoverParent", {
-    width: 100,
-    height: 100,
-    background: hostApi.ui.getAnimation(string.of("texture")),
-    onHover: {
-      emitAction: hoverProp,
+    panel: {
+      width: 100,
+      height: 100,
+      background: hostApi.ui.getAnimation(string.of("texture")),
+      onHover: {
+        emitAction: hoverProp,
+      },
     },
   }, [
     hostApi.ui.panel("inner", {
-      width: 30,
-      height: 30,
-      x: 20,
-      y: 20,
+      panel: {
+        width: 30,
+        height: 30,
+        x: 20,
+        y: 20,
+      },
     }, [])
   ])
 }

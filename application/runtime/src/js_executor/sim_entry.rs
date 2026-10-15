@@ -161,10 +161,11 @@ globalThis.hostApi=hostApi;
   if(H){
     u.panel=function(id,options,children){
       var o=options||{};
-      var surface=o.x!==undefined||o.y!==undefined
-        ||o.width!==undefined||o.height!==undefined
-        ||o.background!==undefined||o.onHover!==undefined
-        ||o.onClick!==undefined||o.anchor!==undefined;
+      var p=o.panel||{};
+      var surface=p.x!==undefined||p.y!==undefined
+        ||p.width!==undefined||p.height!==undefined
+        ||p.background!==undefined||p.onHover!==undefined
+        ||p.onClick!==undefined||p.anchor!==undefined;
       return surface?H.window(id,o,children):H.div(id,o,children);
     };
   }

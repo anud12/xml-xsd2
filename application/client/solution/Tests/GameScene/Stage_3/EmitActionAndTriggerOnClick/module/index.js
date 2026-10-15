@@ -30,12 +30,14 @@ export default (hostApi) => {
       });
 
     hostApi.ui.panel("center", {
-        width: 100,
-        height: 100,
-        anchor: "center",
-        background: hostApi.ui.getAnimation(string.of("texture")),
-        onClick: (ctx) => {
-            ctx.emitAction(action);
+        panel: {
+            width: 100,
+            height: 100,
+            anchor: "center",
+            background: hostApi.ui.getAnimation(string.of("texture")),
+            onClick: (ctx) => {
+                ctx.emitAction(action);
+            },
         },
     }, [])
 }

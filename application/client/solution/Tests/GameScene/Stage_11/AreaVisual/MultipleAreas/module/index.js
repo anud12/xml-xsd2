@@ -33,11 +33,13 @@ export default (hostApi) => {
   //   roof  -> blue outline (0,0,1), cyan body (0,1,1), thickness 4
   hostApi.ui.containerView("world", {
     container: grid1,
-    width: 700,
-    height: 500,
+    panel: {
+      width: 700,
+      height: 500,
+    },
     area: [
       { name: "floor", color: [1, 0, 0, 1], bodyColor: [0, 1, 0, 1], thickness: 3 },
       { name: "roof", color: [0, 0, 1, 1], bodyColor: [0, 1, 1, 1], thickness: 4 },
     ],
-  }, (entity) => hostApi.ui.window(entity.id, {}, []));
+  }, (entity) => hostApi.ui.window(entity.id, { panel: {} }, []));
 };

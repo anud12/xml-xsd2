@@ -8,9 +8,11 @@ export default (hostApi) => {
     duration: hostApi.runtime.number.of(1),
   });
   hostApi.ui.panel("panel", {
-    width: 100,
-    height: 100,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    panel: {
+      width: 100,
+      height: 100,
+      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    },
   }, [
     hostApi.ui.text("panel-content", "Content"),
   ])

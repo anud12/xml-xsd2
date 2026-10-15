@@ -51,19 +51,23 @@ export default (hostApi) => {
 
   // Readouts bind node-1's column/row so the rendered labels follow the move.
   hostApi.ui.panel("col", {
-    width: 80,
-    height: 40,
-    x: 10,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 10,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("col-value", { entity: "node-1", map: "number", name: "column", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("row", {
-    width: 80,
-    height: 40,
-    x: 100,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 100,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("row-value", { entity: "node-1", map: "number", name: "row", fallback: "0" }),
   ]);
@@ -73,13 +77,17 @@ export default (hostApi) => {
   // so the panel tracks the move.
   hostApi.ui.containerView("plane", {
     container: "grid-1",
-    width: 700,
-    height: 500,
-    x: 10,
-    y: 80,
+    panel: {
+      width: 700,
+      height: 500,
+      x: 10,
+      y: 80,
+    },
   }, entity => hostApi.ui.window(entity.id, {}, [
     hostApi.ui.panel(entity.id + "-marker", {
-      background: hostApi.ui.getAnimation(string.of("marker")),
+      panel: {
+        background: hostApi.ui.getAnimation(string.of("marker")),
+      },
     }),
   ]))
 }

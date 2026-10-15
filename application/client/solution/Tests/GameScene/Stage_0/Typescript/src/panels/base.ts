@@ -6,7 +6,9 @@ import type { HostApi } from "suite/types/HostApi";
  */
 export function buildBasePanel(hostApi: HostApi) {
   hostApi.ui.panel("base", {
-    width: 100,
-    height: 100,
+    panel: {
+      width: 100,
+      height: 100,
+    },
   }, [])
 }

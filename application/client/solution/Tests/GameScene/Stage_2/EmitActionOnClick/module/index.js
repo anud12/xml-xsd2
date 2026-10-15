@@ -26,21 +26,25 @@ export default (hostApi) => {
     duration: number.of(1),
   });
   hostApi.ui.panel("center", {
-    width: 100,
-    height: 100,
-    background: hostApi.ui.getAnimation(string.of("texture")),
-    onClick: (ctx) => {
-      ctx.emitAction(action);
+    panel: {
+      width: 100,
+      height: 100,
+      background: hostApi.ui.getAnimation(string.of("texture")),
+      onClick: (ctx) => {
+        ctx.emitAction(action);
+      },
     },
   }, [
     hostApi.ui.panel("child", {
-      x: 20,
-      y: 20,
-      width: 10,
-      height: 10,
-      background: hostApi.ui.getAnimation(string.of("texture_2")),
-      onClick: (ctx) => {
-        ctx.emitAction(childAction);
+      panel: {
+        x: 20,
+        y: 20,
+        width: 10,
+        height: 10,
+        background: hostApi.ui.getAnimation(string.of("texture_2")),
+        onClick: (ctx) => {
+          ctx.emitAction(childAction);
+        },
       },
     }, [])
   ])

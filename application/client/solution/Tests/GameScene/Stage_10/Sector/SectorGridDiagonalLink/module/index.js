@@ -67,12 +67,16 @@ export default (hostApi) => {
     grid: cave,
     cellSize: 40,
     cellGap: 8,
-    width: 700,
-    height: 400,
-    x: 200,
-    y: 200,
-    background: hostApi.ui.getAnimation(string.of("viewbg")),
+    panel: {
+      width: 700,
+      height: 400,
+      x: 200,
+      y: 200,
+      background: hostApi.ui.getAnimation(string.of("viewbg")),
+    },
   }, (item) => hostApi.ui.window(item.id, {
-    background: hostApi.ui.getAnimation(string.of("cell")),
+    panel: {
+      background: hostApi.ui.getAnimation(string.of("cell")),
+    },
   }));
 };

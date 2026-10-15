@@ -35,10 +35,12 @@ export default (hostApi) => {
   // Each item is stamped with its entity's area polygon in view-local units.
   hostApi.ui.containerView("world", {
     container: grid1,
-    width: 700,
-    height: 500,
+    panel: {
+      width: 700,
+      height: 500,
+    },
     area: [
       { name: "floor", color: [1, 0, 0, 1], bodyColor: [0, 1, 0, 1], thickness: 3 },
     ],
-  }, (entity) => hostApi.ui.window(entity.id, {}, []));
+  }, (entity) => hostApi.ui.window(entity.id, { panel: {} }, []));
 };

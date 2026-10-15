@@ -8,23 +8,29 @@ export default (hostApi) => {
   });
   // Centered: top-left at the viewport center (500, 500).
   hostApi.ui.panel("panel", {
-    width: 100,
-    height: 100,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    panel: {
+      width: 100,
+      height: 100,
+      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    },
   }, [])
   // Covers the top-left quarter of panel — panel must still pass.
   hostApi.ui.panel("overlay", {
-    width: 50,
-    height: 50,
-    x: 500,
-    y: 500,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    panel: {
+      width: 50,
+      height: 50,
+      x: 500,
+      y: 500,
+      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+    },
   }, [])
   // No background: used by the negative "window without background" case.
   hostApi.ui.panel("plain", {
-    width: 50,
-    height: 50,
-    x: 20,
-    y: 20,
+    panel: {
+      width: 50,
+      height: 50,
+      x: 20,
+      y: 20,
+    },
   }, [])
 }

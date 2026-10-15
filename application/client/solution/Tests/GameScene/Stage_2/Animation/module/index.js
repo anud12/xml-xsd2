@@ -21,18 +21,22 @@ export default (hostApi) => {
   });
 
   hostApi.ui.panel("fastPanel", {
-    width: 100,
-    height: 100,
-    x: 100,
-    y: 100,
-    background: hostApi.ui.getAnimation(string.of("fastSequence")),
+    panel: {
+      width: 100,
+      height: 100,
+      x: 100,
+      y: 100,
+      background: hostApi.ui.getAnimation(string.of("fastSequence")),
+    },
   }, []);
 
   hostApi.ui.panel("slowPanel", {
-    width: 100,
-    height: 100,
-    x: 300,
-    y: 100,
-    background: hostApi.ui.getAnimation(string.of("slowSequence")),
+    panel: {
+      width: 100,
+      height: 100,
+      x: 300,
+      y: 100,
+      background: hostApi.ui.getAnimation(string.of("slowSequence")),
+    },
   }, []);
 }

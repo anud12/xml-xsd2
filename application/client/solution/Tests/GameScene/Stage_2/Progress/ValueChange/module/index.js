@@ -6,7 +6,9 @@ export default (hostApi) => {
     numberMap: { hp: number.of(7), max: number.of(10) }
   });
   hostApi.ui.progress("prog-x", {
-    x: 100, y: 100, width: 200, height: 50,
+    panel: {
+      x: 100, y: 100, width: 200, height: 50,
+    },
     progress: {
       fill: hostApi.ui.getSpritePNG("fill.png"),
       track: hostApi.ui.getSpritePNG("track.png"),

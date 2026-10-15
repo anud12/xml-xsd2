@@ -13,9 +13,11 @@ export default (hostApi) => {
     duration: hostApi.runtime.number.of(1),
   });
   hostApi.ui.panel("bordered", {
-    width: 120,
-    height: 120,
-    background: hostApi.ui.getAnimation(hostApi.runtime.string.of("background")),
-    border: { width: 3, texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("border")) },
+    panel: {
+      width: 120,
+      height: 120,
+      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("background")),
+      border: { width: 3, texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("border")) },
+    },
   });
 }

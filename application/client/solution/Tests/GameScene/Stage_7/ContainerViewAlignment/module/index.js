@@ -44,21 +44,25 @@ export default (hostApi) => {
   // 70 wide and 100 tall.
   hostApi.ui.containerView("plane-center", {
     container: "grid-center",
-    width: 700,
-    height: 500,
-    x: 10,
-    y: 80,
+    panel: {
+      width: 700,
+      height: 500,
+      x: 10,
+      y: 80,
+    },
   }, entity => hostApi.ui.window(entity.id, {}, [
-    hostApi.ui.panel(entity.id + "-marker", { width: 140, height: 200 }),
+    hostApi.ui.panel(entity.id + "-marker", { panel: { width: 140, height: 200 } }),
   ]));
 
   hostApi.ui.containerView("plane-default", {
     container: "grid-default",
-    width: 700,
-    height: 500,
-    x: 10,
-    y: 600,
+    panel: {
+      width: 700,
+      height: 500,
+      x: 10,
+      y: 600,
+    },
   }, entity => hostApi.ui.window(entity.id, {}, [
-    hostApi.ui.panel(entity.id + "-marker", { width: 140, height: 200 }),
+    hostApi.ui.panel(entity.id + "-marker", { panel: { width: 140, height: 200 } }),
   ]));
 }

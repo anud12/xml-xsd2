@@ -49,21 +49,25 @@ export default (hostApi) => {
   // extent, not the live (resized) size.
   hostApi.ui.containerView("plane", {
     container: "grid-1",
-    width: 400,
-    height: 200,
-    x: 10,
-    y: 10,
-    resizable: true,
-    onClick: (ctx) => {
-      ctx.emitAction("move-to-cursor", {
-        x: ctx.cursor.getX(),
-        y: ctx.cursor.getY(),
-      });
+    panel: {
+      width: 400,
+      height: 200,
+      x: 10,
+      y: 10,
+      resizable: true,
+      onClick: (ctx) => {
+        ctx.emitAction("move-to-cursor", {
+          x: ctx.cursor.getX(),
+          y: ctx.cursor.getY(),
+        });
+      },
     },
   }, entity => hostApi.ui.window(entity.id, {}, [
     hostApi.ui.panel(entity.id + "-marker", {
-      width: 10,
-      height: 10,
+      panel: {
+        width: 10,
+        height: 10,
+      },
     }),
   ]))
 }

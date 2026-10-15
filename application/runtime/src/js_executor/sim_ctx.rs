@@ -50,14 +50,20 @@ if (__uih && globalThis.host) {
   var __uWin0 = __uih.window, __uDiv0 = __uih.div, __uCV0 = __uih.containerView, __uSG0 = __uih.sectorGrid;
   function __prepClick(id, options, children, inner) {
     var opts = options || {};
-    if (typeof opts.onClick === 'function') {
-      globalThis.__uiClickHandlers[id] = opts.onClick;
-      var copy = {};
-      for (var k in opts) {
-        if (Object.prototype.hasOwnProperty.call(opts, k)) copy[k] = opts[k];
+    var panel = opts.panel || null;
+    if (panel && typeof panel.onClick === 'function') {
+      globalThis.__uiClickHandlers[id] = panel.onClick;
+      var pcopy = {};
+      for (var k in panel) {
+        if (Object.prototype.hasOwnProperty.call(panel, k)) pcopy[k] = panel[k];
       }
-      copy.onClick = '__jsHandler';
-      opts = copy;
+      pcopy.onClick = '__jsHandler';
+      var ocopy = {};
+      for (var k2 in opts) {
+        if (Object.prototype.hasOwnProperty.call(opts, k2)) ocopy[k2] = opts[k2];
+      }
+      ocopy.panel = pcopy;
+      opts = ocopy;
     }
     return inner(id, opts, children);
   }
@@ -85,10 +91,11 @@ if (__uih && globalThis.host) {
   __u.sectorGrid = __uih.sectorGrid;
   __u.panel = function (id, options, children) {
     var opts = options || {};
-    var surface = opts.x !== undefined || opts.y !== undefined
-      || opts.width !== undefined || opts.height !== undefined
-      || opts.background !== undefined || opts.onHover !== undefined
-      || opts.onClick !== undefined || opts.anchor !== undefined;
+    var p = opts.panel || {};
+    var surface = p.x !== undefined || p.y !== undefined
+      || p.width !== undefined || p.height !== undefined
+      || p.background !== undefined || p.onHover !== undefined
+      || p.onClick !== undefined || p.anchor !== undefined;
     return surface ? __uih.window(id, opts, children)
                    : __uih.div(id, opts, children);
   };

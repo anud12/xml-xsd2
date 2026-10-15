@@ -45,19 +45,23 @@ export default (hostApi) => {
   // Readouts bind node-1's column/row number values: the labels re-resolve
   // from the entity store every frame, so they follow the teleports.
   hostApi.ui.panel("col", {
-    width: 80,
-    height: 40,
-    x: 10,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 10,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("col-value", { entity: "node-1", map: "number", name: "column", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("row", {
-    width: 80,
-    height: 40,
-    x: 100,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 100,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("row-value", { entity: "node-1", map: "number", name: "row", fallback: "0" }),
   ]);
@@ -65,18 +69,20 @@ export default (hostApi) => {
   // The panel represents the grid-1 container: the cursor cell under a click
   // resolves from the container's sizeX/sizeY, not the layout tracks.
   hostApi.ui.panel("board", {
-    width: 300,
-    height: 300,
-    container: string.of("grid-1"),
-    layout: {
-      columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
-      rows: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
-    },
-    onClick: (ctx) => {
-      ctx.emitAction("teleport-to-cursor", {
-        x: ctx.cursor.getX(),
-        y: ctx.cursor.getY(),
-      });
+    panel: {
+      width: 300,
+      height: 300,
+      layout: {
+        columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
+        rows: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
+        container: string.of("grid-1"),
+      },
+      onClick: (ctx) => {
+        ctx.emitAction("teleport-to-cursor", {
+          x: ctx.cursor.getX(),
+          y: ctx.cursor.getY(),
+        });
+      },
     },
   }, [])
 }

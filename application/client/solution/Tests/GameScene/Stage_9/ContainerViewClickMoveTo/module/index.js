@@ -45,19 +45,23 @@ export default (hostApi) => {
 
   // Readouts bind node-1's column/row number values.
   hostApi.ui.panel("col", {
-    width: 80,
-    height: 40,
-    x: 10,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 10,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("col-value", { entity: "node-1", map: "number", name: "column", fallback: "0" }),
   ]);
 
   hostApi.ui.panel("row", {
-    width: 80,
-    height: 40,
-    x: 100,
-    y: 10,
+    panel: {
+      width: 80,
+      height: 40,
+      x: 100,
+      y: 10,
+    },
   }, [
     hostApi.ui.field("row-value", { entity: "node-1", map: "number", name: "row", fallback: "0" }),
   ]);
@@ -66,20 +70,24 @@ export default (hostApi) => {
   // resolves from the container's sizeX/sizeY, and the click routes the move.
   hostApi.ui.containerView("plane", {
     container: "grid-1",
-    width: 700,
-    height: 500,
-    x: 10,
-    y: 80,
-    onClick: (ctx) => {
-      ctx.emitAction("move-to-cursor", {
-        x: ctx.cursor.getX(),
-        y: ctx.cursor.getY(),
-      });
+    panel: {
+      width: 700,
+      height: 500,
+      x: 10,
+      y: 80,
+      onClick: (ctx) => {
+        ctx.emitAction("move-to-cursor", {
+          x: ctx.cursor.getX(),
+          y: ctx.cursor.getY(),
+        });
+      },
     },
   }, entity => hostApi.ui.window(entity.id, {}, [
     hostApi.ui.panel(entity.id + "-marker", {
-      width: 10,
-      height: 10,
+      panel: {
+        width: 10,
+        height: 10,
+      },
     }),
   ]))
 }

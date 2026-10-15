@@ -8,10 +8,12 @@ export default (hostApi) => {
     duration: number.of(1),
   });
   hostApi.ui.panel("top-right", {
-    width: 300,
-    height: 300,
-    background: hostApi.ui.getAnimation(string.of("texture")),
-    align: "top-right",
+    panel: {
+      width: 300,
+      height: 300,
+      background: hostApi.ui.getAnimation(string.of("texture")),
+      align: "top-right",
+    },
   }, [
     hostApi.ui.text("content", "top-right"),
   ])

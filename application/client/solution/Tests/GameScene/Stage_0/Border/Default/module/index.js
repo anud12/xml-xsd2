@@ -7,8 +7,10 @@ export default (hostApi) => {
     duration: hostApi.runtime.number.of(1),
   });
   hostApi.ui.panel("default", {
-    width: 120,
-    height: 120,
-    border: { texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("border")) },
+    panel: {
+      width: 120,
+      height: 120,
+      border: { texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("border")) },
+    },
   });
 }
