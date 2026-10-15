@@ -130,6 +130,7 @@ public partial class UiWindow
         {
             DrawAreaOutline(ao);
         }
+        DrawProgress();
     }
 
     void DrawPortalArrow(PortalArrowSpec a)
@@ -427,6 +428,11 @@ public partial class UiWindow
     {
         if (_animName != null)
             AdvanceAnimationFrame(false);
+        if (_isProgress)
+        {
+            AdvanceProgressTex(_progressFill, false);
+            AdvanceProgressTex(_progressTrack, false);
+        }
         base._Process(delta);
     }
 

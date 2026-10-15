@@ -67,6 +67,8 @@ public partial class UiWindow : Control
             ApplyImage(node);
         else if (node.Kind == UiNodeKind.Window)
             ApplyWindow(node);
+        else if (node.Kind == UiNodeKind.Progress)
+            ApplyProgress(node);
         else
             ApplyLayout(node);
         // Paint re-applies every node each frame and ApplyBackground resets the

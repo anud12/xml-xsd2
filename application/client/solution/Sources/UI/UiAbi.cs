@@ -12,7 +12,7 @@ namespace NewGameProject.UI;
 /// offset into that arena; `NoStr` means "no string".
 public static class UiAbi
 {
-    public const uint AbiVersion = 2;
+    public const uint AbiVersion = 5;
     public const uint NoStr = uint.MaxValue;
 
     public const uint KindDivision = 0;
@@ -20,6 +20,7 @@ public static class UiAbi
     public const uint KindField = 2;
     public const uint KindWindow = 3;
     public const uint KindImage = 4;
+    public const uint KindProgress = 5;
 
     public const byte OpAdd = 0;
     public const byte OpUpdate = 1;
@@ -168,6 +169,11 @@ public static class UiAbi
         public float AreaB;
         public float AreaA;
         public float AreaThickness;
+        public float ProgressValue;
+        public UiBackground ProgressFill;
+        public UiBackground ProgressTrack;
+        public byte ProgressOrientation;
+        public uint ProgressSteps;
     }
 
     [StructLayout(LayoutKind.Sequential)]

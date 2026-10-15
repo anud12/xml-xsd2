@@ -3,7 +3,7 @@ export default (hostApi) => {
   const { number, string } = hostApi.runtime;
   const hero = hostApi.runtime.setEntity({
     id: string.of("hero"),
-    numberMap: { hp: number.of(7) }
+    numberMap: { hp: number.of(7), max: number.of(10) }
   });
   hostApi.ui.window("slab-win", { width: 200, height: 100 }, [
     hostApi.ui.text("slab-text", "slab"),
@@ -14,4 +14,14 @@ export default (hostApi) => {
       fallback: "n/a"
     })
   ]);
+  hostApi.ui.progress("slab-progress", {
+    progress: {
+      fill: "art/fill.png",
+      track: "art/track.png",
+      orientation: "horizontal",
+      entity: hero,
+      value: (entity) => entity.number_map.get("hp").orElse(number.of(0)),
+      max: (entity) => entity.number_map.get("max").orElse(number.of(1))
+    }
+  });
 };

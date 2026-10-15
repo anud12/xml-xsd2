@@ -10,7 +10,8 @@ public enum UiNodeKind
     Text,
     Field,
     Window,
-    Image
+    Image,
+    Progress
 }
 
 public class UiNodeData

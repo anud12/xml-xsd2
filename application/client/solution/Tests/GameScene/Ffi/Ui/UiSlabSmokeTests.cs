@@ -28,7 +28,7 @@ public class UiSlabSmokeTests : Steps
         var nodes = UiSlab.ReadNodes(ptr);
         RuntimeInterop.FreeUiState(ptr);
 
-        Assertions.AssertThat(nodes.Count).IsEqual(3);
+        Assertions.AssertThat(nodes.Count).IsEqual(4);
 
         var win = nodes.FirstOrDefault(n => n.Id == "slab-win");
         Assertions.AssertThat(win != null).IsTrue();
@@ -55,6 +55,24 @@ public class UiSlabSmokeTests : Steps
         Assertions.AssertThat(binding.RootElement.GetProperty("map").GetString()).IsEqual("number");
         Assertions.AssertThat(binding.RootElement.GetProperty("name").GetString()).IsEqual("hp");
         Assertions.AssertThat(binding.RootElement.GetProperty("fallback").GetString()).IsEqual("n/a");
+
+        var progress = nodes.FirstOrDefault(n => n.Id == "slab-progress");
+        Assertions.AssertThat(progress != null).IsTrue();
+        Assertions.AssertThat(progress!.Kind).IsEqual(UiNodeKind.Progress);
+        using (var progDoc = JsonDocument.Parse(progress.OptionsJson))
+        {
+            var p = progDoc.RootElement.GetProperty("progress");
+            Assertions.AssertThat(p.GetProperty("fill").GetString()).IsEqual("art/fill.png");
+            Assertions.AssertThat(p.GetProperty("track").GetString()).IsEqual("art/track.png");
+            Assertions.AssertThat(p.GetProperty("orientation").GetString()).IsEqual("horizontal");
+            // hero.hp=7, max=10 -> fraction 0.7 -> round(0.7 * 100) = 70 of 100 steps
+            Assertions.AssertThat(p.GetProperty("value").GetDouble()).IsEqual(70.0);
+            Assertions.AssertThat(p.GetProperty("steps").GetDouble()).IsEqual(100.0);
+        }
+        Assertions.AssertThat(progress.BindingJson.Length > 0).IsTrue();
+        using var progBinding = JsonDocument.Parse(progress.BindingJson);
+        Assertions.AssertThat(progBinding.RootElement.GetProperty("entity").GetString()).IsEqual("hero");
+        Assertions.AssertThat(progBinding.RootElement.GetProperty("name").GetString()).IsEqual("hp");
     }
 
     [TestCase]
@@ -75,5 +93,6 @@ public class UiSlabSmokeTests : Steps
         Assertions.AssertThat(adds.Contains("slab-win")).IsTrue();
         Assertions.AssertThat(adds.Contains("slab-text")).IsTrue();
         Assertions.AssertThat(adds.Contains("slab-field")).IsTrue();
+        Assertions.AssertThat(adds.Contains("slab-progress")).IsTrue();
     }
 }

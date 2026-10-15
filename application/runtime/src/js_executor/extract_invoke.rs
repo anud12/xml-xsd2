@@ -110,6 +110,7 @@ globalThis.hostApi=hostApi;
   if(!u.field)u.field=noop;
   if(!u.text)u.text=noop;
   if(!u.image)u.image=noop;
+  if(!u.progress)u.progress=noop;
   if(!u.canvas)u.canvas=noop;
   if(!u.containerView)u.containerView=noop;
   if(!u.sectorGrid)u.sectorGrid=noop;

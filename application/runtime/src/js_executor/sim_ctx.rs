@@ -78,6 +78,7 @@ if (__uih && globalThis.host) {
   __u.window = __uih.window;
   __u.field = __uih.field;
   __u.image = __uih.image;
+  __u.progress = __uih.progress;
   __u.canvas = __uih.canvas;
   __u.entityList = __uih.entityList;
   __u.containerView = __uih.containerView;

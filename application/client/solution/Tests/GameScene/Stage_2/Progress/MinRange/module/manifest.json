@@ -1,0 +1,6 @@
+{
+  "id": "progress-min-range",
+  "version": "1.0.0",
+  "name": "Progress Min Range",
+  "entry": "index.js"
+}

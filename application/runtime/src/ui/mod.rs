@@ -72,6 +72,21 @@ pub enum UiNode {
         #[serde(default)]
         children: Vec<String>,
     },
+    #[serde(rename = "progress")]
+    Progress {
+        id: String,
+        /// Resolved 0..1 fill fraction (bound nodes are re-resolved per tick).
+        #[serde(default)]
+        value: f64,
+        /// Optional entity number binding `{ entity, map, name, fallback }`.
+        #[serde(default)]
+        binding: serde_json::Value,
+        /// Panel options plus `fill`/`track`/`orientation`/`min`/`max`.
+        #[serde(default)]
+        options: serde_json::Value,
+        #[serde(default)]
+        children: Vec<String>,
+    },
 }
 
 impl UiNode {
@@ -82,6 +97,7 @@ impl UiNode {
             UiNode::Field { id, .. } => id,
             UiNode::Window { id, .. } => id,
             UiNode::Image { id, .. } => id,
+            UiNode::Progress { id, .. } => id,
         }
     }
 }
@@ -206,6 +222,7 @@ fn tick_inner() -> Result<()> {
     let snapshot_json = eval_string(&ctx, &script)?;
     let mut snapshot: Vec<UiNode> = serde_json::from_str(&snapshot_json)?;
     resolve_field_values(&mut snapshot);
+    resolve_progress_values(&mut snapshot);
     resolve_container_view_positions(&mut snapshot);
 
     // Keep the animation-definition store in sync for the fetch FFI (the
@@ -288,6 +305,58 @@ fn resolve_field_values(snapshot: &mut [UiNode]) {
                 *value = fallback.to_string();
             }
         }
+    }
+}
+
+/// Re-resolve every progress node's `value` from the current entity store so
+/// the id-diff sees live changes as updates. A bound node reads its entity's
+/// number field (`name`) and stores the fill quantized into `steps` (default
+/// 100): `round(((value - min) / (max - min)).clamp(0, 1) * steps)` — an
+/// integer 0..steps. Each of `name`/`min`/`max` is a field key re-read from
+/// the entity's number data every tick; when a key is absent on the entity the
+/// binding's captured `.orElse` default (`fallback`/`minFallback`/`maxFallback`)
+/// is used. An omitted `min` falls back to the static default 0.
+fn resolve_progress_values(snapshot: &mut [UiNode]) {
+    let num_data = crate::state::last_entity_number_data().lock().unwrap();
+    for node in snapshot.iter_mut() {
+        let UiNode::Progress { value, binding, options, .. } = node else {
+            continue;
+        };
+        let Some(b) = binding.as_object() else {
+            continue;
+        };
+        let (entity, name) = (
+            b.get("entity").and_then(|v| v.as_str()),
+            b.get("name").and_then(|v| v.as_str()),
+        );
+        let Some(entity) = entity else {
+            continue; // unbound: keep the declared value
+        };
+        // Each bound field is re-read from the entity's number data; a missing
+        // key falls back to the captured .orElse default (min omits to a
+        // static 0).
+        let num = |key: Option<&str>, default: f64| -> Option<f64> {
+            match key {
+                Some(k) => num_data.get(entity).and_then(|m| m.get(k)).copied().or(Some(default)),
+                None => Some(default),
+            }
+        };
+        let name_default = b.get("fallback").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let value_raw = num(name, name_default);
+        let min_default = b.get("minFallback").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let min = num(b.get("minName").and_then(|v| v.as_str()), min_default);
+        let max_default = b.get("maxFallback").and_then(|v| v.as_f64()).unwrap_or(1.0);
+        let max = num(b.get("maxName").and_then(|v| v.as_str()), max_default);
+        let (value_raw, min, max) = match (value_raw, min, max) {
+            (Some(v), Some(mi), Some(ma)) => (v, mi, ma),
+            _ => continue,
+        };
+        let span = max - min;
+        let fraction = if span > 0.0 { ((value_raw - min) / span).clamp(0.0, 1.0) } else { 0.0 };
+        // Quantize the fraction into an integer number of steps (default 100);
+        // the renderer divides by steps to recover the fill fraction.
+        let steps = options.get("steps").and_then(|v| v.as_f64()).unwrap_or(100.0).max(1.0);
+        *value = (fraction * steps).round();
     }
 }
 
@@ -992,6 +1061,193 @@ export default (hostApi) => {
         assert_eq!(img_el["kind"], "image");
         assert_eq!(img_el["src"], "art/hover.png");
         assert_eq!(img_el["children"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn progress_node_round_trips_store_and_delta() {
+        let _g = lock();
+        ui_nodes().lock().unwrap().clear();
+        prev_store_ids().lock().unwrap().clear();
+        ui_delta().lock().unwrap().take();
+        let prog = node_json(
+            r#"{"kind":"progress","id":"prog-a","value":0.75,"binding":{},"options":{"fill":"art/fill.png","track":"art/track.png","orientation":"vertical","max":4},"children":[]}"#);
+        assert!(matches!(&prog, UiNode::Progress { id, value, .. }
+            if id == "prog-a" && *value == 0.75));
+        apply_diff(&[prog.clone()]).unwrap();
+
+        // the add op carries the full node with options
+        let delta = ui_delta().lock().unwrap().take().unwrap();
+        let add = delta.ops.iter().find(|o| matches!(o, UiDeltaOp::Add { node }
+            if node.id() == "prog-a")).expect("add op for progress");
+        match add {
+            UiDeltaOp::Add { node } => match node {
+                UiNode::Progress { id, value, options, .. } => {
+                    assert_eq!(id, "prog-a");
+                    assert_eq!(*value, 0.75);
+                    assert_eq!(options["fill"], "art/fill.png");
+                    assert_eq!(options["track"], "art/track.png");
+                    assert_eq!(options["orientation"], "vertical");
+                    assert_eq!(options["max"], 4);
+                }
+                other => panic!("expected progress node, got {:?}", other),
+            },
+            other => panic!("expected add, got {:?}", other),
+        }
+
+        // the store round-trips the node with options intact
+        let json = fetch_ui_state_json();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let prog_el = v["nodes"].as_array().unwrap().iter()
+            .find(|n| n["id"] == "prog-a").unwrap();
+        assert_eq!(prog_el["kind"], "progress");
+        assert_eq!(prog_el["value"], 0.75);
+        assert_eq!(prog_el["options"]["fill"], "art/fill.png");
+        assert_eq!(prog_el["options"]["orientation"], "vertical");
+        assert_eq!(prog_el["options"]["max"], 4);
+    }
+
+    const PROGRESS_MODULE: &str = r#"
+export default (hostApi) => {
+  hostApi.ui.progress('hp-bar', {
+    progress: {
+      fill: 'art/fill.png',
+      entity: 'ent-a',
+      value: (entity) => entity.number_map.get('hp').orElse(hostApi.runtime.number.of(0)),
+      max: (entity) => entity.number_map.get('max').orElse(hostApi.runtime.number.of(100))
+    }
+  });
+};
+"#;
+
+    #[test]
+    fn progress_binds_entity_value_and_updates_live() {
+        let _g = lock();
+        crate::state::clear_state();
+        install_module(PROGRESS_MODULE);
+        // hp = 70 over [0, 100] -> (70 - 0) / 100 = 0.7 -> round(0.7 * 100) = 70
+        set_entity_number("ent-a", "hp", 70.0);
+        set_entity_number("ent-a", "max", 100.0);
+        tick();
+
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let nodes = v["nodes"].as_array().unwrap();
+        let prog = nodes.iter().find(|n| n["id"] == "hp-bar").unwrap();
+        assert_eq!(prog["kind"], "progress");
+        assert_eq!(prog["value"], 70.0);
+        assert_eq!(prog["binding"]["entity"], "ent-a");
+        assert_eq!(prog["binding"]["name"], "hp");
+        // the .orElse(0) default is captured as the raw-value fallback
+        assert_eq!(prog["binding"]["fallback"], 0.0);
+        assert_eq!(prog["options"]["fill"], "art/fill.png");
+        let delta: serde_json::Value = serde_json::from_str(
+            &fetch_ui_delta_json().unwrap()).unwrap();
+        assert!(delta["ops"].as_array().unwrap().iter().any(|o|
+            o["op"] == "add" && o["node"]["id"] == "hp-bar"));
+
+        // out-of-range clamps to steps (100); the next tick emits an update
+        ui_delta().lock().unwrap().take();
+        ui_dirty().store(false, Ordering::SeqCst);
+        set_entity_number("ent-a", "hp", 200.0);
+        tick();
+
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let prog = v["nodes"].as_array().unwrap().iter()
+            .find(|n| n["id"] == "hp-bar").unwrap();
+        assert_eq!(prog["value"], 100.0);
+        let delta: serde_json::Value = serde_json::from_str(
+            &fetch_ui_delta_json().unwrap()).unwrap();
+        let ops = delta["ops"].as_array().unwrap();
+        assert!(ops.iter().any(|o| o["op"] == "update"
+            && o["node"]["id"] == "hp-bar"
+            && o["node"]["value"] == 100.0));
+        assert!(!ops.iter().any(|o| o["op"] == "remove"));
+    }
+
+    #[test]
+    fn progress_broken_binding_falls_back_to_orElse_default() {
+        let _g = lock();
+        crate::state::clear_state();
+        install_module(PROGRESS_MODULE);
+        // no entity value yet: value_raw falls back to the .orElse default (0),
+        // max to its .orElse default (100) -> (0 - 0) / 100 = 0 -> 0 steps
+        tick();
+
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let prog = v["nodes"].as_array().unwrap().iter()
+            .find(|n| n["id"] == "hp-bar").unwrap();
+        assert_eq!(prog["value"], 0.0);
+
+        // then the value arrives: hp = 30 over [0, 100] -> 0.3 -> 30 steps
+        set_entity_number("ent-a", "hp", 30.0);
+        set_entity_number("ent-a", "max", 100.0);
+        tick();
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let prog = v["nodes"].as_array().unwrap().iter()
+            .find(|n| n["id"] == "hp-bar").unwrap();
+        assert_eq!(prog["value"], 30.0);
+    }
+
+    const PROGRESS_MIN_MODULE: &str = r#"
+export default (hostApi) => {
+  hostApi.ui.progress('temp-bar', {
+    progress: {
+      fill: 'art/fill.png',
+      entity: 'ent-a',
+      value: (entity) => entity.number_map.get('temp').orElse(hostApi.runtime.number.of(0)),
+      min: (entity) => entity.number_map.get('min').orElse(hostApi.runtime.number.of(0)),
+      max: (entity) => entity.number_map.get('max').orElse(hostApi.runtime.number.of(1))
+    }
+  });
+};
+"#;
+
+    #[test]
+    fn progress_normalizes_entity_value_across_min_max_range() {
+        let _g = lock();
+        crate::state::clear_state();
+        install_module(PROGRESS_MIN_MODULE);
+        // temp = 10 over the entity-bound range min=-10..max=30 (span 40)
+        // -> (10 - (-10)) / 40 = 0.5 -> round(0.5 * 100) = 50
+        set_entity_number("ent-a", "temp", 10.0);
+        set_entity_number("ent-a", "min", -10.0);
+        set_entity_number("ent-a", "max", 30.0);
+        tick();
+
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let prog = v["nodes"].as_array().unwrap().iter()
+            .find(|n| n["id"] == "temp-bar").unwrap();
+        assert_eq!(prog["value"], 50.0);
+        // the entity-bound min/max keys live in the binding
+        assert_eq!(prog["binding"]["minName"], "min");
+        assert_eq!(prog["binding"]["maxName"], "max");
+
+        // below min clamps to 0; above max clamps to steps (100)
+        ui_delta().lock().unwrap().take();
+        ui_dirty().store(false, Ordering::SeqCst);
+        set_entity_number("ent-a", "temp", -100.0);
+        tick();
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let prog = v["nodes"].as_array().unwrap().iter()
+            .find(|n| n["id"] == "temp-bar").unwrap();
+        assert_eq!(prog["value"], 0.0);
+
+        set_entity_number("ent-a", "temp", 100.0);
+        tick();
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let prog = v["nodes"].as_array().unwrap().iter()
+            .find(|n| n["id"] == "temp-bar").unwrap();
+        assert_eq!(prog["value"], 100.0);
+
+        // changing the bounds live re-resolves: min=0, max=10, temp=5
+        // -> (5 - 0) / 10 = 0.5 -> 50
+        set_entity_number("ent-a", "min", 0.0);
+        set_entity_number("ent-a", "max", 10.0);
+        set_entity_number("ent-a", "temp", 5.0);
+        tick();
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let prog = v["nodes"].as_array().unwrap().iter()
+            .find(|n| n["id"] == "temp-bar").unwrap();
+        assert_eq!(prog["value"], 50.0);
     }
 
     const CONTAINER_LIST_MODULE: &str = r#"

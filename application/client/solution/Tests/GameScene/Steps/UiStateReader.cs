@@ -19,6 +19,7 @@ public static class UiStateReader
         NewGameProject.UI.UiNodeKind.Field => "field",
         NewGameProject.UI.UiNodeKind.Window => "window",
         NewGameProject.UI.UiNodeKind.Image => "image",
+        NewGameProject.UI.UiNodeKind.Progress => "progress",
         _ => "division"
     };
 

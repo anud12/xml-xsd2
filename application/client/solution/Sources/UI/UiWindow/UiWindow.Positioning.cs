@@ -85,27 +85,7 @@ public partial class UiWindow
         // viewport rect.
         _isWindow = true;
         var opts = ParseOptions(node);
-        var hasX = TryNum(opts, "x", out var x);
-        var hasY = TryNum(opts, "y", out var y);
-        _windowHasXY = hasX || hasY;
-        _windowOffset = new Vector2(hasX ? x : 0f, hasY ? y : 0f);
-        // The legacy panel anchor is a 0-1 fraction pair; the new .ui anchor
-        // is a 9-point string. Accept both.
-        Vector2 anchorFrac = Vector2.Zero;
-        if (opts.TryGetProperty("anchor", out var a) && a.ValueKind == JsonValueKind.Object
-            && TryNum(a, "x", out var ax) && TryNum(a, "y", out var ay))
-        {
-            anchorFrac = new Vector2(ax, ay);
-        }
-        else
-        {
-            var (fx, fy) = AnchorFraction(TryStr(opts, "anchor"));
-            anchorFrac = new Vector2(fx, fy);
-        }
-        _windowAnchorFrac = anchorFrac;
-        TryNum(opts, "width", out var w);
-        TryNum(opts, "height", out var h);
-        _windowExplicitSize = new Vector2(w, h);
+        ParseWindowGeometry(opts);
         // resizable: true — the user can drag edges/corners to resize the
         // window. Only meaningful for windows (explicitly sized panels).
         bool resizable = false;
@@ -129,6 +109,38 @@ public partial class UiWindow
 
         _layoutSpec = UiGrid.UiGridLayoutSpec.Parse(opts);
         EnsureFlowContainer();
+
+        ApplyBackground(opts);
+        ApplyBorder(opts);
+    }
+
+    /// Parses the window geometry options (x/y/anchor/width/height) into the
+    /// cached positioning state and applies the flow sizing consequence: an
+    /// explicit size becomes a fixed minimum (a user resize overrides it),
+    /// otherwise the window sizes to its content.
+    void ParseWindowGeometry(JsonElement opts)
+    {
+        var hasX = TryNum(opts, "x", out var x);
+        var hasY = TryNum(opts, "y", out var y);
+        _windowHasXY = hasX || hasY;
+        _windowOffset = new Vector2(hasX ? x : 0f, hasY ? y : 0f);
+        // The legacy panel anchor is a 0-1 fraction pair; the new .ui anchor
+        // is a 9-point string. Accept both.
+        Vector2 anchorFrac = Vector2.Zero;
+        if (opts.TryGetProperty("anchor", out var a) && a.ValueKind == JsonValueKind.Object
+            && TryNum(a, "x", out var ax) && TryNum(a, "y", out var ay))
+        {
+            anchorFrac = new Vector2(ax, ay);
+        }
+        else
+        {
+            var (fx, fy) = AnchorFraction(TryStr(opts, "anchor"));
+            anchorFrac = new Vector2(fx, fy);
+        }
+        _windowAnchorFrac = anchorFrac;
+        TryNum(opts, "width", out var w);
+        TryNum(opts, "height", out var h);
+        _windowExplicitSize = new Vector2(w, h);
         if (_windowExplicitSize != Vector2.Zero)
         {
             // A user resize overrides the declared minimum so a shrunken size
@@ -141,8 +153,5 @@ public partial class UiWindow
             FixedFlowSize = false;
             CustomMinimumSize = Vector2.Zero;
         }
-
-        ApplyBackground(opts);
-        ApplyBorder(opts);
     }
 }

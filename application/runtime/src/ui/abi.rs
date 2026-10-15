@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use super::UiNode as DomainNode;
 use super::UiDeltaOp as DomainDeltaOp;
 
-pub const UI_ABI_VERSION: u32 = 2;
+pub const UI_ABI_VERSION: u32 = 5;
 /// Sentinel string offset: "no string" (absent value/src/optional option).
 pub const NO_STR: u32 = u32::MAX;
 
@@ -30,6 +30,7 @@ pub const UI_KIND_TEXT: u32 = 1;
 pub const UI_KIND_FIELD: u32 = 2;
 pub const UI_KIND_WINDOW: u32 = 3;
 pub const UI_KIND_IMAGE: u32 = 4;
+pub const UI_KIND_PROGRESS: u32 = 5;
 
 /// Delta ops (`UiDeltaOp::op`).
 pub const UI_OP_ADD: u8 = 0;
@@ -182,6 +183,18 @@ pub struct UiNodeOptions {
     pub area_b: f32,
     pub area_a: f32,
     pub area_thickness: f32,
+    /// Progress bar (progress nodes only): `progress_value` is the resolved
+    /// integer fill count in 0..progress_steps; `progress_steps` is the step
+    /// count (default 100) the renderer divides by to recover the 0..1
+    /// fraction; `progress_fill`/`progress_track` are the tiled texture
+    /// references (a static archive path or an animation ref, shaped like
+    /// `background`; `UI_BG_NONE` when absent); `progress_orientation` is the
+    /// fill orientation (0 = horizontal, 1 = vertical).
+    pub progress_value: f32,
+    pub progress_fill: UiBackground,
+    pub progress_track: UiBackground,
+    pub progress_orientation: u8,
+    pub progress_steps: u32,
 }
 
 #[repr(C)]
@@ -549,7 +562,8 @@ fn plan_node(node: &DomainNode) -> NodePlan {
     };
     let opts = match node {
         DomainNode::Division { options, .. }
-        | DomainNode::Window { options, .. } => options,
+        | DomainNode::Window { options, .. }
+        | DomainNode::Progress { options, .. } => options,
         _ => return plan,
     };
     if let Some(layout) = opts.get("layout").and_then(|v| v.as_object()) {
@@ -579,7 +593,8 @@ fn node_children(node: &DomainNode) -> &[String] {
         | DomainNode::Text { children, .. }
         | DomainNode::Field { children, .. }
         | DomainNode::Window { children, .. }
-        | DomainNode::Image { children, .. } => children,
+        | DomainNode::Image { children, .. }
+        | DomainNode::Progress { children, .. } => children,
     }
 }
 
@@ -643,6 +658,29 @@ fn empty_options() -> UiNodeOptions {
         area_b: 0.0,
         area_a: 0.0,
         area_thickness: 0.0,
+        progress_value: 0.0,
+        progress_fill: UiBackground {
+            kind: UI_BG_NONE,
+            loop_: 0,
+            duration: 0.0,
+            path: NO_STR,
+            name: NO_STR,
+            map: NO_STR,
+            layer_count: 0,
+            layers: ptr::null(),
+        },
+        progress_track: UiBackground {
+            kind: UI_BG_NONE,
+            loop_: 0,
+            duration: 0.0,
+            path: NO_STR,
+            name: NO_STR,
+            map: NO_STR,
+            layer_count: 0,
+            layers: ptr::null(),
+        },
+        progress_orientation: 0,
+        progress_steps: 100,
     }
 }
 
@@ -798,6 +836,32 @@ fn parse_background(
     b
 }
 
+/// Progress fill/track texture reference: a static PNG archive path or an
+/// animation ref ({ name, duration, loop }). Sprite maps are not supported
+/// for progress tiling, so a `map` object leaves the reference absent.
+fn parse_progress_tex(opts: &Map<String, Value>, key: &str, slab: &mut Slab) -> UiBackground {
+    let mut b = empty_options().background;
+    match opts.get(key) {
+        None | Some(Value::Null) => {}
+        Some(Value::String(path)) if !path.is_empty() => {
+            b.kind = UI_BG_STATIC;
+            b.path = slab.intern(path);
+        }
+        Some(v) => {
+            let Some(m) = v.as_object() else {
+                return b;
+            };
+            if m.get("name").and_then(|n| n.as_str()).is_some() {
+                b.kind = UI_BG_ANIMATION;
+                b.name = opt_str(m, "name", slab);
+                b.duration = opt_f32(m, "duration");
+                b.loop_ = opt_bool(m, "loop") as u8;
+            }
+        }
+    }
+    b
+}
+
 fn parse_on_click(
     opts: &Map<String, Value>,
     slab: &mut Slab,
@@ -946,6 +1010,22 @@ fn node_to_abi(node: &DomainNode, slab: &mut Slab, r: &NodeRegions) -> UiNode {
             child_count,
             children: children_ptr,
         },
+        DomainNode::Progress { id, value, binding, options, .. } => {
+            let mut opt = options_to_abi(options, slab, r);
+            // The value is an integer fill count in 0..steps (resolved per
+            // tick for bound nodes; kept as-declared for unbound ones).
+            opt.progress_value = (*value as f32).clamp(0.0, opt.progress_steps as f32);
+            UiNode {
+                kind: UI_KIND_PROGRESS,
+                id: slab.intern(id),
+                value: NO_STR,
+                src: NO_STR,
+                binding: binding_to_abi(binding, slab),
+                opt,
+                child_count,
+                children: children_ptr,
+            }
+        }
     }
 }
 
@@ -1051,6 +1131,21 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
         }
         o.area_thickness = a.get("thickness").and_then(|v| v.as_f64()).map(|f| f as f32).unwrap_or(2.0);
     }
+    // progress: the tiled fill/track texture references (static path or
+    // animation ref) + the fill orientation (0 = horizontal, 1 = vertical) +
+    // the step count (default 100). Only progress nodes set these keys.
+    o.progress_fill = parse_progress_tex(opts, "fill", slab);
+    o.progress_track = parse_progress_tex(opts, "track", slab);
+    o.progress_orientation = match opts.get("orientation").and_then(|v| v.as_str()) {
+        Some("vertical") => 1,
+        _ => 0,
+    };
+    o.progress_steps = opts
+        .get("steps")
+        .and_then(|v| v.as_u64())
+        .filter(|&s| s >= 1)
+        .map(|s| s as u32)
+        .unwrap_or(100);
     o
 }
 
@@ -1331,12 +1426,12 @@ mod tests {
         assert_eq!(s.size_layout, 40);
         assert_eq!(s.size_background, 32);
         assert_eq!(s.size_on_hover, 20);
-        assert_eq!(s.size_options, 200);
-        assert_eq!(s.size_node, 248);
+        assert_eq!(s.size_options, 280);
+        assert_eq!(s.size_node, 328);
         assert_eq!(s.size_animation, 24);
         assert_eq!(s.size_snapshot, 40);
         assert_eq!(s.size_delta, 32);
-        assert_eq!(s.size_delta_op, 256);
+        assert_eq!(s.size_delta_op, 336);
         // Pointer offsets land on 8-byte boundaries.
         for off in [
             s.off_node_children,
@@ -1488,6 +1583,53 @@ mod tests {
         assert!((item.opt.area_b).abs() < f32::EPSILON);
         assert!((item.opt.area_a - 0.5).abs() < f32::EPSILON);
         assert!((item.opt.area_thickness - 3.0).abs() < f32::EPSILON);
+        unsafe { free_snapshot(snap as *const UiSnapshot as *mut UiSnapshot) };
+    }
+
+    #[test]
+    fn progress_node_round_trips_slab() {
+        let nodes = vec![
+            node(r#"{"kind":"progress","id":"hp-bar","value":0.7,"binding":{"entity":"ent-1","map":"number","name":"hp","fallback":0.25},"options":{"x":40,"y":120,"width":220,"height":24,"fill":"art/fill.png","track":"art/track.png","orientation":"vertical","max":10},"children":[]}"#),
+            node(r#"{"kind":"progress","id":"static-bar","value":1,"options":{"fill":"art/f.png","orientation":"horizontal"},"children":[]}"#),
+            node(r#"{"kind":"progress","id":"anim-bar","value":0.5,"options":{"fill":{"name":"fill-anim","duration":2,"loop":true},"track":"art/track.png"},"children":[]}"#),
+        ];
+        let snap = unsafe { &*build_snapshot(&nodes, &HashMap::new()) };
+        let arena = snap.strings;
+        let ns = unsafe { std::slice::from_raw_parts(snap.nodes, snap.node_count as usize) };
+
+        let bar = ns.iter().find(|n| cstr(arena, n.id) == "hp-bar").unwrap();
+        assert_eq!(bar.kind, UI_KIND_PROGRESS);
+        assert!((bar.opt.progress_value - 0.7).abs() < f32::EPSILON);
+        assert_eq!(bar.opt.progress_fill.kind, UI_BG_STATIC);
+        assert_eq!(cstr(arena, bar.opt.progress_fill.path), "art/fill.png");
+        assert_eq!(bar.opt.progress_track.kind, UI_BG_STATIC);
+        assert_eq!(cstr(arena, bar.opt.progress_track.path), "art/track.png");
+        assert_eq!(bar.opt.progress_orientation, 1);
+        assert_eq!(bar.binding.map, UI_MAP_NUMBER);
+        assert_eq!(cstr(arena, bar.binding.entity), "ent-1");
+        assert_eq!(cstr(arena, bar.binding.name), "hp");
+        assert_eq!(bar.opt.has_xy, 1);
+        assert!((bar.opt.width - 220.0).abs() < f32::EPSILON);
+
+        let s = ns.iter().find(|n| cstr(arena, n.id) == "static-bar").unwrap();
+        assert_eq!(s.kind, UI_KIND_PROGRESS);
+        assert!((s.opt.progress_value - 1.0).abs() < f32::EPSILON);
+        assert_eq!(s.opt.progress_fill.kind, UI_BG_STATIC);
+        assert_eq!(cstr(arena, s.opt.progress_fill.path), "art/f.png");
+        assert_eq!(s.opt.progress_track.kind, UI_BG_NONE);
+        assert_eq!(s.opt.progress_orientation, 0);
+        assert_eq!(s.binding.entity, NO_STR);
+
+        // Animated fill: an animation ref { name, duration, loop } encodes as a
+        // UI_BG_ANIMATION reference (the renderer advances frames per tick).
+        let a = ns.iter().find(|n| cstr(arena, n.id) == "anim-bar").unwrap();
+        assert_eq!(a.opt.progress_fill.kind, UI_BG_ANIMATION);
+        assert_eq!(cstr(arena, a.opt.progress_fill.name), "fill-anim");
+        assert!((a.opt.progress_fill.duration - 2.0).abs() < f32::EPSILON);
+        assert_eq!(a.opt.progress_fill.loop_, 1);
+        assert_eq!(a.opt.progress_track.kind, UI_BG_STATIC);
+        assert_eq!(cstr(arena, a.opt.progress_track.path), "art/track.png");
+
         unsafe { free_snapshot(snap as *const UiSnapshot as *mut UiSnapshot) };
     }
 

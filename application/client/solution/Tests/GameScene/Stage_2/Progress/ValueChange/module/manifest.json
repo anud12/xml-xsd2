@@ -1,0 +1,6 @@
+{
+  "id": "progress-value-change",
+  "version": "1.0.0",
+  "name": "Progress Value Change",
+  "entry": "index.js"
+}

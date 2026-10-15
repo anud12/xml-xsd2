@@ -107,6 +107,62 @@ export type UiFieldBinding = {
 };
 
 /**
+ * Options for a ui.progress node: a progress bar that paints the
+ * `progress.fill` texture tiled along the fill orientation, clipped to the
+ * current value fraction (the last tile is cropped at the fill boundary). The
+ * value is always entity-bound: a `progress.value` lambda selects the
+ * entity's number field, normalized across the [min, max] range and quantized
+ * into `steps` (the node stores an integer 0..steps). Each of fill/track is a
+ * static archive PNG path or an animation reference (the panel-background
+ * shape) whose frames advance per runtime elapsed time unit. The progress data
+ * binding and presentation live under the `progress` key.
+ */
+export type UiProgressOptions = UiPanelOptions & {
+  /** The progress bar's data binding and presentation. */
+  progress: {
+    /** Tiled fill texture: an archive PNG path or an animation reference. Required. */
+    fill: UiBackground;
+    /** Tiled track texture behind the fill (same resolution as fill). Optional. */
+    track?: UiBackground;
+    /** Fill orientation: "horizontal" fills left-to-right (default), "vertical" fills top-to-bottom. */
+    orientation?: "horizontal" | "vertical";
+    /**
+     * Number of discrete fill steps the bar is quantized into (default 100). The
+     * engine stores `round(fraction * steps)` as the node value and the renderer
+     * divides by `steps` to recover the fill fraction.
+     */
+    steps?: number;
+    /**
+     * Lower bound of the value's range (default 0 when omitted). A lambda that
+     * selects a field from the bound entity's number map (re-read every tick):
+     * `(entity) => entity.number_map.get(key).orElse(...)`. The `.orElse` default
+     * is used when the field is absent on the entity.
+     */
+    min?: (entity: EntityExpression) => NumberExpression;
+    /**
+     * Upper bound of the value's range. A lambda that selects a field from the
+     * bound entity's number map (re-read every tick):
+     * `(entity) => entity.number_map.get(key).orElse(...)`. The `.orElse` default
+     * is used when the field is absent on the entity. Required.
+     */
+    max: (entity: EntityExpression) => NumberExpression;
+    /** Entity to bind. Required. */
+    entity: EntityExpression;
+    /**
+     * Selects the entity's number field to read. A lambda that uses the
+     * EntityExpression api to pick the field from the number map and returns a
+     * `NumberExpression`, e.g.
+     * `(entity) => entity.number_map.get("hp").orElse(...)`. Returning a
+     * `NumberExpression` (rather than the raw `MaybeExpression`) forces the
+     * `Maybe` to be resolved via `orElse`. The selected field is re-read from
+     * the entity's number data every tick; its `.orElse` default is the raw
+     * value used when the field is absent. Required.
+     */
+    value: (entity: EntityExpression) => NumberExpression;
+  };
+};
+
+/**
  * Arguments for ui.containerView: a sized view of a container where each
  * entity is placed by its container coordinates (getX/getY/span) and the view
  * is re-laid-out every tick so panels track movement.
@@ -198,6 +254,8 @@ export type UiApi = {
   text: (id: string, value: string | number) => UiNodeId;
   image: (id: string, src: string) => UiNodeId;
   field: (id: string, binding: UiFieldBinding) => UiNodeId;
+  /** A progress bar: tiled fill clipped to a 0..1 fraction (static or entity-bound). */
+  progress: (id: string, options: UiProgressOptions) => UiNodeId;
 
   /** A flow list: one child per entity in the container (render returns an array of node ids). */
   entityList: (name: string, args: UiEntityListOptions, render: (entity: Entity) => UiNodeId[]) => UiNodeId;

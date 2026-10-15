@@ -149,6 +149,7 @@ globalThis.hostApi=hostApi;
     if(H.window)u.window=H.window;
     if(H.field)u.field=H.field;
     if(H.image)u.image=H.image;
+    if(H.progress)u.progress=H.progress;
     if(H.canvas)u.canvas=H.canvas;
     if(H.entityList)u.entityList=H.entityList;
     if(H.containerView)u.containerView=H.containerView;

@@ -136,6 +136,66 @@ function (root) {
         return v;
     }
 
+    // A progress fill/track reference: a non-empty archive path string, or a
+    // named animation reference (the background shape, with a "name").
+    function validProgressTexRef(v) {
+        if (typeof v === 'string') return v.length > 0;
+        return !!v && typeof v === 'object'
+            && typeof v.name === 'string' && v.name.length > 0;
+    }
+
+    // A progress field (`value`/`min`/`max`) is a lambda
+    // `(entity: EntityExpression) => NumberExpression` that selects a field off
+    // the entity's number map (e.g. `(e) => e.number_map.get("hp").orElse(0)`).
+    // We invoke the lambda against a capturing proxy whose number_map.get
+    // records the requested key and whose orElse records the default. The
+    // engine re-reads the key from the entity's number data every tick and uses
+    // the captured orElse default when the key is absent. Returns
+    // { key, fallback }.
+    function progressFieldRef(fn, entity, label) {
+        var ref = { key: null, fallback: 0 };
+        var proxy = {
+            id: typeof entity === 'string' ? entity : (entity && entity.id),
+            number_map: {
+                get: function (key) {
+                    ref.key = key;
+                    return { orElse: function (def) { ref.fallback = def; return def; } };
+                }
+            },
+            text_map: { get: function () { return ''; } },
+            getNumber: function () { return undefined; },
+            getText: function () { return ''; }
+        };
+        fn(proxy);
+        if (typeof ref.key !== 'string' || ref.key.length === 0) {
+            throw new Error('ui: progress options.progress.' + label + ' lambda must select a number_map field via entity.number_map.get');
+        }
+        if (typeof ref.fallback !== 'number' || !isFinite(ref.fallback)) {
+            throw new Error('ui: progress options.progress.' + label + ' lambda .orElse default must be a finite number');
+        }
+        return ref;
+    }
+
+    // A progress min/max is an entity-bound lambda (re-read every tick) or, if
+    // omitted, a static default. Returns { key, fallback }: a lambda yields
+    // { key: <captured field>, fallback: <orElse default> }; an omitted value
+    // yields { key: null, fallback: <static default> }.
+    function progressRange(opt, entity, label, staticDefault) {
+        if (opt == null) {
+            return { key: null, fallback: staticDefault };
+        }
+        if (typeof opt !== 'function') {
+            throw new Error('ui: progress options.progress.' + label + ' must be a lambda (entity) => NumberExpression');
+        }
+        var ref;
+        try {
+            ref = progressFieldRef(opt, entity, label);
+        } catch (e) {
+            throw new Error('ui: progress options.progress.' + label + ' lambda threw: ' + (e && e.message));
+        }
+        return ref;
+    }
+
     function normalizeOptions(options) {
         if (!options || typeof options !== 'object') return options;
         if (options.background == null) return options;
@@ -909,6 +969,96 @@ function (root) {
                     fallback: fallback
                 },
                 value: fallback,
+                children: []
+            });
+        },
+        progress: function (id, options) {
+            if (!options || typeof options !== 'object') {
+                throw new Error('ui: progress options must be an object');
+            }
+            var progress = options.progress;
+            if (!progress || typeof progress !== 'object') {
+                throw new Error('ui: progress options.progress is required (an object)');
+            }
+            var fill = backgroundRef(progress.fill);
+            if (!validProgressTexRef(fill)) {
+                throw new Error('ui: progress options.progress.fill must be a non-empty archive path or animation');
+            }
+            var track = null;
+            if (progress.track != null) {
+                track = backgroundRef(progress.track);
+                if (!validProgressTexRef(track)) {
+                    throw new Error('ui: progress options.progress.track must be a non-empty archive path or animation');
+                }
+            }
+            var orientation = progress.orientation == null ? 'horizontal' : progress.orientation;
+            if (orientation !== 'horizontal' && orientation !== 'vertical') {
+                throw new Error('ui: progress options.progress.orientation must be "horizontal" or "vertical"');
+            }
+            // steps quantizes the fill into an integer number of steps
+            // (default 100); the engine stores round(fraction * steps) and the
+            // renderer divides back by steps.
+            var steps = progress.steps == null ? 100 : progress.steps;
+            if (typeof steps !== 'number' || !isFinite(steps) || steps < 1 || Math.floor(steps) !== steps) {
+                throw new Error('ui: progress options.progress.steps must be a positive integer');
+            }
+            // The progress is always bound: entity, value, and max are required.
+            var entity = resolveId(progress.entity);
+            if (typeof entity !== 'string' || entity.length === 0) {
+                throw new Error('ui: progress options.progress.entity is required (a non-empty entity id)');
+            }
+            if (typeof progress.value !== 'function') {
+                throw new Error('ui: progress options.progress.value is required (a lambda (entity) => NumberExpression)');
+            }
+            if (typeof progress.max !== 'function') {
+                throw new Error('ui: progress options.progress.max is required (a lambda (entity) => NumberExpression)');
+            }
+            // value is a lambda: (entity: EntityExpression) => NumberExpression.
+            // It uses the entity's number_map api to select the field; we
+            // capture the field name and the .orElse default (the engine
+            // re-reads the field from the entity's number data every tick and
+            // uses the default when the field is absent on the entity).
+            var valueRef;
+            try {
+                valueRef = progressFieldRef(progress.value, progress.entity, 'value');
+            } catch (e) {
+                throw new Error('ui: progress options.progress.value lambda threw: ' + (e && e.message));
+            }
+            // max is a required lambda; min is an optional lambda (default 0).
+            // The captured .orElse defaults are the raw-value fallbacks used
+            // when a field is absent on the entity.
+            var maxRef;
+            try {
+                maxRef = progressFieldRef(progress.max, progress.entity, 'max');
+            } catch (e) {
+                throw new Error('ui: progress options.progress.max lambda threw: ' + (e && e.message));
+            }
+            var minR = progressRange(progress.min, progress.entity, 'min', 0);
+            var binding = {
+                entity: entity,
+                map: 'number',
+                name: valueRef.key,
+                fallback: valueRef.fallback,
+                maxName: maxRef.key,
+                maxFallback: maxRef.fallback,
+                minFallback: minR.fallback
+            };
+            if (minR.key != null) binding.minName = minR.key;
+            var opts = {};
+            for (var k in options) {
+                if (Object.prototype.hasOwnProperty.call(options, k)) opts[k] = options[k];
+            }
+            delete opts.progress;
+            opts.fill = fill;
+            if (track != null) opts.track = track;
+            opts.orientation = orientation;
+            opts.steps = steps;
+            return register({
+                id: id,
+                kind: 'progress',
+                value: 0,
+                binding: binding,
+                options: resolveBorderOptions(resolveHoverOptions(normalizeOptions(opts))),
                 children: []
             });
         },

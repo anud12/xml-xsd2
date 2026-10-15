@@ -142,6 +142,19 @@ public static class UiSlab
             Add("portalLine", "true");
         var area = SerializeAreaOutline(o, arena);
         if (area != null) Add("areaOutline", area);
+        var fillJson = SerializeBackground(o.ProgressFill, arena);
+        if (fillJson != null)
+        {
+            var p = new StringBuilder("{\"fill\":").Append(fillJson);
+            var trackJson = SerializeBackground(o.ProgressTrack, arena);
+            if (trackJson != null)
+                p.Append(",\"track\":").Append(trackJson);
+            p.Append(",\"orientation\":\"").Append(o.ProgressOrientation != 0 ? "vertical" : "horizontal").Append('"');
+            p.Append(",\"value\":").Append(Num(o.ProgressValue));
+            p.Append(",\"steps\":").Append(Num(o.ProgressSteps));
+            p.Append('}');
+            Add("progress", p.ToString());
+        }
         if (first) return "{}";
         return "{" + sb + "}";
     }

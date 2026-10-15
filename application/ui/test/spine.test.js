@@ -95,6 +95,159 @@ test('ui.image rejects empty src and missing id', () => {
   assert.throws(() => host.image('img', 42), /non-empty archive path/);
 });
 
+test('ui.progress registers a bound progress node and carries steps in the options', () => {
+  registered = [];
+  host.clear();
+  const id = host.progress('spine-prog', {
+    progress: {
+      fill: 'art/fill.png', track: 'art/track.png', orientation: 'vertical',
+      entity: 'ent-a',
+      value: (e) => e.number_map.get('hp').orElse(0),
+      max: (e) => e.number_map.get('max').orElse(100),
+      steps: 50,
+    },
+  });
+  assert.strictEqual(id, 'spine-prog');
+  assert.strictEqual(registered.length, 1);
+  assert.deepStrictEqual(registered[0], {
+    id: 'spine-prog',
+    kind: 'progress',
+    value: 0,
+    binding: { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 },
+    options: { fill: 'art/fill.png', track: 'art/track.png', orientation: 'vertical', steps: 50 },
+    children: [],
+  });
+});
+
+test('ui.progress defaults steps to 100 and captures the orElse defaults as raw-value fallbacks', () => {
+  registered = [];
+  host.clear();
+  const id = host.progress('hp-bar', {
+    progress: {
+      fill: 'art/fill.png', entity: 'ent-a',
+      value: (e) => e.number_map.get('hp').orElse(0),
+      max: (e) => e.number_map.get('max').orElse(100),
+    },
+  });
+  assert.strictEqual(id, 'hp-bar');
+  assert.deepStrictEqual(registered[0], {
+    id: 'hp-bar',
+    kind: 'progress',
+    value: 0,
+    binding: { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 },
+    options: { fill: 'art/fill.png', orientation: 'horizontal', steps: 100 },
+    children: [],
+  });
+});
+
+test('ui.progress resolves a value lambda via the entity number_map api', () => {
+  registered = [];
+  host.clear();
+  let sawEntity = null;
+  const id = host.progress('hp-lambda', {
+    progress: {
+      fill: 'art/fill.png', entity: 'ent-a',
+      value: (entity) => { sawEntity = entity.id; return entity.number_map.get('hp').orElse(0); },
+      max: (e) => e.number_map.get('max').orElse(100),
+    },
+  });
+  assert.strictEqual(id, 'hp-lambda');
+  assert.strictEqual(sawEntity, 'ent-a');
+  assert.deepStrictEqual(registered[0].binding, { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 });
+});
+
+test('ui.progress captures the value orElse default as the raw-value fallback', () => {
+  registered = [];
+  host.clear();
+  const id = host.progress('hp-orElse', {
+    progress: {
+      fill: 'a.png', entity: 'ent-a',
+      value: (entity) => entity.number_map.get('hp').orElse(0.5),
+      max: (e) => e.number_map.get('max').orElse(100),
+    },
+  });
+  assert.strictEqual(id, 'hp-orElse');
+  assert.strictEqual(registered[0].binding.name, 'hp');
+  assert.strictEqual(registered[0].binding.fallback, 0.5);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: () => 42, max: (e) => e.number_map.get('m').orElse(1) } }), /options.progress.value lambda/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: () => { throw new Error('boom'); }, max: (e) => e.number_map.get('m').orElse(1) } }), /lambda threw/);
+});
+
+test('ui.progress resolves min/max lambdas into binding keys and captures their orElse defaults', () => {
+  registered = [];
+  host.clear();
+  const id = host.progress('range-lambda', {
+    progress: {
+      fill: 'a.png', entity: 'ent-a',
+      value: (e) => e.number_map.get('hp').orElse(0),
+      min: (e) => e.number_map.get('lo').orElse(2),
+      max: (e) => e.number_map.get('hi').orElse(10),
+    },
+  });
+  assert.strictEqual(id, 'range-lambda');
+  assert.deepStrictEqual(registered[0].binding, {
+    entity: 'ent-a', map: 'number', name: 'hp', fallback: 0,
+    maxName: 'hi', maxFallback: 10, minName: 'lo', minFallback: 2,
+  });
+  assert.strictEqual(registered[0].options.min, undefined);
+  assert.strictEqual(registered[0].options.max, undefined);
+});
+
+test('ui.progress requires entity, value, and max; min must be a lambda', () => {
+  host.clear();
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png' } }), /options.progress.entity is required/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e' } }), /options.progress.value is required/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: (e) => e.number_map.get('hp').orElse(0) } }), /options.progress.max is required/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: (e) => e.number_map.get('hp').orElse(0), max: 'x' } }), /options.progress.max is required/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: (e) => e.number_map.get('hp').orElse(0), max: (e) => e.number_map.get('m').orElse(1), min: 5 } }), /options.progress.min must be a lambda/);
+});
+
+test('ui.progress passes an animation reference through for fill and track', () => {
+  registered = [];
+  host.clear();
+  // A named animation reference (the panel-background shape) is carried
+  // through intact so the renderer can advance its frames per tick.
+  const id = host.progress('anim-prog', {
+    progress: {
+      fill: { name: 'fill-anim', duration: 2, loop: true },
+      track: 'art/track.png',
+      entity: 'ent-a',
+      value: (e) => e.number_map.get('hp').orElse(0),
+      max: (e) => e.number_map.get('max').orElse(100),
+    },
+  });
+  assert.strictEqual(id, 'anim-prog');
+  assert.deepStrictEqual(registered[0], {
+    id: 'anim-prog',
+    kind: 'progress',
+    value: 0,
+    binding: { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 },
+    options: {
+      fill: { name: 'fill-anim', duration: 2, loop: true },
+      track: 'art/track.png',
+      orientation: 'horizontal',
+      steps: 100,
+    },
+    children: [],
+  });
+});
+
+test('ui.progress rejects missing fill, bad orientation, bad steps, or missing entity/value/max', () => {
+  host.clear();
+  assert.throws(() => host.progress('p', {}), /options.progress is required/);
+  assert.throws(() => host.progress('p', null), /options must be an object/);
+  assert.throws(() => host.progress('p', { progress: {} }), /options.progress.fill/);
+  assert.throws(() => host.progress('p', { progress: { fill: '' } }), /options.progress.fill/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', track: '' } }), /options.progress.track/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', orientation: 'z' } }), /options.progress.orientation/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png' } }), /options.progress.entity is required/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e' } }), /options.progress.value is required/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: (e) => e.number_map.get('hp').orElse(0) } }), /options.progress.max is required/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: 'hp' } }), /options.progress.value is required/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: (e) => e.number_map.get('hp').orElse(0), max: (e) => e.number_map.get('m').orElse(1), min: 0 } }), /options.progress.min must be a lambda/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: (e) => e.number_map.get('hp').orElse(0), max: (e) => e.number_map.get('m').orElse(1), steps: 1.5 } }), /options.progress.steps/);
+});
+
 test('ui.entityList registers a division node with a container marker child', () => {
   registered = [];
   host.clear();
