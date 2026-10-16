@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO.Compression;
 using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
@@ -5,6 +6,11 @@ using NewGameProject.Module;
 using NewGameProject.Runtime;
 
 public partial class Game : Node {
+    // The runtime loop runs on a background thread, but Godot's GD.Print is only
+    // safe from the main thread; printing from the worker thread interleaves and
+    // misaligns console output. Runtime logs are buffered here (thread-safe) and
+    // flushed on the main thread in _Process instead.
+    static readonly ConcurrentQueue<string> _pendingLogs = new();
     public static string? ARCHIVE_DIR;
     public static string? MODULE_DIR;
     public static bool RUN_RUNTIME_LOOP = true;
@@ -19,7 +25,8 @@ public partial class Game : Node {
     bool _hotReloadPending = false;
 
     public override void _Ready() {
-        RuntimeInterop.RegisterLogger(m => GD.Print(m));
+        // Buffer runtime logs; flushed on the main thread in _Process (see above).
+        RuntimeInterop.RegisterLogger(_pendingLogs.Enqueue);
         // The module picker (SelectModule) sets this before loading the game
         // scene; fall back to the first module when the game is launched
         // directly.
@@ -93,6 +100,10 @@ public partial class Game : Node {
     }
 
     public override void _Process(double delta) {
+        // Flush runtime logs on the main thread so GD.Print output stays aligned.
+        while (_pendingLogs.TryDequeue(out string line)) {
+            GD.Print(line);
+        }
         // Hot reloads raised by the file watcher arrive on a non-main thread;
         // the actual reload and UI repaint happen here on the main thread.
         if (_hotReloadPending) {
