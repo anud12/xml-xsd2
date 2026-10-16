@@ -20,7 +20,10 @@ public partial class Game : Node {
 
     public override void _Ready() {
         RuntimeInterop.RegisterLogger(m => GD.Print(m));
-        MODULE_DIR ??= @"E:\workspace\xml-xsd2\application\client\solution\MainModule";
+        // The module picker (SelectModule) sets this before loading the game
+        // scene; fall back to the first module when the game is launched
+        // directly.
+        MODULE_DIR ??= ProjectSettings.GlobalizePath("res://Modules/TestTick");
 
         if (ARCHIVE_DIR == null && !SKIP_CREATE_ARCHIVE) {
             string zip = CreateArchive(MODULE_DIR);

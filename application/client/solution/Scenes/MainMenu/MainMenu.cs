@@ -11,7 +11,7 @@ public partial class MainMenu : Control
 
     public void OnNewGame()
     {
-        GetTree().ChangeSceneToFile("res://Scenes/GameScene/Game.tscn");
+        GetTree().ChangeSceneToFile("res://Scenes/SelectModule/SelectModule.tscn");
     }
 
     public void OnSettings()

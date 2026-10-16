@@ -4,6 +4,7 @@ using NewGameProject.Tests.XUnit;
 
 using MainMenuScene = global::MainMenu;
 using SettingsScene = global::Settings;
+using SelectModuleScene = global::SelectModule;
 
 namespace GdUnit4.Examples.Basics.Setup.Test.Menu.MainMenu;
 
@@ -63,26 +64,14 @@ public partial class TestClass : Steps
 
     [TestCase]
     [RequireGodotRuntime]
-    public async Task Given_main_menu_clicking_new_game_should_open_game_scene()
+    public async Task Given_main_menu_clicking_new_game_should_open_module_select_scene()
     {
-        Game.TEST_MODE = true;
-        Game.SKIP_CREATE_ARCHIVE = true;
-        Game.RUN_RUNTIME_LOOP = false;
-        try
-        {
-            var scene = runner.Scene();
-            // Drive the button's handler directly (a synthetic push-input click
-            // deadlocks the scene-tree's input processing before the signal fires).
-            ((MainMenuScene)scene).OnNewGame();
-            await runner.SimulateFrames(3);
+        var scene = runner.Scene();
+        // Drive the button's handler directly (a synthetic push-input click
+        // deadlocks the scene-tree's input processing before the signal fires).
+        ((MainMenuScene)scene).OnNewGame();
+        await runner.SimulateFrames(3);
 
-            Assertions.AssertThat(GetCurrentScene() is Game).IsTrue();
-        }
-        finally
-        {
-            Game.TEST_MODE = false;
-            Game.SKIP_CREATE_ARCHIVE = false;
-            Game.RUN_RUNTIME_LOOP = true;
-        }
+        Assertions.AssertThat(GetCurrentScene() is SelectModuleScene).IsTrue();
     }
 }

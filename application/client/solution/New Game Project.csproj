@@ -39,19 +39,23 @@
     <Content Include="Features\**\*.feature">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="MainModule\frame_1.png" />
-    <Content Include="MainModule\frame_1.png.import" />
-    <Content Include="MainModule\frame_2.png" />
-    <Content Include="MainModule\frame_2.png.import" />
-    <Content Include="MainModule\frame_3.png" />
-    <Content Include="MainModule\frame_3.png.import" />
-    <Content Include="MainModule\frame_4.png" />
-    <Content Include="MainModule\frame_4.png.import" />
-    <Content Include="MainModule\frame_5.png" />
-    <Content Include="MainModule\frame_5.png.import" />
-    <Content Include="MainModule\hover.png" />
-    <Content Include="MainModule\marker.png" />
-    <Content Include="MainModule\marker.png.import" />
+    <Content Include="Modules\TestTick\dist\index.js" />
+    <Content Include="Modules\TestTick\manifest.json" />
+    <Content Include="Modules\TestTick\tsconfig.json" />
+    <Content Include="Modules\TestTick\src\index.ts" />
+    <Content Include="Modules\TestTick\frame_1.png" />
+    <Content Include="Modules\TestTick\frame_1.png.import" />
+    <Content Include="Modules\TestTick\frame_2.png" />
+    <Content Include="Modules\TestTick\frame_2.png.import" />
+    <Content Include="Modules\TestTick\frame_3.png" />
+    <Content Include="Modules\TestTick\frame_3.png.import" />
+    <Content Include="Modules\TestTick\frame_4.png" />
+    <Content Include="Modules\TestTick\frame_4.png.import" />
+    <Content Include="Modules\TestTick\frame_5.png" />
+    <Content Include="Modules\TestTick\frame_5.png.import" />
+    <Content Include="Modules\TestTick\hover.png" />
+    <Content Include="Modules\TestTick\marker.png" />
+    <Content Include="Modules\TestTick\marker.png.import" />
     <Content Include="Tests\Cases\**\*.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -195,6 +199,16 @@
     <Exec Command="npm install typescript@5 --no-audit --no-fund --no-progress" ContinueOnError="false" />
     <Message Text="Validating JS files with tsc (tsconfig.json)..." Importance="high" />
     <Exec Command="npx tsc --noEmit --project &quot;$(MSBuildProjectDirectory)\\tsconfig.json&quot;" />
+  </Target>
+  <!-- Compile each module's TypeScript source (Modules/<name>/src) to its
+       runtime entry (Modules/<name>/dist) before the C# build. Depends on
+       ValidateJsTypes so the local typescript install has already run. -->
+  <Target Name="BuildModules" BeforeTargets="BeforeBuild" DependsOnTargets="ValidateJsTypes">
+    <ItemGroup>
+      <ModuleTsConfig Include="Modules\*\tsconfig.json" />
+    </ItemGroup>
+    <Message Text="Compiling module @(ModuleTsConfig->'%(Identity)', ' ')" Importance="high" />
+    <Exec Command="npx tsc -p &quot;%(ModuleTsConfig.Identity)&quot;" />
   </Target>
 
 </Project>
