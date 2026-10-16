@@ -191,6 +191,13 @@ pub fn install(files: &HashMap<String, String>) -> Result<()> {
     Ok(())
 }
 
+/// Install while holding the ctx guard so the persistent-context swap in
+/// `replace_host` cannot race an in-flight `sim_with` on the iteration thread.
+pub fn install_locked(files: &HashMap<String, String>) -> Result<()> {
+    let _guard = CTX_GUARD.lock().unwrap();
+    install(files)
+}
+
 /// The persistent context, if a module has been installed.
 pub fn ctx() -> Option<&'static Context> {
     unsafe { SIM_HOST.map(|h| &h.ctx) }

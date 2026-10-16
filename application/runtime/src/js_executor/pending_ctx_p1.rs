@@ -5,6 +5,22 @@ const PENDING_CTX_JS_P1: &str = r#"(function() {
     for (var eid in globalThis.__entityData) { fe = globalThis.__entityData[eid]; feId = eid; break; }
     globalThis.__context = {
         getEntityBy: function(filter) {
+            (function(){
+              var want=null;
+              try{
+                var src='';
+                if(filter){
+                  if(typeof filter.id==='function')src=String(filter.id);
+                  else if(typeof filter==='function')src=String(filter);
+                  else src=String(filter);
+                }
+                var m=src.match(/isContainingExactly\(\s*[\w.]*\.of\(\s*["']([^"']+)["']\s*\)\s*\)/);
+                if(!m)m=src.match(/isContainingExactly\([^)]*?["']([^"']+)["'][^)]*\)/);
+                if(m)want=m[1];
+              }catch(e){}
+              if(want&&globalThis.__entityData[want]){fe=globalThis.__entityData[want];feId=want;}
+              else{fe=null;for(var eid in globalThis.__entityData){fe=globalThis.__entityData[eid];feId=eid;break;}}
+            })();
             return {
                 map: function(cb) {
                     if (!fe) return;

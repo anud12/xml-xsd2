@@ -3,11 +3,12 @@ use std::sync::atomic::{AtomicBool, AtomicI64};
 use std::sync::{Once, Mutex};
 use std::collections::HashMap;
 
-mod accessors; mod clear; mod export; mod markers;
+mod accessors; mod clear; mod export; mod hot_reload; mod markers;
 mod persist; mod scheduled; mod active_plans; mod sector;
 pub mod area; pub mod area_query;
 
 pub use accessors::*; pub use clear::*; pub use export::*;
+pub use hot_reload::*;
 pub use markers::*; pub use persist::*; pub use scheduled::*;
 pub use active_plans::*; pub use sector::*;
 pub use area_query::{

@@ -1,0 +1,6 @@
+{
+  "id": "id",
+  "version": "2.0.0",
+  "name": "Hot Reload No-Effect Module v2",
+  "entry": "index.js"
+}

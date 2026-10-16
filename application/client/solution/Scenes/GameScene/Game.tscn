@@ -49,3 +49,11 @@ offset_top = 8.0
 offset_right = 190.0
 offset_bottom = 44.0
 text = "Actions"
+
+[node name="ReloadButton" type="Button" parent="uiLayers/coreUI" unique_id=2018843371]
+layout_mode = 1
+offset_left = 210.0
+offset_top = 8.0
+offset_right = 296.0
+offset_bottom = 44.0
+text = "Reload"

@@ -35,6 +35,7 @@ pub use extract::extract_from_source;
 pub use archive_loader::{ArchiveResolver, ArchiveLoader};
 pub use simulate::{simulate_action, convert_store_values};
 pub use pending_effects::process_pending_effects;
+pub use context_builders::lookup_effect;
 pub use scheduled_effects::process_scheduled_effects;
 pub use sector_refresh::recompute_sector_grids;
 pub use active_plans::process_active_plans;

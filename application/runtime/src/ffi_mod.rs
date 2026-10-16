@@ -5,6 +5,7 @@ pub mod debug;
 pub mod misc;
 
 pub use export::runtime_process_archive;
+pub use export::runtime_reload_archive;
 pub use export::runtime_export_state;
 pub use export::runtime_export_state_struct;
 pub use export::runtime_free_exported_state;

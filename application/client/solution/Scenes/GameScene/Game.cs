@@ -1,23 +1,29 @@
 using System.IO.Compression;
 using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
+using NewGameProject.Module;
 using NewGameProject.Runtime;
 
 public partial class Game : Node {
     public static string? ARCHIVE_DIR;
+    public static string? MODULE_DIR;
     public static bool RUN_RUNTIME_LOOP = true;
     public static bool SKIP_CREATE_ARCHIVE = false;
     public static bool TEST_MODE = false;
+    public static bool AUTO_HOT_RELOAD = false;
     static bool _runtimeRunning = false;
     bool _ready = false;
     int _frameCount = 0;
     ActionsWindow? _actionsWindow;
+    ModuleWatcher? _moduleWatcher;
+    bool _hotReloadPending = false;
 
     public override void _Ready() {
         RuntimeInterop.RegisterLogger(m => GD.Print(m));
+        MODULE_DIR ??= @"E:\workspace\xml-xsd2\application\client\solution\MainModule";
 
         if (ARCHIVE_DIR == null && !SKIP_CREATE_ARCHIVE) {
-            string zip = CreateArchive(@"E:\workspace\xml-xsd2\application\client\solution\MainModule");
+            string zip = CreateArchive(MODULE_DIR);
             string db = RuntimeInterop.ProcessArchive(zip);
             if (db == null) {
                 GD.PrintErr("Failed to load archive");
@@ -51,6 +57,13 @@ public partial class Game : Node {
         // Settings button is available in both game and test modes.
         GetNode<Button>("uiLayers/coreUI/SettingsButton").Pressed += OnSettingsButton;
         GetNode<Button>("uiLayers/coreUI/ActionsButton").Pressed += ToggleActionsWindow;
+        GetNode<Button>("uiLayers/coreUI/ReloadButton").Pressed += DoHotReload;
+
+        if (AUTO_HOT_RELOAD && !TEST_MODE) {
+            _moduleWatcher = new ModuleWatcher(MODULE_DIR,
+                () => _hotReloadPending = true);
+            _moduleWatcher.Start();
+        }
 
         RuntimeInterop.emitAction("increment");
 
@@ -74,6 +87,42 @@ public partial class Game : Node {
             }).Start();
         }
 
+    }
+
+    public override void _Process(double delta) {
+        // Hot reloads raised by the file watcher arrive on a non-main thread;
+        // the actual reload and UI repaint happen here on the main thread.
+        if (_hotReloadPending) {
+            _hotReloadPending = false;
+            DoHotReload();
+        }
+    }
+
+    public override void _ExitTree() {
+        _moduleWatcher?.Dispose();
+        _moduleWatcher = null;
+    }
+
+    /// Re-ships the module directory as an archive and hot-reloads it against
+    /// the live runtime: the previous game state (entity values, elapsed
+    /// time, in-flight action plans) is kept and the module's new
+    /// declarations/actions take effect.
+    void DoHotReload() {
+        string dir = MODULE_DIR;
+        if (dir == null || !Directory.Exists(dir)) {
+            GD.PrintErr("Hot reload skipped: module directory missing");
+            return;
+        }
+        string zip = ModuleArchive.CreateZipFromDir(dir);
+        string? db = RuntimeInterop.ReloadArchive(zip);
+        if (db == null) {
+            GD.PrintErr("Hot reload aborted; the previous module stays live");
+            return;
+        }
+        GD.Print($"Hot reload complete: {db}");
+        GetNode<Control>("uiLayers/moduleUI")
+            .GetChildren().OfType<RootNode>().FirstOrDefault()?.Paint();
+        RuntimeInterop.emitAction("increment");
     }
 
     void OnSettingsButton() {

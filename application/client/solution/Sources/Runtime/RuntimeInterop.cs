@@ -102,6 +102,28 @@ public static class RuntimeInterop
         }
     }
 
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_reload_archive([MarshalAs(UnmanagedType.LPStr)] string path);
+
+    /// Hot reloads the module archive: the module is re-processed against the
+    /// live runtime and the previous game state (entity values, elapsed time,
+    /// in-flight action plans) is kept. Returns null when the reload is
+    /// aborted (the previous module and state then stay live).
+    public static string ReloadArchive(string zipPath)
+    {
+        ZIP_PATH = zipPath;
+        IntPtr ptr = runtime_reload_archive(zipPath);
+        if (ptr == IntPtr.Zero) return null;
+        try
+        {
+            return Marshal.PtrToStringAnsi(ptr);
+        }
+        finally
+        {
+            runtime_free_string(ptr);
+        }
+    }
+
     public static Dictionary<string, byte[]> GetFileFromArchive()
     {
         var fileData = new Dictionary<string, byte[]>();
