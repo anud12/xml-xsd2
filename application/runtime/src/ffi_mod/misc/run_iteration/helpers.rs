@@ -1,7 +1,12 @@
 use std::io::Write;
 
 pub(super) fn log(msg: &str) {
-    eprintln!("{}", msg);
+    // Route through the registered log callback (Godot's GD.Print via the C#
+    // logger) rather than raw eprintln!: the iteration loop runs on a
+    // background thread, and eprintln! there races the main thread on native
+    // stderr, producing garbled/misaligned output. send_log is dispatched to a
+    // thread-safe sink on the host side.
+    crate::native_stdio::send_log(msg);
     if let Ok(mut f) = std::fs::OpenOptions::new()
         .create(true).append(true).open("rust_debug_csharp.log")
     {
