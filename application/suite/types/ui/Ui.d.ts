@@ -5,7 +5,6 @@ import {SpriteResource} from "../texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "../texture/SpriteMap";
 import {ContainerExpression, GridExpression} from "../dataExpression/Contaier";
 import {ActionExpression} from "../dataExpression/action/no-input-action";
-import {AlignOption} from "./Panel";
 
 /**
  * A single node id returned by the ui factories. Factories return the id that
@@ -24,6 +23,20 @@ export type UiBackground = AnimationExpression | AnimationRegistrationArguments 
  * tracks; the host consumes whatever shape the renderer supports.
  */
 export type UiTrack = { scale?: number; weight?: number; min?: number; max?: number };
+
+/**
+ * Alignment preset options for content inside a panel.
+ * Determines where text or numbers are positioned within the panel bounds.
+ */
+export type AlignOption = "top"
+  | "top-left"
+  | "top-right"
+  | "center"
+  | "center-left"
+  | "center-right"
+  | "bottom"
+  | "bottom-left"
+  | "bottom-right";
 
 export type UiLayout = {
   columns?: UiTrack[];
@@ -250,15 +263,10 @@ export type UiEntityListOptions = {
  * The module-facing ui surface: node factories plus texture/animation helpers.
  */
 export type UiApi = {
-  registerPanel: (panelOptions: import("./Panel").PanelOptions) => {};
-
   /** Positional/sized/decorated panel: a window when positioned, a division otherwise. */
   panel: (id: string, options?: UiPanelOptions, children?: UiNodeId[]) => UiNodeId;
   window: (id: string, options?: UiPanelOptions, children?: UiNodeId[]) => UiNodeId;
-  div: (id: string, options?: UiPanelOptions, children?: UiNodeId[]) => UiNodeId;
-  canvas: (id: string, options?: UiPanelOptions, children?: UiNodeId[]) => UiNodeId;
   text: (id: string, value: string | number) => UiNodeId;
-  image: (id: string, src: string) => UiNodeId;
   field: (id: string, binding: UiFieldBinding) => UiNodeId;
   /** A progress bar: tiled fill clipped to a 0..1 fraction (static or entity-bound). */
   progress: (id: string, options: UiProgressOptions) => UiNodeId;

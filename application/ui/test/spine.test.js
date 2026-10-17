@@ -114,7 +114,7 @@ test('ui.progress registers a bound progress node and carries steps in the optio
     kind: 'progress',
     value: 0,
     binding: { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 },
-    options: { fill: 'art/fill.png', track: 'art/track.png', orientation: 'vertical', steps: 50 },
+    options: { panel: {}, fill: 'art/fill.png', track: 'art/track.png', orientation: 'vertical', steps: 50 },
     children: [],
   });
 });
@@ -135,7 +135,7 @@ test('ui.progress defaults steps to 100 and captures the orElse defaults as raw-
     kind: 'progress',
     value: 0,
     binding: { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 },
-    options: { fill: 'art/fill.png', orientation: 'horizontal', steps: 100 },
+    options: { panel: {}, fill: 'art/fill.png', orientation: 'horizontal', steps: 100 },
     children: [],
   });
 });
@@ -223,6 +223,7 @@ test('ui.progress passes an animation reference through for fill and track', () 
     value: 0,
     binding: { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 },
     options: {
+      panel: {},
       fill: { name: 'fill-anim', duration: 2, loop: true },
       track: 'art/track.png',
       orientation: 'horizontal',
@@ -301,7 +302,7 @@ test('ui.entityList with unknown container renders zero items', () => {
 
 test('ui.containerView registers a window node with view options and a view marker', () => {
   host.clear();
-  const id = host.containerView('world', { container: 'grid-1', width: 700, height: 500, x: 10, y: 80 },
+  const id = host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500, x: 10, y: 80 } },
     (entity) => host.window(entity.id, { background: 'tex' }, []));
   assert.strictEqual(id, 'world');
   const view = host.snapshot().find((n) => n.id === 'world');
@@ -309,25 +310,25 @@ test('ui.containerView registers a window node with view options and a view mark
   assert.strictEqual(view.options.container, 'grid-1');
   assert.strictEqual(view.options.viewWidth, 700);
   assert.strictEqual(view.options.viewHeight, 500);
-  assert.strictEqual(view.options.x, 10);
-  assert.strictEqual(view.options.y, 80);
+  assert.strictEqual(view.options.panel.x, 10);
+  assert.strictEqual(view.options.panel.y, 80);
   assert.deepStrictEqual(view.children, ['$$containerView:world']);
 });
 
 test('ui.containerView rejects bad name, args, or render', () => {
   host.clear();
-  assert.throws(() => host.containerView('', { container: 'c', width: 10, height: 10 }, () => 'x'), /mandatory name/);
+  assert.throws(() => host.containerView('', { container: 'c', panel: { width: 10, height: 10 } }, () => 'x'), /mandatory name/);
   assert.throws(() => host.containerView('v', null, () => 'x'), /args must be an object/);
-  assert.throws(() => host.containerView('v', { container: '', width: 10, height: 10 }, () => 'x'), /args.container/);
-  assert.throws(() => host.containerView('v', { container: 'c', width: 0, height: 10 }, () => 'x'), /args.width/);
-  assert.throws(() => host.containerView('v', { container: 'c', width: 10, height: 0 }, () => 'x'), /args.height/);
-  assert.throws(() => host.containerView('v', { container: 'c', width: 10, height: 10 }, null), /render must be a function/);
+  assert.throws(() => host.containerView('v', { container: '', panel: { width: 10, height: 10 } }, () => 'x'), /args.container/);
+  assert.throws(() => host.containerView('v', { container: 'c', panel: { width: 0, height: 10 } }, () => 'x'), /panel.width/);
+  assert.throws(() => host.containerView('v', { container: 'c', panel: { width: 10, height: 0 } }, () => 'x'), /panel.height/);
+  assert.throws(() => host.containerView('v', { container: 'c', panel: { width: 10, height: 10 } }, null), /render must be a function/);
 });
 
 test('ui.containerView expands one item per entity and stamps options.entity', () => {
   host.clear();
   const render = (entity) => host.window(entity.id, { background: 'tex' }, []);
-  host.containerView('world', { container: 'grid-1', width: 700, height: 500 }, render);
+  host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } }, render);
   host.expandContainerViews((cid) => {
     assert.strictEqual(cid, 'grid-1');
     return ['a', 'b'];
@@ -343,7 +344,7 @@ test('ui.containerView expands one item per entity and stamps options.entity', (
 
 test('ui.containerView with unknown container renders zero items', () => {
   host.clear();
-  host.containerView('world', { container: 'grid-1', width: 700, height: 500 },
+  host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } },
     (entity) => host.window(entity.id, {}, []));
   host.expandContainerViews(() => []);
   const view = host.snapshot().find((n) => n.id === 'world');
@@ -352,7 +353,7 @@ test('ui.containerView with unknown container renders zero items', () => {
 
 test('ui.containerView reset restores the view marker', () => {
   host.clear();
-  host.containerView('world', { container: 'grid-1', width: 700, height: 500 },
+  host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } },
     (entity) => host.window(entity.id, {}, []));
   host.expandContainerViews(() => ['a']);
   let view = host.snapshot().find((n) => n.id === 'world');

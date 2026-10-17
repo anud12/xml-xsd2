@@ -41,6 +41,7 @@
     </Content>
     <Content Include="Modules\TestTick\dist\index.js" />
     <Content Include="Modules\TestTick\manifest.json" />
+    <Content Include="Modules\TestTick\readme.md" />
     <Content Include="Modules\TestTick\tsconfig.json" />
     <Content Include="Modules\TestTick\src\index.ts" />
     <Content Include="Modules\TestTick\frame_1.png" />
@@ -177,7 +178,6 @@
     <TypeScriptCompile Include="node_modules\suite\types\animation\AnimationRegistration.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\ui\Box.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\ui\index.d.ts" />
-    <TypeScriptCompile Include="node_modules\suite\types\ui\Panel.d.ts" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Tests\GameScene\Step_1\" />

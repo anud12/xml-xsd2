@@ -1,3 +1,3 @@
-/// <reference path="Panel.d.ts" />
+/// <reference path="Ui.d.ts" />
 
 export type {}

@@ -9,7 +9,6 @@ import {ContainerExpressionApi, ContainerExpression, ContainerCreationArguments,
 import {NumberMapExpressionApi} from "./numberMap";
 import {TextMapExpressionApi} from "./textMap";
 import {SetActionFunction} from "./dataExpression/action";
-import {RegisterPanelFunction} from "./ui/Panel";
 import {UiApi} from "./ui/Ui";
 import {SpriteResource} from "./texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "./texture/SpriteMap";
