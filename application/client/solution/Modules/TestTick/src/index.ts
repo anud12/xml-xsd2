@@ -3,7 +3,7 @@ const entry: ModuleEntrypoint = (hostApi) => {
   const { string, number } = hostApi.runtime;
 
   hostApi.runtime.setAnimation(string.of("marker"), {
-    frames: [{ sprite: hostApi.ui.getSpritePNG("marker.png") }],
+    frames: [{ sprite: hostApi.ui.getSpritePNG("black_pixel.png") }],
     duration: number.of(1),
   });
 
@@ -88,7 +88,7 @@ const entry: ModuleEntrypoint = (hostApi) => {
 
   hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
-      { sprite: hostApi.ui.getSpritePNG("frame_1.png") },
+      { sprite: hostApi.ui.getSpritePNG("assets/depot_1.png") },
     ],
     duration: hostApi.runtime.number.of(1),
   });
@@ -97,6 +97,32 @@ const entry: ModuleEntrypoint = (hostApi) => {
   // The 700x500 view of the 10x5 container: each container cell is 70x100, and
   // the view places the entity panel exactly on its cell, re-resolved each tick
   // so the panel tracks the move.
+  
+  const animation = hostApi.runtime.setAnimation(string.of("loading"), {
+    frames: [
+      { sprite: hostApi.ui.getSpritePNG("assets/loading_bar.png")}
+    ]
+  })
+  
+  hostApi.ui.progress("progress", {
+    panel: {
+      x: 400,
+      y:400,
+      width:500,
+      height:30,
+    },
+    progress: {
+      value: entity => entity.number_map.get("row").orElse(number.of(0)),
+      max: entity => number.of(40),
+      entity: node1,
+      steps: 100,
+      min: entity => number.of(0),
+      fill: hostApi.ui.getAnimation(string.of("loading")),
+      track: hostApi.ui.getAnimation(string.of("marker")),
+    },
+    
+  })
+  
   hostApi.ui.containerView("plane", {
     container: grid1,
     panel: {

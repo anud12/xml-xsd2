@@ -1193,6 +1193,57 @@ export default (hostApi) => {
         assert_eq!(prog["value"], 30.0);
     }
 
+    const PROGRESS_CONSTANT_MODULE: &str = r#"
+export default (hostApi) => {
+  hostApi.runtime.setEntity(hostApi.runtime.string.of('node-1'), {
+    numberMap: {}
+  });
+  hostApi.ui.progress('const-bar', {
+    panel: { x: 400, y: 400, width: 300, height: 100 },
+    progress: {
+      fill: 'art/fill.png',
+      entity: hostApi.runtime.string.of('node-1'),
+      value: (entity) => hostApi.runtime.number.of(3),
+      max: (entity) => hostApi.runtime.number.of(10),
+      min: (entity) => hostApi.runtime.number.of(0)
+    }
+  });
+};
+"#;
+
+    #[test]
+    fn progress_constant_lambdas_bind_a_static_range() {
+        let _g = lock();
+        crate::state::clear_state();
+        install_module(PROGRESS_CONSTANT_MODULE);
+        tick();
+
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let prog = v["nodes"].as_array().unwrap().iter()
+            .find(|n| n["id"] == "const-bar").unwrap();
+        assert_eq!(prog["kind"], "progress");
+        // constant 3 over the constant [0, 10] range -> 0.3 -> 30 steps
+        assert_eq!(prog["value"], 30.0);
+        assert_eq!(prog["binding"]["entity"], "node-1");
+        // constant fields carry their value as the fallback and omit the
+        // per-tick keys
+        assert!(prog["binding"].get("name").is_none());
+        assert_eq!(prog["binding"]["fallback"], 3.0);
+        assert!(prog["binding"].get("maxName").is_none());
+        assert_eq!(prog["binding"]["maxFallback"], 10.0);
+        assert!(prog["binding"].get("minName").is_none());
+        assert_eq!(prog["binding"]["minFallback"], 0.0);
+        // later ticks keep the value (no entity field to re-read)
+        ui_delta().lock().unwrap().take();
+        ui_dirty().store(false, Ordering::SeqCst);
+        set_entity_number("node-1", "anything", 99.0);
+        tick();
+        let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let prog = v["nodes"].as_array().unwrap().iter()
+            .find(|n| n["id"] == "const-bar").unwrap();
+        assert_eq!(prog["value"], 30.0);
+    }
+
     const PROGRESS_MIN_MODULE: &str = r#"
 export default (hostApi) => {
   hostApi.ui.progress('temp-bar', {

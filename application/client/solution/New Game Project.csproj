@@ -39,7 +39,6 @@
     <Content Include="Features\**\*.feature">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Modules\TestTick\dist\index.js" />
     <Content Include="Modules\TestTick\manifest.json" />
     <Content Include="Modules\TestTick\readme.md" />
     <Content Include="Modules\TestTick\tsconfig.json" />
@@ -180,6 +179,7 @@
     <TypeScriptCompile Include="node_modules\suite\types\ui\index.d.ts" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Modules\TestTick\dist\" />
     <Folder Include="Tests\GameScene\Step_1\" />
   </ItemGroup>
   <Target Name="BuildRustRuntime" BeforeTargets="BeforeBuild">

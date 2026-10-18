@@ -158,14 +158,18 @@ export type UiProgressOptions = UiPanelOptions & {
      * Lower bound of the value's range (default 0 when omitted). A lambda that
      * selects a field from the bound entity's number map (re-read every tick):
      * `(entity) => entity.number_map.get(key).orElse(...)`. The `.orElse` default
-     * is used when the field is absent on the entity.
+     * is used when the field is absent on the entity. Alternatively, a lambda
+     * may return a constant NumberExpression (e.g. `(entity) => number.of(0)`),
+     * which is used as-is with no per-tick re-read.
      */
     min?: (entity: EntityExpression) => NumberExpression;
     /**
      * Upper bound of the value's range. A lambda that selects a field from the
      * bound entity's number map (re-read every tick):
      * `(entity) => entity.number_map.get(key).orElse(...)`. The `.orElse` default
-     * is used when the field is absent on the entity. Required.
+     * is used when the field is absent on the entity. Alternatively, a lambda
+     * may return a constant NumberExpression (e.g. `(entity) => number.of(10)`),
+     * which is used as-is with no per-tick re-read. Required.
      */
     max: (entity: EntityExpression) => NumberExpression;
     /** Entity to bind. Required. */
@@ -178,7 +182,9 @@ export type UiProgressOptions = UiPanelOptions & {
      * `NumberExpression` (rather than the raw `MaybeExpression`) forces the
      * `Maybe` to be resolved via `orElse`. The selected field is re-read from
      * the entity's number data every tick; its `.orElse` default is the raw
-     * value used when the field is absent. Required.
+     * value used when the field is absent. Alternatively, a lambda may return
+     * a constant NumberExpression (e.g. `(entity) => number.of(3)`), which is
+     * used as-is with no per-tick re-read. Required.
      */
     value: (entity: EntityExpression) => NumberExpression;
   };

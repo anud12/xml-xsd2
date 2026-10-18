@@ -169,8 +169,47 @@ test('ui.progress captures the value orElse default as the raw-value fallback', 
   assert.strictEqual(id, 'hp-orElse');
   assert.strictEqual(registered[0].binding.name, 'hp');
   assert.strictEqual(registered[0].binding.fallback, 0.5);
-  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: () => 42, max: (e) => e.number_map.get('m').orElse(1) } }), /options.progress.value lambda/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: () => 'x', max: (e) => e.number_map.get('m').orElse(1) } }), /options.progress.value lambda/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: () => NaN, max: (e) => e.number_map.get('m').orElse(1) } }), /options.progress.value lambda/);
   assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: () => { throw new Error('boom'); }, max: (e) => e.number_map.get('m').orElse(1) } }), /lambda threw/);
+});
+
+test('ui.progress accepts constant lambdas and omits the per-tick binding keys', () => {
+  registered = [];
+  host.clear();
+  const id = host.progress('const-prog', {
+    progress: {
+      fill: 'art/fill.png', entity: 'ent-a',
+      value: (e) => 3,
+      max: (e) => 10,
+      min: (e) => 0,
+    },
+  });
+  assert.strictEqual(id, 'const-prog');
+  // Constant fields carry their value as the fallback and omit the key, so
+  // the engine keeps the value instead of re-reading the entity each tick.
+  assert.deepStrictEqual(registered[0].binding, {
+    entity: 'ent-a', map: 'number',
+    fallback: 3, maxFallback: 10, minFallback: 0,
+  });
+  assert.strictEqual(registered[0].binding.name, undefined);
+  assert.strictEqual(registered[0].binding.maxName, undefined);
+  assert.strictEqual(registered[0].binding.minName, undefined);
+  // A mix of constant and field-bound fields is fine too.
+  registered = [];
+  host.clear();
+  host.progress('mixed-prog', {
+    progress: {
+      fill: 'a.png', entity: 'ent-a',
+      value: (e) => e.number_map.get('hp').orElse(0),
+      max: (e) => 100,
+    },
+  });
+  assert.deepStrictEqual(registered[0].binding, {
+    entity: 'ent-a', map: 'number', name: 'hp',
+    fallback: 0, maxFallback: 100, minFallback: 0,
+  });
+  assert.strictEqual(registered[0].binding.maxName, undefined);
 });
 
 test('ui.progress resolves min/max lambdas into binding keys and captures their orElse defaults', () => {
