@@ -53,11 +53,11 @@ export default (hostApi) => {
   });
 
   // Solid-color textures for the view background and the cells.
-  hostApi.runtime.setAnimation(string.of("viewbg"), {
+  const viewbg = hostApi.runtime.setAnimation(string.of("viewbg"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("viewbg.png") }],
     duration: number.of(1),
   });
-  hostApi.runtime.setAnimation(string.of("cell"), {
+  const cell = hostApi.runtime.setAnimation(string.of("cell"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("cell.png") }],
     duration: number.of(1),
   });
@@ -73,11 +73,11 @@ export default (hostApi) => {
       height: 400,
       x: 200,
       y: 200,
-      background: hostApi.ui.getAnimation(string.of("viewbg")),
+      background: viewbg,
     },
   }, (item) => hostApi.ui.window(item.id, {
     panel: {
-      background: hostApi.ui.getAnimation(string.of("cell")),
+      background: cell,
     },
   }));
 };

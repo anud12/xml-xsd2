@@ -4,7 +4,7 @@ export default (hostApi) => {
   const entityId = hostApi.runtime.setEntity({
     id: string.of("entityId"),
   });
-  hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
+  const texture = hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
@@ -14,7 +14,7 @@ export default (hostApi) => {
     panel: {
       width: 100,
       height: 100,
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+      background: texture,
     },
   }, [
     hostApi.ui.field("panel_entity-content", { entity: entityId, map: "text", name: "playerName", fallback: "" }),

@@ -1,7 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number} = hostApi.runtime;
-  hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
+  const texture = hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
@@ -12,7 +12,7 @@ export default (hostApi) => {
       width: 100,
       height: 100,
       anchor: { x: 0.5, y: 0.5 },
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+      background: texture,
     },
   })
 }

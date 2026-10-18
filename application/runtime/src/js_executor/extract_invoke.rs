@@ -3,16 +3,17 @@ pub fn get_invoke_js() -> &'static str {
 var h=globalThis.host;
 if(!h){throw new Error("host is undefined");}
 var __registeredAnimations={};
+var __animationHandles={};
 var hostApi={
   ui:{
     texture:{
       of:function(p){return p;}
     },
     getSpritePNG:function(p){return p;},
-    getAnimation:function(name,animationDuration){
+    getAnimation:function(name){
       var resolvedName=typeof name==='object'?name.value:name;
-      if(__registeredAnimations[resolvedName]){
-        return __registeredAnimations[resolvedName];
+      if(__animationHandles[resolvedName]){
+        return __animationHandles[resolvedName];
       }
       return null;
     },
@@ -44,14 +45,16 @@ var hostApi={
     setAnimation:function(name,args){
       var resolvedName=typeof name==='object'?name.value:name;
       if(typeof resolvedName==='string'){
+        var handle={ name:resolvedName, value:resolvedName, toString:function(){return resolvedName;}, toJSON:function(){return resolvedName;} };
         __registeredAnimations[resolvedName]=args;
-        return { name:resolvedName, value:resolvedName, toString:function(){return resolvedName;}, toJSON:function(){return resolvedName;} };
+        __animationHandles[resolvedName]=handle;
+        return handle;
       }
     },
-    getAnimation:function(name,animationDuration){
+    getAnimation:function(name){
       var resolvedName=typeof name==='object'?name.value:name;
-      if(__registeredAnimations[resolvedName]){
-        return __registeredAnimations[resolvedName];
+      if(__animationHandles[resolvedName]){
+        return __animationHandles[resolvedName];
       }
       return null;
     },

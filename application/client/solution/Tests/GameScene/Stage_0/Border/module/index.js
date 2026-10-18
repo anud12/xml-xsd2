@@ -1,12 +1,12 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.runtime.setAnimation(hostApi.runtime.string.of("background"), {
+  const background = hostApi.runtime.setAnimation(hostApi.runtime.string.of("background"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("background.png") },
     ],
     duration: hostApi.runtime.number.of(1),
   });
-  hostApi.runtime.setAnimation(hostApi.runtime.string.of("border"), {
+  const border = hostApi.runtime.setAnimation(hostApi.runtime.string.of("border"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("border.png") },
     ],
@@ -16,8 +16,8 @@ export default (hostApi) => {
     panel: {
       width: 120,
       height: 120,
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("background")),
-      border: { width: 3, texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("border")) },
+      background: background,
+      border: { width: 3, texture: border },
     },
   });
 }

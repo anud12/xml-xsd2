@@ -2,7 +2,7 @@
 export default (hostApi) => {
   const {number, string} = hostApi.runtime;
 
-  hostApi.runtime.setAnimation(string.of("sequence"), {
+  const sequence = hostApi.runtime.setAnimation(string.of("sequence"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("frame_1.png") },
       { sprite: hostApi.ui.getSpritePNG("frame_2.png") },
@@ -20,7 +20,7 @@ export default (hostApi) => {
       height: 100,
       x: 100,
       y: 100,
-      background: hostApi.ui.getAnimation(string.of("sequence")),
+      background: sequence,
     },
   }, []);
 }

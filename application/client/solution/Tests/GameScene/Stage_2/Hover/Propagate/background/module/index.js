@@ -1,12 +1,12 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
+  const texture = hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
     duration: hostApi.runtime.number.of(1),
   });
-  hostApi.runtime.setAnimation(hostApi.runtime.string.of("hover"), {
+  const hover = hostApi.runtime.setAnimation(hostApi.runtime.string.of("hover"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("hover.png") },
     ],
@@ -16,9 +16,9 @@ export default (hostApi) => {
     panel: {
       width: 100,
       height: 100,
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+      background: texture,
       onHover: {
-        background: hostApi.ui.getAnimation(hostApi.runtime.string.of("hover")),
+        background: hover,
       },
     },
   }, [

@@ -87,14 +87,24 @@ function (root) {
     }
 
     // Hover visuals must carry a concrete texture reference (an archive path
-    // or a sprite map ref) that the renderer can load directly; animation
-    // registrations ({ frames: [...] }) resolve to their first frame's
-    // reference.
+    // or a sprite map ref) that the renderer can load directly; an animation
+    // (a { frames: [...] } registration or a { name } ref resolved through
+    // the registration store) resolves to its first frame's reference.
+    function animationFrames(v) {
+        if (!v || typeof v !== 'object') return null;
+        if (Array.isArray(v.frames)) return v.frames;
+        if (typeof v.name === 'string' && v.name.length > 0) {
+            var reg = (root.__registeredAnimations || {})[v.name];
+            if (reg && Array.isArray(reg.frames)) return reg.frames;
+        }
+        return null;
+    }
     function firstFrameRef(v) {
         if (typeof v === 'string' && v.length > 0) return v;
-        if (!v || typeof v !== 'object' || !Array.isArray(v.frames)) return null;
-        for (var i = 0; i < v.frames.length; i++) {
-            var f = v.frames[i];
+        var frames = animationFrames(v);
+        if (!frames) return null;
+        for (var i = 0; i < frames.length; i++) {
+            var f = frames[i];
             if (typeof f === 'string' && f.length > 0) return f;
             if (f && typeof f === 'object' && f.sprite != null) {
                 var s = f.sprite;
@@ -114,24 +124,41 @@ function (root) {
         return null;
     }
 
-    // A background may be a registered animation object (the registry
-    // reference itself, with no name of its own). The renderer consumes a
-    // named reference { name, duration, loop }, so resolve the object back to
-    // its registry key by reference equality (ui.getAnimation returns the
-    // stored object itself).
+    // A background is passed by reference, like a bound entity: a static
+    // archive path string, or an animation reference — the setAnimation
+    // handle (the object it returns), a plain { name, duration?, loop? }
+    // ref, or a bare name. The renderer consumes a named reference
+    // { name, duration, loop }; normalize any accepted shape to that,
+    // resolving missing duration/loop from the registration store (the
+    // engine re-reads the registration live every tick). Normalizing to a
+    // plain object matters: the handle's toJSON degrades to a bare string
+    // under the register() JSON round-trip, and a bare string encodes as a
+    // static texture path, not an animation. A full registration object
+    // ({ frames: [...] }) is rejected — pass the name or handle instead.
+    function isAnimationRef(v) {
+        return !!v && typeof v === 'object'
+            && typeof v.name === 'string' && v.name.length > 0;
+    }
     function backgroundRef(v) {
         if (typeof v === 'string') return v;
         if (!v || typeof v !== 'object') return v;
-        if (typeof v.name === 'string') return v;
-        var store = root.__registeredAnimations || {};
-        for (var k in store) {
-            if (store[k] === v) {
-                return {
-                    name: k,
-                    duration: typeof v.duration === 'number' ? v.duration : 1,
-                    loop: v.loop === true
-                };
+        if (isAnimationRef(v)) {
+            var reg = (root.__registeredAnimations || {})[v.name];
+            var ref = { name: v.name };
+            if (typeof v.duration === 'number' && isFinite(v.duration)) {
+                ref.duration = v.duration;
+            } else if (reg && typeof reg.duration === 'number' && isFinite(reg.duration)) {
+                ref.duration = reg.duration;
             }
+            if (typeof v.loop === 'boolean') {
+                ref.loop = v.loop;
+            } else if (reg) {
+                ref.loop = reg.loop === true;
+            }
+            return ref;
+        }
+        if (Array.isArray(v.frames)) {
+            throw new Error('ui: background must be an animation name or the setAnimation handle, not a registration object');
         }
         return v;
     }

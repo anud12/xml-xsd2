@@ -19,11 +19,11 @@ export default (hostApi) => {
     entities: [itemA, itemB, itemC],
   });
 
-  hostApi.runtime.setAnimation(string.of("texture"), {
+  const texture = hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("texture.png") }],
     duration: number.of(1),
   });
-  hostApi.runtime.setAnimation(string.of("texture2"), {
+  const texture2 = hostApi.runtime.setAnimation(string.of("texture2"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("texture2.png") }],
     duration: number.of(1),
   });
@@ -34,7 +34,7 @@ export default (hostApi) => {
       height: 300,
       anchor: "center",
       align: "center",
-      background: hostApi.ui.getAnimation(string.of("texture")),
+      background: texture,
     },
   }, [
     hostApi.ui.entityList("items", { container: itemsContainer },
@@ -43,7 +43,7 @@ export default (hostApi) => {
           panel: {
             width: 50,
             height: 50,
-            background: hostApi.ui.getAnimation(string.of("texture2")),
+            background: texture2,
           },
         }, [
           hostApi.ui.field(entity.id + ":value", {

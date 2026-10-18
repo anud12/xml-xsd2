@@ -37,7 +37,7 @@ export default (hostApi) => {
       hostApi.runtime.log("___childHover fired line___");
     }
   });
-  hostApi.runtime.setAnimation(string.of("texture"), {
+  const texture = hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
@@ -47,7 +47,7 @@ export default (hostApi) => {
     panel: {
       width: 100,
       height: 100,
-      background: hostApi.ui.getAnimation(string.of("texture")),
+      background: texture,
       onHover: {
         emitAction: parentHover,
       },

@@ -272,6 +272,78 @@ test('ui.progress passes an animation reference through for fill and track', () 
   });
 });
 
+test('ui.progress accepts the setAnimation handle as fill and normalizes it to a named ref', () => {
+  globalThis.__registeredAnimations = {
+    'fill-anim': { frames: [{ sprite: 'art/f1.png' }, { sprite: 'art/f2.png' }], duration: 2, loop: true },
+  };
+  registered = [];
+  host.clear();
+  const handle = {
+    name: 'fill-anim', value: 'fill-anim',
+    toString: () => 'fill-anim', toJSON: () => 'fill-anim',
+  };
+  const id = host.progress('prog-handle', {
+    progress: {
+      fill: handle,
+      entity: 'ent-a',
+      value: (e) => e.number_map.get('hp').orElse(0),
+      max: (e) => e.number_map.get('max').orElse(100),
+    },
+  });
+  assert.strictEqual(id, 'prog-handle');
+  assert.deepStrictEqual(registered[0].options.fill, { name: 'fill-anim', duration: 2, loop: true });
+  delete globalThis.__registeredAnimations;
+});
+
+test('ui.window normalizes a setAnimation handle background to a named ref', () => {
+  globalThis.__registeredAnimations = {
+    background: { frames: [{ sprite: 'art/bg.png' }], duration: 4 },
+  };
+  registered = [];
+  host.clear();
+  const handle = {
+    name: 'background', value: 'background',
+    toString: () => 'background', toJSON: () => 'background',
+  };
+  host.window('bg-handle', { panel: { x: 0, y: 0, width: 10, height: 10, background: handle } });
+  assert.deepStrictEqual(registered[0].options.panel.background, { name: 'background', duration: 4, loop: false });
+  delete globalThis.__registeredAnimations;
+});
+
+test('hover and border resolve a named animation ref to the registration first frame', () => {
+  globalThis.__registeredAnimations = {
+    hover: { frames: [{ sprite: 'art/hover.png' }], duration: 1, loop: false },
+    border: { frames: ['art/b1.png', 'art/b2.png'], duration: 1, loop: false },
+  };
+  registered = [];
+  host.clear();
+  host.window('ref-hover', {
+    panel: {
+      x: 0, y: 0, width: 10, height: 10,
+      onHover: { texture: { name: 'hover' }, thickness: 2 },
+      border: { width: 1, texture: { name: 'border' } },
+    },
+  });
+  assert.deepStrictEqual(registered[0].options.panel.onHover.texture, 'art/hover.png');
+  assert.deepStrictEqual(registered[0].options.panel.border.texture, 'art/b1.png');
+  delete globalThis.__registeredAnimations;
+});
+
+test('background and fill reject a full registration object', () => {
+  host.clear();
+  const reg = { frames: [{ sprite: 'art/a.png' }], duration: 1, loop: false };
+  assert.throws(() => host.window('bg-frames', { panel: { x: 0, width: 1, height: 1, background: reg } }),
+    /not a registration object/);
+  assert.throws(() => host.progress('p-frames', {
+    progress: {
+      fill: reg,
+      entity: 'e',
+      value: (e) => e.number_map.get('hp').orElse(0),
+      max: (e) => e.number_map.get('max').orElse(1),
+    },
+  }), /not a registration object/);
+});
+
 test('ui.progress rejects missing fill, bad orientation, bad steps, or missing entity/value/max', () => {
   host.clear();
   assert.throws(() => host.progress('p', {}), /options.progress is required/);

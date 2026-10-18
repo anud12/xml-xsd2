@@ -13,7 +13,7 @@ export default (hostApi) => {
     },
   ];
 
-  hostApi.runtime.setAnimation(string.of("idle"), {
+  const idle = hostApi.runtime.setAnimation(string.of("idle"), {
     frames: [
       { sprite: hostApi.ui.spriteMapTIFF("maps/idle_frame1.tiff", layerBindings) },
     ],
@@ -24,7 +24,7 @@ export default (hostApi) => {
     panel: {
       width: 10,
       height: 10,
-      background: hostApi.ui.getAnimation(string.of("idle")),
+      background: idle,
     },
   }, [])
 }

@@ -1,6 +1,6 @@
 import {NumberExpression} from "../primitives/numberExpression";
 import {Entity, EntityExpression} from "../dataExpression/Entity";
-import {AnimationRegistrationArguments, AnimationExpression, GetAnimationFunction} from "../dataExpression/animation/AnimationRegistration";
+import {AnimationExpression, GetAnimationFunction} from "../dataExpression/animation/AnimationRegistration";
 import {SpriteResource} from "../texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "../texture/SpriteMap";
 import {ContainerExpression, GridExpression} from "../dataExpression/Contaier";
@@ -13,10 +13,11 @@ import {ActionExpression} from "../dataExpression/action/no-input-action";
 export type UiNodeId = string;
 
 /**
- * A panel background: an animation registration (with a name/duration/loop
- * resolved by the host) or a raw texture reference.
+ * A panel background: an animation reference (the `setAnimation` handle or a
+ * named ref — the engine resolves the registration's frames/duration/loop
+ * live every tick, like a bound entity field) or a raw texture reference.
  */
-export type UiBackground = AnimationExpression | AnimationRegistrationArguments | SpriteResource;
+export type UiBackground = AnimationExpression | SpriteResource;
 
 /**
  * Grid layout tracks. Modules use either weighted columns or explicit scale

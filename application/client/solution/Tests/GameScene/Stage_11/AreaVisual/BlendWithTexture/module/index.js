@@ -4,7 +4,7 @@ export default (hostApi) => {
 
   // Register the item's sprite texture so the container-view item can paint
   // it as its background (a solid bright yellow 10x10 png).
-  hostApi.runtime.setAnimation(hostApi.runtime.string.of("item"), {
+  const item = hostApi.runtime.setAnimation(hostApi.runtime.string.of("item"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("item.png") },
     ],
@@ -55,7 +55,7 @@ export default (hostApi) => {
     ],
   }, (entity) => hostApi.ui.window(entity.id, {
     panel: {
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("item")),
+      background: item,
     },
   }, []));
 };

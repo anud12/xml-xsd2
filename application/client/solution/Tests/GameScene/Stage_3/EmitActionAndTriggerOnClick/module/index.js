@@ -22,7 +22,7 @@ export default (hostApi) => {
         }
     });
 
-    hostApi.runtime.setAnimation(string.of("texture"), {
+    const texture = hostApi.runtime.setAnimation(string.of("texture"), {
         frames: [
           { sprite: hostApi.ui.getSpritePNG("texture.png") },
         ],
@@ -34,7 +34,7 @@ export default (hostApi) => {
             width: 100,
             height: 100,
             anchor: "center",
-            background: hostApi.ui.getAnimation(string.of("texture")),
+            background: texture,
             onClick: (ctx) => {
                 ctx.emitAction(action);
             },

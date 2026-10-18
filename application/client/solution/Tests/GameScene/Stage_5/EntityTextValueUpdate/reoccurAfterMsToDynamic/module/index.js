@@ -33,7 +33,7 @@ export default (hostApi) => {
 
   hostApi.runtime.emitEvent(repeat, {});
 
-  hostApi.runtime.setAnimation(string.of("texture"), {
+  const texture = hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
@@ -45,7 +45,7 @@ export default (hostApi) => {
       height: 100,
       anchor: "center",
       align: "center",
-      background: hostApi.ui.getAnimation(string.of("texture")),
+      background: texture,
     },
   }, [
     hostApi.ui.field("content", { entity: entity, map: "number", name: "key", fallback: "0" }),

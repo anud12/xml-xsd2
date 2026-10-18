@@ -38,16 +38,11 @@ export type AnimationExpression = {
 export type SetAnimationFunction = (name: StringExpression, arguments: AnimationRegistrationArguments) => AnimationExpression;
 
 /**
- * Options configuration for retrieving an animation.
+ * Callback signature for retrieving a registered animation by name.
+ * Returns the same {@link AnimationExpression} handle the animation's
+ * `setAnimation` call returned (null when the name is not registered).
+ * Pass that handle anywhere an animation is referenced (a panel background,
+ * a progress fill, a hover/border texture) — the engine resolves the
+ * registration (frames/duration/loop) live every tick.
  */
-export type AnimationOptions = {
-  /** The duration of the animation in game time units. */
-  duration: NumberExpression;
-  /** Whether the animation should loop when the duration is exceeded. */
-  loop?: boolean;
-};
-
-/**
- * Callback signature for retrieving a registered animation by name and duration.
- */
-export type GetAnimationFunction = (name: StringExpression, options?: AnimationOptions) => AnimationRegistrationArguments;
+export type GetAnimationFunction = (name: StringExpression) => AnimationExpression;

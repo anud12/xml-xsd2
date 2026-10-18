@@ -10,12 +10,12 @@ export default (hostApi) => {
     { sprite: hostApi.ui.getSpritePNG("frame_5.png") },
   ];
 
-  hostApi.runtime.setAnimation(string.of("fastSequence"), {
+  const fastSequence = hostApi.runtime.setAnimation(string.of("fastSequence"), {
     frames: frames,
     duration: number.of(5),
   });
 
-  hostApi.runtime.setAnimation(string.of("slowSequence"), {
+  const slowSequence = hostApi.runtime.setAnimation(string.of("slowSequence"), {
     frames: frames,
     duration: number.of(10),
   });
@@ -26,7 +26,7 @@ export default (hostApi) => {
       height: 100,
       x: 100,
       y: 100,
-      background: hostApi.ui.getAnimation(string.of("fastSequence")),
+      background: fastSequence,
     },
   }, []);
 
@@ -36,7 +36,7 @@ export default (hostApi) => {
       height: 100,
       x: 300,
       y: 100,
-      background: hostApi.ui.getAnimation(string.of("slowSequence")),
+      background: slowSequence,
     },
   }, []);
 }

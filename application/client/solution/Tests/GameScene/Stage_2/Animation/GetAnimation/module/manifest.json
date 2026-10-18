@@ -1,0 +1,6 @@
+{
+  "id": "get-animation-module",
+  "version": "1.0.0",
+  "name": "Get Animation Module",
+  "entry": "index.js"
+}

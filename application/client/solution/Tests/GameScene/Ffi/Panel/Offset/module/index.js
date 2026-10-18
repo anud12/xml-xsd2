@@ -1,7 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const {number} = hostApi.runtime;
-  hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
+  const texture = hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
@@ -13,7 +13,7 @@ export default (hostApi) => {
       y: -100,
       width: 10,
       height: 10,
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+      background: texture,
     },
   })
   hostApi.ui.panel("left", {
@@ -22,7 +22,7 @@ export default (hostApi) => {
       y: 0,
       width: 10,
       height: 10,
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+      background: texture,
     },
   })
   hostApi.ui.panel("bottom", {
@@ -31,7 +31,7 @@ export default (hostApi) => {
       y: 100,
       width: 10,
       height: 10,
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+      background: texture,
     },
   })
   hostApi.ui.panel("right", {
@@ -40,7 +40,7 @@ export default (hostApi) => {
       y: 0,
       width: 10,
       height: 10,
-      background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+      background: texture,
     },
   })
 }

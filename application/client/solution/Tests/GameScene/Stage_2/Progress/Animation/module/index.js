@@ -5,7 +5,7 @@ export default (hostApi) => {
     { sprite: hostApi.ui.getSpritePNG("fill_1.png") },
     { sprite: hostApi.ui.getSpritePNG("fill_2.png") },
   ];
-  hostApi.runtime.setAnimation(string.of("fillAnim"), {
+  const fillAnim = hostApi.runtime.setAnimation(string.of("fillAnim"), {
     frames: frames,
     duration: number.of(2),
     loop: true,
@@ -19,7 +19,7 @@ export default (hostApi) => {
       x: 100, y: 100, width: 200, height: 50,
     },
     progress: {
-      fill: hostApi.ui.getAnimation(string.of("fillAnim")),
+      fill: fillAnim,
       track: hostApi.ui.getSpritePNG("track.png"),
       orientation: "horizontal",
       entity: hero,

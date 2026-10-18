@@ -1,7 +1,7 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  hostApi.runtime.setAnimation(string.of("marker"), {
+  const marker = hostApi.runtime.setAnimation(string.of("marker"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("marker.png") }],
     duration: number.of(1),
   });
@@ -86,7 +86,7 @@ export default (hostApi) => {
   }, entity => hostApi.ui.window(entity.id, {}, [
     hostApi.ui.panel(entity.id + "-marker", {
       panel: {
-        background: hostApi.ui.getAnimation(string.of("marker")),
+        background: marker,
       },
     }),
   ]))

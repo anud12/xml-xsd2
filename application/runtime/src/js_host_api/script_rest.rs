@@ -20,22 +20,26 @@ pub fn host_api_script_animation() -> &'static str {
     r#"setAnimation(name, args) {
         globalThis.__registeredAnimations =
             globalThis.__registeredAnimations || {};
+        globalThis.__animationHandles =
+            globalThis.__animationHandles || {};
         var resolvedName = typeof name === 'object' ? name.value : name;
         if (typeof resolvedName === 'string') {
-            globalThis.__registeredAnimations[resolvedName] = args;
-            return {
+            var handle = {
                 name: resolvedName,
                 value: resolvedName,
                 toString: function() { return resolvedName; },
                 toJSON: function() { return resolvedName; }
             };
+            globalThis.__registeredAnimations[resolvedName] = args;
+            globalThis.__animationHandles[resolvedName] = handle;
+            return handle;
         }
     },
-    getAnimation(name, animationDuration) {
+    getAnimation(name) {
         var resolvedName = typeof name === 'object' ? name.value : name;
-        if (globalThis.__registeredAnimations
-            && globalThis.__registeredAnimations[resolvedName]) {
-            return globalThis.__registeredAnimations[resolvedName];
+        if (globalThis.__animationHandles
+            && globalThis.__animationHandles[resolvedName]) {
+            return globalThis.__animationHandles[resolvedName];
         }
         return null;
     },"#

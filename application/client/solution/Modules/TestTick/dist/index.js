@@ -1,6 +1,6 @@
 const entry = (hostApi) => {
     const { string, number } = hostApi.runtime;
-    hostApi.runtime.setAnimation(string.of("marker"), {
+    const marker = hostApi.runtime.setAnimation(string.of("marker"), {
         frames: [{ sprite: hostApi.ui.getSpritePNG("black_pixel.png") }],
         duration: number.of(1),
     });
@@ -75,7 +75,7 @@ const entry = (hostApi) => {
         duration: hostApi.runtime.number.of(5),
         loop: true,
     });
-    hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
+    const texture = hostApi.runtime.setAnimation(hostApi.runtime.string.of("texture"), {
         frames: [
             { sprite: hostApi.ui.getSpritePNG("assets/depot_1.png") },
         ],
@@ -102,8 +102,8 @@ const entry = (hostApi) => {
             entity: node1,
             steps: 100,
             min: entity => number.of(0),
-            fill: hostApi.ui.getAnimation(string.of("loading")),
-            track: hostApi.ui.getAnimation(string.of("marker")),
+            fill: animation,
+            track: marker,
         },
     });
     hostApi.ui.containerView("plane", {
@@ -119,7 +119,7 @@ const entry = (hostApi) => {
             border: {
                 texture: hostApi.ui.getSpritePNG("black_pixel.png")
             },
-            background: hostApi.ui.getAnimation(string.of("marker")),
+            background: marker,
             onClick: (ctx) => {
                 hostApi.runtime.log("plane click col=" + ctx.cursor.getX() + " row=" + ctx.cursor.getY());
                 ctx.emitAction(moveToCursor, {
@@ -131,7 +131,7 @@ const entry = (hostApi) => {
     }, entity => hostApi.ui.window(entity.id, { panel: {} }, [
         hostApi.ui.panel(entity.id + "-marker", {
             panel: {
-                background: hostApi.ui.getAnimation(hostApi.runtime.string.of("texture")),
+                background: texture,
             },
         }),
     ]));

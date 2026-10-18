@@ -1,0 +1,6 @@
+{
+  "id": "progress-const-range",
+  "version": "1.0.0",
+  "name": "Progress Constant Range",
+  "entry": "index.js"
+}

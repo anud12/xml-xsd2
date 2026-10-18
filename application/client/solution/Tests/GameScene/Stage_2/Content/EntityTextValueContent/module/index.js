@@ -7,7 +7,7 @@ export default (hostApi) => {
       "textKey": string.of("textValue")
     }
   });
-  hostApi.runtime.setAnimation(string.of("texture"), {
+  const texture = hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("texture.png") },
     ],
@@ -17,7 +17,7 @@ export default (hostApi) => {
     panel: {
       width: 300,
       height: 300,
-      background: hostApi.ui.getAnimation(string.of("texture")),
+      background: texture,
       align: "center",
     },
   }, [

@@ -1,6 +1,6 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.runtime.setAnimation(hostApi.runtime.string.of("border"), {
+  const border = hostApi.runtime.setAnimation(hostApi.runtime.string.of("border"), {
     frames: [
       { sprite: hostApi.ui.getSpritePNG("border.png") },
     ],
@@ -10,7 +10,7 @@ export default (hostApi) => {
     panel: {
       width: 120,
       height: 120,
-      border: { texture: hostApi.ui.getAnimation(hostApi.runtime.string.of("border")) },
+      border: { texture: border },
     },
   });
 }

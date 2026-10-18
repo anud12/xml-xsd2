@@ -9,20 +9,23 @@
 //! `ui.panel` / `ui.window` / `ui.field` / `ui.text` / `ui.entityList` mirror
 //! the C# HostApiSetup `__panelEmit` JSON shape and record each node into
 //! `globalThis.__registeredPanels`, which the extraction declaration script
-//! picks up. `getAnimation` reads `globalThis.__registeredAnimations` (the
-//! object filled by the host script's setAnimation) instead of a
-//! shadowing local, so a background registered before a panel resolves.
+//! picks up. `getAnimation` returns the same handle `setAnimation` stored in
+//! `globalThis.__animationHandles` (keyed by animation name), so a UI node
+//! references its animation the way it references a bound entity — by a
+//! name the engine resolves against the registration store every tick.
 
 pub const SHIM_JS: &str = r#"
-var __hapi_getAnimation = function (name, animationDuration) {
+var __hapi_getAnimation = function (name) {
   var resolvedName = typeof name === 'object' ? name.value : name;
-  var store = globalThis.__registeredAnimations || {};
-  if (store[resolvedName]) { return store[resolvedName]; }
+  var handles = globalThis.__animationHandles || {};
+  if (handles[resolvedName]) { return handles[resolvedName]; }
   return null;
 };
 var __hapi_setAnimation = function (name, args) {
   globalThis.__registeredAnimations =
     globalThis.__registeredAnimations || {};
+  globalThis.__animationHandles =
+    globalThis.__animationHandles || {};
   var resolvedName = typeof name === 'object' ? name.value : name;
   if (typeof resolvedName === 'string') {
     if (!args || typeof args !== 'object' ||
@@ -30,23 +33,44 @@ var __hapi_setAnimation = function (name, args) {
       throw new Error("setAnimation '" + resolvedName +
         "': duration is required");
     }
-    globalThis.__registeredAnimations[resolvedName] = args;
-    return {
+    var handle = {
       name: resolvedName, value: resolvedName,
       toString: function() { return resolvedName; },
       toJSON: function() { return resolvedName; }
     };
+    globalThis.__registeredAnimations[resolvedName] = args;
+    globalThis.__animationHandles[resolvedName] = handle;
+    return handle;
   }
 };
-var __hapi_isAnimation = function (v) {
-  return !!v && typeof v === 'object'
-    && Array.isArray(v.frames) && v.frames.length > 0;
+// An animation reference: a static archive path string, the setAnimation
+// handle, or a plain { name } ref. The legacy panel JSON inlines the full
+// registration (frames/duration/loop) resolved through the store.
+var __hapi_isAnimationRef = function (v) {
+  return (typeof v === 'string' && v.length > 0)
+    || (!!v && typeof v === 'object'
+      && typeof v.name === 'string' && v.name.length > 0);
+};
+var __hapi_resolveAnimation = function (v) {
+  var name = typeof v === 'string' ? v : v.name;
+  var store = globalThis.__registeredAnimations || {};
+  if (store[name]) { return store[name]; }
+  throw new Error("animation '" + name + "' not registered");
 };
 var __hapi_firstFrameRef = function (v) {
   if (typeof v === 'string' && v.length > 0) return v;
-  if (!v || typeof v !== 'object' || !Array.isArray(v.frames)) return null;
-  for (var i = 0; i < v.frames.length; i++) {
-    var f = v.frames[i];
+  var frames = null;
+  if (v && typeof v === 'object') {
+    if (Array.isArray(v.frames)) {
+      frames = v.frames;
+    } else if (typeof v.name === 'string' && v.name.length > 0) {
+      var reg = (globalThis.__registeredAnimations || {})[v.name];
+      if (reg && Array.isArray(reg.frames)) frames = reg.frames;
+    }
+  }
+  if (!frames) return null;
+  for (var i = 0; i < frames.length; i++) {
+    var f = frames[i];
     if (typeof f === 'string' && f.length > 0) return f;
     if (f && typeof f === 'object' && f.sprite != null) {
       var s = f.sprite;
@@ -90,10 +114,11 @@ var __hapi_panelEmit = function (id, options, children, forceSurface) {
       }
     }
     if (opts.background !== undefined) {
-      if (!__hapi_isAnimation(opts.background))
+      if (!__hapi_isAnimationRef(opts.background))
         throw new Error("panel '" + id
-          + "': background must be an AnimationRegistrationArguments (use hostApi.ui.getAnimation)");
-      json.background = opts.background;
+          + "': background must be an archive path or animation name/handle");
+      json.background = (typeof opts.background === 'string')
+        ? opts.background : __hapi_resolveAnimation(opts.background);
     }
     json.surface = true;
     json.size = { width: opts.width || 0, height: opts.height || 0 };
@@ -105,13 +130,13 @@ var __hapi_panelEmit = function (id, options, children, forceSurface) {
     };
     if (opts.onHover) {
       if (opts.onHover.texture !== undefined
-          && !__hapi_isAnimation(opts.onHover.texture))
+          && !__hapi_isAnimationRef(opts.onHover.texture))
         throw new Error("panel '" + id
-          + "': onHover.texture must be an AnimationRegistrationArguments (use hostApi.ui.getAnimation)");
+          + "': onHover.texture must be an archive path or animation name/handle");
       if (opts.onHover.background !== undefined
-          && !__hapi_isAnimation(opts.onHover.background))
+          && !__hapi_isAnimationRef(opts.onHover.background))
         throw new Error("panel '" + id
-          + "': onHover.background must be an AnimationRegistrationArguments (use hostApi.ui.getAnimation)");
+          + "': onHover.background must be an archive path or animation name/handle");
       var __hoverTexture = opts.onHover.texture !== undefined
         ? __hapi_firstFrameRef(opts.onHover.texture) : null;
       var __hoverBackground = opts.onHover.background !== undefined
@@ -133,12 +158,16 @@ var __hapi_panelEmit = function (id, options, children, forceSurface) {
   }
   if (opts.border !== undefined && typeof opts.border === "object") {
     if (opts.border.texture !== undefined
-        && !__hapi_isAnimation(opts.border.texture))
+        && !__hapi_isAnimationRef(opts.border.texture))
       throw new Error("panel '" + id
-        + "': border.texture must be an AnimationRegistrationArguments (use hostApi.ui.getAnimation)");
+        + "': border.texture must be an archive path or animation name/handle");
+    var __borderTexture = opts.border.texture === undefined
+      ? null
+      : (typeof opts.border.texture === 'string'
+        ? opts.border.texture : __hapi_resolveAnimation(opts.border.texture));
     json.border = {
       width: opts.border.width !== undefined ? opts.border.width : 1,
-      texture: opts.border.texture !== undefined ? opts.border.texture : null
+      texture: __borderTexture
     };
   }
   json.children = children || [];
