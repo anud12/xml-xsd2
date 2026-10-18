@@ -12,14 +12,14 @@ export default (hostApi) => {
     ],
     duration: hostApi.runtime.number.of(1),
   });
-  hostApi.ui.panel("center", {
+  hostApi.ui.window("center", {
     panel: {
       width: 100,
       height: 100,
       background: texture,
     },
   }, [
-    hostApi.ui.panel("child", {
+    hostApi.ui.window("child", {
       panel: {
         width: 10,
         height: 10,
@@ -28,7 +28,7 @@ export default (hostApi) => {
         background: texture_2,
       },
     }, []),
-    hostApi.ui.panel("child_2", {
+    hostApi.ui.window("child_2", {
       panel: {
         width: 10,
         height: 10,

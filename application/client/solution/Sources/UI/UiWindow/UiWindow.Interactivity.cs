@@ -166,76 +166,88 @@ public partial class UiWindow
         if (evt is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
         {
             if (mb.Pressed)
-            {
-                var edge = ResizeEdgeAt(mb.Position);
-                if (edge != 0)
-                {
-                    _resizing = true;
-                    _resizeEdge = edge;
-                    _resizeStartSize = Size;
-                    _resizeStartPos = Position;
-                    _resizeStartMouse = mb.GlobalPosition;
-                    ApplyResizeCursor(_resizeEdge);
-                    GetViewport().SetInputAsHandled();
-                }
-            }
+                BeginResizeAtLocal(mb.Position, mb.GlobalPosition);
             else if (_resizing)
-            {
-                _resizing = false;
-                _resizeEdge = 0;
-                // Restore to whatever edge the cursor now sits on (may be 0).
-                ApplyResizeCursor(ResizeEdgeAt(mb.Position));
-                GetViewport().SetInputAsHandled();
-            }
+                EndResizeAtLocal(mb.Position);
         }
         else if (evt is InputEventMouseMotion mm)
         {
             if (_resizing)
-            {
-                var delta = mm.GlobalPosition - _resizeStartMouse;
-                var newSize = _resizeStartSize;
-                var newPos = _resizeStartPos;
-                if (_resizableKeepAspect)
-                    KeepAspectResize(delta, _resizeEdge, ref newSize, ref newPos);
-                else
-                {
-                    if ((_resizeEdge & EdgeRight) != 0)
-                        newSize.X = Math.Max(1f, _resizeStartSize.X + delta.X);
-                    if ((_resizeEdge & EdgeLeft) != 0)
-                    {
-                        var w = _resizeStartSize.X - delta.X;
-                        if (w < 1f) w = 1f;
-                        newPos.X = _resizeStartPos.X + (_resizeStartSize.X - w);
-                        newSize.X = w;
-                    }
-                    if ((_resizeEdge & EdgeBottom) != 0)
-                        newSize.Y = Math.Max(1f, _resizeStartSize.Y + delta.Y);
-                    if ((_resizeEdge & EdgeTop) != 0)
-                    {
-                        var h = _resizeStartSize.Y - delta.Y;
-                        if (h < 1f) h = 1f;
-                        newPos.Y = _resizeStartPos.Y + (_resizeStartSize.Y - h);
-                        newSize.Y = h;
-                    }
-                }
-                Position = newPos;
-                Size = newSize;
-                _userSize = newSize;
-                if (newPos != _resizeStartPos)
-                {
-                    _hasUserPosition = true;
-                    _userPosition = newPos;
-                }
-                CustomMinimumSize = newSize;
-                GetViewport().SetInputAsHandled();
-            }
+                UpdateResizeMotion(mm.GlobalPosition);
             else
-            {
                 // Hover feedback: show the resize cursor over an edge/corner
                 // hit zone, restore the default arrow elsewhere.
                 ApplyResizeCursor(ResizeEdgeAt(mm.Position));
+        }
+    }
+
+    /// Begins a resize drag from a window-local press point (no-op when the
+    /// point is outside every edge/corner hit zone). Shared with the title
+    /// bar, which forwards presses that land in the window's resize zones.
+    void BeginResizeAtLocal(Godot.Vector2 localPos, Godot.Vector2 globalMouse)
+    {
+        var edge = ResizeEdgeAt(localPos);
+        if (edge == 0) return;
+        _resizing = true;
+        _resizeEdge = edge;
+        _resizeStartSize = Size;
+        _resizeStartPos = Position;
+        _resizeStartMouse = globalMouse;
+        ApplyResizeCursor(_resizeEdge);
+        GetViewport().SetInputAsHandled();
+    }
+
+    /// One motion step of an active resize drag: grows/shrinks the window on
+    /// the active edge(s) toward the global mouse point, shifting position so
+    /// the opposite edge stays put.
+    void UpdateResizeMotion(Godot.Vector2 globalMouse)
+    {
+        var delta = globalMouse - _resizeStartMouse;
+        var newSize = _resizeStartSize;
+        var newPos = _resizeStartPos;
+        if (_resizableKeepAspect)
+            KeepAspectResize(delta, _resizeEdge, ref newSize, ref newPos);
+        else
+        {
+            if ((_resizeEdge & EdgeRight) != 0)
+                newSize.X = Math.Max(1f, _resizeStartSize.X + delta.X);
+            if ((_resizeEdge & EdgeLeft) != 0)
+            {
+                var w = _resizeStartSize.X - delta.X;
+                if (w < 1f) w = 1f;
+                newPos.X = _resizeStartPos.X + (_resizeStartSize.X - w);
+                newSize.X = w;
+            }
+            if ((_resizeEdge & EdgeBottom) != 0)
+                newSize.Y = Math.Max(1f, _resizeStartSize.Y + delta.Y);
+            if ((_resizeEdge & EdgeTop) != 0)
+            {
+                var h = _resizeStartSize.Y - delta.Y;
+                if (h < 1f) h = 1f;
+                newPos.Y = _resizeStartPos.Y + (_resizeStartSize.Y - h);
+                newSize.Y = h;
             }
         }
+        Position = newPos;
+        Size = newSize;
+        _userSize = newSize;
+        if (newPos != _resizeStartPos)
+        {
+            _hasUserPosition = true;
+            _userPosition = newPos;
+        }
+        CustomMinimumSize = newSize;
+        GetViewport().SetInputAsHandled();
+    }
+
+    /// Ends an active resize drag, restoring the cursor to whatever edge the
+    /// window-local release point sits on (0 = default arrow).
+    void EndResizeAtLocal(Godot.Vector2 localPos)
+    {
+        _resizing = false;
+        _resizeEdge = 0;
+        ApplyResizeCursor(ResizeEdgeAt(localPos));
+        GetViewport().SetInputAsHandled();
     }
 
     /// Aspect-ratio-preserving resize: the width:height ratio is locked to the

@@ -28,7 +28,7 @@ export default (hostApi) => {
     duration: number.of(1),
   });
 
-  hostApi.ui.panel("list-panel", {
+  hostApi.ui.window("list-panel", {
     panel: {
       width: 300,
       height: 300,
@@ -39,7 +39,7 @@ export default (hostApi) => {
   }, [
     hostApi.ui.entityList("items", { container: itemsContainer },
       (entity) => [
-        hostApi.ui.panel(entity.id, {
+        hostApi.ui.window(entity.id, {
           panel: {
             width: 50,
             height: 50,

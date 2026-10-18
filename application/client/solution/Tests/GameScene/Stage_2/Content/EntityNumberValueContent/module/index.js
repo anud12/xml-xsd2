@@ -13,7 +13,7 @@ export default (hostApi) => {
     ],
     duration: number.of(1),
   });
-  hostApi.ui.panel("number-panel", {
+  hostApi.ui.window("number-panel", {
     panel: {
       width: 300,
       height: 300,

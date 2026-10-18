@@ -5,7 +5,7 @@ import type { HostApi } from "suite/types/HostApi";
  * The panel is 50x50 and sits at (20, 30) in parent space.
  */
 export function buildOffsetPanel(hostApi: HostApi) {
-  hostApi.ui.panel("offset", {
+  hostApi.ui.window("offset", {
     panel: {
       width: 50,
       height: 50,

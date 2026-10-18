@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use super::UiNode as DomainNode;
 use super::UiDeltaOp as DomainDeltaOp;
 
-pub const UI_ABI_VERSION: u32 = 5;
+pub const UI_ABI_VERSION: u32 = 6;
 /// Sentinel string offset: "no string" (absent value/src/optional option).
 pub const NO_STR: u32 = u32::MAX;
 
@@ -195,6 +195,10 @@ pub struct UiNodeOptions {
     pub progress_track: UiBackground,
     pub progress_orientation: u8,
     pub progress_steps: u32,
+    /// Window title bar text (NO_STR when absent): the renderer draws a
+    /// title strip across the window top and the user can drag the window
+    /// by it.
+    pub title: u32,
 }
 
 #[repr(C)]
@@ -683,6 +687,7 @@ fn empty_options() -> UiNodeOptions {
         },
         progress_orientation: 0,
         progress_steps: 100,
+        title: NO_STR,
     }
 }
 
@@ -1047,6 +1052,7 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     o.has_xy = (has_x || has_y) as u8;
     o.anchor = opt_str(panel, "anchor", slab);
     o.align = opt_str(panel, "align", slab);
+    o.title = opt_str(panel, "title", slab);
     let has_w = opt_num(panel, "width").is_some();
     let has_h = opt_num(panel, "height").is_some();
     o.width = opt_f32(panel, "width");
@@ -1448,12 +1454,12 @@ mod tests {
         assert_eq!(s.size_layout, 40);
         assert_eq!(s.size_background, 32);
         assert_eq!(s.size_on_hover, 20);
-        assert_eq!(s.size_options, 280);
-        assert_eq!(s.size_node, 328);
+        assert_eq!(s.size_options, 288);
+        assert_eq!(s.size_node, 336);
         assert_eq!(s.size_animation, 24);
         assert_eq!(s.size_snapshot, 40);
         assert_eq!(s.size_delta, 32);
-        assert_eq!(s.size_delta_op, 336);
+        assert_eq!(s.size_delta_op, 344);
         // Pointer offsets land on 8-byte boundaries.
         for off in [
             s.off_node_children,
@@ -1476,7 +1482,7 @@ mod tests {
     #[test]
     fn snapshot_round_trips_nodes_options_and_strings() {
         let nodes = vec![
-            node(r#"{"kind":"window","id":"hud","options":{"panel":{"x":10,"y":-20,"anchor":"top-left","align":"top-left","width":200,"height":100,"layout":{"columns":[{"min":50,"scale":1},{"max":120},80],"rows":[],"rowFirst":true,"gap":{"row":4,"column":2},"container":"items"},"background":{"map":"art/map.tiff","layers":[{"texture":"skin/a.png","layer":0},{"texture":"skin/b.png","layer":1}]},"border":{"texture":"art/border.png","width":3},"onClick":{"steps":[{"action":"click-a","args":{"col":{"__cursor":"x"},"row":{"__cursor":"y"},"entity":"ent-1","count":5}},{"action":"click-b","args":{}}]},"onHover":{"emitAction":"hud-hover","stopPropagation":true,"background":"art/hover.png","texture":"art/outline.png","thickness":2}}},"children":["title","hp"]}"#),
+            node(r#"{"kind":"window","id":"hud","options":{"panel":{"x":10,"y":-20,"anchor":"top-left","align":"top-left","title":"Hud Title","width":200,"height":100,"layout":{"columns":[{"min":50,"scale":1},{"max":120},80],"rows":[],"rowFirst":true,"gap":{"row":4,"column":2},"container":"items"},"background":{"map":"art/map.tiff","layers":[{"texture":"skin/a.png","layer":0},{"texture":"skin/b.png","layer":1}]},"border":{"texture":"art/border.png","width":3},"onClick":{"steps":[{"action":"click-a","args":{"col":{"__cursor":"x"},"row":{"__cursor":"y"},"entity":"ent-1","count":5}},{"action":"click-b","args":{}}]},"onHover":{"emitAction":"hud-hover","stopPropagation":true,"background":"art/hover.png","texture":"art/outline.png","thickness":2}}},"children":["title","hp"]}"#),
             node(r#"{"kind":"text","id":"title","value":"Health","children":[]}"#),
             node(r#"{"kind":"field","id":"hp","binding":{"entity":"ent-1","map":"number","name":"hp","fallback":"n/a"},"value":"7","children":[]}"#),
             node(r#"{"kind":"image","id":"icon","src":"art/icon.png","children":[]}"#),
@@ -1500,6 +1506,7 @@ mod tests {
         assert!((hud.opt.x - 10.0).abs() < f32::EPSILON);
         assert_eq!(hud.opt.has_xy, 1);
         assert_eq!(cstr(arena, hud.opt.anchor), "top-left");
+        assert_eq!(cstr(arena, hud.opt.title), "Hud Title");
         assert_eq!(hud.opt.has_size, 1);
         assert!((hud.opt.width - 200.0).abs() < f32::EPSILON);
         assert_eq!(hud.opt.layout.kind, UI_LAYOUT_TRACKS);

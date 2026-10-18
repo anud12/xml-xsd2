@@ -55,7 +55,7 @@ export default (hostApi) => {
   // Readouts bind worker-1's column/row number values: the plan machinery
   // (park, overwrite, reject) never touches the entity data, so the labels
   // stay put through the whole interruption sequence.
-  hostApi.ui.panel("col", {
+  hostApi.ui.window("col", {
     panel: {
       width: 80,
       height: 40,
@@ -66,7 +66,7 @@ export default (hostApi) => {
     hostApi.ui.field("col-value", { entity: "worker-1", map: "number", name: "column", fallback: "0" }),
   ]);
 
-  hostApi.ui.panel("row", {
+  hostApi.ui.window("row", {
     panel: {
       width: 80,
       height: 40,

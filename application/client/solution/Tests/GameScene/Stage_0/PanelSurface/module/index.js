@@ -1,6 +1,6 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.ui.panel("bare", { panel: {} }, [
+  hostApi.ui.window("bare", { panel: { x: 0, y: 0 } }, [
     hostApi.ui.text("bare-a", "a"),
     hostApi.ui.text("bare-b", "b"),
   ]);

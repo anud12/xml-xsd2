@@ -159,18 +159,11 @@ globalThis.hostApi=hostApi;
     if(H.sectorGrid)u.sectorGrid=H.sectorGrid;
     if(H.setActor)u.setActor=H.setActor;
   }
-  // panel is the module-facing surface: positioned/sized/decorated panels are
-  // window nodes, plain ones are divisions (mirrors the __uiHost prewire).
+  // panel is a plain flow container (a division): only ui.window creates a
+  // window (the only top-level surface). A standalone (window-less) node is a
+  // no-op — it registers but is never added to the view.
   if(H){
-    u.panel=function(id,options,children){
-      var o=options||{};
-      var p=o.panel||{};
-      var surface=p.x!==undefined||p.y!==undefined
-        ||p.width!==undefined||p.height!==undefined
-        ||p.background!==undefined||p.onHover!==undefined
-        ||p.onClick!==undefined||p.anchor!==undefined;
-      return surface?H.window(id,o,children):H.div(id,o,children);
-    };
+    u.panel=H.div;
   }
   u.spriteMapTIFF=function(mapPath,layers){
     return {kind:'spriteMap',map:mapPath,

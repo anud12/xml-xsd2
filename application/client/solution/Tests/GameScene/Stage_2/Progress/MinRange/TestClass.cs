@@ -25,8 +25,9 @@ public class TestClass : Steps {
             // Without min the same raw value would fill 6 / 10 = 0.6; the reference
             // shows the fill stopping at the band midpoint (x = 100 of 200), proving
             // the value is normalized across [min, max] rather than against max alone.
+            scene.AssertPanelThat("prog-min-win")
+                .IsPositionEqual(100, 100);
             scene.AssertPanelThat("prog-min")
-                .IsPositionEqual(100, 100)
                 .ViewportIsSize(200, 50)
                 .ViewportMatches("prog-min.png");
         }

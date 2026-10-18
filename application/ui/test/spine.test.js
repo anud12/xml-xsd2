@@ -19,11 +19,12 @@ function test(name, fn) {
   console.log('ok - ' + name);
 }
 
-test('ui.text registers a text node with its id and value', () => {
+test('ui.text registers a text node and returns its id handle', () => {
   registered = [];
   host.clear();
-  const id = host.text('spine-text', 'spine');
-  assert.strictEqual(id, 'spine-text');
+  const h = host.text('spine-text', 'spine');
+  assert.strictEqual(h.value, 'spine-text');
+  assert.strictEqual(String(h), 'spine-text');
   assert.strictEqual(registered.length, 1);
   assert.deepStrictEqual(registered[0], {
     id: 'spine-text', kind: 'text', value: 'spine', children: [],
@@ -35,9 +36,12 @@ test('ui.div registers a division node with children ids', () => {
   host.clear();
   const t = host.text('spine-text', 'spine');
   const d = host.div('spine-div', {}, [t]);
-  assert.strictEqual(d, 'spine-div');
+  assert.strictEqual(d.value, 'spine-div');
+  assert.deepStrictEqual(registered[1].children, ['spine-text']);
+  // A standalone division is a no-op: under a window it reaches the view.
+  host.window('spine-win', {}, [d]);
   const snap = host.snapshot();
-  assert.strictEqual(snap.length, 2);
+  assert.strictEqual(snap.length, 3);
   const div = snap.find((n) => n.id === 'spine-div');
   assert.deepStrictEqual(div.children, ['spine-text']);
   assert.strictEqual(div.kind, 'division');
@@ -66,7 +70,7 @@ test('ui.field registers a field node with its binding', () => {
   const id = host.field('hp-field', {
     entity: 'ent-a', map: 'number', name: 'hp', fallback: 'n/a',
   });
-  assert.strictEqual(id, 'hp-field');
+  assert.strictEqual(id.value, 'hp-field');
   assert.strictEqual(registered.length, 1);
   assert.deepStrictEqual(registered[0], {
     id: 'hp-field',
@@ -81,7 +85,7 @@ test('ui.image registers an image node with its src', () => {
   registered = [];
   host.clear();
   const id = host.image('spine-img', 'art/hover.png');
-  assert.strictEqual(id, 'spine-img');
+  assert.strictEqual(id.value, 'spine-img');
   assert.strictEqual(registered.length, 1);
   assert.deepStrictEqual(registered[0], {
     id: 'spine-img', kind: 'image', src: 'art/hover.png', children: [],
@@ -107,7 +111,7 @@ test('ui.progress registers a bound progress node and carries steps in the optio
       steps: 50,
     },
   });
-  assert.strictEqual(id, 'spine-prog');
+  assert.strictEqual(id.value, 'spine-prog');
   assert.strictEqual(registered.length, 1);
   assert.deepStrictEqual(registered[0], {
     id: 'spine-prog',
@@ -129,7 +133,7 @@ test('ui.progress defaults steps to 100 and captures the orElse defaults as raw-
       max: (e) => e.number_map.get('max').orElse(100),
     },
   });
-  assert.strictEqual(id, 'hp-bar');
+  assert.strictEqual(id.value, 'hp-bar');
   assert.deepStrictEqual(registered[0], {
     id: 'hp-bar',
     kind: 'progress',
@@ -151,7 +155,7 @@ test('ui.progress resolves a value lambda via the entity number_map api', () => 
       max: (e) => e.number_map.get('max').orElse(100),
     },
   });
-  assert.strictEqual(id, 'hp-lambda');
+  assert.strictEqual(id.value, 'hp-lambda');
   assert.strictEqual(sawEntity, 'ent-a');
   assert.deepStrictEqual(registered[0].binding, { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 });
 });
@@ -166,7 +170,7 @@ test('ui.progress captures the value orElse default as the raw-value fallback', 
       max: (e) => e.number_map.get('max').orElse(100),
     },
   });
-  assert.strictEqual(id, 'hp-orElse');
+  assert.strictEqual(id.value, 'hp-orElse');
   assert.strictEqual(registered[0].binding.name, 'hp');
   assert.strictEqual(registered[0].binding.fallback, 0.5);
   assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: () => 'x', max: (e) => e.number_map.get('m').orElse(1) } }), /options.progress.value lambda/);
@@ -185,7 +189,7 @@ test('ui.progress accepts constant lambdas and omits the per-tick binding keys',
       min: (e) => 0,
     },
   });
-  assert.strictEqual(id, 'const-prog');
+  assert.strictEqual(id.value, 'const-prog');
   // Constant fields carry their value as the fallback and omit the key, so
   // the engine keeps the value instead of re-reading the entity each tick.
   assert.deepStrictEqual(registered[0].binding, {
@@ -223,7 +227,7 @@ test('ui.progress resolves min/max lambdas into binding keys and captures their 
       max: (e) => e.number_map.get('hi').orElse(10),
     },
   });
-  assert.strictEqual(id, 'range-lambda');
+  assert.strictEqual(id.value, 'range-lambda');
   assert.deepStrictEqual(registered[0].binding, {
     entity: 'ent-a', map: 'number', name: 'hp', fallback: 0,
     maxName: 'hi', maxFallback: 10, minName: 'lo', minFallback: 2,
@@ -255,7 +259,7 @@ test('ui.progress passes an animation reference through for fill and track', () 
       max: (e) => e.number_map.get('max').orElse(100),
     },
   });
-  assert.strictEqual(id, 'anim-prog');
+  assert.strictEqual(id.value, 'anim-prog');
   assert.deepStrictEqual(registered[0], {
     id: 'anim-prog',
     kind: 'progress',
@@ -290,7 +294,7 @@ test('ui.progress accepts the setAnimation handle as fill and normalizes it to a
       max: (e) => e.number_map.get('max').orElse(100),
     },
   });
-  assert.strictEqual(id, 'prog-handle');
+  assert.strictEqual(id.value, 'prog-handle');
   assert.deepStrictEqual(registered[0].options.fill, { name: 'fill-anim', duration: 2, loop: true });
   delete globalThis.__registeredAnimations;
 });
@@ -367,7 +371,9 @@ test('ui.entityList registers a division node with a container marker child', ()
     host.field(entity.id + ':value', { entity: entity.id, map: 'number', name: 'value', fallback: '0' }),
   ])];
   const id = host.entityList('items', { container: 'items' }, render);
-  assert.strictEqual(id, 'items');
+  assert.strictEqual(id.value, 'items');
+  // A standalone list is a no-op: nest it under a window for the view.
+  host.window('items-win', {}, [id]);
   const list = host.snapshot().find((n) => n.id === 'items');
   assert.strictEqual(list.kind, 'division');
   assert.strictEqual(list.options.container, 'items');
@@ -387,7 +393,7 @@ test('ui.entityList expands one item per entity via expandContainers', () => {
   const render = (entity) => [host.window(entity.id, { w: 1 }, [
     host.text(entity.id + '-t', 'v' + entity.index),
   ])];
-  host.entityList('items', { container: 'items' }, render);
+  host.window('items-win', {}, [host.entityList('items', { container: 'items' }, render)]);
   host.expandContainers((name) => {
     assert.strictEqual(name, 'items');
     return ['a', 'b', 'c'];
@@ -405,7 +411,7 @@ test('ui.entityList expands one item per entity via expandContainers', () => {
 test('ui.entityList with unknown container renders zero items', () => {
   host.clear();
   const render = (entity) => [host.window(entity.id, {}, [])];
-  host.entityList('items', { container: 'items' }, render);
+  host.window('items-win', {}, [host.entityList('items', { container: 'items' }, render)]);
   host.expandContainers(() => []);
   const list = host.snapshot().find((n) => n.id === 'items');
   assert.deepStrictEqual(list.children, []);
@@ -415,7 +421,7 @@ test('ui.containerView registers a window node with view options and a view mark
   host.clear();
   const id = host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500, x: 10, y: 80 } },
     (entity) => host.window(entity.id, { background: 'tex' }, []));
-  assert.strictEqual(id, 'world');
+  assert.strictEqual(id.value, 'world');
   const view = host.snapshot().find((n) => n.id === 'world');
   assert.strictEqual(view.kind, 'window');
   assert.strictEqual(view.options.container, 'grid-1');
@@ -476,12 +482,37 @@ test('ui.containerView reset restores the view marker', () => {
 
 test('snapshot is ordered by declaration and deep-copied', () => {
   host.clear();
-  host.text('a', '1');
-  host.text('b', '2');
+  const a = host.text('a', '1');
+  const b = host.text('b', '2');
+  host.window('w', {}, [a, b]);
   const snap = host.snapshot();
-  assert.deepStrictEqual(snap.map((n) => n.id), ['a', 'b']);
+  assert.deepStrictEqual(snap.map((n) => n.id), ['a', 'b', 'w']);
   snap[0].value = 'mutated';
   assert.strictEqual(host.snapshot()[0].value, '1');
+});
+
+test('standalone nodes are a no-op: registered but never added to the view', () => {
+  registered = [];
+  host.clear();
+  host.text('orphan-text', 'orphan');
+  host.div('orphan-div', {}, [host.text('orphan-nested', 'x')]);
+  host.window('real-win', {}, [host.text('win-text', 'in')]);
+  // All five nodes register...
+  assert.strictEqual(registered.length, 5);
+  // ...but only the window subtree reaches the view (declaration order).
+  const snap = host.snapshot();
+  assert.deepStrictEqual(snap.map((n) => n.id), ['win-text', 'real-win']);
+});
+
+test('ui.window carries the title option through the panel options', () => {
+  registered = [];
+  host.clear();
+  host.window('titled-win', { panel: { x: 0, y: 0, width: 100, height: 60, title: 'My Window' } });
+  assert.strictEqual(registered.length, 1);
+  assert.strictEqual(registered[0].kind, 'window');
+  assert.strictEqual(registered[0].options.panel.title, 'My Window');
+  const snap = host.snapshot().find((n) => n.id === 'titled-win');
+  assert.strictEqual(snap.options.panel.title, 'My Window');
 });
 
 console.log(`# ${passed} tests passed`);

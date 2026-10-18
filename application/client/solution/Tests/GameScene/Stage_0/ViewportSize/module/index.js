@@ -1,13 +1,13 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.ui.panel("small", {
+  hostApi.ui.window("small", {
     panel: {
       width: 100,
       height: 100,
     },
   }, [])
 
-  hostApi.ui.panel("wide", {
+  hostApi.ui.window("wide", {
     panel: {
       width: 200,
       height: 50,
@@ -15,7 +15,7 @@ export default (hostApi) => {
     },
   }, [])
 
-  hostApi.ui.panel("tall", {
+  hostApi.ui.window("tall", {
     panel: {
       width: 50,
       height: 200,

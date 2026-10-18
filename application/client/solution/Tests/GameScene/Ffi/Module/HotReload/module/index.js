@@ -26,7 +26,7 @@ export default (hostApi) => {
 
   hostApi.runtime.emitEvent(repeat, {});
 
-  hostApi.ui.panel("badge", {
+  hostApi.ui.window("badge", {
     panel: {
       width: 60,
       height: 60,

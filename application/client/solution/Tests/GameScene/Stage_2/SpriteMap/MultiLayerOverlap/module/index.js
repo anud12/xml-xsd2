@@ -20,7 +20,7 @@ export default (hostApi) => {
     duration: number.of(4), loop: true,
   });
   
-  hostApi.ui.panel("characterPanel", {
+  hostApi.ui.window("characterPanel", {
     panel: {
       width: 10,
       height: 10,

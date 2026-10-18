@@ -13,7 +13,7 @@ export default (hostApi) => {
     duration: number.of(5),
   });
 
-  hostApi.ui.panel("seqPanel", {
+  hostApi.ui.window("seqPanel", {
     panel: {
       width: 100,
       height: 100,

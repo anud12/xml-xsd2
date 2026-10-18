@@ -14,7 +14,7 @@ export default (hostApi) => {
     }
   });
 
-  hostApi.ui.panel("parent", {
+  hostApi.ui.window("parent", {
     panel: {
       width: 100,
       height: 100,
@@ -23,7 +23,7 @@ export default (hostApi) => {
       },
     },
   }, [
-    hostApi.ui.panel("child", {
+    hostApi.ui.window("child", {
       panel: {
         width: 10,
         height: 10,

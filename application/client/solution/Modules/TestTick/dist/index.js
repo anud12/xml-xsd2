@@ -45,7 +45,7 @@ const entry = (hostApi) => {
         },
     });
     // Readouts bind node-1's column/row so the rendered labels follow the move.
-    hostApi.ui.panel("col", {
+    hostApi.ui.window("col", {
         panel: {
             width: 80,
             height: 40,
@@ -55,7 +55,7 @@ const entry = (hostApi) => {
     }, [
         hostApi.ui.field("col-value", { entity: node1, map: "number", name: "column", fallback: "0" }),
     ]);
-    hostApi.ui.panel("row", {
+    hostApi.ui.window("row", {
         panel: {
             width: 80,
             height: 40,
@@ -89,23 +89,34 @@ const entry = (hostApi) => {
             { sprite: hostApi.ui.getSpritePNG("assets/loading_bar.png") }
         ]
     });
-    hostApi.ui.progress("progress", {
+    // The bar must live under a window (a standalone progress is a no-op): the
+    // window carries the 400,400 origin and the bar fills it at local 0,0.
+    hostApi.ui.window("progress", {
         panel: {
             x: 400,
             y: 400,
             width: 500,
             height: 30,
         },
-        progress: {
-            value: entity => entity.number_map.get("row").orElse(number.of(0)),
-            max: entity => number.of(40),
-            entity: node1,
-            steps: 100,
-            min: entity => number.of(0),
-            fill: animation,
-            track: marker,
-        },
-    });
+    }, [
+        hostApi.ui.progress("progress-bar", {
+            panel: {
+                x: 0,
+                y: 0,
+                width: 500,
+                height: 30,
+            },
+            progress: {
+                value: entity => entity.number_map.get("row").orElse(number.of(0)),
+                max: entity => number.of(40),
+                entity: node1,
+                steps: 100,
+                min: entity => number.of(0),
+                fill: animation,
+                track: marker,
+            },
+        }),
+    ]);
     hostApi.ui.containerView("plane", {
         container: grid1,
         panel: {

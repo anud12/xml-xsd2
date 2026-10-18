@@ -30,6 +30,14 @@ public partial class UiWindow : Control
     bool _hasUserPosition;
     Vector2 _userPosition = Vector2.Zero;
 
+    // Titled window (title option): a title strip across the top that the
+    // user can drag to move the window. Drag state mirrors the resize drag.
+    ColorRect? _titleBar;
+    Label? _titleLabel;
+    bool _titleDragging;
+    Vector2 _titleDragStartMouse = Vector2.Zero;
+    Vector2 _titleDragStartPos = Vector2.Zero;
+
     // Parsed layout of this div/window (drives box vs grid).
     UiGrid.UiGridLayoutSpec _layoutSpec = new();
     // Interactivity.

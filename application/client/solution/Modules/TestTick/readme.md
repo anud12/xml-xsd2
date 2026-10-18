@@ -7,3 +7,12 @@
   - Underground civilization arisen from the ground
 - Progress bar for external faction/events to protect the planet
   - Convince external godlike faction to save the planet, ending the game (no need to play, you won)
+
+
+
+
+Initial flow
+
+Player entity is a ____
+- It purchase lands, where lands each have specific properties, and that grants them tags
+- 

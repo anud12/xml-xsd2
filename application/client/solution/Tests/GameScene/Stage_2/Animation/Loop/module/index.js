@@ -14,7 +14,7 @@ export default (hostApi) => {
     loop: true,
   });
 
-  hostApi.ui.panel("loopPanel", {
+  hostApi.ui.window("loopPanel", {
     panel: {
       width: 100,
       height: 100,

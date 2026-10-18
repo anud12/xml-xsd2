@@ -44,7 +44,7 @@ export default (hostApi) => {
   });
 
   // Readouts bind node-1's column/row number values.
-  hostApi.ui.panel("col", {
+  hostApi.ui.window("col", {
     panel: {
       width: 80,
       height: 40,
@@ -55,7 +55,7 @@ export default (hostApi) => {
     hostApi.ui.field("col-value", { entity: "node-1", map: "number", name: "column", fallback: "0" }),
   ]);
 
-  hostApi.ui.panel("row", {
+  hostApi.ui.window("row", {
     panel: {
       width: 80,
       height: 40,
@@ -83,7 +83,7 @@ export default (hostApi) => {
       },
     },
   }, entity => hostApi.ui.window(entity.id, {}, [
-    hostApi.ui.panel(entity.id + "-marker", {
+    hostApi.ui.window(entity.id + "-marker", {
       panel: {
         width: 10,
         height: 10,

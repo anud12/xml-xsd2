@@ -7,7 +7,7 @@ export default (hostApi) => {
     ],
     duration: number.of(1),
   });
-  hostApi.ui.panel("bottom-left", {
+  hostApi.ui.window("bottom-left", {
     panel: {
       width: 300,
       height: 300,

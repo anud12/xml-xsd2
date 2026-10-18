@@ -33,9 +33,10 @@ globalThis.__uiTransport = {
 
 /// Live .ui factories on `globalThis.host.ui`, installed before the SHIM
 /// fills the rest of the hostApi (its `if(!...)` guards keep these).
-/// `panel` is the module-facing surface: a positioned/sized/decorated panel
-/// becomes a window node, a plain one a division. `__uiEntitiesFor` is the
-/// container-list entity lookup the UI ticks use (a list node's
+/// `window` is the only factory that creates a window (the only top-level
+/// surface); `panel` is a plain division. A standalone (window-less) node is
+/// a no-op — it registers but is never added to the view. `__uiEntitiesFor`
+/// is the container-list entity lookup the UI ticks use (a list node's
 /// `options.container` names a runtime container; unknown containers render
 /// zero items).
 const UI_PREWIRE: &str = r#"
@@ -89,16 +90,10 @@ if (__uih && globalThis.host) {
   __u.entityList = __uih.entityList;
   __u.containerView = __uih.containerView;
   __u.sectorGrid = __uih.sectorGrid;
-  __u.panel = function (id, options, children) {
-    var opts = options || {};
-    var p = opts.panel || {};
-    var surface = p.x !== undefined || p.y !== undefined
-      || p.width !== undefined || p.height !== undefined
-      || p.background !== undefined || p.onHover !== undefined
-      || p.onClick !== undefined || p.anchor !== undefined;
-    return surface ? __uih.window(id, opts, children)
-                   : __uih.div(id, opts, children);
-  };
+  // panel is a plain flow container (a division): only ui.window creates a
+  // window. A standalone (window-less) node is a no-op — it registers but is
+  // never added to the view.
+  __u.panel = __uih.div;
   __u.spriteMapTIFF = function (mapPath, layers) {
     return {
       kind: 'spriteMap',

@@ -73,12 +73,35 @@ function (root) {
         return String(v);
     }
 
+    // The *Expression handle a public factory returns for the node it
+    // registered: the same shape as the set*/world.sectorGrid handles (id on
+    // `.id`/`.value` plus toString/toJSON), so it flows into any id-accepting
+    // slot (children, binding.entity, args.container) or stringifies back to
+    // the raw id.
+    function nodeHandle(id) {
+        return {
+            id: id,
+            value: id,
+            toString: function () { return id; },
+            toJSON: function () { return id; }
+        };
+    }
+
     function childIds(children) {
         return (children || []).map(function (c) {
-            if (typeof c !== 'string' || c.length === 0) {
-                throw new Error('ui: children must be node ids returned by ui.* factories');
+            // A child is either a raw id string or a *Expression handle (an
+            // object); anything else (a number, null, ...) is rejected.
+            if (typeof c === 'string') {
+                if (c.length === 0) {
+                    throw new Error('ui: children must be node ids returned by ui.* factories');
+                }
+                return c;
             }
-            return c;
+            if (c != null && typeof c === 'object') {
+                var id = resolveId(c);
+                if (typeof id === 'string' && id.length > 0) return id;
+            }
+            throw new Error('ui: children must be node ids returned by ui.* factories');
         });
     }
 
@@ -349,7 +372,10 @@ function (root) {
                         var result = render({ id: entities[e], index: e });
                         if (result == null) continue;
                         var arr = Array.isArray(result) ? result : [result];
-                        for (var k = 0; k < arr.length; k++) itemIds.push(arr[k]);
+                        for (var k = 0; k < arr.length; k++) {
+                            var rid = resolveId(arr[k]);
+                            if (typeof rid === 'string' && rid.length > 0) itemIds.push(rid);
+                        }
                     }
                 }
                 containerItems[name] = itemIds;
@@ -392,11 +418,11 @@ function (root) {
                     for (var e = 0; e < entities.length; e++) {
                         var result = render({ id: entities[e], index: e });
                         if (result == null) continue;
-                        // The render returns a single panel id (a string). If a
-                        // module returns an array or multiple, take the first
-                        // id; the view cannot place more than one panel per
-                        // entity.
-                        var itemId = Array.isArray(result) ? result[0] : result;
+                        // The render returns a single panel id (a raw string or
+                        // a node handle). If a module returns an array or
+                        // multiple, take the first id; the view cannot place
+                        // more than one panel per entity.
+                        var itemId = resolveId(Array.isArray(result) ? result[0] : result);
                         if (typeof itemId !== 'string' || itemId.length === 0) continue;
                         itemIds.push(itemId);
                         // Stamp the item with its entity so the position pass
@@ -474,7 +500,7 @@ function (root) {
                             y: cell.y,
                             container: cell.container
                         });
-                        var itemId = Array.isArray(pid) ? pid[0] : pid;
+                        var itemId = resolveId(Array.isArray(pid) ? pid[0] : pid);
                         if (typeof itemId !== 'string' || itemId.length === 0) continue;
                         itemIds.push(itemId);
                         var in1 = nodes[itemId];
@@ -832,41 +858,41 @@ function (root) {
     var api = {
         div: function (id, options, children) {
             var panel = (options && typeof options.panel === 'object' && options.panel) ? options.panel : {};
-            return register({
+            return nodeHandle(register({
                 id: id,
                 kind: 'division',
                 options: { panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))) },
                 children: childIds(children)
-            });
+            }));
         },
         window: function (id, options, children) {
             var panel = (options && typeof options.panel === 'object' && options.panel) ? options.panel : {};
-            return register({
+            return nodeHandle(register({
                 id: id,
                 kind: 'window',
                 options: { panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))) },
                 children: childIds(children)
-            });
+            }));
         },
         text: function (id, value) {
-            return register({
+            return nodeHandle(register({
                 id: id,
                 kind: 'text',
                 value: typeof value === 'string' ? value : String(value),
                 children: []
-            });
+            }));
         },
         image: function (id, src) {
             requireId(id, 'image');
             if (typeof src !== 'string' || src.length === 0) {
                 throw new Error('ui: image src must be a non-empty archive path string');
             }
-            return register({
+            return nodeHandle(register({
                 id: id,
                 kind: 'image',
                 src: src,
                 children: []
-            });
+            }));
         },
         entityList: function (name, args, render) {
             if (typeof name !== 'string' || name.length === 0) {
@@ -883,12 +909,12 @@ function (root) {
                 throw new Error('ui: entityList render must be a function(entity) => nodeIds');
             }
             containerRenders[name] = render;
-            return register({
+            return nodeHandle(register({
                 id: name,
                 kind: 'division',
                 options: { container: entityListContainer },
                 children: [containerMarker(name)]
-            });
+            }));
         },
         containerView: function (name, args, render) {
             if (typeof name !== 'string' || name.length === 0) {
@@ -923,12 +949,12 @@ function (root) {
             };
             if (args.area != null) opts.area = args.area;
             opts.panel = resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel)));
-            return register({
+            return nodeHandle(register({
                 id: name,
                 kind: 'window',
                 options: opts,
                 children: [containerViewMarker(name)]
-            });
+            }));
         },
         sectorGrid: function (name, args, render) {
             if (typeof name !== 'string' || name.length === 0) {
@@ -959,12 +985,12 @@ function (root) {
             opts.cellSize = (typeof args.cellSize === 'number' && args.cellSize > 0) ? args.cellSize : 32;
             if (args.cellGap != null) opts.cellGap = args.cellGap;
             if (args.portalThickness != null) opts.portalThickness = args.portalThickness;
-            return register({
+            return nodeHandle(register({
                 id: name,
                 kind: 'window',
                 options: opts,
                 children: [sectorGridMarker(name)]
-            });
+            }));
         },
         field: function (id, binding) {
             if (!binding || typeof binding !== 'object') {
@@ -981,7 +1007,7 @@ function (root) {
                 throw new Error('ui: field binding.name must be a non-empty field name');
             }
             var fallback = typeof binding.fallback === 'string' ? binding.fallback : '';
-            return register({
+            return nodeHandle(register({
                 id: id,
                 kind: 'field',
                 binding: {
@@ -992,7 +1018,7 @@ function (root) {
                 },
                 value: fallback,
                 children: []
-            });
+            }));
         },
         progress: function (id, options) {
             if (!options || typeof options !== 'object') {
@@ -1079,19 +1105,47 @@ function (root) {
                 steps: steps
             };
             if (track != null) opts.track = track;
-            return register({
+            return nodeHandle(register({
                 id: id,
                 kind: 'progress',
                 value: 0,
                 binding: binding,
                 options: opts,
                 children: []
-            });
+            }));
         },
         snapshot: function () {
-            var out = [];
+            // Only nodes reachable from a top-level window belong to the view.
+            // A standalone node (no window ancestor) is a no-op: it registers,
+            // but is never added to the view. Top-level nodes count only when
+            // they are windows.
+            var parent = Object.create(null);
             for (var i = 0; i < order.length; i++) {
-                out.push(JSON.parse(JSON.stringify(nodes[order[i]])));
+                var pn = nodes[order[i]];
+                if (!pn || !Array.isArray(pn.children)) continue;
+                for (var k = 0; k < pn.children.length; k++) {
+                    var ck = pn.children[k];
+                    if (typeof ck === 'string' && nodes[ck]) parent[ck] = pn.id;
+                }
+            }
+            var visMemo = Object.create(null);
+            function visible(id) {
+                if (id in visMemo) return visMemo[id];
+                visMemo[id] = false;
+                var n = nodes[id];
+                var v = false;
+                if (n) {
+                    var p = parent[id];
+                    v = p == null ? n.kind === 'window' : visible(p);
+                }
+                visMemo[id] = v;
+                return v;
+            }
+            var out = [];
+            for (var i2 = 0; i2 < order.length; i2++) {
+                var nid = order[i2];
+                if (!visible(nid)) continue;
+                out.push(JSON.parse(JSON.stringify(nodes[nid])));
             }
             return out;
         },

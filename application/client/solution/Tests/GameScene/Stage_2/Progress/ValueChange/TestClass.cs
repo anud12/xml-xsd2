@@ -22,8 +22,9 @@ public class TestClass : Steps {
 
             var scene = await AttachUiScene();
 
+            scene.AssertPanelThat("prog-x-win")
+                .IsPositionEqual(100, 100);
             var assertions = scene.AssertPanelThat("prog-x")
-                .IsPositionEqual(100, 100)
                 .ViewportIsSize(200, 50)
                 .ViewportMatches("prog-x.png");
 

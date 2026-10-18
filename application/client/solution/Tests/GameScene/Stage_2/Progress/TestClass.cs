@@ -21,8 +21,9 @@ public class TestClass : Steps {
 
             var scene = await AttachUiScene();
 
+            scene.AssertPanelThat("prog-x-win")
+                .IsPositionEqual(100, 100);
             scene.AssertPanelThat("prog-x")
-                .IsPositionEqual(100, 100)
                 .ViewportIsSize(200, 50);
         }
         catch (Exception e) {
@@ -48,8 +49,9 @@ public class TestClass : Steps {
 
             var scene = await AttachUiScene();
 
+            scene.AssertPanelThat("prog-y-win")
+                .IsPositionEqual(100, 200);
             scene.AssertPanelThat("prog-y")
-                .IsPositionEqual(100, 200)
                 .ViewportIsSize(50, 200);
         }
         catch (Exception e) {
@@ -75,8 +77,9 @@ public class TestClass : Steps {
 
             var scene = await AttachUiScene();
 
+            scene.AssertPanelThat("prog-x-win")
+                .IsPositionEqual(100, 100);
             scene.AssertPanelThat("prog-x")
-                .IsPositionEqual(100, 100)
                 .ViewportIsSize(200, 50)
                 .ViewportMatches("prog-x.png");
         }
@@ -103,8 +106,9 @@ public class TestClass : Steps {
 
             var scene = await AttachUiScene();
 
+            scene.AssertPanelThat("prog-y-win")
+                .IsPositionEqual(100, 200);
             scene.AssertPanelThat("prog-y")
-                .IsPositionEqual(100, 200)
                 .ViewportIsSize(50, 200)
                 .ViewportMatches("prog-y.png");
         }

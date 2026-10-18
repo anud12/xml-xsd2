@@ -26,7 +26,7 @@ export default (hostApi) => {
     ],
     duration: number.of(1),
   });
-  hostApi.ui.panel("hoverParent", {
+  hostApi.ui.window("hoverParent", {
     panel: {
       width: 100,
       height: 100,
@@ -36,7 +36,7 @@ export default (hostApi) => {
       },
     },
   }, [
-    hostApi.ui.panel("inner", {
+    hostApi.ui.window("inner", {
       panel: {
         width: 30,
         height: 30,

@@ -63,7 +63,7 @@ export default (hostApi) => {
       },
     },
   }, entity => hostApi.ui.window(entity.id, {}, [
-    hostApi.ui.panel(entity.id + "-marker", {
+    hostApi.ui.window(entity.id + "-marker", {
       panel: {
         width: 10,
         height: 10,

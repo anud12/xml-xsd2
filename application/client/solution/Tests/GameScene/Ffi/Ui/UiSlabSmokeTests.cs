@@ -28,7 +28,7 @@ public class UiSlabSmokeTests : Steps
         var nodes = UiSlab.ReadNodes(ptr);
         RuntimeInterop.FreeUiState(ptr);
 
-        Assertions.AssertThat(nodes.Count).IsEqual(4);
+        Assertions.AssertThat(nodes.Count).IsEqual(5);
 
         var win = nodes.FirstOrDefault(n => n.Id == "slab-win");
         Assertions.AssertThat(win != null).IsTrue();

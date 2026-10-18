@@ -3,7 +3,7 @@
  * The panel is 50x50 and sits at (20, 30) in parent space.
  */
 export function buildOffsetPanel(hostApi) {
-    hostApi.ui.panel("offset", {
+    hostApi.ui.window("offset", {
         panel: {
             width: 50,
             height: 50,

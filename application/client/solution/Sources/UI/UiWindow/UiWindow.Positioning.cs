@@ -109,6 +109,7 @@ public partial class UiWindow
 
         _layoutSpec = UiGrid.UiGridLayoutSpec.Parse(opts);
         EnsureFlowContainer();
+        ApplyTitle(opts);
 
         ApplyBackground(opts);
         ApplyBorder(opts);

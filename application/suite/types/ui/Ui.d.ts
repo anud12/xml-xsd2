@@ -7,10 +7,24 @@ import {ContainerExpression, GridExpression} from "../dataExpression/Contaier";
 import {ActionExpression} from "../dataExpression/action/no-input-action";
 
 /**
- * A single node id returned by the ui factories. Factories return the id that
- * was registered so callers can nest nodes and hand them to a parent.
+ * A raw node id string.
  */
 export type UiNodeId = string;
+
+/**
+ * The *Expression handle a ui factory returns for the node it registered —
+ * the same object shape as the handles returned by `setAnimation` or
+ * `world.sectorGrid`. It carries the node id on `.id`/`.value` and
+ * stringifies back to it (`toString`/`toJSON`), so it flows into any
+ * id-accepting slot (a parent's `children`, `binding.entity`,
+ * `args.container`) or is used where a plain id string is expected.
+ */
+export type UiNodeExpression = {
+  readonly id: string;
+  readonly value: string;
+  toString(): string;
+  toJSON(): string;
+};
 
 /**
  * A panel background: an animation reference (the `setAnimation` handle or a
@@ -56,9 +70,10 @@ export type UiLayout = {
 /**
  * Options for the positioned/decorated ui panel surface (window or division).
  * The panel configuration is nested under a required `panel` key; all of its
- * fields are optional, and a panel is "positioned" when it carries any of
- * x/y/width/height/background/onHover/onClick/anchor. The host passes it
- * through as the node's `options.panel` (the renderer reads `panel.*`).
+ * fields are optional. The positioning/size fields (x/y/width/height/anchor)
+ * only take effect on window nodes — divisions are flow containers placed by
+ * their parent's layout. The host passes it through as the node's
+ * `options.panel` (the renderer reads `panel.*`).
  */
 export type UiPanelOptions = {
   panel: {
@@ -81,6 +96,13 @@ export type UiPanelOptions = {
      * wins). Only honored for windows (explicitly sized panels).
      */
     resizable?: boolean | { keepAspectRatio?: boolean };
+    /**
+     * Window title: drawn as a title strip across the top of the window with
+     * the text centered, and makes the window draggable by the strip
+     * (native-window style). Only honored on window nodes. On a `resizable`
+     * window the edge/corner resize hit zones keep precedence over the strip.
+     */
+    title?: string;
     /**
      * The entity's declared area polygons, drawn over the item sprite as a
      * solid outline (line color + thickness) and a translucent rgba body each.
@@ -268,24 +290,37 @@ export type UiEntityListOptions = {
 
 /**
  * The module-facing ui surface: node factories plus texture/animation helpers.
+ *
+ * View invariant: only `window` nodes can be top-level. Every other node
+ * (panel/division, text, field, progress, image, entityList) must be nested
+ * under a window — directly or through divisions. Creating a standalone node
+ * (one no window ever reaches) is a no-op: it registers, but it is never
+ * added to the view.
+ *
+ * Every factory returns the registered node's {@link UiNodeExpression} handle,
+ * so a node can be built in any order and handed to a parent's `children`
+ * (which also accept raw {@link UiNodeId} strings).
  */
 export type UiApi = {
-  /** Positional/sized/decorated panel: a window when positioned, a division otherwise. */
-  panel: (id: string, options?: UiPanelOptions, children?: UiNodeId[]) => UiNodeId;
-  window: (id: string, options?: UiPanelOptions, children?: UiNodeId[]) => UiNodeId;
-  text: (id: string, value: string | number) => UiNodeId;
-  field: (id: string, binding: UiFieldBinding) => UiNodeId;
-  /** A progress bar: tiled fill clipped to a 0..1 fraction (static or entity-bound). */
-  progress: (id: string, options: UiProgressOptions) => UiNodeId;
+  /** A plain flow container (a division): laid out by its parent's box/grid. A standalone one is a no-op (never added to the view). */
+  panel: (id: string, options?: UiPanelOptions, children?: (UiNodeId | UiNodeExpression)[]) => UiNodeExpression;
+  /** The only factory that creates a window — the only top-level surface (positioned by x/y/anchor, explicitly sized or sized to content). */
+  window: (id: string, options?: UiPanelOptions, children?: (UiNodeId | UiNodeExpression)[]) => UiNodeExpression;
+  /** A text label: must be nested under a window. */
+  text: (id: string, value: string | number) => UiNodeExpression;
+  /** A bound field: must be nested under a window. */
+  field: (id: string, binding: UiFieldBinding) => UiNodeExpression;
+  /** A progress bar: tiled fill clipped to a 0..1 fraction (static or entity-bound). Must be nested under a window. */
+  progress: (id: string, options: UiProgressOptions) => UiNodeExpression;
 
-  /** A flow list: one child per entity in the container (render returns an array of node ids). */
-  entityList: (name: string, args: UiEntityListOptions, render: (entity: Entity) => UiNodeId[]) => UiNodeId;
+  /** A flow list: one child per entity in the container (render returns an array of node ids or handles). Must be nested under a window. */
+  entityList: (name: string, args: UiEntityListOptions, render: (entity: Entity) => (UiNodeId | UiNodeExpression)[]) => UiNodeExpression;
 
-  /** A sized view of a container: one panel per entity placed on its cell, re-resolved each tick. */
-  containerView: (name: string, args: UiContainerViewOptions, render: (entity: Entity) => UiNodeId) => UiNodeId;
+  /** A sized view of a container (a window): one panel per entity placed on its cell, re-resolved each tick. */
+  containerView: (name: string, args: UiContainerViewOptions, render: (entity: Entity) => UiNodeId | UiNodeExpression) => UiNodeExpression;
 
-  /** A top-down view of a sector grid: one cell per footprint square (rendered by `render`) + one engine-drawn headless arrow per portal, all positioned by the engine each tick. */
-  sectorGrid: (name: string, args: UiSectorGridOptions, render: (item: UiSectorGridItem) => UiNodeId) => UiNodeId;
+  /** A top-down view of a sector grid (a window): one cell per footprint square (rendered by `render`) + one engine-drawn headless arrow per portal, all positioned by the engine each tick. */
+  sectorGrid: (name: string, args: UiSectorGridOptions, render: (item: UiSectorGridItem) => UiNodeId | UiNodeExpression) => UiNodeExpression;
 
   spriteMapTIFF: (mapPath: string, layers: MapLayerBinding[]) => SpriteMap;
   getSpritePNG: (path: string) => SpriteResource;

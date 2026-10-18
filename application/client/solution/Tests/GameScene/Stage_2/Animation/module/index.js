@@ -20,7 +20,7 @@ export default (hostApi) => {
     duration: number.of(10),
   });
 
-  hostApi.ui.panel("fastPanel", {
+  hostApi.ui.window("fastPanel", {
     panel: {
       width: 100,
       height: 100,
@@ -30,7 +30,7 @@ export default (hostApi) => {
     },
   }, []);
 
-  hostApi.ui.panel("slowPanel", {
+  hostApi.ui.window("slowPanel", {
     panel: {
       width: 100,
       height: 100,

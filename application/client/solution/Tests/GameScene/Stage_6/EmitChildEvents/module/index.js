@@ -80,7 +80,7 @@ export default (hostApi) => {
     ],
     duration: number.of(1),
   });
-  hostApi.ui.panel("center", {
+  hostApi.ui.window("center", {
     panel: {
       x: 200,
       y: 450,
@@ -94,7 +94,7 @@ export default (hostApi) => {
     hostApi.ui.field("centerContent", { entity: entity, map: "number", name: "key", fallback: "0" }),
   ])
 
-  hostApi.ui.panel("isModifiedPanel", {
+  hostApi.ui.window("isModifiedPanel", {
     panel: {
       x: 700,
       y: 450,

@@ -13,7 +13,7 @@ export default (hostApi) => {
     ],
     duration: number.of(1),
   });
-  hostApi.ui.panel("hoverPanel", {
+  hostApi.ui.window("hoverPanel", {
     panel: {
       width: 100,
       height: 100,

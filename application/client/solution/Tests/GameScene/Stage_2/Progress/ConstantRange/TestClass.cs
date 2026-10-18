@@ -25,8 +25,9 @@ public class TestClass : Steps {
             // Constant 3 over the constant [0, 10] range -> 0.3, while the
             // entity's own hp = 9 must not leak into the bar; the reference
             // shows the fill stopping at 30% (x = 60 of 200).
+            scene.AssertPanelThat("prog-const-win")
+                .IsPositionEqual(100, 100);
             var assertions = scene.AssertPanelThat("prog-const")
-                .IsPositionEqual(100, 100)
                 .ViewportIsSize(200, 50)
                 .ViewportMatches("prog-const.png");
 

@@ -1,5 +1,5 @@
 export function buildOffsetPanel(hostApi) {
-    hostApi.ui.panel("offset", {
+    hostApi.ui.window("offset", {
         panel: {
             width: 50,
             height: 50,

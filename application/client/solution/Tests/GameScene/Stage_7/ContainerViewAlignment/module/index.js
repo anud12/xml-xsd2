@@ -51,7 +51,7 @@ export default (hostApi) => {
       y: 80,
     },
   }, entity => hostApi.ui.window(entity.id, {}, [
-    hostApi.ui.panel(entity.id + "-marker", { panel: { width: 140, height: 200 } }),
+    hostApi.ui.window(entity.id + "-marker", { panel: { width: 140, height: 200 } }),
   ]));
 
   hostApi.ui.containerView("plane-default", {
@@ -63,6 +63,6 @@ export default (hostApi) => {
       y: 600,
     },
   }, entity => hostApi.ui.window(entity.id, {}, [
-    hostApi.ui.panel(entity.id + "-marker", { panel: { width: 140, height: 200 } }),
+    hostApi.ui.window(entity.id + "-marker", { panel: { width: 140, height: 200 } }),
   ]));
 }

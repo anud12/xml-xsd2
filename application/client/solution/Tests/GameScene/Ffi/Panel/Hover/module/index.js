@@ -13,7 +13,7 @@ export default (hostApi) => {
     ],
     duration: hostApi.runtime.number.of(1),
   });
-  hostApi.ui.panel("hover", {
+  hostApi.ui.window("hover", {
     panel: {
       width: 100,
       height: 100,
@@ -24,7 +24,7 @@ export default (hostApi) => {
       background: texture,
     },
   })
-  hostApi.ui.panel("no-hover", {
+  hostApi.ui.window("no-hover", {
     panel: {
       width: 100,
       height: 100,

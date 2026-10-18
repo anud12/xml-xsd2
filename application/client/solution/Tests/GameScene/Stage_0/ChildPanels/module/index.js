@@ -1,12 +1,12 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.ui.panel("parent", {
+  hostApi.ui.window("parent", {
     panel: {
       width: 100,
       height: 100,
     },
   }, [
-    hostApi.ui.panel("child", {
+    hostApi.ui.window("child", {
       panel: {
         width: 20,
         height: 20,
@@ -14,7 +14,7 @@ export default (hostApi) => {
         y: 10,
       },
     }, []),
-    hostApi.ui.panel("child_2", {
+    hostApi.ui.window("child_2", {
       panel: {
         width: 20,
         height: 20,

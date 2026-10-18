@@ -12,7 +12,7 @@ export default (hostApi) => {
     ],
     duration: hostApi.runtime.number.of(1),
   });
-  hostApi.ui.panel("bordered", {
+  hostApi.ui.window("bordered", {
     panel: {
       width: 120,
       height: 120,

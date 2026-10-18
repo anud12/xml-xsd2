@@ -66,7 +66,7 @@ export default (hostApi) => {
   hostApi.runtime.emitEvent(repeat, {});
 
   // Same panel id, new texture in v2.
-  hostApi.ui.panel("badge", {
+  hostApi.ui.window("badge", {
     panel: {
       width: 60,
       height: 60,

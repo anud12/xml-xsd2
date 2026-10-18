@@ -109,6 +109,7 @@ public static class UiSlab
         }
         AddStr("anchor", o.Anchor);
         AddStr("align", o.Align);
+        AddStr("title", o.Title);
         var layout = SerializeLayout(o.Layout, arena);
         if (layout != null) Add("layout", layout);
         var background = SerializeBackground(o.Background, arena);

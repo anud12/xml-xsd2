@@ -27,8 +27,9 @@ public class TestClass : Steps {
             // (fill_1.png) is what renders. The track is a static tile across the
             // full bar. The reference proves the animation ref resolves to the
             // current frame's tile texture (not a static first-frame path).
+            scene.AssertPanelThat("prog-anim-win")
+                .IsPositionEqual(100, 100);
             scene.AssertPanelThat("prog-anim")
-                .IsPositionEqual(100, 100)
                 .ViewportIsSize(200, 50)
                 .ViewportMatches("prog-anim.png");
 

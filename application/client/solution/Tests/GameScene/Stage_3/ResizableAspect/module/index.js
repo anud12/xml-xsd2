@@ -6,7 +6,7 @@ export default (hostApi) => {
     ],
     duration: hostApi.runtime.number.of(1),
   });
-  hostApi.ui.panel("aspect", {
+  hostApi.ui.window("aspect", {
     panel: {
       width: 200,
       height: 100,

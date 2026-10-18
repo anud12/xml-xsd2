@@ -65,7 +65,7 @@ export default (hostApi) => {
 
   // Readouts bind node-1's column/row number values: the labels re-resolve
   // from the entity store every frame, so they follow the teleports.
-  hostApi.ui.panel("col", {
+  hostApi.ui.window("col", {
     panel: {
       width: 80,
       height: 40,
@@ -76,7 +76,7 @@ export default (hostApi) => {
     hostApi.ui.field("col-value", { entity: "node-1", map: "number", name: "column", fallback: "0" }),
   ]);
 
-  hostApi.ui.panel("row", {
+  hostApi.ui.window("row", {
     panel: {
       width: 80,
       height: 40,

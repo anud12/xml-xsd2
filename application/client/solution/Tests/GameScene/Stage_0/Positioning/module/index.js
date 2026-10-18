@@ -1,13 +1,13 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  hostApi.ui.panel("base", {
+  hostApi.ui.window("base", {
     panel: {
       width: 100,
       height: 100,
     },
   }, [])
 
-  hostApi.ui.panel("offset", {
+  hostApi.ui.window("offset", {
     panel: {
       width: 50,
       height: 50,
@@ -16,7 +16,7 @@ export default (hostApi) => {
     },
   }, [])
 
-  hostApi.ui.panel("tl", {
+  hostApi.ui.window("tl", {
     panel: {
       width: 100,
       height: 100,
@@ -24,7 +24,7 @@ export default (hostApi) => {
     },
   }, [])
 
-  hostApi.ui.panel("br", {
+  hostApi.ui.window("br", {
     panel: {
       width: 100,
       height: 100,
@@ -32,7 +32,7 @@ export default (hostApi) => {
     },
   }, [])
 
-  hostApi.ui.panel("bl", {
+  hostApi.ui.window("bl", {
     panel: {
       width: 100,
       height: 100,
@@ -40,7 +40,7 @@ export default (hostApi) => {
     },
   }, [])
 
-  hostApi.ui.panel("tr", {
+  hostApi.ui.window("tr", {
     panel: {
       width: 100,
       height: 100,

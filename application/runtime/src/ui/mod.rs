@@ -806,8 +806,10 @@ mod tests {
 
     const SPINE_MODULE: &str = r#"
 export default (hostApi) => {
-  hostApi.ui.div('spine-div', {}, [
-    hostApi.ui.text('spine-text', 'spine')
+  hostApi.ui.window('spine-win', {}, [
+    hostApi.ui.div('spine-div', {}, [
+      hostApi.ui.text('spine-text', 'spine')
+    ])
   ]);
 };
 "#;
@@ -822,7 +824,10 @@ export default (hostApi) => {
         let json = fetch_ui_state_json();
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();
         let nodes = v["nodes"].as_array().unwrap();
-        assert_eq!(nodes.len(), 2);
+        assert_eq!(nodes.len(), 3);
+        let win = nodes.iter().find(|n| n["id"] == "spine-win").unwrap();
+        assert_eq!(win["kind"], "window");
+        assert_eq!(win["children"][0], "spine-div");
         let div = nodes.iter().find(|n| n["id"] == "spine-div").unwrap();
         assert_eq!(div["kind"], "division");
         assert_eq!(div["children"][0], "spine-text");
@@ -836,9 +841,47 @@ export default (hostApi) => {
             .filter(|o| o["op"] == "add")
             .map(|o| o["node"]["id"].as_str().unwrap())
             .collect();
-        assert_eq!(adds.len(), 2);
+        assert_eq!(adds.len(), 3);
+        assert!(adds.contains(&"spine-win"));
         assert!(adds.contains(&"spine-div"));
         assert!(adds.contains(&"spine-text"));
+    }
+
+    const STANDALONE_MODULE: &str = r#"
+export default (hostApi) => {
+  // Standalone nodes: no window reaches them, so they are a no-op (never
+  // added to the view), including their subtrees.
+  hostApi.ui.text('orphan-text', 'orphan');
+  hostApi.ui.div('orphan-div', {}, [
+    hostApi.ui.text('orphan-nested', 'x')
+  ]);
+  // A window and its content make it to the view.
+  hostApi.ui.window('real-win', {}, [
+    hostApi.ui.text('win-text', 'in')
+  ]);
+};
+"#;
+
+    #[test]
+    fn standalone_nodes_are_not_added_to_the_view() {
+        let _g = lock();
+        crate::state::clear_state();
+        install_module(STANDALONE_MODULE);
+        tick();
+
+        let v: serde_json::Value =
+            serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let ids: Vec<&str> = v["nodes"].as_array().unwrap().iter()
+            .map(|n| n["id"].as_str().unwrap()).collect();
+        assert!(!ids.contains(&"orphan-text"),
+            "standalone text is a no-op: {:?}", ids);
+        assert!(!ids.contains(&"orphan-div"),
+            "standalone division is a no-op: {:?}", ids);
+        assert!(!ids.contains(&"orphan-nested"),
+            "subtree of a standalone node is a no-op: {:?}", ids);
+        assert!(ids.contains(&"real-win"), "window missing: {:?}", ids);
+        assert!(ids.contains(&"win-text"),
+            "window content missing: {:?}", ids);
     }
 
     #[test]
@@ -896,12 +939,14 @@ export default (hostApi) => {
 
     const FIELD_MODULE: &str = r#"
 export default (hostApi) => {
-  hostApi.ui.field('hp-field', {
-    entity: 'ent-a',
-    map: 'number',
-    name: 'hp',
-    fallback: 'n/a'
-  });
+  hostApi.ui.window('field-win', {}, [
+    hostApi.ui.field('hp-field', {
+      entity: 'ent-a',
+      map: 'number',
+      name: 'hp',
+      fallback: 'n/a'
+    })
+  ]);
 };
 "#;
 
@@ -1114,14 +1159,16 @@ export default (hostApi) => {
 
     const PROGRESS_MODULE: &str = r#"
 export default (hostApi) => {
-  hostApi.ui.progress('hp-bar', {
-    progress: {
-      fill: 'art/fill.png',
-      entity: 'ent-a',
-      value: (entity) => entity.number_map.get('hp').orElse(hostApi.runtime.number.of(0)),
-      max: (entity) => entity.number_map.get('max').orElse(hostApi.runtime.number.of(100))
-    }
-  });
+  hostApi.ui.window('prog-win', {}, [
+    hostApi.ui.progress('hp-bar', {
+      progress: {
+        fill: 'art/fill.png',
+        entity: 'ent-a',
+        value: (entity) => entity.number_map.get('hp').orElse(hostApi.runtime.number.of(0)),
+        max: (entity) => entity.number_map.get('max').orElse(hostApi.runtime.number.of(100))
+      }
+    })
+  ]);
 };
 "#;
 
@@ -1198,16 +1245,18 @@ export default (hostApi) => {
   hostApi.runtime.setEntity(hostApi.runtime.string.of('node-1'), {
     numberMap: {}
   });
-  hostApi.ui.progress('const-bar', {
-    panel: { x: 400, y: 400, width: 300, height: 100 },
-    progress: {
-      fill: 'art/fill.png',
-      entity: hostApi.runtime.string.of('node-1'),
-      value: (entity) => hostApi.runtime.number.of(3),
-      max: (entity) => hostApi.runtime.number.of(10),
-      min: (entity) => hostApi.runtime.number.of(0)
-    }
-  });
+  hostApi.ui.window('const-win', {}, [
+    hostApi.ui.progress('const-bar', {
+      panel: { x: 400, y: 400, width: 300, height: 100 },
+      progress: {
+        fill: 'art/fill.png',
+        entity: hostApi.runtime.string.of('node-1'),
+        value: (entity) => hostApi.runtime.number.of(3),
+        max: (entity) => hostApi.runtime.number.of(10),
+        min: (entity) => hostApi.runtime.number.of(0)
+      }
+    })
+  ]);
 };
 "#;
 
@@ -1246,15 +1295,17 @@ export default (hostApi) => {
 
     const PROGRESS_MIN_MODULE: &str = r#"
 export default (hostApi) => {
-  hostApi.ui.progress('temp-bar', {
-    progress: {
-      fill: 'art/fill.png',
-      entity: 'ent-a',
-      value: (entity) => entity.number_map.get('temp').orElse(hostApi.runtime.number.of(0)),
-      min: (entity) => entity.number_map.get('min').orElse(hostApi.runtime.number.of(0)),
-      max: (entity) => entity.number_map.get('max').orElse(hostApi.runtime.number.of(1))
-    }
-  });
+  hostApi.ui.window('temp-win', {}, [
+    hostApi.ui.progress('temp-bar', {
+      progress: {
+        fill: 'art/fill.png',
+        entity: 'ent-a',
+        value: (entity) => entity.number_map.get('temp').orElse(hostApi.runtime.number.of(0)),
+        min: (entity) => entity.number_map.get('min').orElse(hostApi.runtime.number.of(0)),
+        max: (entity) => entity.number_map.get('max').orElse(hostApi.runtime.number.of(1))
+      }
+    })
+  ]);
 };
 "#;
 

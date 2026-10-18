@@ -7,7 +7,7 @@ export default (hostApi) => {
     ],
     duration: hostApi.runtime.number.of(1),
   });
-  hostApi.ui.panel("top", {
+  hostApi.ui.window("top", {
     panel: {
       x: 0,
       y: -100,
@@ -16,7 +16,7 @@ export default (hostApi) => {
       background: texture,
     },
   })
-  hostApi.ui.panel("left", {
+  hostApi.ui.window("left", {
     panel: {
       x: -100,
       y: 0,
@@ -25,7 +25,7 @@ export default (hostApi) => {
       background: texture,
     },
   })
-  hostApi.ui.panel("bottom", {
+  hostApi.ui.window("bottom", {
     panel: {
       x: 0,
       y: 100,
@@ -34,7 +34,7 @@ export default (hostApi) => {
       background: texture,
     },
   })
-  hostApi.ui.panel("right", {
+  hostApi.ui.window("right", {
     panel: {
       x: 100,
       y: 0,

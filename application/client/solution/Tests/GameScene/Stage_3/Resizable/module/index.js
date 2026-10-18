@@ -6,7 +6,7 @@ export default (hostApi) => {
     ],
     duration: hostApi.runtime.number.of(1),
   });
-  hostApi.ui.panel("resizable", {
+  hostApi.ui.window("resizable", {
     panel: {
       width: 200,
       height: 200,
