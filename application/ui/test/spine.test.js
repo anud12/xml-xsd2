@@ -515,4 +515,37 @@ test('ui.window carries the title option through the panel options', () => {
   assert.strictEqual(snap.options.panel.title, 'My Window');
 });
 
+test('panel/window handles expose addChild to append children after creation', () => {
+  registered = [];
+  host.clear();
+  const a = host.text('ac-a', 'a');
+  const b = host.text('ac-b', 'b');
+  const w = host.window('ac-win', {});
+  assert.strictEqual(typeof w.addChild, 'function');
+  const ret = w.addChild(a);
+  assert.strictEqual(ret, w); // chainable: returns the same handle
+  w.addChild(b);
+  const d = host.div('ac-div', {});
+  assert.strictEqual(typeof d.addChild, 'function');
+  d.addChild('ac-raw'); // raw id strings are accepted too
+  host.window('ac-parent', {}, [d]);
+  const snap = host.snapshot();
+  assert.deepStrictEqual(snap.find((n) => n.id === 'ac-win').children, ['ac-a', 'ac-b']);
+  assert.deepStrictEqual(snap.find((n) => n.id === 'ac-div').children, ['ac-raw']);
+  // A child added after a snapshot is picked up by the next one.
+  w.addChild('ac-late');
+  assert.deepStrictEqual(host.snapshot().find((n) => n.id === 'ac-win').children, ['ac-a', 'ac-b', 'ac-late']);
+  // Leaf handles do not carry addChild.
+  assert.strictEqual(host.text('ac-leaf', 'x').addChild, undefined);
+});
+
+test('addChild rejects non-child values and throws once the node is cleared', () => {
+  host.clear();
+  const w = host.window('ac2-win', {});
+  assert.throws(() => w.addChild(42), /children must be node ids/);
+  assert.throws(() => w.addChild(''), /children must be node ids/);
+  host.clear();
+  assert.throws(() => w.addChild('x'), /addChild on unknown node/);
+});
+
 console.log(`# ${passed} tests passed`);

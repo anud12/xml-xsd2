@@ -27,6 +27,30 @@ export type UiNodeExpression = {
 };
 
 /**
+ * A reference to a node usable anywhere a child is expected: a raw
+ * {@link UiNodeId} string or the {@link UiNodeExpression} handle a factory
+ * returned. The common child type shared by every parent component.
+ */
+export type UiChildRef = UiNodeId | UiNodeExpression;
+
+/**
+ * A list of children: the `children` parameter of panel/window, and the
+ * render return of entityList.
+ */
+export type UiChildren = UiChildRef[];
+
+/**
+ * The *Expression handle returned by the child-list components
+ * (`panel`/`window`): the common node handle plus `addChild`, which
+ * appends a child to the node's children list after the node was created
+ * (the child is a raw id or another expression handle). Returns the same
+ * handle, so calls can be chained.
+ */
+export type UiParentExpression = UiNodeExpression & {
+  addChild: (child: UiChildRef) => UiParentExpression;
+};
+
+/**
  * A panel background: an animation reference (the `setAnimation` handle or a
  * named ref — the engine resolves the registration's frames/duration/loop
  * live every tick, like a bound entity field) or a raw texture reference.
@@ -289,6 +313,42 @@ export type UiEntityListOptions = {
 };
 
 /**
+ * The common parent type for every ui component that hosts children. It
+ * defines the children channel they all share: the `children` parameter is
+ * either an explicit {@link UiChildren} list (panel/window) or a render
+ * lambda that materializes children per item (entityList: a list per entity;
+ * containerView/sectorGrid: one per item). Every child-hosting factory in
+ * {@link UiApi} extends it; all return the registered node's
+ * {@link UiNodeExpression} handle (the child-list components return the
+ * richer {@link UiParentExpression}).
+ */
+export interface UiParentComponent<Options, ChildSource, Result extends UiNodeExpression = UiNodeExpression> {
+  (id: string, options: Options, children: ChildSource): Result;
+}
+
+/** A plain flow container (a division): laid out by its parent's box/grid. A standalone one is a no-op (never added to the view). */
+export interface UiPanelComponent extends UiParentComponent<UiPanelOptions, UiChildren, UiParentExpression> {
+  (id: string, options?: UiPanelOptions, children?: UiChildren): UiParentExpression;
+}
+
+/** The only factory that creates a window — the only top-level surface (positioned by x/y/anchor, explicitly sized or sized to content). */
+export interface UiWindowComponent extends UiParentComponent<UiPanelOptions, UiChildren, UiParentExpression> {
+  (id: string, options?: UiPanelOptions, children?: UiChildren): UiParentExpression;
+}
+
+/** A flow list: one child per entity in the container (render returns an array of node ids or handles). Must be nested under a window. */
+export interface UiEntityListComponent
+  extends UiParentComponent<UiEntityListOptions, (entity: Entity) => UiChildren> {}
+
+/** A sized view of a container (a window): one panel per entity placed on its cell, re-resolved each tick. */
+export interface UiContainerViewComponent
+  extends UiParentComponent<UiContainerViewOptions, (entity: Entity) => UiChildRef> {}
+
+/** A top-down view of a sector grid (a window): one cell per footprint square (rendered by `render`) + one engine-drawn headless arrow per portal, all positioned by the engine each tick. */
+export interface UiSectorGridComponent
+  extends UiParentComponent<UiSectorGridOptions, (item: UiSectorGridItem) => UiChildRef> {}
+
+/**
  * The module-facing ui surface: node factories plus texture/animation helpers.
  *
  * View invariant: only `window` nodes can be top-level. Every other node
@@ -299,13 +359,15 @@ export type UiEntityListOptions = {
  *
  * Every factory returns the registered node's {@link UiNodeExpression} handle,
  * so a node can be built in any order and handed to a parent's `children`
- * (which also accept raw {@link UiNodeId} strings).
+ * (which also accept raw {@link UiNodeId} strings). The child-hosting
+ * factories (panel, window, entityList, containerView, sectorGrid) all
+ * extend {@link UiParentComponent}. The child-list factories (panel, window)
+ * return a {@link UiParentExpression}, whose `addChild` appends a child to
+ * the node's children list after the node was created.
  */
 export type UiApi = {
-  /** A plain flow container (a division): laid out by its parent's box/grid. A standalone one is a no-op (never added to the view). */
-  panel: (id: string, options?: UiPanelOptions, children?: (UiNodeId | UiNodeExpression)[]) => UiNodeExpression;
-  /** The only factory that creates a window — the only top-level surface (positioned by x/y/anchor, explicitly sized or sized to content). */
-  window: (id: string, options?: UiPanelOptions, children?: (UiNodeId | UiNodeExpression)[]) => UiNodeExpression;
+  panel: UiPanelComponent;
+  window: UiWindowComponent;
   /** A text label: must be nested under a window. */
   text: (id: string, value: string | number) => UiNodeExpression;
   /** A bound field: must be nested under a window. */
@@ -313,14 +375,11 @@ export type UiApi = {
   /** A progress bar: tiled fill clipped to a 0..1 fraction (static or entity-bound). Must be nested under a window. */
   progress: (id: string, options: UiProgressOptions) => UiNodeExpression;
 
-  /** A flow list: one child per entity in the container (render returns an array of node ids or handles). Must be nested under a window. */
-  entityList: (name: string, args: UiEntityListOptions, render: (entity: Entity) => (UiNodeId | UiNodeExpression)[]) => UiNodeExpression;
+  entityList: UiEntityListComponent;
 
-  /** A sized view of a container (a window): one panel per entity placed on its cell, re-resolved each tick. */
-  containerView: (name: string, args: UiContainerViewOptions, render: (entity: Entity) => UiNodeId | UiNodeExpression) => UiNodeExpression;
+  containerView: UiContainerViewComponent;
 
-  /** A top-down view of a sector grid (a window): one cell per footprint square (rendered by `render`) + one engine-drawn headless arrow per portal, all positioned by the engine each tick. */
-  sectorGrid: (name: string, args: UiSectorGridOptions, render: (item: UiSectorGridItem) => UiNodeId | UiNodeExpression) => UiNodeExpression;
+  sectorGrid: UiSectorGridComponent;
 
   spriteMapTIFF: (mapPath: string, layers: MapLayerBinding[]) => SpriteMap;
   getSpritePNG: (path: string) => SpriteResource;

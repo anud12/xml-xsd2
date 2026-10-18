@@ -87,6 +87,24 @@ function (root) {
         };
     }
 
+    // The *Expression handle for a node with an explicit children list
+    // (division/window): nodeHandle plus addChild, which appends a child
+    // after the node was created. The child resolves exactly like a factory
+    // children entry (a raw id or another handle); the same handle is
+    // returned so calls chain.
+    function parentHandle(id) {
+        var h = nodeHandle(id);
+        h.addChild = function (child) {
+            var node = nodes[id];
+            if (!node) {
+                throw new Error('ui: addChild on unknown node "' + id + '"');
+            }
+            node.children.push(childIds([child])[0]);
+            return h;
+        };
+        return h;
+    }
+
     function childIds(children) {
         return (children || []).map(function (c) {
             // A child is either a raw id string or a *Expression handle (an
@@ -858,7 +876,7 @@ function (root) {
     var api = {
         div: function (id, options, children) {
             var panel = (options && typeof options.panel === 'object' && options.panel) ? options.panel : {};
-            return nodeHandle(register({
+            return parentHandle(register({
                 id: id,
                 kind: 'division',
                 options: { panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))) },
@@ -867,7 +885,7 @@ function (root) {
         },
         window: function (id, options, children) {
             var panel = (options && typeof options.panel === 'object' && options.panel) ? options.panel : {};
-            return nodeHandle(register({
+            return parentHandle(register({
                 id: id,
                 kind: 'window',
                 options: { panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))) },
