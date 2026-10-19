@@ -150,6 +150,7 @@ globalThis.hostApi=hostApi;
     if(H.div)u.div=H.div;
     if(H.text)u.text=H.text;
     if(H.window)u.window=H.window;
+    if(H.setScreen)u.setScreen=H.setScreen;
     if(H.field)u.field=H.field;
     if(H.image)u.image=H.image;
     if(H.progress)u.progress=H.progress;
@@ -160,8 +161,9 @@ globalThis.hostApi=hostApi;
     if(H.setActor)u.setActor=H.setActor;
   }
   // panel is a plain flow container (a division): only ui.window creates a
-  // window (the only top-level surface). A standalone (window-less) node is a
-  // no-op — it registers but is never added to the view.
+  // window and ui.setScreen the screen (the top-level surfaces). A standalone
+  // (window-less, screen-less) node is a no-op — it registers but is never
+  // added to the view.
   if(H){
     u.panel=H.div;
   }

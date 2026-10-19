@@ -313,6 +313,19 @@ export type UiEntityListOptions = {
 };
 
 /**
+ * Options for the global full-screen screen (ui.setScreen): the panel api
+ * minus positioning/sizing — the renderer always fills the viewport, so the
+ * sizing fields (x/y/width/height/anchor) do not exist here. The
+ * presentation is nested under a required `screen` key. For now only
+ * `background` is honored (the same {@link UiBackground} as a panel).
+ */
+export type UiScreenOptions = {
+  screen: {
+    background?: UiBackground;
+  }
+};
+
+/**
  * The common parent type for every ui component that hosts children. It
  * defines the children channel they all share: the `children` parameter is
  * either an explicit {@link UiChildren} list (panel/window) or a render
@@ -336,6 +349,15 @@ export interface UiWindowComponent extends UiParentComponent<UiPanelOptions, UiC
   (id: string, options?: UiPanelOptions, children?: UiChildren): UiParentExpression;
 }
 
+/**
+ * The global full-screen screen (a top-level surface like a window, always
+ * filling the viewport). Each call replaces the current screen — there is at
+ * most one visible screen at a time.
+ */
+export interface UiScreenComponent {
+  (options?: UiScreenOptions, children?: UiChildren): UiParentExpression;
+}
+
 /** A flow list: one child per entity in the container (render returns an array of node ids or handles). Must be nested under a window. */
 export interface UiEntityListComponent
   extends UiParentComponent<UiEntityListOptions, (entity: Entity) => UiChildren> {}
@@ -351,23 +373,28 @@ export interface UiSectorGridComponent
 /**
  * The module-facing ui surface: node factories plus texture/animation helpers.
  *
- * View invariant: only `window` nodes can be top-level. Every other node
- * (panel/division, text, field, progress, image, entityList) must be nested
- * under a window — directly or through divisions. Creating a standalone node
- * (one no window ever reaches) is a no-op: it registers, but it is never
- * added to the view.
+ * View invariant: only `window` nodes and the screen (`setScreen`) can be
+ * top-level. Every other node (panel/division, text, field, progress, image,
+ * entityList) must be nested under a window or the screen — directly or
+ * through divisions. Creating a standalone node (one no surface ever
+ * reaches) is a no-op: it registers, but it is never added to the view.
  *
  * Every factory returns the registered node's {@link UiNodeExpression} handle,
  * so a node can be built in any order and handed to a parent's `children`
  * (which also accept raw {@link UiNodeId} strings). The child-hosting
- * factories (panel, window, entityList, containerView, sectorGrid) all
- * extend {@link UiParentComponent}. The child-list factories (panel, window)
- * return a {@link UiParentExpression}, whose `addChild` appends a child to
- * the node's children list after the node was created.
+ * factories (panel, window, setScreen, entityList, containerView, sectorGrid)
+ * all return a {@link UiParentExpression}, whose `addChild` appends a child
+ * to the node's children list after the node was created.
  */
 export type UiApi = {
   panel: UiPanelComponent;
   window: UiWindowComponent;
+  /**
+   * The global full-screen screen (always filling the viewport, below app
+   * buttons and windows). Each call replaces the current screen. Unlike the
+   * node factories it takes no id (the id is managed).
+   */
+  setScreen: UiScreenComponent;
   /** A text label: must be nested under a window. */
   text: (id: string, value: string | number) => UiNodeExpression;
   /** A bound field: must be nested under a window. */

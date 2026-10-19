@@ -50,7 +50,19 @@ public partial class RootNode : Godot.Panel
             if (!_windows.TryGetValue(node.Id, out var win))
             {
                 win = CreateWindow(node);
-                AddChild(win);
+                // The screen is a global overlay: host it on the UI layer
+                // root so it renders below the app buttons and windows. It
+                // must be the FIRST child there: Godot dispatches GUI input
+                // by reverse child index (z_index only affects rendering),
+                // so child order is bottom-up click priority — screen <
+                // coreUI (app buttons) < moduleUI (module windows).
+                if (node.Kind == UiNodeKind.Screen)
+                {
+                    ScreenHost.AddChild(win);
+                    ScreenHost.MoveChild(win, 0);
+                }
+                else
+                    AddChild(win);
                 _windows[node.Id] = win;
             }
             win.Apply(node);
@@ -82,6 +94,9 @@ public partial class RootNode : Godot.Panel
         // Pass 2: re-parent each node under its declared parent.
         foreach (var node in nodes)
         {
+            // The screen itself stays on the screen host; its children are
+            // reparented under it as usual.
+            if (node.Kind == UiNodeKind.Screen) continue;
             if (!_windows.TryGetValue(node.Id, out var win)) continue;
             UiWindow? parent = null;
             foreach (var other in nodes)
@@ -101,6 +116,9 @@ public partial class RootNode : Godot.Panel
             var win = kv.Value;
             if (_flattened.Contains(win.Name)) continue;
             if (!byId.TryGetValue(win.Name, out var node)) continue;
+            // The screen always fills the viewport (FullRect); positioning it
+            // against the viewport rect would shrink it to content size.
+            if (node.Kind == UiNodeKind.Screen) continue;
             // Flow-embedded windows are sized/placed by the flow container.
             if (win.GetParent() is BoxContainer || win.GetParent() is UiGrid)
                 continue;
@@ -126,8 +144,23 @@ public partial class RootNode : Godot.Panel
 
     static UiWindow CreateWindow(UiNodeData node)
     {
-        return new UiWindow { Name = node.Id };
+        var win = new UiWindow { Name = node.Id };
+        if (node.Kind == UiNodeKind.Screen)
+        {
+            // The global full-screen screen: always fills the viewport
+            // (FullRect, no positioning pass). It is hosted on the UI layer
+            // root at ZIndex 0 — below the app buttons (coreUI, z 1) and the
+            // module windows (moduleUI, z 2).
+            win.SetAnchorsPreset(LayoutPreset.FullRect, true);
+        }
+        return win;
     }
+
+    /// The host for the global screen: the UI layer root (this root's
+    /// grandparent), a sibling of coreUI (z 1) and moduleUI (z 2), so the
+    /// screen (z 0) renders below both. Falls back to this root when the
+    /// layer hierarchy is not present.
+    Node ScreenHost => GetParent()?.GetParent() ?? this;
 
     void ApplyDelta(UiDelta delta)
     {

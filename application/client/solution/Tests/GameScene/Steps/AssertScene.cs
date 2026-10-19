@@ -46,12 +46,16 @@ public class AssertScene {
     /// The raw <see cref="UiWindow"/> node for the given id, or null when the
     /// window does not exist (for negative-existence assertions).
     /// </summary>
-    public UiWindow? GetWindowOrNull(string id) {
+    public UiWindow? GetWindowOrNull(string id)
+    {
         var direct = _root.GetNodeOrNull<UiWindow>(id);
         if (direct != null) return direct;
-        return FindChildWindow(_root, id);
+        // Global screens are hosted on the UI layer root (the module root's
+        // grandparent), outside the module UI root, so the recursive search
+        // starts there when the layer hierarchy is present.
+        var layer = _root.GetParent()?.GetParent();
+        return FindChildWindow(layer ?? _root, id);
     }
-
     UiWindow GetWindow(string id) {
         var window = GetWindowOrNull(id);
         if (window is null)

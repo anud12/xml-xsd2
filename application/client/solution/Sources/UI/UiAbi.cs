@@ -21,6 +21,7 @@ public static class UiAbi
     public const uint KindWindow = 3;
     public const uint KindImage = 4;
     public const uint KindProgress = 5;
+    public const uint KindScreen = 6;
 
     public const byte OpAdd = 0;
     public const byte OpUpdate = 1;

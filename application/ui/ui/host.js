@@ -36,6 +36,12 @@ function (root) {
     // by the last expansion, so resetContainers can drop them and restore the
     // view's marker between engine ticks.
     var sectorGridItems = Object.create(null);
+    // The global screen: each setScreen call registers a fresh screen node
+    // (host-owned id, so re-declarations never collide); the snapshot keeps
+    // only the latest one visible — earlier screens stay registered but
+    // unreachable (a no-op, like any orphan node).
+    var screenSeq = 0;
+    var currentScreenId = null;
 
     function transport() {
         var t = root.__uiTransport;
@@ -892,6 +898,23 @@ function (root) {
                 children: childIds(children)
             }));
         },
+        // The global full-screen screen: the panel api minus positioning/
+        // sizing (the renderer fills the viewport). Presentation is nested
+        // under `screen`; only `background` is honored for now. Each call
+        // replaces the current screen (the previous screen node is dropped
+        // from the view on the next snapshot).
+        setScreen: function (options, children) {
+            var scr = (options && typeof options.screen === 'object' && options.screen) ? options.screen : {};
+            screenSeq += 1;
+            var id = '__ui-screen-' + screenSeq;
+            currentScreenId = id;
+            return parentHandle(register({
+                id: id,
+                kind: 'screen',
+                options: { screen: normalizeOptions(scr) },
+                children: childIds(children)
+            }));
+        },
         text: function (id, value) {
             return nodeHandle(register({
                 id: id,
@@ -1133,10 +1156,10 @@ function (root) {
             }));
         },
         snapshot: function () {
-            // Only nodes reachable from a top-level window belong to the view.
-            // A standalone node (no window ancestor) is a no-op: it registers,
-            // but is never added to the view. Top-level nodes count only when
-            // they are windows.
+            // Only nodes reachable from a top-level surface belong to the view:
+            // a window, or the current screen (the latest setScreen). A
+            // standalone node (no window/screen ancestor) is a no-op: it
+            // registers, but is never added to the view.
             var parent = Object.create(null);
             for (var i = 0; i < order.length; i++) {
                 var pn = nodes[order[i]];
@@ -1154,7 +1177,10 @@ function (root) {
                 var v = false;
                 if (n) {
                     var p = parent[id];
-                    v = p == null ? n.kind === 'window' : visible(p);
+                    v = p == null
+                        ? (n.kind === 'window'
+                            || (n.kind === 'screen' && id === currentScreenId))
+                        : visible(p);
                 }
                 visMemo[id] = v;
                 return v;
@@ -1176,6 +1202,8 @@ function (root) {
             containerViewItems = Object.create(null);
             sectorGridRenders = Object.create(null);
             sectorGridItems = Object.create(null);
+            screenSeq = 0;
+            currentScreenId = null;
         },
         loadSnapshot: function (arr) {
             nodes = Object.create(null);

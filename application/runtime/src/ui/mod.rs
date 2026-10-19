@@ -64,6 +64,14 @@ pub enum UiNode {
         #[serde(default)]
         children: Vec<String>,
     },
+    #[serde(rename = "screen")]
+    Screen {
+        id: String,
+        #[serde(default)]
+        options: serde_json::Value,
+        #[serde(default)]
+        children: Vec<String>,
+    },
     #[serde(rename = "image")]
     Image {
         id: String,
@@ -96,6 +104,7 @@ impl UiNode {
             UiNode::Text { id, .. } => id,
             UiNode::Field { id, .. } => id,
             UiNode::Window { id, .. } => id,
+            UiNode::Screen { id, .. } => id,
             UiNode::Image { id, .. } => id,
             UiNode::Progress { id, .. } => id,
         }
@@ -882,6 +891,44 @@ export default (hostApi) => {
         assert!(ids.contains(&"real-win"), "window missing: {:?}", ids);
         assert!(ids.contains(&"win-text"),
             "window content missing: {:?}", ids);
+    }
+
+    const SCREEN_MODULE: &str = r#"
+export default (hostApi) => {
+  hostApi.ui.setScreen({ screen: { background: 'art/screen.png' } }, [
+    hostApi.ui.text('screen-text', 'game')
+  ]);
+};
+"#;
+
+    #[test]
+    fn screen_node_flows_into_ui_state_as_top_level_surface() {
+        let _g = lock();
+        crate::state::clear_state();
+        install_module(SCREEN_MODULE);
+        tick();
+
+        let v: serde_json::Value =
+            serde_json::from_str(&fetch_ui_state_json()).unwrap();
+        let nodes = v["nodes"].as_array().unwrap();
+        let screen = nodes
+            .iter()
+            .find(|n| n["kind"] == "screen")
+            .expect("screen node missing");
+        assert!(screen["id"].as_str().unwrap().starts_with("__ui-screen-"));
+        assert_eq!(screen["options"]["screen"]["background"], "art/screen.png");
+        assert!(screen["children"].as_array().unwrap().iter().any(|c| c == "screen-text"));
+        // The screen's children reach the view (the screen is a top-level
+        // surface, like a window).
+        let text = nodes
+            .iter()
+            .find(|n| n["id"] == "screen-text")
+            .expect("screen child missing");
+        assert_eq!(text["value"], "game");
+        let delta: serde_json::Value = serde_json::from_str(
+            &fetch_ui_delta_json().unwrap()).unwrap();
+        assert!(delta["ops"].as_array().unwrap().iter().any(|o|
+            o["op"] == "add" && o["node"]["kind"] == "screen"));
     }
 
     #[test]

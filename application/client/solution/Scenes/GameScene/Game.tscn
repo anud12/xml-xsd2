@@ -14,16 +14,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="moduleUI" type="Control" parent="uiLayers" unique_id=1563903417]
-z_index = 2
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
 [node name="coreUI" type="Control" parent="uiLayers" unique_id=553797703]
 z_index = 1
 layout_mode = 1
@@ -57,3 +47,13 @@ offset_top = 8.0
 offset_right = 296.0
 offset_bottom = 44.0
 text = "Reload"
+
+[node name="moduleUI" type="Control" parent="uiLayers" unique_id=1563903417]
+z_index = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

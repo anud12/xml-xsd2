@@ -548,4 +548,77 @@ test('addChild rejects non-child values and throws once the node is cleared', ()
   assert.throws(() => w.addChild('x'), /addChild on unknown node/);
 });
 
+test('ui.setScreen registers a screen node with nested screen options and returns its handle', () => {
+  registered = [];
+  host.clear();
+  const t = host.text('sc-text', 'game');
+  const s = host.setScreen({ screen: { background: 'art/screen.png' } }, [t]);
+  assert.strictEqual(s.value, '__ui-screen-1');
+  assert.strictEqual(typeof s.addChild, 'function');
+  assert.deepStrictEqual(registered[1], {
+    id: '__ui-screen-1',
+    kind: 'screen',
+    options: { screen: { background: 'art/screen.png' } },
+    children: ['sc-text'],
+  });
+  // The screen is a top-level surface: its subtree reaches the view.
+  const snap = host.snapshot();
+  assert.deepStrictEqual(snap.map((n) => n.id), ['sc-text', '__ui-screen-1']);
+  const sc = snap.find((n) => n.id === '__ui-screen-1');
+  assert.strictEqual(sc.kind, 'screen');
+  assert.strictEqual(sc.options.screen.background, 'art/screen.png');
+});
+
+test('ui.setScreen replaces the current screen: only the latest screen reaches the view', () => {
+  registered = [];
+  host.clear();
+  host.setScreen({ screen: { background: 'a.png' } }, [host.text('sc-a', 'a')]);
+  host.window('sc-win', {}, [host.text('sc-in-win', 'w')]);
+  host.setScreen({ screen: { background: 'b.png' } }, [host.text('sc-b', 'b')]);
+  // Both screens registered...
+  assert.strictEqual(registered.filter((n) => n.kind === 'screen').length, 2);
+  // ...but only the latest screen (and the window subtree) is in the view.
+  const snap = host.snapshot();
+  assert.deepStrictEqual(snap.map((n) => n.id), ['sc-in-win', 'sc-win', 'sc-b', '__ui-screen-2']);
+  // A third setScreen replaces again; ids never collide.
+  host.setScreen({ screen: { background: 'c.png' } });
+  const ids = host.snapshot().map((n) => n.id);
+  assert.ok(ids.includes('__ui-screen-3'));
+  assert.ok(!ids.includes('__ui-screen-2'));
+  assert.ok(!ids.includes('__ui-screen-1'));
+});
+
+test('ui.setScreen handle exposes addChild and clear resets the screen ids', () => {
+  host.clear();
+  const s = host.setScreen({ screen: {} });
+  s.addChild(host.text('sc-late', 'late'));
+  assert.deepStrictEqual(
+    host.snapshot().find((n) => n.id === '__ui-screen-1').children, ['sc-late']);
+  // After clear the id sequence restarts: re-declaring does not throw.
+  host.clear();
+  host.setScreen({ screen: {} });
+  assert.strictEqual(host.snapshot()[0].id, '__ui-screen-1');
+});
+
+test('ui.setScreen normalizes an animation handle background to a named ref', () => {
+  globalThis.__registeredAnimations = {
+    'screen-anim': { frames: [{ sprite: 'art/s1.png' }], duration: 3 },
+  };
+  registered = [];
+  host.clear();
+  const handle = {
+    name: 'screen-anim', value: 'screen-anim',
+    toString: () => 'screen-anim', toJSON: () => 'screen-anim',
+  };
+  host.setScreen({ screen: { background: handle } });
+  assert.deepStrictEqual(registered[0].options.screen.background, { name: 'screen-anim', duration: 3, loop: false });
+  delete globalThis.__registeredAnimations;
+});
+
+test('ui.setScreen rejects non-child values in children', () => {
+  host.clear();
+  assert.throws(() => host.setScreen({ screen: {} }, [42]), /children must be node ids/);
+  assert.throws(() => host.setScreen({ screen: {} }, ['']), /children must be node ids/);
+});
+
 console.log(`# ${passed} tests passed`);

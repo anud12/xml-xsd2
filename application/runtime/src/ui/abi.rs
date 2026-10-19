@@ -31,6 +31,7 @@ pub const UI_KIND_FIELD: u32 = 2;
 pub const UI_KIND_WINDOW: u32 = 3;
 pub const UI_KIND_IMAGE: u32 = 4;
 pub const UI_KIND_PROGRESS: u32 = 5;
+pub const UI_KIND_SCREEN: u32 = 6;
 
 /// Delta ops (`UiDeltaOp::op`).
 pub const UI_OP_ADD: u8 = 0;
@@ -567,11 +568,16 @@ fn plan_node(node: &DomainNode) -> NodePlan {
     let opts = match node {
         DomainNode::Division { options, .. }
         | DomainNode::Window { options, .. }
-        | DomainNode::Progress { options, .. } => options,
+        | DomainNode::Progress { options, .. }
+        | DomainNode::Screen { options, .. } => options,
         _ => return plan,
     };
     let empty_map = serde_json::Map::new();
-    let panel = opts.get("panel").and_then(|v| v.as_object()).unwrap_or(&empty_map);
+    let panel = opts
+        .get("panel")
+        .or_else(|| opts.get("screen"))
+        .and_then(|v| v.as_object())
+        .unwrap_or(&empty_map);
     if let Some(layout) = panel.get("layout").and_then(|v| v.as_object()) {
         plan.col_tracks = layout.get("columns").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
         plan.row_tracks = layout.get("rows").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
@@ -600,7 +606,8 @@ fn node_children(node: &DomainNode) -> &[String] {
         | DomainNode::Field { children, .. }
         | DomainNode::Window { children, .. }
         | DomainNode::Image { children, .. }
-        | DomainNode::Progress { children, .. } => children,
+        | DomainNode::Progress { children, .. }
+        | DomainNode::Screen { children, .. } => children,
     }
 }
 
@@ -1007,6 +1014,16 @@ fn node_to_abi(node: &DomainNode, slab: &mut Slab, r: &NodeRegions) -> UiNode {
             child_count,
             children: children_ptr,
         },
+        DomainNode::Screen { id, options, .. } => UiNode {
+            kind: UI_KIND_SCREEN,
+            id: slab.intern(id),
+            value: NO_STR,
+            src: NO_STR,
+            binding: empty_binding(),
+            opt: options_to_abi(options, slab, r),
+            child_count,
+            children: children_ptr,
+        },
         DomainNode::Image { id, src, .. } => UiNode {
             kind: UI_KIND_IMAGE,
             id: slab.intern(id),
@@ -1042,9 +1059,14 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
         return o;
     };
     // Panel config is nested under `panel` (the canonical node-options shape);
-    // progress presentation and sector metadata stay top-level on `opts`.
+    // screen nodes nest theirs under `screen` instead. Progress presentation
+    // and sector metadata stay top-level on `opts`.
     let empty: Map<String, Value> = Map::new();
-    let panel = opts.get("panel").and_then(Value::as_object).unwrap_or(&empty);
+    let panel = opts
+        .get("panel")
+        .or_else(|| opts.get("screen"))
+        .and_then(Value::as_object)
+        .unwrap_or(&empty);
     let has_x = opt_num(panel, "x").is_some();
     let has_y = opt_num(panel, "y").is_some();
     o.x = opt_f32(panel, "x");
@@ -1658,6 +1680,33 @@ mod tests {
         assert_eq!(a.opt.progress_fill.loop_, 1);
         assert_eq!(a.opt.progress_track.kind, UI_BG_STATIC);
         assert_eq!(cstr(arena, a.opt.progress_track.path), "art/track.png");
+
+        unsafe { free_snapshot(snap as *const UiSnapshot as *mut UiSnapshot) };
+    }
+
+    #[test]
+    fn screen_node_round_trips_slab_with_background_under_screen_key() {
+        let nodes = vec![
+            node(r#"{"kind":"screen","id":"__ui-screen-1","options":{"screen":{"background":"art/screen.png"}},"children":["sc-t"]}"#),
+            node(r#"{"kind":"text","id":"sc-t","value":"game","children":[]}"#),
+        ];
+        let snap = unsafe { &*build_snapshot(&nodes, &HashMap::new()) };
+        let arena = snap.strings;
+        let ns = unsafe { std::slice::from_raw_parts(snap.nodes, snap.node_count as usize) };
+
+        let scr = ns.iter().find(|n| cstr(arena, n.id) == "__ui-screen-1").unwrap();
+        assert_eq!(scr.kind, UI_KIND_SCREEN);
+        // Presentation is nested under `screen` (the panel fallback reads it):
+        // the background lands in the node options like a panel background.
+        assert_eq!(scr.opt.background.kind, UI_BG_STATIC);
+        assert_eq!(cstr(arena, scr.opt.background.path), "art/screen.png");
+        // No positioning/sizing fields exist on a screen: the renderer fills
+        // the viewport, so the flags must stay unset.
+        assert_eq!(scr.opt.has_xy, 0);
+        assert_eq!(scr.opt.has_size, 0);
+        assert_eq!(scr.child_count, 1);
+        let children = unsafe { std::slice::from_raw_parts(scr.children, 1) };
+        assert_eq!(cstr(arena, children[0]), "sc-t");
 
         unsafe { free_snapshot(snap as *const UiSnapshot as *mut UiSnapshot) };
     }

@@ -14,5 +14,6 @@
 Initial flow
 
 Player entity is a ____
+- He gains "value" per x turns
 - It purchase lands, where lands each have specific properties, and that grants them tags
 - 

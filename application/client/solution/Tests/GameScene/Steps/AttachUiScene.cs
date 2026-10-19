@@ -28,11 +28,11 @@ public partial class Steps
     public async Task<AssertScene> AttachUiScene()
     {
         var scene = await LoadTestScene();
-        var moduleUI = new Control { Name = "moduleUI" };
-        moduleUI.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        moduleUI.MouseFilter = Control.MouseFilterEnum.Ignore;
-        moduleUI.ZIndex = 2;
-        scene.AddChild(moduleUI);
+        // Mount the module UI root in the scene's own uiLayers/moduleUI
+        // layer (z 2), mirroring the production scene structure: the global
+        // screen (hosted on uiLayers at z 0) renders below the app buttons
+        // (uiLayers/coreUI, z 1), which render below the module windows.
+        var moduleUI = scene.GetNode<Control>("uiLayers/moduleUI");
         var root = new RootNode { Name = "root" };
         moduleUI.AddChild(root);
         // Establish a deterministic initial mouse position so hover tracking

@@ -33,12 +33,12 @@ globalThis.__uiTransport = {
 
 /// Live .ui factories on `globalThis.host.ui`, installed before the SHIM
 /// fills the rest of the hostApi (its `if(!...)` guards keep these).
-/// `window` is the only factory that creates a window (the only top-level
-/// surface); `panel` is a plain division. A standalone (window-less) node is
-/// a no-op — it registers but is never added to the view. `__uiEntitiesFor`
-/// is the container-list entity lookup the UI ticks use (a list node's
-/// `options.container` names a runtime container; unknown containers render
-/// zero items).
+/// `window` and `setScreen` are the top-level surface factories (a window,
+/// or the single global full-screen screen); `panel` is a plain division. A
+/// standalone (window-less, screen-less) node is a no-op — it registers but
+/// is never added to the view. `__uiEntitiesFor` is the container-list
+/// entity lookup the UI ticks use (a list node's `options.container` names a
+/// runtime container; unknown containers render zero items).
 const UI_PREWIRE: &str = r#"
 var __uih = globalThis.__uiHost;
 if (__uih && globalThis.host) {
@@ -83,6 +83,9 @@ if (__uih && globalThis.host) {
   __u.div = __uih.div;
   __u.text = __uih.text;
   __u.window = __uih.window;
+  // setScreen creates the single global full-screen screen (a top-level
+  // surface like a window; each call replaces the previous screen).
+  __u.setScreen = __uih.setScreen;
   __u.field = __uih.field;
   __u.image = __uih.image;
   __u.progress = __uih.progress;
@@ -91,8 +94,9 @@ if (__uih && globalThis.host) {
   __u.containerView = __uih.containerView;
   __u.sectorGrid = __uih.sectorGrid;
   // panel is a plain flow container (a division): only ui.window creates a
-  // window. A standalone (window-less) node is a no-op — it registers but is
-  // never added to the view.
+  // window and ui.setScreen the screen. A standalone (window-less,
+  // screen-less) node is a no-op — it registers but is never added to the
+  // view.
   __u.panel = __uih.div;
   __u.spriteMapTIFF = function (mapPath, layers) {
     return {

@@ -73,7 +73,8 @@ public partial class UiWindow : Control
             ApplyText(node);
         else if (node.Kind == UiNodeKind.Image)
             ApplyImage(node);
-        else if (node.Kind == UiNodeKind.Window)
+        else if (node.Kind == UiNodeKind.Window
+            || node.Kind == UiNodeKind.Screen)
             ApplyWindow(node);
         else if (node.Kind == UiNodeKind.Progress)
             ApplyProgress(node);
