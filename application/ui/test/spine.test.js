@@ -417,13 +417,16 @@ test('ui.entityList with unknown container renders zero items', () => {
   assert.deepStrictEqual(list.children, []);
 });
 
-test('ui.containerView registers a window node with view options and a view marker', () => {
+test('ui.containerView registers a division node with view options and a view marker', () => {
   host.clear();
+  // A container view is a division: it must live under a window to render,
+  // so the test hosts it in a plain window (like entityList does).
   const id = host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500, x: 10, y: 80 } },
     (entity) => host.window(entity.id, { background: 'tex' }, []));
+  host.window('world-host', {}, [id]);
   assert.strictEqual(id.value, 'world');
   const view = host.snapshot().find((n) => n.id === 'world');
-  assert.strictEqual(view.kind, 'window');
+  assert.strictEqual(view.kind, 'division');
   assert.strictEqual(view.options.container, 'grid-1');
   assert.strictEqual(view.options.viewWidth, 700);
   assert.strictEqual(view.options.viewHeight, 500);
@@ -445,7 +448,9 @@ test('ui.containerView rejects bad name, args, or render', () => {
 test('ui.containerView expands one item per entity and stamps options.entity', () => {
   host.clear();
   const render = (entity) => host.window(entity.id, { background: 'tex' }, []);
-  host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } }, render);
+  host.window('world-host', {}, [
+    host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } }, render),
+  ]);
   host.expandContainerViews((cid) => {
     assert.strictEqual(cid, 'grid-1');
     return ['a', 'b'];
@@ -461,8 +466,10 @@ test('ui.containerView expands one item per entity and stamps options.entity', (
 
 test('ui.containerView with unknown container renders zero items', () => {
   host.clear();
-  host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } },
-    (entity) => host.window(entity.id, {}, []));
+  host.window('world-host', {}, [
+    host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } },
+      (entity) => host.window(entity.id, {}, [])),
+  ]);
   host.expandContainerViews(() => []);
   const view = host.snapshot().find((n) => n.id === 'world');
   assert.deepStrictEqual(view.children, []);
@@ -470,8 +477,10 @@ test('ui.containerView with unknown container renders zero items', () => {
 
 test('ui.containerView reset restores the view marker', () => {
   host.clear();
-  host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } },
-    (entity) => host.window(entity.id, {}, []));
+  host.window('world-host', {}, [
+    host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } },
+      (entity) => host.window(entity.id, {}, [])),
+  ]);
   host.expandContainerViews(() => ['a']);
   let view = host.snapshot().find((n) => n.id === 'world');
   assert.deepStrictEqual(view.children, ['a']);

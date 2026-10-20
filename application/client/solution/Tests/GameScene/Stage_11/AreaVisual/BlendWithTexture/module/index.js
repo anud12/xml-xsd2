@@ -44,18 +44,27 @@ export default (hostApi) => {
   // area with a red outline + green body. The item paints its yellow texture
   // as the background; the outline must render OVER that texture, so the
   // red outline edge must beat the yellow texture at the edge pixels.
-  hostApi.ui.containerView("world", {
-    container: grid1,
+  hostApi.ui.window("world-host", {
     panel: {
+      x: 0,
+      y: 0,
       width: 700,
       height: 500,
     },
-    area: [
-      { name: "floor", color: [1, 0, 0, 0.5], bodyColor: [0, 1, 0, 0.5], thickness: 3 },
-    ],
-  }, (entity) => hostApi.ui.window(entity.id, {
-    panel: {
-      background: { animation: item, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
-    },
-  }, []));
+  }, [
+    hostApi.ui.containerView("world", {
+      container: grid1,
+      panel: {
+        width: 700,
+        height: 500,
+      },
+      area: [
+        { name: "floor", color: [1, 0, 0, 0.5], bodyColor: [0, 1, 0, 0.5], thickness: 3 },
+      ],
+    }, (entity) => hostApi.ui.window(entity.id, {
+      panel: {
+        background: { animation: item, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
+      },
+    }, []))
+  ]);
 };

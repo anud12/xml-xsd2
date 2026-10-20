@@ -26,12 +26,15 @@ public class TestClass : Steps {
             // Declared 400x200 view of the 10x5 container (cell pitch 40x40).
             Assertions.AssertThat(plane.Size).IsEqual(new Vector2(400, 200));
 
-            // Grow the bottom-right corner by +100 on both axes: the window
-            // becomes 500x300 at the same position. The marker geometry stays
-            // pinned to the declared 400x200 extent (the runtime position pass
-            // uses the frozen viewWidth/viewHeight), so the marker for
-            // container cell (6,3) still sits at local (6*40, 3*40) = (240,120).
-            Drag(plane, new Vector2(398, 198), new Vector2(100, 100));
+            // Resizability lives on the host window: grow its bottom-right
+            // corner by +100 on both axes. The container view is a division that
+            // stretches to fill the host, so it follows to 500x300. The marker
+            // geometry stays pinned to the declared 400x200 extent (the runtime
+            // position pass uses the frozen viewWidth/viewHeight), so the marker
+            // for container cell (6,3) still sits at local (240,120).
+            var host = scene.Window("plane-host");
+            Assertions.AssertThat(host).IsNotNull();
+            Drag(host, new Vector2(398, 198), new Vector2(100, 100));
             await runner.SimulateFrames(2);
             Assertions.AssertThat(plane.Size).IsEqual(new Vector2(500, 300));
 

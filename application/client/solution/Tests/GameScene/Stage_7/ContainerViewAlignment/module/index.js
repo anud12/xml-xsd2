@@ -42,27 +42,41 @@ export default (hostApi) => {
 
   // Each 700x500 view maps its 10x5 container cell-for-cell: each cell is
   // 70 wide and 100 tall.
-  hostApi.ui.containerView("plane-center", {
-    container: "grid-center",
+  hostApi.ui.window("plane-center-host", {
     panel: {
-      width: 700,
-      height: 500,
       x: 10,
       y: 80,
-    },
-  }, entity => hostApi.ui.window(entity.id, {}, [
-    hostApi.ui.window(entity.id + "-marker", { panel: { width: 140, height: 200 } }),
-  ]));
-
-  hostApi.ui.containerView("plane-default", {
-    container: "grid-default",
-    panel: {
       width: 700,
       height: 500,
+    },
+  }, [
+    hostApi.ui.containerView("plane-center", {
+      container: "grid-center",
+      panel: {
+        width: 700,
+        height: 500,
+      },
+    }, entity => hostApi.ui.window(entity.id, {}, [
+      hostApi.ui.window(entity.id + "-marker", { panel: { width: 140, height: 200 } }),
+    ]))
+  ]);
+
+  hostApi.ui.window("plane-default-host", {
+    panel: {
       x: 10,
       y: 600,
+      width: 700,
+      height: 500,
     },
-  }, entity => hostApi.ui.window(entity.id, {}, [
-    hostApi.ui.window(entity.id + "-marker", { panel: { width: 140, height: 200 } }),
-  ]));
+  }, [
+    hostApi.ui.containerView("plane-default", {
+      container: "grid-default",
+      panel: {
+        width: 700,
+        height: 500,
+      },
+    }, entity => hostApi.ui.window(entity.id, {}, [
+      hostApi.ui.window(entity.id + "-marker", { panel: { width: 140, height: 200 } }),
+    ]))
+  ]);
 }

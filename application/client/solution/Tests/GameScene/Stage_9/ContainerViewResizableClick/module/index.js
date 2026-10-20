@@ -47,27 +47,34 @@ export default (hostApi) => {
   // (the runtime position pass uses the declared viewWidth/viewHeight, which
   // never change), so a click must resolve its cell against that declared
   // extent, not the live (resized) size.
-  hostApi.ui.containerView("plane", {
-    container: "grid-1",
+  hostApi.ui.window("plane-host", {
     panel: {
-      width: 400,
-      height: 200,
       x: 10,
       y: 10,
+      width: 400,
+      height: 200,
       resizable: true,
-      onClick: (ctx) => {
-        ctx.emitAction("move-to-cursor", {
-          x: ctx.cursor.getX(),
-          y: ctx.cursor.getY(),
-        });
-      },
     },
-  }, entity => hostApi.ui.window(entity.id, {}, [
-    hostApi.ui.window(entity.id + "-marker", {
+  }, [
+    hostApi.ui.containerView("plane", {
+      container: "grid-1",
       panel: {
-        width: 10,
-        height: 10,
+        width: 400,
+        height: 200,
+        onClick: (ctx) => {
+          ctx.emitAction("move-to-cursor", {
+            x: ctx.cursor.getX(),
+            y: ctx.cursor.getY(),
+          });
+        },
       },
-    }),
-  ]))
+    }, entity => hostApi.ui.window(entity.id, {}, [
+      hostApi.ui.window(entity.id + "-marker", {
+        panel: {
+          width: 10,
+          height: 10,
+        },
+      }),
+    ]))
+  ]);
 }

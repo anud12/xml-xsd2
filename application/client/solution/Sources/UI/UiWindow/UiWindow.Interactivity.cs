@@ -42,7 +42,10 @@ public partial class UiWindow
 
         if (opts.TryGetProperty("onClick", out var onClick))
         {
-            MouseFilter = MouseFilterEnum.Stop;
+            // A division (panel) inside a host window passes mouse input through
+            // so the host's edge/corner resize drags reach the host; a division
+            // suppresses its own onClick over those zones (see OnGuiInput).
+            MouseFilter = _isDivision ? MouseFilterEnum.Pass : MouseFilterEnum.Stop;
             if (!_guiInputWired)
             {
                 _guiInputWired = true;
@@ -129,6 +132,11 @@ public partial class UiWindow
             && mb.ButtonIndex == MouseButton.Left
             && (_onClickAction != null || _onClickStepsJson != null || _onClickJs))
         {
+            // A division shares its host window's edges; a press inside the
+            // host's resize hit zone is a resize drag, not a panel click, so let
+            // it pass to the host untouched.
+            if (_isDivision && ResizeEdgeAt(mb.Position) != 0)
+                return;
             // Each window emits its own action when clicked; the top-most
             // clicked node is the one under the cursor (a child window
             // covering the point consumes the event before the parent).

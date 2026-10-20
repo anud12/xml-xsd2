@@ -52,6 +52,16 @@ public partial class UiWindow
         var opts = ParseOptions(node);
         _layoutSpec = UiGrid.UiGridLayoutSpec.Parse(opts);
         EnsureFlowContainer();
+        // Cache the declared extent so container-view cell resolution
+        // (ResolveCursorCell) resolves clicks against the declared view size —
+        // frozen for the module's lifetime and matching the runtime's marker
+        // layout — rather than the live stretched size. Deliberately no
+        // FixedFlowSize side effect: the division still stretches to fill its
+        // host window.
+        TryNum(opts, "width", out var dw);
+        TryNum(opts, "height", out var dh);
+        if (dw != 0 || dh != 0)
+            _windowExplicitSize = new Vector2(dw, dh);
         ApplyBackground(opts);
         ApplyBorder(opts);
     }

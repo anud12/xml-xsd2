@@ -68,26 +68,33 @@ export default (hostApi) => {
 
   // The 700x500 view of the 10x5 container: the cursor cell under a click
   // resolves from the container's sizeX/sizeY, and the click routes the move.
-  hostApi.ui.containerView("plane", {
-    container: "grid-1",
+  hostApi.ui.window("plane-host", {
     panel: {
-      width: 700,
-      height: 500,
       x: 10,
       y: 80,
-      onClick: (ctx) => {
-        ctx.emitAction("move-to-cursor", {
-          x: ctx.cursor.getX(),
-          y: ctx.cursor.getY(),
-        });
-      },
+      width: 700,
+      height: 500,
     },
-  }, entity => hostApi.ui.window(entity.id, {}, [
-    hostApi.ui.window(entity.id + "-marker", {
+  }, [
+    hostApi.ui.containerView("plane", {
+      container: "grid-1",
       panel: {
-        width: 10,
-        height: 10,
+        width: 700,
+        height: 500,
+        onClick: (ctx) => {
+          ctx.emitAction("move-to-cursor", {
+            x: ctx.cursor.getX(),
+            y: ctx.cursor.getY(),
+          });
+        },
       },
-    }),
-  ]))
+    }, entity => hostApi.ui.window(entity.id, {}, [
+      hostApi.ui.window(entity.id + "-marker", {
+        panel: {
+          width: 10,
+          height: 10,
+        },
+      }),
+    ]))
+  ]);
 }

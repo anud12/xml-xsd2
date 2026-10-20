@@ -472,7 +472,10 @@ function (root) {
     function expandContainerViews(entitiesFor) {
         for (var i = 0; i < order.length; i++) {
             var node = nodes[order[i]];
-            if (!node || node.kind !== 'window') continue;
+            // A container view is a division (it must live under a window), so
+            // its marker is scanned on division nodes (windows are kept for
+            // safety, in case a view is ever nested directly in one).
+            if (!node || (node.kind !== 'window' && node.kind !== 'division')) continue;
             if (!Array.isArray(node.children)) continue;
             var changed = false;
             for (var j = 0; j < node.children.length; j++) {
@@ -1025,10 +1028,11 @@ function (root) {
                 throw new Error('ui: containerView render must be a function(entity) => panelId');
             }
             containerViewRenders[name] = render;
-            // The view node is a window (it extends panel: the size/position/
-            // background/anchor live in `panel`). It carries `container`,
-            // `viewWidth`, `viewHeight` (top-level, for the per-tick position
-            // pass) plus `area?` and the resolved `panel` config.
+            // The view node is a division (it extends panel: the size/position/
+            // background/anchor live in `panel`). It is NOT a top-level surface:
+            // like a panel/entityList it must live under a window to be viewable.
+            // It carries `container`, `viewWidth`, `viewHeight` (top-level, for
+            // the per-tick position pass) plus `area?` and the resolved `panel`.
             var opts = {
                 container: containerViewContainer,
                 viewWidth: panel.width,
@@ -1038,7 +1042,7 @@ function (root) {
             opts.panel = resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel)));
             return nodeHandle(register({
                 id: name,
-                kind: 'window',
+                kind: 'division',
                 options: opts,
                 children: [containerViewMarker(name)]
             }));

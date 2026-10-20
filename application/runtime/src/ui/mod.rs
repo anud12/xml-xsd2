@@ -437,7 +437,12 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
         (String, f64, f64, bool, Vec<String>, Vec<AreaStyle>),
     > = Vec::new();
     for node in snapshot.iter() {
-        let UiNode::Window { options, children, .. } = node else {
+        // A container view is a division (it must live under a window); the
+        // window arm is kept for safety. Both carry options + children.
+        let (UiNode::Window { options, children, .. }
+            | UiNode::Division { options, children, .. }) =
+            node else
+        {
             continue;
         };
         let Some(opts_obj) = options.as_object() else {

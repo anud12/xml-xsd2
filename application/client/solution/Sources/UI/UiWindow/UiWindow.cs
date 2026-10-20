@@ -18,6 +18,11 @@ public partial class UiWindow : Control
     Vector2 _windowAnchorFrac = new(0.5f, 0.5f);
     Vector2 _windowExplicitSize = Vector2.Zero; // (0,0) = size to content
     bool _isWindow;
+    // True when this node is a division (panel): a non-surface layout node that
+    // lives inside a host window. Its onClick uses a pass-through MouseFilter so
+    // the host's edge/corner resize drags reach the host, and it suppresses its
+    // own onClick over the host's resize zones.
+    bool _isDivision;
 
     // User-resizable (resizable: true option): drag edge/corner hit zones
     // resize the window. `_userSize` / `_userPosition` are the drag-adjusted
@@ -71,6 +76,7 @@ public partial class UiWindow : Control
 
     public virtual void Apply(UiNodeData node)
     {
+        _isDivision = node.Kind == UiNodeKind.Division;
         WireOptions(node);
         if (node.Kind == UiNodeKind.Text || node.Kind == UiNodeKind.Field)
             ApplyText(node);

@@ -33,14 +33,23 @@ export default (hostApi) => {
 
   // A 700x500 top-down view of the 100x100 container: cell_w = 7, cell_h = 5.
   // Each item is stamped with its entity's area polygon in view-local units.
-  hostApi.ui.containerView("world", {
-    container: grid1,
+  hostApi.ui.window("world-host", {
     panel: {
+      x: 0,
+      y: 0,
       width: 700,
       height: 500,
     },
-    area: [
-      { name: "floor", color: [1, 0, 0, 1], bodyColor: [0, 1, 0, 1], thickness: 3 },
-    ],
-  }, (entity) => hostApi.ui.window(entity.id, { panel: {} }, []));
+  }, [
+    hostApi.ui.containerView("world", {
+      container: grid1,
+      panel: {
+        width: 700,
+        height: 500,
+      },
+      area: [
+        { name: "floor", color: [1, 0, 0, 1], bodyColor: [0, 1, 0, 1], thickness: 3 },
+      ],
+    }, (entity) => hostApi.ui.window(entity.id, { panel: {} }, []))
+  ]);
 };

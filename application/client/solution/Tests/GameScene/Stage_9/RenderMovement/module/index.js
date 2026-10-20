@@ -75,19 +75,26 @@ export default (hostApi) => {
   // The 700x500 view of the 10x5 container: each container cell is 70x100, and
   // the view places the entity panel exactly on its cell, re-resolved each tick
   // so the panel tracks the move.
-  hostApi.ui.containerView("plane", {
-    container: "grid-1",
+  hostApi.ui.window("plane-host", {
     panel: {
-      width: 700,
-      height: 500,
       x: 10,
       y: 80,
+      width: 700,
+      height: 500,
     },
-  }, entity => hostApi.ui.window(entity.id, {}, [
-    hostApi.ui.window(entity.id + "-marker", {
+  }, [
+    hostApi.ui.containerView("plane", {
+      container: "grid-1",
       panel: {
-        background: { animation: marker, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
+        width: 700,
+        height: 500,
       },
-    }),
-  ]))
+    }, entity => hostApi.ui.window(entity.id, {}, [
+      hostApi.ui.window(entity.id + "-marker", {
+        panel: {
+          background: { animation: marker, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
+        },
+      }),
+    ]))
+  ]);
 }

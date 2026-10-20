@@ -123,43 +123,50 @@ const entry = (hostApi) => {
             },
         }),
     ]);
-    hostApi.ui.containerView("plane", {
-        container: grid1,
+    hostApi.ui.window("plane-host", {
         panel: {
-            width: 500,
-            height: 500,
             x: 10,
             y: 80,
-            resizable: {
-                keepAspectRatio: true
-            },
-            border: {
-            // texture: {
-            //   animation: marker,
-            //   fill: { width: "stretch" as const, height: "stretch" as const },
-            // },
-            },
-            background: {
-                animation: marker,
-                fill: { width: "stretch", height: "stretch", keepAspectRatio: true },
-            },
-            onClick: (ctx) => {
-                hostApi.runtime.log("plane click col=" + ctx.cursor.getX() + " row=" + ctx.cursor.getY());
-                ctx.emitAction(moveToCursor, {
-                    x: ctx.cursor.getX(),
-                    y: ctx.cursor.getY(),
-                });
-            },
+            width: 500,
+            height: 500,
         },
-    }, entity => hostApi.ui.window(entity.id, { panel: {} }, [
-        hostApi.ui.panel(entity.id + "-marker", {
+    }, [
+        hostApi.ui.containerView("plane", {
+            container: grid1,
             panel: {
+                width: 500,
+                height: 500,
+                resizable: {
+                    keepAspectRatio: true
+                },
+                border: {
+                // texture: {
+                //   animation: marker,
+                //   fill: { width: "stretch" as const, height: "stretch" as const },
+                // },
+                },
                 background: {
-                    animation: texture,
+                    animation: marker,
                     fill: { width: "stretch", height: "stretch", keepAspectRatio: true },
                 },
+                onClick: (ctx) => {
+                    hostApi.runtime.log("plane click col=" + ctx.cursor.getX() + " row=" + ctx.cursor.getY());
+                    ctx.emitAction(moveToCursor, {
+                        x: ctx.cursor.getX(),
+                        y: ctx.cursor.getY(),
+                    });
+                },
             },
-        }),
-    ]));
+        }, entity => hostApi.ui.window(entity.id, { panel: {} }, [
+            hostApi.ui.panel(entity.id + "-marker", {
+                panel: {
+                    background: {
+                        animation: texture,
+                        fill: { width: "stretch", height: "stretch", keepAspectRatio: true },
+                    },
+                },
+            }),
+        ]))
+    ]);
 };
 export default entry;
