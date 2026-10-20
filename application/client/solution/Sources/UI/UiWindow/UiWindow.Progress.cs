@@ -20,6 +20,10 @@ public partial class UiWindow
     bool _isProgress;
     float _progressValue;
     bool _progressVertical;
+    // Resolved fill rules for the progress fill/track (from progress.fillPaint /
+    // progress.trackPaint); default to tiling along the progress axis.
+    UiPaintSpec _progressFillPaint = new UiPaintSpec(true, false, false);
+    UiPaintSpec _progressTrackPaint = new UiPaintSpec(true, false, false);
     ProgressTexState? _progressFill;
     ProgressTexState? _progressTrack;
     readonly Dictionary<string, Texture2D> _progressTextures = new();
@@ -69,6 +73,9 @@ public partial class UiWindow
             if (p.TryGetProperty("fill", out var f)) fill = f;
             if (p.TryGetProperty("track", out var t)) track = t;
             vertical = TryStr(p, "orientation") == "vertical";
+            var defaultPaint = new UiPaintSpec(!vertical, vertical, false);
+            _progressFillPaint = ParsePaintSpec(p, "fillPaint", defaultPaint);
+            _progressTrackPaint = ParsePaintSpec(p, "trackPaint", defaultPaint);
         }
         _isProgress = true;
         _progressValue = Mathf.Clamp(steps > 0 ? value / steps : 0f, 0f, 1f);
@@ -189,55 +196,25 @@ public partial class UiWindow
     }
 
     /// Draws the progress bar: the track tiled across the full rect, then the
-    /// fill tiled across the filled fraction. Only the progress axis tiles;
-    /// the tile is uniformly scaled (aspect ratio preserved) so it covers the
-    /// full extent on the perpendicular axis.
+    /// fill tiled across the filled fraction. The paint spec tiles along the
+    /// progress axis and stretches across the perpendicular one (the painter
+    /// scales the tile uniformly from the cross axis, so the aspect ratio is
+    /// preserved).
     internal void DrawProgress()
     {
         if (!_isProgress) return;
         var size = Size;
-        var (trackAxis, trackCross) = _progressVertical
-            ? (size.Y, size.X)
-            : (size.X, size.Y);
+
         var trackTex = _progressTrack?.Tex;
         if (trackTex != null)
-            DrawProgressTiles(trackTex, trackAxis, trackCross);
-        var value = Mathf.Clamp(_progressValue, 0f, 1f);
-        var (fillAxis, fillCross) = _progressVertical
-            ? (size.Y * value, size.X)
-            : (size.X * value, size.Y);
-        var fillTex = _progressFill?.Tex;
-        if (fillTex != null && fillAxis > 0f && fillCross > 0f)
-            DrawProgressTiles(fillTex, fillAxis, fillCross);
-    }
+            UiTexturePainter.Paint(this, new Rect2(Vector2.Zero, size), _progressTrackPaint, trackTex);
 
-    /// Tiles `tex` across an `axisLen` x `crossLen` rect starting at the local
-    /// origin, preserving aspect ratio: the tile is scaled uniformly so its
-    /// cross axis covers `crossLen`, then tiles step along the progress axis
-    /// at the scaled size (the last partial tile is cropped from the source,
-    /// never squashed).
-    void DrawProgressTiles(Texture2D tex, float axisLen, float crossLen)
-    {
-        var tw = (float)tex.GetWidth();
-        var th = (float)tex.GetHeight();
-        if (tw <= 0f || th <= 0f) return;
-        var (tileAxis, tileCross) = _progressVertical ? (th, tw) : (tw, th);
-        var scale = crossLen / tileCross;
-        var step = tileAxis * scale;
-        for (var i = 0; ; i++)
-        {
-            var start = i * step;
-            if (start >= axisLen) break;
-            var destLen = Mathf.Min(step, axisLen - start);
-            var srcLen = destLen / scale;
-            if (_progressVertical)
-                DrawTextureRectRegion(tex,
-                    new Rect2(0, start, crossLen, destLen),
-                    new Rect2(0, 0, tileCross, srcLen));
-            else
-                DrawTextureRectRegion(tex,
-                    new Rect2(start, 0, destLen, crossLen),
-                    new Rect2(0, 0, srcLen, tileCross));
-        }
+        var value = Mathf.Clamp(_progressValue, 0f, 1f);
+        var fillSize = _progressVertical
+            ? new Vector2(size.X, size.Y * value)
+            : new Vector2(size.X * value, size.Y);
+        var fillTex = _progressFill?.Tex;
+        if (fillTex != null && fillSize.X > 0f && fillSize.Y > 0f)
+            UiTexturePainter.Paint(this, new Rect2(Vector2.Zero, fillSize), _progressFillPaint, fillTex);
     }
 }

@@ -17,7 +17,7 @@ export default (hostApi) => {
     panel: {
       width: 300,
       height: 300,
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
       align: "center",
     },
   }, [

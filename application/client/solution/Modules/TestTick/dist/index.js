@@ -93,7 +93,7 @@ const entry = (hostApi) => {
     // window carries the 400,400 origin and the bar fills it at local 0,0.
     hostApi.ui.window("progress", {
         panel: {
-            x: 400,
+            x: 600,
             y: 400,
             width: 500,
             height: 30,
@@ -112,8 +112,14 @@ const entry = (hostApi) => {
                 entity: node1,
                 steps: 100,
                 min: entity => number.of(0),
-                fill: animation,
-                track: marker,
+                fill: {
+                    animation: animation,
+                    fill: { width: "tile", height: "stretch" },
+                },
+                track: {
+                    animation: marker,
+                    fill: { width: "tile", height: "stretch" },
+                },
             },
         }),
     ]);
@@ -128,9 +134,15 @@ const entry = (hostApi) => {
                 keepAspectRatio: true
             },
             border: {
-                texture: hostApi.ui.getSpritePNG("black_pixel.png")
+            // texture: {
+            //   animation: marker,
+            //   fill: { width: "stretch" as const, height: "stretch" as const },
+            // },
             },
-            background: marker,
+            background: {
+                animation: marker,
+                fill: { width: "stretch", height: "stretch", keepAspectRatio: true },
+            },
             onClick: (ctx) => {
                 hostApi.runtime.log("plane click col=" + ctx.cursor.getX() + " row=" + ctx.cursor.getY());
                 ctx.emitAction(moveToCursor, {
@@ -142,7 +154,10 @@ const entry = (hostApi) => {
     }, entity => hostApi.ui.window(entity.id, { panel: {} }, [
         hostApi.ui.panel(entity.id + "-marker", {
             panel: {
-                background: texture,
+                background: {
+                    animation: texture,
+                    fill: { width: "stretch", height: "stretch", keepAspectRatio: true },
+                },
             },
         }),
     ]));

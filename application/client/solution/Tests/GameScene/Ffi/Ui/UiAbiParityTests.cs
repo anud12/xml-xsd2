@@ -23,6 +23,7 @@ public class UiAbiParityTests : Steps
         Assertions.AssertThat(Marshal.SizeOf<UiAbi.UiLayout>()).IsEqual((int)s.SizeLayout);
         Assertions.AssertThat(Marshal.SizeOf<UiAbi.UiTrack>()).IsEqual((int)s.SizeTrack);
         Assertions.AssertThat(Marshal.SizeOf<UiAbi.UiBackground>()).IsEqual((int)s.SizeBackground);
+        Assertions.AssertThat(Marshal.SizeOf<UiAbi.UiPaintSpec>()).IsEqual((int)s.SizePaintSpec);
         Assertions.AssertThat(Marshal.SizeOf<UiAbi.UiMapLayer>()).IsEqual((int)s.SizeMapLayer);
         Assertions.AssertThat(Marshal.SizeOf<UiAbi.UiOnClick>()).IsEqual((int)s.SizeOnClick);
         Assertions.AssertThat(Marshal.SizeOf<UiAbi.UiClickStep>()).IsEqual((int)s.SizeClickStep);

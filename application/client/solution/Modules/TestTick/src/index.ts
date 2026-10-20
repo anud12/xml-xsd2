@@ -108,7 +108,7 @@ const entry: ModuleEntrypoint = (hostApi) => {
   // window carries the 400,400 origin and the bar fills it at local 0,0.
   hostApi.ui.window("progress", {
     panel: {
-      x: 400,
+      x: 600,
       y: 400,
       width: 500,
       height: 30,
@@ -127,11 +127,19 @@ const entry: ModuleEntrypoint = (hostApi) => {
         entity: node1,
         steps: 100,
         min: entity => number.of(0),
-        fill: animation,
-        track: marker,
+        fill: {
+          animation: animation,
+          fill: { width: "tile" as const, height: "stretch" as const },
+        },
+        track: {
+          animation: marker,
+          fill: { width: "tile" as const, height: "stretch" as const },
+        },
       },
     }),
   ]);
+  
+  
   
   hostApi.ui.containerView("plane", {
     container: grid1,
@@ -144,9 +152,15 @@ const entry: ModuleEntrypoint = (hostApi) => {
         keepAspectRatio: true
       },
       border: {
-        texture: hostApi.ui.getSpritePNG("black_pixel.png")
+        // texture: {
+        //   animation: marker,
+        //   fill: { width: "stretch" as const, height: "stretch" as const },
+        // },
       },
-      background: marker,
+      background: {
+        animation: marker,
+        fill: { width: "stretch" as const, height: "stretch" as const, keepAspectRatio: true },
+      },
       onClick: (ctx) => {
         hostApi.runtime.log("plane click col=" + ctx.cursor.getX() + " row=" + ctx.cursor.getY());
         ctx.emitAction(moveToCursor, {
@@ -158,7 +172,10 @@ const entry: ModuleEntrypoint = (hostApi) => {
   }, entity => hostApi.ui.window(entity.id, { panel: {} }, [
     hostApi.ui.panel(entity.id + "-marker", {
       panel: {
-        background: texture,
+        background: {
+          animation: texture,
+          fill: { width: "stretch" as const, height: "stretch" as const, keepAspectRatio: true },
+        },
       },
     }),
   ]))

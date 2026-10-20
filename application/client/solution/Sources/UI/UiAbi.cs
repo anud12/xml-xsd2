@@ -12,7 +12,7 @@ namespace NewGameProject.UI;
 /// offset into that arena; `NoStr` means "no string".
 public static class UiAbi
 {
-    public const uint AbiVersion = 6;
+    public const uint AbiVersion = 7;
     public const uint NoStr = uint.MaxValue;
 
     public const uint KindDivision = 0;
@@ -117,6 +117,19 @@ public static class UiAbi
         public IntPtr RowTracks;
     }
 
+    // Per-axis fill rules plus optional nine-slice geometry (mirrors the Rust
+    // UiPaintSpec). 12 bytes, align 4: three u8 flags, one pad byte, two u32
+    // slice dims.
+    [StructLayout(LayoutKind.Sequential)]
+    public struct UiPaintSpec
+    {
+        public byte TileWidth;
+        public byte TileHeight;
+        public byte KeepAspect;
+        public uint SliceWidth;
+        public uint SliceHeight;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct UiBackground
     {
@@ -128,6 +141,7 @@ public static class UiAbi
         public uint Map;
         public uint LayerCount;
         public IntPtr Layers;
+        public UiPaintSpec Paint;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -138,6 +152,8 @@ public static class UiAbi
         public uint EmitAction;
         public uint Background;
         public uint Texture;
+        public UiPaintSpec BackgroundPaint;
+        public UiPaintSpec TexturePaint;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -156,6 +172,7 @@ public static class UiAbi
         public uint BorderTexture;
         public float BorderWidth;
         public byte HasBorder;
+        public UiPaintSpec BorderPaint;
         public UiOnClick OnClick;
         public UiOnHover OnHover;
         public uint Container;
@@ -243,6 +260,7 @@ public static class UiAbi
         public uint SizeLayout;
         public uint SizeTrack;
         public uint SizeBackground;
+        public uint SizePaintSpec;
         public uint SizeMapLayer;
         public uint SizeOnClick;
         public uint SizeClickStep;

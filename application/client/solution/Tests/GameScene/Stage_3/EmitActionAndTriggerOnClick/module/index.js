@@ -34,7 +34,7 @@ export default (hostApi) => {
             width: 100,
             height: 100,
             anchor: "center",
-            background: texture,
+            background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
             onClick: (ctx) => {
                 ctx.emitAction(action);
             },

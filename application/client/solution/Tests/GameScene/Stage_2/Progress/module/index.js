@@ -8,6 +8,20 @@ export default (hostApi) => {
       mp: number.of(6), maxMp: number.of(12)
     }
   });
+  // Still images are single-frame animations: register the fill/track tiles.
+  const fill = hostApi.runtime.setAnimation(string.of("fill"), {
+    frames: [{ sprite: hostApi.ui.getSpritePNG("fill.png") }],
+    duration: number.of(1),
+  });
+  const track = hostApi.runtime.setAnimation(string.of("track"), {
+    frames: [{ sprite: hostApi.ui.getSpritePNG("track.png") }],
+    duration: number.of(1),
+  });
+  // Tile along the value axis, stretch across the other.
+  /** @type {{width: "tile" | "stretch", height: "tile" | "stretch"}} */
+  const hFill = { width: "tile", height: "stretch" };
+  /** @type {{width: "tile" | "stretch", height: "tile" | "stretch"}} */
+  const vFill = { width: "stretch", height: "tile" };
   hostApi.ui.window("prog-x-win", {
     panel: {
       x: 100, y: 100, width: 200, height: 50,
@@ -18,8 +32,8 @@ export default (hostApi) => {
         x: 0, y: 0, width: 200, height: 50,
       },
       progress: {
-        fill: hostApi.ui.getSpritePNG("fill.png"),
-        track: hostApi.ui.getSpritePNG("track.png"),
+        fill: { animation: fill, fill: hFill },
+        track: { animation: track, fill: hFill },
         orientation: "horizontal",
         entity: hero,
         value: (entity) => entity.number_map.get("hp").orElse(number.of(0)),
@@ -37,8 +51,8 @@ export default (hostApi) => {
         x: 0, y: 0, width: 50, height: 200,
       },
       progress: {
-        fill: hostApi.ui.getSpritePNG("fill.png"),
-        track: hostApi.ui.getSpritePNG("track.png"),
+        fill: { animation: fill, fill: vFill },
+        track: { animation: track, fill: vFill },
         orientation: "vertical",
         steps: 4,
         entity: hero,

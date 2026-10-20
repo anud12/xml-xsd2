@@ -141,7 +141,7 @@ public partial class TestClass : Steps {
             // swap to the hover texture while hovered (even when the cursor is
             // over the non-hover-capable `inner` child, i.e. bubbled), and
             // revert to the base texture on exit.
-            var bg = parent.GetNode<TextureRect>("background");
+            var bg = parent.GetNode<UiTextureSurface>("background");
             var baseData = TexData(bg.Texture);
             Assertions.AssertThat(baseData.Length > 0)
                 .OverrideFailureMessage("parent should start with its base background")
@@ -201,8 +201,8 @@ public partial class TestClass : Steps {
             var child = scene.Window("child");
             AssertPanelThat(child).IsNonNull();
 
-            var parentBg = parent.GetNode<TextureRect>("background");
-            var childBg = child.GetNode<TextureRect>("background");
+            var parentBg = parent.GetNode<UiTextureSurface>("background");
+            var childBg = child.GetNode<UiTextureSurface>("background");
             var parentBase = TexData(parentBg.Texture);
             var childBase = TexData(childBg.Texture);
             Assertions.AssertThat(parentBase.Length > 0)

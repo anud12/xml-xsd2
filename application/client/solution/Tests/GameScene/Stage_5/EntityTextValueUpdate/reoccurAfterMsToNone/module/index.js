@@ -38,7 +38,7 @@ export default (hostApi) => {
       height: 100,
       anchor: "center",
       align: "center",
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [
     hostApi.ui.field("content", { entity: entity, map: "number", name: "key", fallback: "0" }),

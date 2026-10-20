@@ -56,10 +56,10 @@ public partial class UiWindow
         ApplyBorder(opts);
     }
 
-    /// options.border: a full-rect NinePatchRect frame around the node.
-    /// `width` is the patch margin (border thickness) applied to all four
-    /// sides (default 1 px), `texture` an archive PNG path. The center region
-    /// is never drawn (DrawCenter = false), so only the texture's frame shows.
+    /// options.border: a full-rect frame around the node. `width` is the
+    /// nine-slice margin (border thickness) applied to all four sides
+    /// (default 1 px), `texture` an archive PNG path. The center region is
+    /// never drawn, so only the texture's frame shows.
     void ApplyBorder(JsonElement opts)
     {
         if (opts.ValueKind == JsonValueKind.Undefined
@@ -82,21 +82,19 @@ public partial class UiWindow
         }
         var img = new Image();
         img.LoadPngFromBuffer(data);
-        var rect = GetNodeOrNull<NinePatchRect>("border");
-        if (rect == null)
+        var surf = GetNodeOrNull<UiTextureSurface>("border");
+        if (surf == null)
         {
-            rect = new NinePatchRect { Name = "border" };
-            rect.MouseFilter = Control.MouseFilterEnum.Ignore;
-            AddChild(rect);
-            rect.SetAnchorsPreset(LayoutPreset.FullRect, true);
+            surf = new UiTextureSurface { Name = "border" };
+            surf.MouseFilter = Control.MouseFilterEnum.Ignore;
+            AddChild(surf);
+            surf.SetAnchorsPreset(LayoutPreset.FullRect, true);
         }
-        rect.Texture = ImageTexture.CreateFromImage(img);
-        rect.TextureFilter = TextureFilterEnum.Nearest;
-        rect.DrawCenter = false;
-        rect.PatchMarginLeft = width;
-        rect.PatchMarginRight = width;
-        rect.PatchMarginTop = width;
-        rect.PatchMarginBottom = width;
+        surf.TextureFilter = TextureFilterEnum.Nearest;
+        // `border.paint` carries the resolved fill (default a nine-slice frame
+        // at `width`); an explicit paint overrides it.
+        var paint = ParsePaintSpec(border, "paint", UiPaintSpec.Frame(width));
+        surf.Update(paint, ImageTexture.CreateFromImage(img));
     }
 
     /// Pick and (re)configure the flow container for this node's layout:

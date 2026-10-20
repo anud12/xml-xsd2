@@ -88,7 +88,7 @@ export default (hostApi) => {
       height: 100,
       anchor: "center",
       align: "center",
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [
     hostApi.ui.field("centerContent", { entity: entity, map: "number", name: "key", fallback: "0" }),
@@ -102,7 +102,7 @@ export default (hostApi) => {
       height: 100,
       anchor: "center",
       align: "center",
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [
     hostApi.ui.field("isModifiedContent", { entity: entity, map: "text", name: "isModified", fallback: "No" }),

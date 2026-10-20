@@ -20,7 +20,7 @@ export default (hostApi) => {
       height: 100,
       x: 100,
       y: 100,
-      background: sequence,
+      background: { animation: sequence, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, []);
 }

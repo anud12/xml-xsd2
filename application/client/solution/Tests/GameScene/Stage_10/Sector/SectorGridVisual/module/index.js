@@ -57,11 +57,11 @@ export default (hostApi) => {
       height: 400,
       x: 200,
       y: 200,
-      background: viewbg,
+      background: { animation: viewbg, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, (item) => hostApi.ui.window(item.id, {
     panel: {
-      background: cell,
+      background: { animation: cell, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }));
 };

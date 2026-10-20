@@ -113,13 +113,18 @@ public static class UiSlab
         var layout = SerializeLayout(o.Layout, arena);
         if (layout != null) Add("layout", layout);
         var background = SerializeBackground(o.Background, arena);
-        if (background != null) Add("background", background);
+        if (background != null)
+        {
+            Add("background", background);
+            Add("backgroundPaint", SerializePaint(o.Background.Paint));
+        }
         if (o.HasBorder != 0)
         {
             var border = new StringBuilder("{");
             if (o.BorderTexture != UiAbi.NoStr)
                 border.Append("\"texture\":").Append(JsonEscaped(Str(arena, o.BorderTexture))).Append(',');
             border.Append("\"width\":").Append(Num(o.BorderWidth));
+            border.Append(",\"paint\":").Append(SerializePaint(o.BorderPaint));
             border.Append('}');
             Add("border", border.ToString());
         }
@@ -147,9 +152,13 @@ public static class UiSlab
         if (fillJson != null)
         {
             var p = new StringBuilder("{\"fill\":").Append(fillJson);
+            p.Append(",\"fillPaint\":").Append(SerializePaint(o.ProgressFill.Paint));
             var trackJson = SerializeBackground(o.ProgressTrack, arena);
             if (trackJson != null)
+            {
                 p.Append(",\"track\":").Append(trackJson);
+                p.Append(",\"trackPaint\":").Append(SerializePaint(o.ProgressTrack.Paint));
+            }
             p.Append(",\"orientation\":\"").Append(o.ProgressOrientation != 0 ? "vertical" : "horizontal").Append('"');
             p.Append(",\"value\":").Append(Num(o.ProgressValue));
             p.Append(",\"steps\":").Append(Num(o.ProgressSteps));
@@ -234,6 +243,21 @@ public static class UiSlab
             o.Append('}');
             sb.Append(o);
         }
+        return sb.ToString();
+    }
+
+    // Serializes a resolved paint spec into the flat JSON the readers parse.
+    // Rust always resolves each slot to a final spec (explicit paint, else the
+    // slot default), so the reader consumes these flags as-is.
+    static string SerializePaint(UiAbi.UiPaintSpec p)
+    {
+        var sb = new StringBuilder("{");
+        sb.Append("\"tileWidth\":").Append(p.TileWidth != 0 ? "true" : "false");
+        sb.Append(",\"tileHeight\":").Append(p.TileHeight != 0 ? "true" : "false");
+        sb.Append(",\"keepAspect\":").Append(p.KeepAspect != 0 ? "true" : "false");
+        sb.Append(",\"sliceWidth\":").Append(p.SliceWidth);
+        sb.Append(",\"sliceHeight\":").Append(p.SliceHeight);
+        sb.Append('}');
         return sb.ToString();
     }
 
@@ -330,10 +354,15 @@ public static class UiSlab
         }
         if (h.EmitAction != UiAbi.NoStr) Add("emitAction", JsonEscaped(Str(arena, h.EmitAction)));
         if (h.StopPropagation != 0) Add("stopPropagation", "true");
-        if (h.Background != UiAbi.NoStr) Add("background", JsonEscaped(Str(arena, h.Background)));
+        if (h.Background != UiAbi.NoStr)
+        {
+            Add("background", JsonEscaped(Str(arena, h.Background)));
+            Add("backgroundPaint", SerializePaint(h.BackgroundPaint));
+        }
         if (h.Texture != UiAbi.NoStr)
         {
             Add("texture", JsonEscaped(Str(arena, h.Texture)));
+            Add("texturePaint", SerializePaint(h.TexturePaint));
             if (h.Thickness != 0f) Add("thickness", Num(h.Thickness));
         }
         return "{" + sb + "}";

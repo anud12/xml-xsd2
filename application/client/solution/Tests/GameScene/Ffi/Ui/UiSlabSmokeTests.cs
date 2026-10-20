@@ -62,8 +62,14 @@ public class UiSlabSmokeTests : Steps
         using (var progDoc = JsonDocument.Parse(progress.OptionsJson))
         {
             var p = progDoc.RootElement.GetProperty("progress");
-            Assertions.AssertThat(p.GetProperty("fill").GetString()).IsEqual("art/fill.png");
-            Assertions.AssertThat(p.GetProperty("track").GetString()).IsEqual("art/track.png");
+            // Still images are single-frame animations: the fill/track slots now
+            // serialize as animation refs ({ name }), not raw texture paths.
+            Assertions.AssertThat(p.GetProperty("fill").GetProperty("name").GetString()).IsEqual("fill");
+            Assertions.AssertThat(p.GetProperty("track").GetProperty("name").GetString()).IsEqual("track");
+            // The explicit horizontal tile fill (tile width, stretch height).
+            var fp = p.GetProperty("fillPaint");
+            Assertions.AssertThat(fp.GetProperty("tileWidth").GetBoolean()).IsTrue();
+            Assertions.AssertThat(fp.GetProperty("tileHeight").GetBoolean()).IsFalse();
             Assertions.AssertThat(p.GetProperty("orientation").GetString()).IsEqual("horizontal");
             // hero.hp=7, max=10 -> fraction 0.7 -> round(0.7 * 100) = 70 of 100 steps
             Assertions.AssertThat(p.GetProperty("value").GetDouble()).IsEqual(70.0);

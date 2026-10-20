@@ -14,14 +14,25 @@ export default (hostApi) => {
       fallback: "n/a"
     })
   ]);
+  // Still images are single-frame animations.
+  const fill = hostApi.runtime.setAnimation(string.of("fill"), {
+    frames: [{ sprite: hostApi.ui.getSpritePNG("art/fill.png") }],
+    duration: number.of(1),
+  });
+  const track = hostApi.runtime.setAnimation(string.of("track"), {
+    frames: [{ sprite: hostApi.ui.getSpritePNG("art/track.png") }],
+    duration: number.of(1),
+  });
+  /** @type {{width: "tile" | "stretch", height: "tile" | "stretch"}} */
+  const hFill = { width: "tile", height: "stretch" };
   hostApi.ui.window("slab-progress-win", {
     panel: {},
   }, [
     hostApi.ui.progress("slab-progress", {
       panel: { x: 0, y: 0 },
       progress: {
-        fill: "art/fill.png",
-        track: "art/track.png",
+        fill: { animation: fill, fill: hFill },
+        track: { animation: track, fill: hFill },
         orientation: "horizontal",
         entity: hero,
         value: (entity) => entity.number_map.get("hp").orElse(number.of(0)),

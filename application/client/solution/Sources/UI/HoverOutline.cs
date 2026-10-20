@@ -6,17 +6,17 @@ namespace GdUnit4.Examples.Basics.Setup.Sources.UI;
 public partial class HoverOutline :Control {
 
     public MarginContainer MarginContainer;
-    public NinePatchRect NinePatchRect;
+    public UiTextureSurface Surface;
 
-    public HoverOutline(Hover? hover = null) {
+    public HoverOutline(Hover? hover = null, UiPaintSpec? paint = null) {
         Name = "HoverOutline";
         MarginContainer = new();
-        NinePatchRect = new();
-        MarginContainer.AddChild(NinePatchRect);
+        Surface = new UiTextureSurface { MouseFilter = Control.MouseFilterEnum.Ignore };
+        Surface.TextureFilter = TextureFilterEnum.Nearest;
+        MarginContainer.AddChild(Surface);
         AddChild(MarginContainer);
         
-        
-        
+
         if (hover.HasValue) {
             var h = hover.Value;
             if (MarginContainer != null) {
@@ -25,18 +25,15 @@ public partial class HoverOutline :Control {
                 MarginContainer.AddThemeConstantOverride("margin_top", -h.Thickness);
                 MarginContainer.AddThemeConstantOverride("margin_bottom", -h.Thickness);
             }
-            if (NinePatchRect != null && !string.IsNullOrEmpty(h.Texture)) {
+            if (!string.IsNullOrEmpty(h.Texture)) {
                 var files = RuntimeInterop.GetFileFromArchive();
                 if (files.TryGetValue(h.Texture, out var imageData)) {
                     Image img = new Image();
                     img.LoadPngFromBuffer(imageData);
-                    NinePatchRect.Texture = ImageTexture.CreateFromImage(img);
-                    NinePatchRect.TextureFilter = TextureFilterEnum.Nearest;
-                    NinePatchRect.DrawCenter = false;
-                    NinePatchRect.PatchMarginLeft = h.Thickness;
-                    NinePatchRect.PatchMarginTop = h.Thickness;
-                    NinePatchRect.PatchMarginBottom = h.Thickness;
-                    NinePatchRect.PatchMarginRight = h.Thickness;
+                    // Explicit paint (from onHover.texturePaint) overrides the
+                    // default centered nine-slice frame at the outline thickness.
+                    var spec = paint ?? UiPaintSpec.FrameCentered(h.Thickness);
+                    Surface.Update(spec, ImageTexture.CreateFromImage(img));
                 }
             }
         }
@@ -49,7 +46,6 @@ public partial class HoverOutline :Control {
     }
     public override void _Ready() {
         base._Ready();
-        
         
     }
 }

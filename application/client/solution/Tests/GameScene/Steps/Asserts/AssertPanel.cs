@@ -282,7 +282,7 @@ public partial class Steps {
         }
 
         /// <summary>
-        /// Compares the node's rendered "background" TextureRect texture
+        /// Compares the node's rendered "background" paint surface texture
         /// against a reference PNG at the given dimensions. If the reference
         /// does not exist yet, it is created from the current render
         /// (reference-generation mode); if it exists, the texture must match
@@ -291,7 +291,7 @@ public partial class Steps {
         public AssertPanel ReferenceBackground(string relativeImagePath, int width, int height,
             [CallerFilePath] string callerPath = "")
         {
-            var rect = node?.GetNodeOrNull<TextureRect>("background");
+            var rect = node?.GetNodeOrNull<UiTextureSurface>("background");
             if (rect is null || rect.Texture is null)
             {
                 Assertions.AssertThat(true)
@@ -329,29 +329,158 @@ public partial class Steps {
         }
 
         /// <summary>
-        /// Asserts that the panel renders a nine-patch border with the expected
-        /// width (patch margin on all sides) and a hidden center.
+        /// Asserts that the panel renders a nine-slice border with the expected
+        /// width (slice margin on all sides) and a hidden center.
         /// </summary>
         public AssertPanel HasBorder(int expectedWidth = 1) {
-            var border = window?.GetNodeOrNull<NinePatchRect>("border");
+            var border = window?.GetNodeOrNull<UiTextureSurface>("border");
             if (border is null || border.Texture is null) {
                 Assertions.AssertThat(true)
                     .OverrideFailureMessage($"Panel at \"{path}\" does not have a nine-patch border")
                     .IsFalse();
                 return this;
             }
-            Assertions.AssertInt(border.PatchMarginLeft)
+            Assertions.AssertInt(border.Spec.SliceWidth)
                 .OverrideFailureMessage(
-                    $"Panel at \"{path}\" border width is {border.PatchMarginLeft}, expected {expectedWidth}")
+                    $"Panel at \"{path}\" border width is {border.Spec.SliceWidth}, expected {expectedWidth}")
                 .IsEqual(expectedWidth);
-            Assertions.AssertBool(!border.DrawCenter)
-                .OverrideFailureMessage($"Panel at \"{path}\" border center is not hidden")
-                .IsTrue();
             return this;
         }
 
         /// <summary>
-        /// Compares the node's rendered "border" NinePatchRect image against a
+        /// Asserts the resolved fill spec of the node's "background" paint
+        /// surface (the per-texture paint that reached the reader). Every
+        /// parameter is optional; only the provided fields are checked.
+        /// </summary>
+        public AssertPanel BackgroundPaint(
+            bool? tileWidth = null, bool? tileHeight = null, bool? keepAspect = null,
+            int? sliceWidth = null, int? sliceHeight = null)
+        {
+            var rect = node?.GetNodeOrNull<UiTextureSurface>("background");
+            if (rect is null || rect.Texture is null)
+            {
+                Assertions.AssertThat(true)
+                    .OverrideFailureMessage($"Node at \"{path}\" has no rendered background paint surface")
+                    .IsFalse();
+                return this;
+            }
+            var s = rect.Spec;
+            if (tileWidth is bool t)
+                Assertions.AssertBool(s.TileWidth == t)
+                    .OverrideFailureMessage($"Background TileWidth is {s.TileWidth}, expected {t}")
+                    .IsTrue();
+            if (tileHeight is bool h)
+                Assertions.AssertBool(s.TileHeight == h)
+                    .OverrideFailureMessage($"Background TileHeight is {s.TileHeight}, expected {h}")
+                    .IsTrue();
+            if (keepAspect is bool k)
+                Assertions.AssertBool(s.KeepAspect == k)
+                    .OverrideFailureMessage($"Background KeepAspect is {s.KeepAspect}, expected {k}")
+                    .IsTrue();
+            if (sliceWidth is int sw)
+                Assertions.AssertInt(s.SliceWidth)
+                    .OverrideFailureMessage($"Background SliceWidth is {s.SliceWidth}, expected {sw}")
+                    .IsEqual(sw);
+            if (sliceHeight is int sh)
+                Assertions.AssertInt(s.SliceHeight)
+                    .OverrideFailureMessage($"Background SliceHeight is {s.SliceHeight}, expected {sh}")
+                    .IsEqual(sh);
+            return this;
+        }
+
+        /// <summary>
+        /// Asserts the resolved fill spec of the node's "border" paint surface,
+        /// overriding the <see cref="HasBorder"/> width check with exact flags.
+        /// </summary>
+        public AssertPanel BorderPaint(
+            bool? tileWidth = null, bool? tileHeight = null, bool? keepAspect = null,
+            int? sliceWidth = null, int? sliceHeight = null)
+        {
+            var border = window?.GetNodeOrNull<UiTextureSurface>("border");
+            if (border is null || border.Texture is null)
+            {
+                Assertions.AssertThat(true)
+                    .OverrideFailureMessage($"Panel at \"{path}\" does not have a border paint surface")
+                    .IsFalse();
+                return this;
+            }
+            var s = border.Spec;
+            if (tileWidth is bool t)
+                Assertions.AssertBool(s.TileWidth == t)
+                    .OverrideFailureMessage($"Border TileWidth is {s.TileWidth}, expected {t}")
+                    .IsTrue();
+            if (tileHeight is bool h)
+                Assertions.AssertBool(s.TileHeight == h)
+                    .OverrideFailureMessage($"Border TileHeight is {s.TileHeight}, expected {h}")
+                    .IsTrue();
+            if (keepAspect is bool k)
+                Assertions.AssertBool(s.KeepAspect == k)
+                    .OverrideFailureMessage($"Border KeepAspect is {s.KeepAspect}, expected {k}")
+                    .IsTrue();
+            if (sliceWidth is int sw)
+                Assertions.AssertInt(s.SliceWidth)
+                    .OverrideFailureMessage($"Border SliceWidth is {s.SliceWidth}, expected {sw}")
+                    .IsEqual(sw);
+            if (sliceHeight is int sh)
+                Assertions.AssertInt(s.SliceHeight)
+                    .OverrideFailureMessage($"Border SliceHeight is {s.SliceHeight}, expected {sh}")
+                    .IsEqual(sh);
+            return this;
+        }
+
+        /// <summary>
+        /// Asserts the resolved fill spec of the node's hover outline surface.
+        /// </summary>
+        public AssertPanel HoverPaint(
+            bool? tileWidth = null, bool? tileHeight = null, bool? keepAspect = null,
+            int? sliceWidth = null, int? sliceHeight = null)
+        {
+            var surface = FindHoverOutlineSurface(window);
+            if (surface is null)
+            {
+                Assertions.AssertThat(true)
+                    .OverrideFailureMessage($"Panel at \"{path}\" has no hover outline surface")
+                    .IsFalse();
+                return this;
+            }
+            var s = surface.Spec;
+            if (tileWidth is bool t)
+                Assertions.AssertBool(s.TileWidth == t)
+                    .OverrideFailureMessage($"Hover outline TileWidth is {s.TileWidth}, expected {t}")
+                    .IsTrue();
+            if (tileHeight is bool h)
+                Assertions.AssertBool(s.TileHeight == h)
+                    .OverrideFailureMessage($"Hover outline TileHeight is {s.TileHeight}, expected {h}")
+                    .IsTrue();
+            if (keepAspect is bool k)
+                Assertions.AssertBool(s.KeepAspect == k)
+                    .OverrideFailureMessage($"Hover outline KeepAspect is {s.KeepAspect}, expected {k}")
+                    .IsTrue();
+            if (sliceWidth is int sw)
+                Assertions.AssertInt(s.SliceWidth)
+                    .OverrideFailureMessage($"Hover outline SliceWidth is {s.SliceWidth}, expected {sw}")
+                    .IsEqual(sw);
+            if (sliceHeight is int sh)
+                Assertions.AssertInt(s.SliceHeight)
+                    .OverrideFailureMessage($"Hover outline SliceHeight is {s.SliceHeight}, expected {sh}")
+                    .IsEqual(sh);
+            return this;
+        }
+
+        static UiTextureSurface? FindHoverOutlineSurface(Node? node)
+        {
+            if (node is null) return null;
+            if (node is HoverOutline outline) return outline.Surface;
+            for (var i = 0; i < node.GetChildCount(); i++)
+            {
+                var found = FindHoverOutlineSurface(node.GetChild(i));
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Compares the node's rendered "border" paint surface image against a
         /// reference PNG, resizing the actual to the reference's dimensions
         /// (nearest-neighbour). Fails if the reference is missing or the pixels
         /// differ.
@@ -361,11 +490,11 @@ public partial class Steps {
         {
             var baseDir = Path.GetDirectoryName(callerPath);
             var fullExpectedPath = Path.Combine(baseDir, relativeImagePath);
-            var border = window?.GetNodeOrNull<NinePatchRect>("border");
+            var border = window?.GetNodeOrNull<UiTextureSurface>("border");
             if (border is null)
             {
                 Assertions.AssertBool(false)
-                    .OverrideFailureMessage($"Node at \"{path}\" has no rendered \"border\" NinePatchRect")
+                    .OverrideFailureMessage($"Node at \"{path}\" has no rendered \"border\" paint surface")
                     .IsTrue();
                 return this;
             }
@@ -419,10 +548,10 @@ public partial class Steps {
         }
 
         /// <summary>
-        /// Asserts that the node's background TextureRect exists and has a texture set.
+        /// Asserts that the node's background paint surface exists and has a texture set.
         /// </summary>
         public AssertPanel HasBackgroundTexture() {
-            var rect = node?.GetNodeOrNull<TextureRect>("background");
+            var rect = node?.GetNodeOrNull<UiTextureSurface>("background");
             if (rect is null || rect.Texture is null)
             {
                 Assertions.AssertThat(true)
@@ -433,7 +562,7 @@ public partial class Steps {
         }
 
         /// <summary>
-        /// Compares the node's rendered "background" TextureRect image against a
+        /// Compares the node's rendered "background" paint surface image against a
         /// reference PNG, resizing the actual to the reference's dimensions
         /// (nearest-neighbour). Fails if the reference is missing or the pixels
         /// differ.
@@ -443,11 +572,11 @@ public partial class Steps {
         {
             var baseDir = Path.GetDirectoryName(callerPath);
             var fullExpectedPath = Path.Combine(baseDir, relativeImagePath);
-            var rect = node?.GetNodeOrNull<TextureRect>("background");
+            var rect = node?.GetNodeOrNull<UiTextureSurface>("background");
             if (rect is null)
             {
                 Assertions.AssertBool(false)
-                    .OverrideFailureMessage($"Node at \"{path}\" has no rendered \"background\" TextureRect")
+                    .OverrideFailureMessage($"Node at \"{path}\" has no rendered \"background\" paint surface")
                     .IsTrue();
                 return this;
             }
@@ -455,7 +584,7 @@ public partial class Steps {
             if (texture is null)
             {
                 Assertions.AssertBool(false)
-                    .OverrideFailureMessage($"Node at \"{path}\" background TextureRect has no texture")
+                    .OverrideFailureMessage($"Node at \"{path}\" background paint surface has no texture")
                     .IsTrue();
                 return this;
             }

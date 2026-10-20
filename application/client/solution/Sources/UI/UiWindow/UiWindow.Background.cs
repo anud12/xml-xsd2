@@ -33,6 +33,7 @@ public partial class UiWindow
             ApplyPortalArrow(aw, ah, unlinked, line);
             return;
         }
+        _backgroundPaint = ParsePaintSpec(opts, "backgroundPaint", UiPaintSpec.Cover);
         ApplyAreaOutline(opts);
         if (opts.ValueKind == JsonValueKind.Undefined
             || !opts.TryGetProperty("background", out var bg))
@@ -47,7 +48,7 @@ public partial class UiWindow
                 img.LoadPngFromBuffer(data);
                 var tex = ImageTexture.CreateFromImage(img);
                 _baseBackgroundTexture = tex;
-                SetBackgroundTexture(tex);
+                SetBackground(tex);
             }
             else
             {
@@ -339,7 +340,7 @@ public partial class UiWindow
         var tex = ImageTexture.CreateFromImage(composed);
         _baseBackgroundTexture = tex;
         TextureFilter = TextureFilterEnum.Nearest;
-        SetBackgroundTexture(tex);
+        SetBackground(tex);
     }
 
     /// Computes the current frame index from the runtime elapsed time units
@@ -419,7 +420,7 @@ public partial class UiWindow
         var img = new Image();
         img.LoadPngFromBuffer(data);
         _animTexture = ImageTexture.CreateFromImage(img);
-        SetBackgroundTexture(_animTexture);
+        SetBackground(_animTexture);
     }
 
     string? _currentFramePath;
@@ -436,23 +437,49 @@ public partial class UiWindow
         base._Process(delta);
     }
 
-    /// Renders the background as a full-rect TextureRect behind the content
-    /// (UiWindow is a plain Control, so it has no theme background of its own).
-    void SetBackgroundTexture(Texture2D texture)
+    // The resolved fill rules for this node's background (from options
+    // `backgroundPaint`); defaults to cover so a bare ref keeps its behavior.
+    UiPaintSpec _backgroundPaint = UiPaintSpec.Cover;
+
+    /// Parses a flat paint spec object
+    /// `{tileWidth,tileHeight,keepAspect,sliceWidth,sliceHeight}` out of `opts`
+    /// under `key`, falling back to `fallback` when the property is absent or
+    /// not an object. Shared by every textured slot reader.
+    internal static UiPaintSpec ParsePaintSpec(JsonElement opts, string key, UiPaintSpec fallback)
     {
-        var tr = GetNodeOrNull<TextureRect>("background");
-        if (tr == null)
+        if (opts.ValueKind != JsonValueKind.Object
+            || !opts.TryGetProperty(key, out var p)
+            || p.ValueKind != JsonValueKind.Object)
+            return fallback;
+        var tw = p.TryGetProperty("tileWidth", out var v) && v.ValueKind == JsonValueKind.True;
+        var th = p.TryGetProperty("tileHeight", out v) && v.ValueKind == JsonValueKind.True;
+        var ka = p.TryGetProperty("keepAspect", out v) && v.ValueKind == JsonValueKind.True;
+        var sw = p.TryGetProperty("sliceWidth", out var s) && s.ValueKind == JsonValueKind.Number
+            ? (int)s.GetDouble() : 0;
+        var sh = p.TryGetProperty("sliceHeight", out s) && s.ValueKind == JsonValueKind.Number
+            ? (int)s.GetDouble() : sw;
+        return new UiPaintSpec(tw, th, ka, sw, sh);
+    }
+
+    /// Renders the background as a full-rect paint surface behind the content
+    /// (UiWindow is a plain Control, so it has no theme background of its
+    /// own); the surface paints its texture per `_backgroundPaint` (cover by
+    /// default: uniform scale, centered, overflow clipped).
+    void SetBackground(Texture2D texture) => SetBackground(texture, _backgroundPaint);
+
+    void SetBackground(Texture2D texture, UiPaintSpec paint)
+    {
+        var surf = GetNodeOrNull<UiTextureSurface>("background");
+        if (surf == null)
         {
-            tr = new TextureRect { Name = "background" };
-            tr.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-            tr.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
-            tr.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
-            tr.ZIndex = -10;
-            tr.MouseFilter = Control.MouseFilterEnum.Ignore;
-            AddChild(tr);
-            MoveChild(tr, 0);
-            tr.SetAnchorsPreset(LayoutPreset.FullRect, true);
+            surf = new UiTextureSurface { Name = "background" };
+            surf.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+            surf.ZIndex = -10;
+            surf.MouseFilter = Control.MouseFilterEnum.Ignore;
+            AddChild(surf);
+            MoveChild(surf, 0);
+            surf.SetAnchorsPreset(LayoutPreset.FullRect, true);
         }
-        tr.Texture = texture;
+        surf.Update(paint, texture);
     }
 }

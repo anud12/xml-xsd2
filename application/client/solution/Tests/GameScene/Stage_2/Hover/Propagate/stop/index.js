@@ -47,7 +47,7 @@ export default (hostApi) => {
     panel: {
       width: 100,
       height: 100,
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
       onHover: {
         emitAction: parentHover,
       },

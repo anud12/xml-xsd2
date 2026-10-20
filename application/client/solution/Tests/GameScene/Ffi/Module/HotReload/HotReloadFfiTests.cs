@@ -178,7 +178,7 @@ public class HotReloadFfiTests : Steps
 
     static Color BackgroundPixel(UiWindow window)
     {
-        var tr = window.GetNode<TextureRect>("background");
+        var tr = window.GetNode<UiTextureSurface>("background");
         var img = ((ImageTexture)tr.Texture).GetImage();
         return img.GetPixel(0, 0);
     }

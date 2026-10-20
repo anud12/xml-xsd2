@@ -50,6 +50,9 @@ public partial class UiWindow : Control
     string? _hoverEmitAction;
     bool _hoverStopPropagation;
     Texture2D? _hoverTexture;
+    // Fill rules for the hover background swap (from onHover.backgroundPaint);
+    // defaults to cover so a bare ref keeps its behavior.
+    UiPaintSpec _hoverBackgroundPaint = UiPaintSpec.Cover;
     Color? _hoverColor;
     Texture2D? _baseBackgroundTexture;
     bool _isHovered;

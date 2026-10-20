@@ -176,6 +176,14 @@ static class PanelParser
 
         if (e.TryGetProperty(prop, out var val) && val.ValueKind == JsonValueKind.Object)
         {
+            // Unified slot { animation, fill, nineSlice? }: for fixed-frame
+            // slots (hover outline/background, border) the host resolves the
+            // animation to a concrete first-frame reference string (a path, a
+            // sprite name, or a __spriteMap JSON string).
+            var animation = Extract.String(val, "animation");
+            if (animation != null)
+                return animation;
+
             if (val.TryGetProperty("frames", out var frames) && frames.ValueKind == JsonValueKind.Array
                 && frames.GetArrayLength() > 0)
             {

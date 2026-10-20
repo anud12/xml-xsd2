@@ -10,7 +10,7 @@ export default (hostApi) => {
     panel: {
       width: 120,
       height: 120,
-      border: { texture: border },
+      border: { texture: { animation: border, fill: { width: "stretch", height: "stretch" } }},
     },
   });
 }

@@ -24,7 +24,7 @@ export default (hostApi) => {
     panel: {
       width: 10,
       height: 10,
-      background: idle,
+      background: { animation: idle, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [])
 }

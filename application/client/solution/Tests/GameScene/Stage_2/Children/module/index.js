@@ -16,7 +16,7 @@ export default (hostApi) => {
     panel: {
       width: 100,
       height: 100,
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [
     hostApi.ui.window("child", {
@@ -25,7 +25,7 @@ export default (hostApi) => {
         height: 10,
         x: 0,
         y: 0,
-        background: texture_2,
+        background: { animation: texture_2, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
       },
     }, []),
     hostApi.ui.window("child_2", {
@@ -34,7 +34,7 @@ export default (hostApi) => {
         height: 10,
         x: 0,
         y: 10,
-        background: texture_2,
+        background: { animation: texture_2, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
       },
     }, []),
   ])

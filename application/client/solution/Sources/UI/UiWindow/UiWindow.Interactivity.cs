@@ -88,7 +88,10 @@ public partial class UiWindow
             && sp.ValueKind == JsonValueKind.True;
 
         if (hover.TryGetProperty("background", out var hb))
+        {
             ResolveHoverBackground(hb);
+            _hoverBackgroundPaint = ParsePaintSpec(hover, "backgroundPaint", UiPaintSpec.Cover);
+        }
 
         // Hover outline: { texture, thickness } — a nine-patch that appears on
         // mouse enter and hides on exit. The texture arrives as an archive
@@ -101,7 +104,8 @@ public partial class UiWindow
                 && th.ValueKind == JsonValueKind.Number
                 ? (int)th.GetDouble()
                 : 0;
-            EnsureHoverOutline(htx.GetString(), thickness);
+            var outlinePaint = ParsePaintSpec(hover, "texturePaint", UiPaintSpec.FrameCentered(thickness));
+            EnsureHoverOutline(htx.GetString(), thickness, outlinePaint);
         }
 
         if (!_hoverWired
@@ -444,7 +448,7 @@ public partial class UiWindow
         }
     }
 
-    void EnsureHoverOutline(string? texturePath, int thickness)
+    void EnsureHoverOutline(string? texturePath, int thickness, UiPaintSpec? paint = null)
     {
         if (_hoverOutline != null || string.IsNullOrEmpty(texturePath)) return;
         _hoverOutline = new HoverOutline(
@@ -452,7 +456,8 @@ public partial class UiWindow
             {
                 Texture = texturePath,
                 Thickness = thickness
-            });
+            },
+            paint);
         _hoverOutline.Visible = false;
         AddChild(_hoverOutline);
         _hoverOutline.Resize();
@@ -515,8 +520,8 @@ public partial class UiWindow
     {
         if (_isHovered)
         {
-            if (_hoverTexture != null)
-                SetBackgroundTexture(_hoverTexture);
+                if (_hoverTexture != null)
+                    SetBackground(_hoverTexture, _hoverBackgroundPaint);
             else if (_hoverColor.HasValue)
                 SetHoverTint(_hoverColor.Value);
         }
@@ -526,7 +531,7 @@ public partial class UiWindow
             // Revert to the base background if one was applied at Apply time.
             if (_baseBackgroundTexture != null)
             {
-                SetBackgroundTexture(_baseBackgroundTexture);
+                SetBackground(_baseBackgroundTexture);
             }
             else if (_animName != null)
             {

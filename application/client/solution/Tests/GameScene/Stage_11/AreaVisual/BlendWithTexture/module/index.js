@@ -55,7 +55,7 @@ export default (hostApi) => {
     ],
   }, (entity) => hostApi.ui.window(entity.id, {
     panel: {
-      background: item,
+      background: { animation: item, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, []));
 };

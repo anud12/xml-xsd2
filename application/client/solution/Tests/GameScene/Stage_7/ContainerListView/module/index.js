@@ -34,7 +34,7 @@ export default (hostApi) => {
       height: 300,
       anchor: "center",
       align: "center",
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [
     hostApi.ui.entityList("items", { container: itemsContainer },
@@ -43,7 +43,7 @@ export default (hostApi) => {
           panel: {
             width: 50,
             height: 50,
-            background: texture2,
+            background: { animation: texture2, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
           },
         }, [
           hostApi.ui.field(entity.id + ":value", {

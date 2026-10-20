@@ -26,7 +26,7 @@ export default (hostApi) => {
       height: 100,
       x: 100,
       y: 100,
-      background: fastSequence,
+      background: { animation: fastSequence, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, []);
 
@@ -36,7 +36,7 @@ export default (hostApi) => {
       height: 100,
       x: 300,
       y: 100,
-      background: slowSequence,
+      background: { animation: slowSequence, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, []);
 }

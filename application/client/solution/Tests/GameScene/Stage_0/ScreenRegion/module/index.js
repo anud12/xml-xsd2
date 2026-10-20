@@ -11,7 +11,7 @@ export default (hostApi) => {
     panel: {
       width: 100,
       height: 100,
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [])
   // Overlays the top-left quarter of panel — the region under the overlay
@@ -22,7 +22,7 @@ export default (hostApi) => {
       height: 50,
       x: 500,
       y: 500,
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [])
 }

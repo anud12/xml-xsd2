@@ -29,7 +29,7 @@ export default (hostApi) => {
     panel: {
       width: 100,
       height: 100,
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
       onClick: (ctx) => {
         ctx.emitAction(action);
       },
@@ -41,7 +41,7 @@ export default (hostApi) => {
         y: 20,
         width: 10,
         height: 10,
-        background: texture_2,
+        background: { animation: texture_2, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
         onClick: (ctx) => {
           ctx.emitAction(childAction);
         },

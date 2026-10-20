@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use super::UiNode as DomainNode;
 use super::UiDeltaOp as DomainDeltaOp;
 
-pub const UI_ABI_VERSION: u32 = 6;
+pub const UI_ABI_VERSION: u32 = 7;
 /// Sentinel string offset: "no string" (absent value/src/optional option).
 pub const NO_STR: u32 = u32::MAX;
 
@@ -131,6 +131,58 @@ pub struct UiLayout {
     pub row_tracks: *const UiTrack,
 }
 
+/// Per-axis fill rules plus optional nine-slice geometry describing how a
+/// texture is painted into a region (mirrors the C# `UiPaintSpec`). The
+/// renderer applies these; all flags `0` combined with no slice mean a plain
+/// stretch. Nine-slice (slice_width/height > 0) fixes the four corners at the
+/// slice size and paints the edges/center per the fill rules (a frame is a
+/// nine-slice whose source center is transparent).
+#[repr(C)]
+pub struct UiPaintSpec {
+    pub tile_width: u8,
+    pub tile_height: u8,
+    pub keep_aspect: u8,
+    pub slice_width: u32,
+    pub slice_height: u32,
+}
+
+impl UiPaintSpec {
+    /// Plain independent-axis stretch (no tile, no aspect, no slice).
+    fn stretch() -> Self {
+        UiPaintSpec {
+            tile_width: 0,
+            tile_height: 0,
+            keep_aspect: 0,
+            slice_width: 0,
+            slice_height: 0,
+        }
+    }
+
+    /// Full-rect cover: uniform scale, centered, overflow clipped.
+    fn cover() -> Self {
+        let mut s = Self::stretch();
+        s.keep_aspect = 1;
+        s
+    }
+
+    /// Nine-slice geometry: corners fixed at `width` x `height`, edges and
+    /// (transparent) center painted per the fill rules.
+    fn nine_slice(width: u32, height: u32) -> Self {
+        let mut s = Self::stretch();
+        s.slice_width = width;
+        s.slice_height = height;
+        s
+    }
+
+    /// Tile along one axis, stretch the other (progress bars).
+    fn tile_axis(tile_width: bool, tile_height: bool) -> Self {
+        let mut s = Self::stretch();
+        s.tile_width = tile_width as u8;
+        s.tile_height = tile_height as u8;
+        s
+    }
+}
+
 #[repr(C)]
 pub struct UiBackground {
     pub kind: u8,
@@ -141,6 +193,7 @@ pub struct UiBackground {
     pub map: u32,
     pub layer_count: u32,
     pub layers: *const UiMapLayer,
+    pub paint: UiPaintSpec,
 }
 
 #[repr(C)]
@@ -150,6 +203,8 @@ pub struct UiOnHover {
     pub emit_action: u32,
     pub background: u32,
     pub texture: u32,
+    pub background_paint: UiPaintSpec,
+    pub texture_paint: UiPaintSpec,
 }
 
 #[repr(C)]
@@ -167,6 +222,7 @@ pub struct UiNodeOptions {
     pub border_texture: u32,
     pub border_width: f32,
     pub has_border: u8,
+    pub border_paint: UiPaintSpec,
     pub on_click: UiOnClick,
     pub on_hover: UiOnHover,
     pub container: u32,
@@ -260,6 +316,7 @@ pub struct UiAbiSizes {
     pub size_layout: u32,
     pub size_track: u32,
     pub size_background: u32,
+    pub size_paint_spec: u32,
     pub size_map_layer: u32,
     pub size_on_click: u32,
     pub size_click_step: u32,
@@ -309,6 +366,7 @@ pub fn abi_sizes() -> UiAbiSizes {
         size_layout: size_of::<UiLayout>() as u32,
         size_track: size_of::<UiTrack>() as u32,
         size_background: size_of::<UiBackground>() as u32,
+        size_paint_spec: size_of::<UiPaintSpec>() as u32,
         size_map_layer: size_of::<UiMapLayer>() as u32,
         size_on_click: size_of::<UiOnClick>() as u32,
         size_click_step: size_of::<UiClickStep>() as u32,
@@ -642,10 +700,12 @@ fn empty_options() -> UiNodeOptions {
             map: NO_STR,
             layer_count: 0,
             layers: ptr::null(),
+            paint: UiPaintSpec::cover(),
         },
         border_texture: NO_STR,
         border_width: 0.0,
         has_border: 0,
+        border_paint: UiPaintSpec::nine_slice(0, 0),
         on_click: UiOnClick {
             kind: UI_CLICK_NONE,
             action: NO_STR,
@@ -658,6 +718,8 @@ fn empty_options() -> UiNodeOptions {
             emit_action: NO_STR,
             background: NO_STR,
             texture: NO_STR,
+            background_paint: UiPaintSpec::cover(),
+            texture_paint: UiPaintSpec::nine_slice(0, 0),
         },
         container: NO_STR,
         resizable: 0,
@@ -681,6 +743,7 @@ fn empty_options() -> UiNodeOptions {
             map: NO_STR,
             layer_count: 0,
             layers: ptr::null(),
+            paint: UiPaintSpec::tile_axis(true, false),
         },
         progress_track: UiBackground {
             kind: UI_BG_NONE,
@@ -691,6 +754,7 @@ fn empty_options() -> UiNodeOptions {
             map: NO_STR,
             layer_count: 0,
             layers: ptr::null(),
+            paint: UiPaintSpec::tile_axis(true, false),
         },
         progress_orientation: 0,
         progress_steps: 100,
@@ -805,23 +869,75 @@ fn parse_layout(
     l
 }
 
+/// Resolves a wire `fill` object `{ width, height, keepAspectRatio? }` into
+/// the fill flags and writes them into `b.paint` (the nine-slice geometry, if
+/// any, is applied separately by {@link apply_nine_slice}).
+fn apply_fill(b: &mut UiBackground, fill: &Value) {
+    let Some(m) = fill.as_object() else {
+        return;
+    };
+    let axis = |key: &str| -> bool {
+        m.get(key).and_then(|v| v.as_str()) == Some("tile")
+    };
+    b.paint.tile_width = axis("width") as u8;
+    b.paint.tile_height = axis("height") as u8;
+    b.paint.keep_aspect = m.get("keepAspectRatio").and_then(|v| v.as_bool()).unwrap_or(false) as u8;
+}
+
+/// Resolves an optional wire `nineSlice` object `{ width, height }` into the
+/// slice geometry and writes it into `b.paint`.
+fn apply_nine_slice(b: &mut UiBackground, nine: Option<&Value>) {
+    if let Some(n) = nine {
+        let Some(m) = n.as_object() else {
+            return;
+        };
+        let num = |k: &str| m.get(k).and_then(|v| v.as_f64()).map(|f| f as u32).unwrap_or(0);
+        b.paint.slice_width = num("width");
+        b.paint.slice_height = num("height");
+    }
+}
+
+/// Parses a unified texture slot `{ animation, fill, nineSlice? }` for a live
+/// slot (background / screen background): the animation is a named reference
+/// `{ name, duration, loop }`, and the fill/nineSlice override the slot
+/// default paint.
 fn parse_background(
     opts: &Map<String, Value>,
     slab: &mut Slab,
     layer_base: *mut UiMapLayer,
 ) -> UiBackground {
     let mut b = empty_options().background;
-    match opts.get("background") {
-        None | Some(Value::Null) => {}
-        Some(Value::String(path)) if !path.is_empty() => {
-            b.kind = UI_BG_STATIC;
-            b.path = slab.intern(path);
+    if let Some(v) = opts.get("background") {
+        if let Some(m) = v.as_object() {
+            if let Some(anim) = m.get("animation") {
+                parse_background_ref(anim, &mut b, slab, layer_base);
+            }
+            if let Some(fill) = m.get("fill") {
+                apply_fill(&mut b, fill);
+            }
+            apply_nine_slice(&mut b, m.get("nineSlice"));
         }
-        Some(v) => {
-            let Some(m) = v.as_object() else {
-                return b;
-            };
-            if m.get("map").and_then(|m| m.as_str()).is_some() {
+    }
+    b.layers = layer_base;
+    b
+}
+
+/// Parses a texture reference (a named animation ref, or a sprite map) into
+/// `b`, leaving `b.kind` unchanged (NONE) when the reference is absent.
+fn parse_background_ref(
+    v: &Value,
+    b: &mut UiBackground,
+    slab: &mut Slab,
+    layer_base: *mut UiMapLayer,
+) {
+    match v {
+        Value::Object(m) => {
+            if m.get("name").and_then(|n| n.as_str()).is_some() {
+                b.kind = UI_BG_ANIMATION;
+                b.name = opt_str(m, "name", slab);
+                b.duration = opt_f32(m, "duration");
+                b.loop_ = opt_bool(m, "loop") as u8;
+            } else if m.get("map").and_then(|m| m.as_str()).is_some() {
                 b.kind = UI_BG_SPRITE_MAP;
                 b.map = opt_str(m, "map", slab);
                 if let Some(layers) = m.get("layers").and_then(|l| l.as_array()) {
@@ -838,42 +954,43 @@ fn parse_background(
                     }
                     b.layer_count = layers.len() as u32;
                 }
-            } else if m.get("name").and_then(|n| n.as_str()).is_some() {
-                b.kind = UI_BG_ANIMATION;
-                b.name = opt_str(m, "name", slab);
-                b.duration = opt_f32(m, "duration");
-                b.loop_ = opt_bool(m, "loop") as u8;
             }
         }
+        _ => {}
     }
-    b.layers = layer_base;
+}
+
+/// Progress fill/track: a unified texture slot `{ animation, fill, nineSlice? }`.
+/// The default paint tiles along the value axis and stretches across the
+/// other; the explicit `fill`/`nineSlice` override it.
+fn parse_progress_tex(opts: &Map<String, Value>, key: &str, slab: &mut Slab, vertical: bool) -> UiBackground {
+    let mut b = empty_options().background;
+    b.paint = UiPaintSpec::tile_axis(!vertical, vertical);
+    if let Some(v) = opts.get(key) {
+        if let Some(m) = v.as_object() {
+            if let Some(anim) = m.get("animation") {
+                parse_background_ref(anim, &mut b, slab, ptr::null_mut());
+            }
+            if let Some(fill) = m.get("fill") {
+                apply_fill(&mut b, fill);
+            }
+            apply_nine_slice(&mut b, m.get("nineSlice"));
+        }
+    }
     b
 }
 
-/// Progress fill/track texture reference: a static PNG archive path or an
-/// animation ref ({ name, duration, loop }). Sprite maps are not supported
-/// for progress tiling, so a `map` object leaves the reference absent.
-fn parse_progress_tex(opts: &Map<String, Value>, key: &str, slab: &mut Slab) -> UiBackground {
-    let mut b = empty_options().background;
-    match opts.get(key) {
-        None | Some(Value::Null) => {}
-        Some(Value::String(path)) if !path.is_empty() => {
-            b.kind = UI_BG_STATIC;
-            b.path = slab.intern(path);
+/// Resolves a first-frame reference (a concrete path string, or a sprite-map
+/// object) for a fixed textured slot (border / hover outline or background)
+/// into an interned path. Returns NO_STR when unresolvable.
+fn first_frame_path(v: &Value, slab: &mut Slab) -> u32 {
+    match v {
+        Value::String(s) if !s.is_empty() => slab.intern(s),
+        Value::Object(m) if m.get("__spriteMap").is_some() => {
+            slab.intern(&Value::Object(m.clone()).to_string())
         }
-        Some(v) => {
-            let Some(m) = v.as_object() else {
-                return b;
-            };
-            if m.get("name").and_then(|n| n.as_str()).is_some() {
-                b.kind = UI_BG_ANIMATION;
-                b.name = opt_str(m, "name", slab);
-                b.duration = opt_f32(m, "duration");
-                b.loop_ = opt_bool(m, "loop") as u8;
-            }
-        }
+        _ => NO_STR,
     }
-    b
 }
 
 fn parse_on_click(
@@ -1083,7 +1200,29 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     o.layout = parse_layout(panel, slab, r.col_tracks, r.row_tracks);
     o.background = parse_background(panel, slab, r.layers);
     if let Some(border) = panel.get("border").and_then(|b| b.as_object()) {
-        o.border_texture = opt_str(border, "texture", slab);
+        if let Some(tx) = border.get("texture").and_then(|t| t.as_object()) {
+            o.border_texture = match tx.get("animation") {
+                Some(a) => first_frame_path(a, slab),
+                None => NO_STR,
+            };
+            // The border is a nine-slice frame; the margin comes from the
+            // `width` option, and an explicit fill/nineSlice override the
+            // stretch-default paint.
+            let margin = opt_num(border, "width").map(|f| f as u32).unwrap_or(1).max(1);
+            o.border_paint = UiPaintSpec::nine_slice(margin, margin);
+            if let Some(fill) = tx.get("fill") {
+                let mut b = empty_options().background;
+                b.paint = o.border_paint;
+                apply_fill(&mut b, fill);
+                o.border_paint = b.paint;
+            }
+            if let Some(nine) = tx.get("nineSlice") {
+                let mut b = empty_options().background;
+                b.paint = o.border_paint;
+                apply_nine_slice(&mut b, Some(nine));
+                o.border_paint = b.paint;
+            }
+        }
         o.border_width = opt_f32(border, "width");
         o.has_border = 1;
     }
@@ -1091,9 +1230,45 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     if let Some(h) = panel.get("onHover").and_then(|h| h.as_object()) {
         o.on_hover.emit_action = opt_str(h, "emitAction", slab);
         o.on_hover.stop_propagation = opt_bool(h, "stopPropagation") as u8;
-        o.on_hover.background = opt_str(h, "background", slab);
-        o.on_hover.texture = opt_str(h, "texture", slab);
         o.on_hover.thickness = opt_f32(h, "thickness");
+        let thickness_margin = (o.on_hover.thickness as u32).max(1);
+        // Background swap: a unified texture slot; the default fill is cover.
+        if let Some(bv) = h.get("background").and_then(|b| b.as_object()) {
+            o.on_hover.background = match bv.get("animation") {
+                Some(a) => first_frame_path(a, slab),
+                None => NO_STR,
+            };
+            if let Some(fill) = bv.get("fill") {
+                let mut b = empty_options().background;
+                b.paint = UiPaintSpec::cover();
+                apply_fill(&mut b, fill);
+                if let Some(nine) = bv.get("nineSlice") {
+                    apply_nine_slice(&mut b, Some(nine));
+                }
+                o.on_hover.background_paint = b.paint;
+            }
+        }
+        // Outline texture: a unified texture slot; the default fill is a
+        // nine-slice frame at `thickness`.
+        if let Some(tv) = h.get("texture").and_then(|t| t.as_object()) {
+            o.on_hover.texture = match tv.get("animation") {
+                Some(a) => first_frame_path(a, slab),
+                None => NO_STR,
+            };
+            o.on_hover.texture_paint = UiPaintSpec::nine_slice(thickness_margin, thickness_margin);
+            if let Some(fill) = tv.get("fill") {
+                let mut b = empty_options().background;
+                b.paint = o.on_hover.texture_paint;
+                apply_fill(&mut b, fill);
+                o.on_hover.texture_paint = b.paint;
+            }
+            if let Some(nine) = tv.get("nineSlice") {
+                let mut b = empty_options().background;
+                b.paint = o.on_hover.texture_paint;
+                apply_nine_slice(&mut b, Some(nine));
+                o.on_hover.texture_paint = b.paint;
+            }
+        }
     }
     // The click-cursor container: for a board panel it lives in the layout
     // spec (panel.layout.container); for a container-view it is the top-level
@@ -1184,12 +1359,10 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     // progress: the tiled fill/track texture references (static path or
     // animation ref) + the fill orientation (0 = horizontal, 1 = vertical) +
     // the step count (default 100). Only progress nodes set these keys.
-    o.progress_fill = parse_progress_tex(opts, "fill", slab);
-    o.progress_track = parse_progress_tex(opts, "track", slab);
-    o.progress_orientation = match opts.get("orientation").and_then(|v| v.as_str()) {
-        Some("vertical") => 1,
-        _ => 0,
-    };
+    let vertical = matches!(opts.get("orientation").and_then(|v| v.as_str()), Some("vertical"));
+    o.progress_fill = parse_progress_tex(opts, "fill", slab, vertical);
+    o.progress_track = parse_progress_tex(opts, "track", slab, vertical);
+    o.progress_orientation = vertical as u8;
     o.progress_steps = opts
         .get("steps")
         .and_then(|v| v.as_u64())
@@ -1474,14 +1647,15 @@ mod tests {
         assert_eq!(s.size_on_click, 24);
         assert_eq!(s.size_binding, 16);
         assert_eq!(s.size_layout, 40);
-        assert_eq!(s.size_background, 32);
-        assert_eq!(s.size_on_hover, 20);
-        assert_eq!(s.size_options, 288);
-        assert_eq!(s.size_node, 336);
+        assert_eq!(s.size_background, 48);
+        assert_eq!(s.size_paint_spec, 12);
+        assert_eq!(s.size_on_hover, 44);
+        assert_eq!(s.size_options, 368);
+        assert_eq!(s.size_node, 416);
         assert_eq!(s.size_animation, 24);
         assert_eq!(s.size_snapshot, 40);
         assert_eq!(s.size_delta, 32);
-        assert_eq!(s.size_delta_op, 344);
+        assert_eq!(s.size_delta_op, 424);
         // Pointer offsets land on 8-byte boundaries.
         for off in [
             s.off_node_children,

@@ -51,11 +51,60 @@ export type UiParentExpression = UiNodeExpression & {
 };
 
 /**
- * A panel background: an animation reference (the `setAnimation` handle or a
- * named ref — the engine resolves the registration's frames/duration/loop
- * live every tick, like a bound entity field) or a raw texture reference.
+ * Per-axis paint rule: `"stretch"` scales the texture to fill that axis
+ * (distorting when the two axes use different scales) or, with
+ * `keepAspectRatio`, scales uniformly and clips; `"tile"` repeats the texture
+ * at the scale set by the stretch axis (native pixel size when both axes tile).
  */
-export type UiBackground = AnimationExpression | SpriteResource;
+export type TextureFillAxis = "stretch" | "tile";
+
+/**
+ * The paint rule for a texture: one entry per axis. The stretch axis(es) set
+ * the scale; the tile axis(es) repeat at that scale. Both tile = native pixel
+ * size. `keepAspectRatio` makes the scale uniform (stretch axes clip, tile
+ * axes may letterbox) instead of per-axis.
+ */
+export type TextureFill = {
+  width: TextureFillAxis;
+  height: TextureFillAxis;
+  keepAspectRatio?: boolean;
+};
+
+/**
+ * 9-slice scaling geometry (en.wikipedia.org/wiki/9-slice_scaling): the slice
+ * margins in px. Purely additive to {@link TextureFill}, which remains the
+ * paint rule for the edges and the center — `nineSlice` only adds the slice
+ * boundaries (the four corners are fixed at `width`×`height`). A frame/border
+ * is a nine-slice whose source center is transparent, so the center paints
+ * nothing.
+ */
+export type NineSlice = {
+  width: number;
+  height: number;
+};
+
+/**
+ * A texture: what to paint + how to paint it. The single shape every textured
+ * ui slot accepts (background, border, hover outline/background, progress
+ * fill/track, screen). Replaces the old `UiBackground = AnimationExpression |
+ * SpriteResource` union — a still image is a one-frame animation registration
+ * and sprite maps are reachable only through animation frames.
+ */
+export type UiTexture = {
+  /** What to paint: a registered animation — the `setAnimation`/`getAnimation`
+   * handle, or a `{name}` ref. The engine resolves the registration's
+   * frames/duration/loop live every tick. */
+  animation: AnimationExpression;
+  /** How to paint: required, per axis. */
+  fill: TextureFill;
+  /** Optional 9-slice geometry. */
+  nineSlice?: NineSlice;
+};
+
+/**
+ * A panel background: the unified {@link UiTexture} shape.
+ */
+export type UiBackground = UiTexture;
 
 /**
  * Grid layout tracks. Modules use either weighted columns or explicit scale
@@ -107,9 +156,9 @@ export type UiPanelOptions = {
     height?: number;
     anchor?: "top-left" | "top" | "top-right" | "center-left" | "center" | "center-right" | "bottom-left" | "bottom" | "bottom-right" | { x?: number; y?: number };
     align?: AlignOption;
-    background?: UiBackground;
-    border?: { texture?: UiBackground; thickness?: number; width?: number; height?: number };
-    onHover?: { texture?: UiBackground; background?: UiBackground; thickness?: number; emitAction?: ActionExpression; stopPropagation?: boolean };
+    background?: UiTexture;
+    border?: { texture?: UiTexture; thickness?: number; width?: number; height?: number };
+    onHover?: { texture?: UiTexture; background?: UiTexture; thickness?: number; emitAction?: ActionExpression; stopPropagation?: boolean };
     onClick?: (ctx: UiClickContext) => void;
     layout?: UiLayout;
     /**
@@ -190,9 +239,9 @@ export type UiProgressOptions = UiPanelOptions & {
   /** The progress bar's data binding and presentation. */
   progress: {
     /** Tiled fill texture: an archive PNG path or an animation reference. Required. */
-    fill: UiBackground;
+    fill: UiTexture;
     /** Tiled track texture behind the fill (same resolution as fill). Optional. */
-    track?: UiBackground;
+    track?: UiTexture;
     /** Fill orientation: "horizontal" fills left-to-right (default), "vertical" fills top-to-bottom. */
     orientation?: "horizontal" | "vertical";
     /**
@@ -317,11 +366,11 @@ export type UiEntityListOptions = {
  * minus positioning/sizing — the renderer always fills the viewport, so the
  * sizing fields (x/y/width/height/anchor) do not exist here. The
  * presentation is nested under a required `screen` key. For now only
- * `background` is honored (the same {@link UiBackground} as a panel).
+ * `background` is honored (the same {@link UiTexture} as a panel).
  */
 export type UiScreenOptions = {
   screen: {
-    background?: UiBackground;
+    background?: UiTexture;
   }
 };
 

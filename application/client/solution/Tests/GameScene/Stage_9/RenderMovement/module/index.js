@@ -86,7 +86,7 @@ export default (hostApi) => {
   }, entity => hostApi.ui.window(entity.id, {}, [
     hostApi.ui.window(entity.id + "-marker", {
       panel: {
-        background: marker,
+        background: { animation: marker, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
       },
     }),
   ]))

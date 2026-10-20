@@ -15,10 +15,10 @@ export default (hostApi) => {
       y: 50,
       width: 100,
       height: 40,
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
       onClick: () => {
         hostApi.ui.setScreen(
-          { screen: { background: texture } },
+          { screen: { background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } }} },
           [hostApi.ui.text("s2-label", "screen-b")]
         );
       },
@@ -27,7 +27,7 @@ export default (hostApi) => {
 
   // The current screen: full viewport, below app buttons and windows.
   hostApi.ui.setScreen(
-    { screen: { background: texture } },
+    { screen: { background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } }} },
     [target]
   );
 
@@ -38,7 +38,7 @@ export default (hostApi) => {
       y: 400,
       width: 50,
       height: 50,
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   });
 };

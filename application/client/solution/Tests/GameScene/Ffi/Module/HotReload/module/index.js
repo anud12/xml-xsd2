@@ -26,13 +26,19 @@ export default (hostApi) => {
 
   hostApi.runtime.emitEvent(repeat, {});
 
+  // A still image is a single-frame animation.
+  const tex1 = hostApi.runtime.setAnimation(string.of("tex1"), {
+    frames: [{ sprite: hostApi.ui.getSpritePNG("tex1.png") }],
+    duration: number.of(1),
+  });
+
   hostApi.ui.window("badge", {
     panel: {
       width: 60,
       height: 60,
       x: 10,
       y: 10,
-      background: "tex1.png",
+      background: { animation: tex1, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [
     hostApi.ui.field("content", { entity: node1, map: "number", name: "key", fallback: "0" }),

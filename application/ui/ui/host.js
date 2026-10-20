@@ -171,10 +171,9 @@ function (root) {
         return null;
     }
 
-    // A background is passed by reference, like a bound entity: a static
-    // archive path string, or an animation reference — the setAnimation
-    // handle (the object it returns), a plain { name, duration?, loop? }
-    // ref, or a bare name. The renderer consumes a named reference
+    // A texture is passed by reference, like a bound entity: an animation
+    // reference — the setAnimation handle (the object it returns) or a
+    // { name } ref. The renderer consumes a named reference
     // { name, duration, loop }; normalize any accepted shape to that,
     // resolving missing duration/loop from the registration store (the
     // engine re-reads the registration live every tick). Normalizing to a
@@ -187,35 +186,87 @@ function (root) {
             && typeof v.name === 'string' && v.name.length > 0;
     }
     function backgroundRef(v) {
-        if (typeof v === 'string') return v;
-        if (!v || typeof v !== 'object') return v;
-        if (isAnimationRef(v)) {
-            var reg = (root.__registeredAnimations || {})[v.name];
-            var ref = { name: v.name };
-            if (typeof v.duration === 'number' && isFinite(v.duration)) {
-                ref.duration = v.duration;
-            } else if (reg && typeof reg.duration === 'number' && isFinite(reg.duration)) {
-                ref.duration = reg.duration;
-            }
-            if (typeof v.loop === 'boolean') {
-                ref.loop = v.loop;
-            } else if (reg) {
-                ref.loop = reg.loop === true;
-            }
-            return ref;
+        if (!v || typeof v !== 'object' || !isAnimationRef(v)) {
+            throw new Error('ui: a texture animation must be an animation name or the setAnimation handle');
         }
-        if (Array.isArray(v.frames)) {
-            throw new Error('ui: background must be an animation name or the setAnimation handle, not a registration object');
+        var reg = (root.__registeredAnimations || {})[v.name];
+        var ref = { name: v.name };
+        if (typeof v.duration === 'number' && isFinite(v.duration)) {
+            ref.duration = v.duration;
+        } else if (reg && typeof reg.duration === 'number' && isFinite(reg.duration)) {
+            ref.duration = reg.duration;
         }
-        return v;
+        if (typeof v.loop === 'boolean') {
+            ref.loop = v.loop;
+        } else if (reg) {
+            ref.loop = reg.loop === true;
+        }
+        return ref;
     }
 
-    // A progress fill/track reference: a non-empty archive path string, or a
-    // named animation reference (the background shape, with a "name").
-    function validProgressTexRef(v) {
-        if (typeof v === 'string') return v.length > 0;
-        return !!v && typeof v === 'object'
-            && typeof v.name === 'string' && v.name.length > 0;
+    // A valid per-axis paint rule value.
+    function isFillAxis(v) {
+        return v === 'stretch' || v === 'tile';
+    }
+
+    // Normalizes a unified texture slot `{ animation, fill, nineSlice? }` for
+    // the renderer wire. When `live` is true the animation is kept as a
+    // named reference ({ name, duration, loop }); when false (hover visuals
+    // and borders, which paint a fixed first frame) it is resolved to a
+    // concrete first-frame reference. Returns the input unchanged when it is
+    // already a plain normalized object, so callers can cheaply detect a
+    // no-op.
+    function normalizeTexture(v, live) {
+        // A texture slot is optional: an absent (null/undefined) slot is a no-op.
+        if (v == null) return v;
+        if (typeof v !== 'object' || Array.isArray(v)) {
+            throw new Error('ui: a texture must be an object { animation, fill, nineSlice? }');
+        }
+        var fill = v.fill;
+        if (!fill || typeof fill !== 'object' || !isFillAxis(fill.width) || !isFillAxis(fill.height)) {
+            throw new Error('ui: a texture fill must be an object { width: "stretch"|"tile", height: "stretch"|"tile", keepAspectRatio? }');
+        }
+        if (fill.keepAspectRatio != null && typeof fill.keepAspectRatio !== 'boolean') {
+            throw new Error('ui: a texture fill.keepAspectRatio must be a boolean');
+        }
+        var nineSlice = null;
+        if (v.nineSlice != null) {
+            if (typeof v.nineSlice.width !== 'number' || typeof v.nineSlice.height !== 'number'
+                || v.nineSlice.width < 0 || v.nineSlice.height < 0) {
+                throw new Error('ui: a texture nineSlice must be an object { width, height } with non-negative numbers');
+            }
+            nineSlice = { width: v.nineSlice.width, height: v.nineSlice.height };
+        }
+        var animation;
+        if (live) {
+            animation = backgroundRef(v.animation);
+        } else {
+            animation = firstFrameRef(v.animation);
+            if (animation == null) {
+                throw new Error('ui: a texture animation must resolve to a frame');
+            }
+        }
+        // A normalized object is the exact plain shape we emit, so re-normalizing
+        // it is a no-op (identity preserved for the callers' fast-path checks).
+        if (v.animation === animation && v.fill === fill
+            && (nineSlice == null ? v.nineSlice == null : v.nineSlice === nineSlice)) {
+            return v;
+        }
+        var out = { animation: animation, fill: fill };
+        if (nineSlice != null) out.nineSlice = nineSlice;
+        return out;
+    }
+
+    // Normalizes a live textured slot (background, progress fill/track): the
+    // animation is kept as a named reference for per-tick resolution.
+    function normalizeBackground(v) {
+        return normalizeTexture(v, true);
+    }
+
+    // Resolves a fixed textured slot (hover outline/background, border) to its
+    // first-frame reference.
+    function resolveFrameTex(v) {
+        return normalizeTexture(v, false);
     }
 
     // A progress field (`value`/`min`/`max`) is a lambda
@@ -281,7 +332,7 @@ function (root) {
     function normalizeOptions(options) {
         if (!options || typeof options !== 'object') return options;
         if (options.background == null) return options;
-        var bg = backgroundRef(options.background);
+        var bg = normalizeBackground(options.background);
         if (bg === options.background) return options;
         var copy = {};
         for (var k in options) {
@@ -295,26 +346,20 @@ function (root) {
         if (!options || typeof options !== 'object') return options;
         var h = options.onHover;
         if (!h || typeof h !== 'object') return options;
-        var needCopy = (h.texture != null && typeof h.texture !== 'string')
-            || (h.background != null && typeof h.background !== 'string');
-        if (!needCopy) return options;
+        var texture = resolveFrameTex(h.texture);
+        var background = resolveFrameTex(h.background);
+        if (texture === h.texture && background === h.background) return options;
         var copy = {};
         for (var k in options) {
             if (Object.prototype.hasOwnProperty.call(options, k)) copy[k] = options[k];
         }
         copy.onHover = {
-            texture: h.texture,
+            texture: texture,
             thickness: h.thickness,
-            background: h.background,
+            background: background,
             emitAction: h.emitAction,
             stopPropagation: h.stopPropagation
         };
-        if (copy.onHover.texture != null && typeof copy.onHover.texture !== 'string') {
-            copy.onHover.texture = firstFrameRef(copy.onHover.texture);
-        }
-        if (copy.onHover.background != null && typeof copy.onHover.background !== 'string') {
-            copy.onHover.background = firstFrameRef(copy.onHover.background);
-        }
         return copy;
     }
 
@@ -324,8 +369,9 @@ function (root) {
     function resolveBorderOptions(options) {
         if (!options || typeof options !== 'object') return options;
         var b = options.border;
-        if (!b || typeof b !== 'object') return options;
-        if (b.texture == null || typeof b.texture === 'string') return options;
+        if (!b || typeof b !== 'object' || b.texture == null) return options;
+        var texture = resolveFrameTex(b.texture);
+        if (texture === b.texture) return options;
         var copy = {};
         for (var k in options) {
             if (Object.prototype.hasOwnProperty.call(options, k)) copy[k] = options[k];
@@ -334,7 +380,7 @@ function (root) {
         for (var bk in b) {
             if (Object.prototype.hasOwnProperty.call(b, bk)) border[bk] = b[bk];
         }
-        border.texture = firstFrameRef(b.texture);
+        border.texture = texture;
         copy.border = border;
         return copy;
     }
@@ -1069,15 +1115,18 @@ function (root) {
             if (!progress || typeof progress !== 'object') {
                 throw new Error('ui: progress options.progress is required (an object)');
             }
-            var fill = backgroundRef(progress.fill);
-            if (!validProgressTexRef(fill)) {
-                throw new Error('ui: progress options.progress.fill must be a non-empty archive path or animation');
+            var fill;
+            try {
+                fill = normalizeBackground(progress.fill);
+            } catch (e) {
+                throw new Error('ui: progress options.progress.fill ' + (e && e.message));
             }
             var track = null;
             if (progress.track != null) {
-                track = backgroundRef(progress.track);
-                if (!validProgressTexRef(track)) {
-                    throw new Error('ui: progress options.progress.track must be a non-empty archive path or animation');
+                try {
+                    track = normalizeBackground(progress.track);
+                } catch (e) {
+                    throw new Error('ui: progress options.progress.track ' + (e && e.message));
                 }
             }
             var orientation = progress.orientation == null ? 'horizontal' : progress.orientation;

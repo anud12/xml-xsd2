@@ -13,7 +13,15 @@
 
 Initial flow
 
-Player entity is a ____
+An idle game with a finite end.
+A playthrough should be around 10 minutes.
+
+Player entity is an investor
 - He gains "value" per x turns
-- It purchase lands, where lands each have specific properties, and that grants them tags
-- 
+  - The income is only increasing forcing the player to use it
+- It creates Records for X value, where each record have specific properties, and that grants them tags, at the moment they do not do anything
+  - 
+
+The game needs conditions to end. To win the game you must have the highest score.
+Each ending has a different scoring rules.
+- Initial condition is interest, It starts at X and it must not breach 0

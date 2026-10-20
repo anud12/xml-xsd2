@@ -19,7 +19,10 @@ export default (hostApi) => {
       height: 100,
       x: 100,
       y: 100,
-      background: hostApi.ui.getAnimation(string.of("sequence")),
+      background: {
+        animation: hostApi.ui.getAnimation(string.of("sequence")),
+        fill: { width: "stretch", height: "stretch", keepAspectRatio: true },
+      },
     },
   }, []);
 }

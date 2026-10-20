@@ -65,14 +65,20 @@ export default (hostApi) => {
 
   hostApi.runtime.emitEvent(repeat, {});
 
-  // Same panel id, new texture in v2.
+  // Same panel id, new texture in v2. A still image is a single-frame
+  // animation.
+  const tex2 = hostApi.runtime.setAnimation(string.of("tex2"), {
+    frames: [{ sprite: hostApi.ui.getSpritePNG("tex2.png") }],
+    duration: number.of(1),
+  });
+
   hostApi.ui.window("badge", {
     panel: {
       width: 60,
       height: 60,
       x: 10,
       y: 10,
-      background: "tex2.png",
+      background: { animation: tex2, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [
     hostApi.ui.field("content", { entity: node1, map: "number", name: "key", fallback: "0" }),

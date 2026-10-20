@@ -12,7 +12,7 @@ export default (hostApi) => {
       height: 200,
       x: -50,
       y: -50,
-      background: texture,
+      background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [])
 }
