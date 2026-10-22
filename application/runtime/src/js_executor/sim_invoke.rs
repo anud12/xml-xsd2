@@ -68,5 +68,8 @@ var hostApi={
   }
 };
 globalThis.hostApi=hostApi;
+if (globalThis.__stringGeneratorFactory) {
+  hostApi.runtime.stringGenerator = globalThis.__stringGeneratorFactory.create();
+}
 "#
 }

@@ -1,0 +1,6 @@
+{
+  "id": "string-generator-test",
+  "version": "1.0.0",
+  "name": "String Generator Test Module",
+  "entry": "index.js"
+}

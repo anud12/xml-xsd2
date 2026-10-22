@@ -3,6 +3,7 @@ pub mod script_register;
 pub mod script_panel_entity;
 pub mod script_rest;
 pub mod script_behavior;
+pub mod script_generator;
 mod script_extract;
 mod script_extract_map;
 
@@ -37,6 +38,10 @@ pub struct Declarations {
 
 pub fn install_host_api(ctx: &Context) -> Result<()> {
     let script = [
+        // Register the stringGenerator factory (globalThis.__stringGeneratorFactory)
+        // before the host is assembled, so the hostApi builders can install
+        // runtime.stringGenerator.
+        script_generator::host_api_script_generator(),
         script_emit::host_api_script_part1(),
         script_emit::host_api_script_emit(),
         script_rest::host_api_script_rest().as_str(),

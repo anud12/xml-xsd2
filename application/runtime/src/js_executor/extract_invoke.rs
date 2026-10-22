@@ -100,6 +100,9 @@ hostApi.runtime.setEntity=function(arg){
   return undefined;
 };
 globalThis.hostApi=hostApi;
+if (globalThis.__stringGeneratorFactory) {
+  hostApi.runtime.stringGenerator = globalThis.__stringGeneratorFactory.create();
+}
 // Extraction only needs the module to run to completion so its runtime
 // declarations (containers/entities/actions) are baked; UI nodes are captured
 // by the persistent sim install path, not here. Provide no-op ui factories so

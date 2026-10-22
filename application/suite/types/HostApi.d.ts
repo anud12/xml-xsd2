@@ -1,6 +1,7 @@
 import {ConditionExpressionApi} from "./primitives/conditionExpression";
 import {NumberExpressionApi} from "./primitives/numberExpression";
 import {StringExpression, StringExpressionApi} from "./primitives/stringExpression";
+import {StringGeneratorApi} from "./primitives/stringGenerator";
 import {MaybeExpressionApi} from "./primitives/maybeExpression";
 import {TemporalExpressionApi} from "./primitives/temporalExpression";
 import {SetEffectFunction, EffectExpression} from "./dataExpression/Effect";
@@ -39,6 +40,7 @@ export type HostApi = {
     condition: ConditionExpressionApi,
     number: NumberExpressionApi,
     string: StringExpressionApi,
+    stringGenerator: StringGeneratorApi,
     maybe: MaybeExpressionApi,
     temporal: TemporalExpressionApi,
 

@@ -3,6 +3,7 @@ use crate::js_runtime::{create_runtime, create_context};
 use crate::js_host_api::{extract_declarations, Declarations};
 use crate::js_host_api::script_emit;
 use crate::js_host_api::script_rest;
+use crate::js_host_api::script_generator;
 use super::strip_export::strip_export_prefix;
 use super::import_resolver::resolve_and_fetch;
 
@@ -14,6 +15,9 @@ fn create_rt_ctx() -> Result<(rquickjs::Runtime, rquickjs::Context)> {
 
 fn get_host_api_script() -> String {
     [
+        // Register the stringGenerator factory (globalThis.__stringGeneratorFactory)
+        // so extract_invoke can install runtime.stringGenerator.
+        script_generator::host_api_script_generator(),
         script_emit::host_api_script_part1(),
         script_emit::host_api_script_emit(),
         script_rest::host_api_script_rest().as_str(),
