@@ -90,8 +90,7 @@ export type EntityExpression = {
  * HostApi surface for constructing {@link EntityExpression} builders and
  * registering named entity templates.
  *
- * Exposed as part of `hostApi.entity` inside module scripts (combined with
- * `EntityApi` from filters).
+ * Exposed as `hostApi.entity` inside module scripts.
  *
  * @example
  * ```ts

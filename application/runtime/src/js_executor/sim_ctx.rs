@@ -177,11 +177,6 @@ pub fn install(files: &HashMap<String, String>) -> Result<()> {
         .map_err(|e| anyhow::anyhow!("ui layer install failed: {:?}", e))?;
     eval_entry_in_ctx(&ctx, &source)
         .map_err(|e| anyhow::anyhow!("module entry install failed: {:?}", e))?;
-    // Ensure hostApi has entity.filter for effect closures
-    let _ = ctx.with(|c| c.eval::<(), _>(
-        "if(globalThis.hostApi&&!globalThis.hostApi.entity){\
-         globalThis.hostApi.entity=globalThis.host.entity;}"
-    ));
     // The module's own log lines are already surfaced by the extraction
     // pipeline; flushing them here would duplicate them. The install-time
     // entries are dropped by the per-run `__logs` reset in the effect path.

@@ -7,7 +7,6 @@ import type { ListExpressionApi } from './primitives/listExpression';
 import type { EntityExpressionApi } from './data-model/entity';
 import type { ContainerExpressionApi } from './data-model/container';
 import type { TextMapExpressionApi, NumberMapExpressionApi } from './data-model/textMapNumberMap';
-import type { EntityApi } from './filters/entityFilter';
 import type { ContainerApi } from './filters/containerFilter';
 import type { RegisterActionArgs } from './actions/actions';
 import type { RegisterEventArgs } from './effects/effects';
@@ -38,7 +37,7 @@ import type { UIApi } from './user-interface';
  * | `maybe`       | `MaybeExpressionApi<any>`                      | Optional value expression factory        |
  * | `temporal`    | `TemporalExpressionApi`                        | In-game duration factory & clock config  |
  * | `list`        | `ListExpressionApi`                            | Ordered sequence expression factory      |
- * | `entity`      | `EntityExpressionApi & EntityApi`              | Entity builder + filter API              |
+ * | `entity`      | `EntityExpressionApi`                          | Entity builder + named template registry |
  * | `container`   | `ContainerExpressionApi & ContainerApi`        | Container builder + filter API           |
  * | `textMap`     | `TextMapExpressionApi`                         | Text map builder factory                 |
  * | `numberMap`   | `NumberMapExpressionApi`                       | Number map builder factory               |
@@ -112,15 +111,16 @@ export type HostApi = {
   list: ListExpressionApi;
 
   /**
-   * Entity expression builder, named template registry, and entity filter API.
+   * Entity expression builder and named template registry.
    *
-   * Combined surface of {@link EntityExpressionApi} (create/asRule/getRule/type)
-   * and {@link EntityApi} (filter).
+   * {@link EntityExpressionApi} (create/asRule/getRule/type). Entity queries
+   * are expressed as plain {@link EntityFilter} objects passed to
+   * `getEntityBy`; there is no host-side filter registry.
    *
    * @see entities.md
    * @see entityFilter.md
    */
-  entity: EntityExpressionApi & EntityApi;
+  entity: EntityExpressionApi;
 
   /**
    * Container expression builder, named template registry, and container filter

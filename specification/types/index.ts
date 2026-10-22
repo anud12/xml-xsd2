@@ -79,10 +79,14 @@ export type {
 
 // ── Filters ───────────────────────────────────────────────────────────────────
 export type {
-  EntityFilterType,
   EntityFilter,
-  EntityFilterApi,
-  EntityApi,
+  FilterArg,
+  FilterLambda,
+  FilterPredicates,
+  FilterAnd,
+  FilterOr,
+  FilterNot,
+  EntityFilterExpression,
 } from './filters/entityFilter';
 
 export type {

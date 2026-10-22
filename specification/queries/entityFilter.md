@@ -2,188 +2,187 @@
 
 ## Summary
 
-`EntityFilter` is an immutable, lazily-evaluated expression that extracts a subset of entities from either a caller-supplied input list (ListExpression) or the global entity repository. It understands the engine's entity shape (`id`, `text_map`, `number_map`, `containers`, `classifications`) and is implemented by composing existing expression primitives (`ConditionExpression`, `StringExpression`, `NumberExpression`, `ListExpression`, and TextMap/NumberMap helpers). Filters are pure, side-effect-free and deterministic when evaluated against the same `ExecutionContext`.
+`EntityFilter` is a data-driven, declarative filter that extracts a subset of
+entities from the global entity repository. Modules declare filters as **plain
+objects** (a `FilterArg`); the runtime interprets them recursively. There is no
+source-code parsing, no builder chaining, no named-rule registry, and no
+first-entity fallback: a filter either matches the entities it describes or it
+matches none.
 
-## Purpose
+A filter is evaluated by `EventContext.getEntityBy(filter)`, which returns a
+`ListExpression<Entity>` over the matching entities (deterministic repository
+order). No match yields an **empty list** plus a `___filter-no-match` log
+line; a malformed filter yields an empty list plus a `___filter-malformed`
+log line.
 
-EntityFilter is a declarative, composable mechanism used by rules, effects, UI queries and runtime logic to locate entities. Filters are used to:
+## FilterArg
 
-- select targets for effects (add/remove properties, move between containers)
-- act as source lists for other expressions
-
-Because filters are evaluated against a snapshot of the reading buffer must not observe transient mutation.
-
-## Entity shape
-
-**EntityFilter predicates operate against the internal raw entity representation**, which includes:
-
-- `id`: String
-- `classifications`: List<String>
-- `text_map`: Map<String, List<String>> (each key maps to zero-or-more string values)
-- `number_map`: Map<String, List<Long>> (each key maps to zero-or-more numeric values)
-- `containers`: List<ContainerRef> (references to containers this entity is a member of)
-
-However, **entities returned by queries** expose lazy accessor methods instead of direct map access:
-- `id: UniqueGlobalEntityId` — entity identifier
-- `getText(key: StringExpression): MaybeExpression<StringExpression>` — read text attribute
-- `getNumber(key: StringExpression): MaybeExpression<NumberExpression>` — read number attribute
-- `getTextKeys(): ListExpression<string>` — list all text keys
-- `getNumberKeys(): ListExpression<string>` — list all number keys
-- `containers: ListExpression<ContainerExpression>` — container memberships (lazy)
-
-See `entities.md` for details on the accessor API.
-
-## Evaluation semantics
-
-- **Source**: A filter is evaluated against either:
-  - a provided input `ListExpression` (the "source list"), or
-  - the global entity repository (all indexed entities).
-  If a source list is provided, only entities in that list are considered (order preserved). Otherwise the entire repository is scanned.
-
-- **Laziness**: Filters are represented as `ListExpression` nodes and evaluated lazily. Composed filters do not iterate the source until the containing `ListExpression` is evaluated.
-
-- **Determinism**: When evaluation objects use randomness (e.g., tie-breaking helpers or explicit random selection operators), randomness is derived from the `ExecutionContext` (World Seed, Tick, Source, Action, Call Index) so results are deterministic for a given context.
-
-- **Short-circuiting**: Boolean combinators (AND/OR) should short-circuit for performance where possible, but must preserve deterministic behavior and not observe side-effects.
-
-- **Multi-valued fields**: When matching `text_map` or `number_map` keys, if multiple values exist for the key the predicate is evaluated against each value; a match occurs if any value satisfies the predicate (existential semantics).
-
-- **Missing keys**: If a `text_map` or `number_map` key is absent the value is treated as empty (no matches).
-
-## Host API
+A filter argument is a plain object with **exactly one** of four keys. Each is
+a closed variant:
 
 ```ts
-// Conceptual — the runtime exposes builder-style filters in the module API.
-type EntityFilter = {
-  // Narrow by id using a StringExpression -> ConditionExpression function
-  byId: (fn: (id: StringExpression) => ConditionExpression) => EntityFilter
+type FilterLambda = (e: EntityFilterExpression) => ConditionExpression;
 
-  // Match where an entity has a text_map entry for the given key,
-  // and at least one value for that key satisfies `fn`
-  hasTextValue: (key: StringExpression, fn: (value: StringExpression) => ConditionExpression) => EntityFilter
+type FilterPredicates = { filters: FilterLambda[] };  // leaf: every lambda must hold
+type FilterAnd = { and: FilterArg[] };                // every child must match
+type FilterOr = { or: FilterArg[] };                  // at least one child matches
+type FilterNot = { not: FilterArg[] };                // no child may match
 
-  // Same semantics for numeric values (number_map)
-  hasNumberValue: (key: StringExpression, fn: (value: NumberExpression) => ConditionExpression) => EntityFilter
-
-  // Match entities that are members of containers matched by the given ContainerFilter
-  hasContainer: (containerFilter: ContainerFilter) => EntityFilter
-
-  // Invert another filter (set complement relative to the chosen source)
-  not: (entityFilter: EntityFilter) => EntityFilter
-
-  // Composition helpers (intersection/union)
-  and: (...others: EntityFilter[]) => EntityFilter
-  or: (...others: EntityFilter[]) => EntityFilter
-
-}
+type FilterArg = FilterPredicates | FilterAnd | FilterOr | FilterNot;
+type EntityFilter = FilterArg;
 ```
+
+### Semantics
+
+- `filters`: the entity matches iff every lambda, invoked with the entity
+  expression, yields a truthy condition.
+- `and`: the entity matches iff every child `FilterArg` matches.
+- `or`: the entity matches iff at least one child `FilterArg` matches.
+- `not`: the entity matches iff no child `FilterArg` matches.
+- **Empty arrays match everything** (uniform vacuous truth), including
+  `or: []`. "Match nothing" is expressed with `not`.
+- Validation: exactly one of the four keys present, value an array. Anything
+  else is malformed → deterministic log + **no matches** (never a partial
+  result, never a fallback entity).
+
+### Lambda contract
+
+Every predicate, at every depth, has the same shape:
 
 ```ts
-// HostApi augmentation: expose entity.filter API to modules
-export type HostApi = {
-  /* ... rest of declarations ... */
-  entity: EntityApi
-}
-
-export type EntityApi = {
-  // Other entity helpers may exist here; this snippet focuses on filter API surface.
-  filter: EntityFilterApi
-}
-
-export type EntityFilterApi = {
-  /** Create a new filter builder (start composing filter predicates) */
-  create: () => EntityFilter
-
-  /** Register a named filter in the entity filter repository for reuse in modules/tests */
-  asRule: (ruleName: string, filter: EntityFilter) => EntityFilterApi
-
-  /** Retrieve a previously registered named filter by rule id */
-  getRule: (ruleName: string) => EntityFilter
-
-  /** Marker for type usage in HostApi clients */
-  type: EntityFilterType
-}
-
-export type EntityFilterType = {
-  // Marker for HostApi typing; implementations may extend if needed.
-}
+(e: EntityFilterExpression) => ConditionExpression
 ```
 
-Notes:
-- The API above is conceptual; concrete host bindings may expose builder functions instead of methods.
-- `ConditionExpression`, `StringExpression` and `NumberExpression` callbacks receive expression handles that evaluate in the entity context (see "Entity evaluation context" below).
+The runtime invokes each lambda with a per-entity surface exposing:
 
-## Entity evaluation context
+- `id` — the entity id as a `StringExpression`
+  (`isContainingExactly`, `isContaining`, ...)
+- `number_map.get(key)` — a `MaybeExpression<NumberExpression>`: the entity's
+  number value for `key`, or an empty Maybe when the key is absent.
+- `text_map.get(key)` — a `MaybeExpression<StringExpression>`: the entity's
+  text value for `key`, or an empty Maybe when the key is absent.
+- `getEntitiesInsideArea(name)` — entities inside a named area
+- `containers` — container memberships (currently empty at runtime)
 
-When a callback is invoked while evaluating a predicate it runs with an implicit "current entity" context. The following helpers/expressions are available:
+Map lookups return a Maybe rather than a bare value, so **absent keys never
+match and never throw**. A predicate lifts the comparison out of the Maybe and
+falls back to a falsy condition when the key is absent:
 
-- `id`: `StringExpression` — the entity id
-- `text(key: StringExpression)`: `MaybeExpression<StringExpression | ListExpression>` — read `text_map` value(s) for key
-- `number(key: StringExpression)`: `MaybeExpression<NumberExpression | ListExpression>` — read `number_map` values for key
-- `classifications`: `ListExpression<StringExpression>` — entity classifications
-- `containers`: `ListExpression<ContainerRefExpression>` — container references
+```ts
+(e) => e.number_map.get(string.of("hp"))
+  .map(n => n.isLessOrEqualTo(number.of(5)))
+  .orElse(condition.of(false))
+```
 
-Predicates must use only expression primitives and are evaluated lazily; they must not mutate the world.
-
-**Note on query vs. mutation contexts:**
-The `text()` and `number()` helper functions in entity evaluation context are provided during **filter evaluation** (query predicates) and operate against the raw entity representation. When modules **retrieve and mutate entities** through effects or HostApi, they use the lazy accessor methods (`getText`, `getNumber`, etc.) defined in `entities.md`. These are two separate contexts: filters query the raw shape, while effect mutations use the accessor API.
+The returned value is a `ConditionExpression`; the runtime reads it through one
+shared helper that accepts a `{value: boolean}` wrapper and the
+`ifTrue`/`ifFalse` protocol.
 
 ## Examples
 
-1) Find NPCs with a "job" text value equal to "blacksmith":
+```js
+const { string, number, condition } = hostApi.runtime;
 
-```ts
-const filter = entityFilter
-  .hasTextValue(hostApi.string.of("job"), value => value.equals(hostApi.string.of("blacksmith")));
+// leaf
+const smiths = {
+  filters: [
+    (e) => e.text_map.get(string.of("job"))
+      .map(t => t.isContainingExactly(string.of("blacksmith")))
+      .orElse(condition.of(false)),
+  ],
+};
+
+// and
+const activeSmiths = {
+  and: [
+    smiths,
+    {
+      filters: [
+        (e) => e.text_map.get(string.of("state"))
+          .map(t => t.isContainingExactly(string.of("active")))
+          .orElse(condition.of(false)),
+      ],
+    },
+  ],
+};
+
+// or, nested
+const triage = {
+  or: [
+    {
+      filters: [
+        (e) => e.text_map.get(string.of("role"))
+          .map(t => t.isContainingExactly(string.of("healer")))
+          .orElse(condition.of(false)),
+      ],
+    },
+    {
+      and: [
+        {
+          filters: [
+            (e) => e.number_map.get(string.of("hp"))
+              .map(n => n.isLessOrEqualTo(number.of(5)))
+              .orElse(condition.of(false)),
+          ],
+        },
+        {
+          filters: [
+            (e) => e.text_map.get(string.of("team"))
+              .map(t => t.isContainingExactly(string.of("red")))
+              .orElse(condition.of(false)),
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+// not
+const notGhosts = {
+  not: [
+    {
+      filters: [
+        (e) => e.text_map.get(string.of("kind"))
+          .map(t => t.isContainingExactly(string.of("spirit")))
+          .orElse(condition.of(false)),
+      ],
+    },
+  ],
+};
+
+// query + mutate through the list result
+context.getEntityBy(triage).map(elementExpr => {
+  elementExpr.text_map.get(string.of("flag")).ifPresent(v => {
+    v.set(string.of("hit"));
+  });
+});
 ```
 
-2) Entities with a numeric "level" >= 10:
+## List result
 
-```ts
-const highLevel = entityFilter.hasNumberValue(hostApi.string.of("level"),
-  n => n.gte(hostApi.number.of(10))
-);
-```
+The returned `ListExpression<Entity>` supports: `map`, `forEach`, `get(index)`
+(element accessor with `map`/`flatMap`, including `isCondition` →
+`getOnTrueOrFalse`), `size`, `ifPresent`, and `randomElement`. Each element
+exposes the same per-entity surface as the lambda parameter (`id`,
+`number_map`, `text_map`, `getEntitiesInsideArea`, `containers`).
 
-3) Entities in a region container but not classified "ghost":
+## Determinism & failure modes
 
-```ts
-const inRegion = entityFilter
-  .hasContainer(containerFilter.byId(hostApi.string.of("region_42")))
-  .and(entityFilter.not(entityFilter.byClassification(hostApi.string.of("ghost"))))
-```
-
-(These examples show conceptual compositions using expression primitives.)
-
-## Performance & implementation notes
-
-- **Index lookups**: Implementations should leverage indexes for id, classification and single-key text/number lookups to avoid full scans when possible.
-- **Caching**: Predicate evaluation results may be cached per-entity per-evaluation to avoid redundant computations within a single filter evaluation pass.
-
-## Failure modes and edge cases
-
-- malformed expressions: evaluation should surface deterministic errors rather than partial results.
-- very large repositories: callers may provide a source `ListExpression` to limit scope; add runtime-side limits to protect memory/time.
-- concurrent reads: filters read the reading-buffer snapshot and must not rely on live mutations.
-- cycles: container-based checks that traverse container graphs must guard against cycles and control recursion depth.
-
-## Determinism & Randomness
-
-Any operator that uses random selection (for tie-breaking or explicit randomized helpers) must derive randomness solely from the `ExecutionContext`. Filters themselves do not change the `ExecutionContext`; they may call into deterministic randomness helpers only.
+- Evaluation order is the repository's insertion order; results are
+  deterministic for a given repository snapshot.
+- Malformed filters (more than one variant key, non-array values, a plain
+  string, a bare function, a legacy `{ id: fn }` object, null) never produce
+  partial results: they log `___filter-malformed` and match nothing.
+- The former first-entity fallback is removed: a filter that matches nothing
+  returns an empty list (logged as `___filter-no-match`).
 
 ## Cross-references
 
 - `entities.md` — entity shape and fields
-- `containers.md` — ContainerFilter API and semantics
-- `conditionExpression.md`, `stringExpression.md`, `numberExpression.md` — expression primitives used to build predicates
-
-## Implementation checklist
-
-- [ ] Evaluate filter lazily as a `ListExpression`
-- [ ] Provide efficient index-backed implementations for byId/hasTextValue/hasNumberValue/hasContainer
-- [ ] Ensure predicates run in an Entity evaluation context with the fields listed above
-- [ ] Document the concrete host bindings (JS/TS) in module API (for modules.md)
+- `conditionExpression.md`, `stringExpression.md`, `numberExpression.md`,
+  `maybeExpression.md` — expression primitives used by predicates
+- `application/client/solution/plans/entity-filter.md` — implementation plan
 
 ---
 
-This doc provides a stable, implementation-agnostic specification of EntityFilter semantics, composition and expected behavior.
+This doc describes the implemented, data-driven EntityFilter semantics.

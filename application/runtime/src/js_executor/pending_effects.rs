@@ -27,10 +27,6 @@ pub fn process_pending_effects(
     crate::js_host_api::install_host_api(&ctx)?;
     let source = crate::js_executor::simulate::select_entry_source(_files);
     let _ = crate::js_executor::simulate::eval_entry_in_ctx(&ctx, &source);
-    let _ = ctx.with(|c| c.eval::<(), _>(
-        "if(globalThis.hostApi&&!globalThis.hostApi.entity){\
-         globalThis.hostApi.entity=globalThis.host.entity;}"
-    ));
     run_pending_effects_in_sim(&ctx, &effects, current_elapsed)
 }
 

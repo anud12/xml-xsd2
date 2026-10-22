@@ -59,7 +59,6 @@ var hostApi={
       return null;
     },
     log:h.log,
-    entity:h.entity,
     maybe:{
         of:function(v){return{value:v};},
         none:function(){return{value:undefined};}

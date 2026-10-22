@@ -3,7 +3,6 @@ import {StringExpression} from "../primitives/stringExpression";
 import {ListExpression} from "../primitives/ListExpression";
 import {NumberExpression} from "../primitives/numberExpression";
 import {MaybeExpression} from "../primitives/maybeExpression";
-import {EntityFilterApi} from "../EntityFilter";
 
 export type EntityExpressionApi = {
   /** Create an empty entity builder */
@@ -14,7 +13,6 @@ export type EntityExpressionApi = {
   getRule?: (ruleName: string) => EntityExpression,
 
   type: EntityExpressionType,
-  filter: EntityFilterApi,
 }
 
 /** A point in entity-local area units. y increases downward. */
@@ -51,12 +49,12 @@ export type EntityExpressionType = {
 export type EntityExpression = {
   /** The containers this entity belongs to. */
   containers: ListExpression<ContainerExpression>;
-  /** The entity's id. */
-  id: string;
+  /** The entity's id as a StringExpression (isContainingExactly, isContaining, ...). */
+  id: StringExpression;
   /** The entity's number_map accessor (keyed lookups returning MaybeExpressions). */
-  number_map: { get: (key: string) => MaybeExpression<NumberExpression> };
+  number_map: { get: (key: string | StringExpression) => MaybeExpression<NumberExpression> };
   /** The entity's text_map accessor (keyed lookups returning MaybeExpressions). */
-  text_map: { get: (key: string) => MaybeExpression<StringExpression> };
+  text_map: { get: (key: string | StringExpression) => MaybeExpression<StringExpression> };
   /**
    * The entities inside one *named* area of this entity. The area name is
    * required: it is resolved first, then the containment/overlap test runs.
@@ -66,7 +64,7 @@ export type EntityExpression = {
    * yields an empty list (not an error). Each element is a minimal entity
    * reference exposing `getId`.
    */
-  getEntitiesInsideArea: (areaName: string) => ListExpression<EntityInsideAreaReference>
+  getEntitiesInsideArea: (areaName: string | StringExpression) => ListExpression<EntityInsideAreaReference>
 }
 
 /** A minimal entity reference returned by {@link EntityExpression.getEntitiesInsideArea}. */

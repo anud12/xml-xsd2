@@ -1,7 +1,3 @@
-pub fn host_api_script_entity_filter() -> &'static str {
-    "entity:{filter:{create:function(){return{byId:function(f){return{fn:f}}}}}},"
-}
-
 pub fn host_api_script_log() -> &'static str {
     r#"log(msg) {
         try {
@@ -85,7 +81,6 @@ pub fn host_api_script_rest() -> String {
         host_api_script_set_container().to_string());
     parts.push(host_api_script_behavior().to_string());
     parts.push(host_api_script_condition().to_string());
-    parts.push(host_api_script_entity_filter().to_string());
     parts.push(host_api_script_log().to_string());
     parts.push(host_api_script_animation().to_string());
     let mut s = parts.join("");

@@ -2,6 +2,7 @@ pub mod script_emit;
 pub mod script_register;
 pub mod script_panel_entity;
 pub mod script_rest;
+pub mod script_entity_filter;
 pub mod script_behavior;
 pub mod script_generator;
 mod script_extract;
@@ -38,6 +39,10 @@ pub struct Declarations {
 
 pub fn install_host_api(ctx: &Context) -> Result<()> {
     let script = [
+        // Install the shared entity-filter runtime (FilterArg evaluator,
+        // entity proxy, condition reader) before the host is assembled so
+        // every context's getEntityBy can use it.
+        script_entity_filter::host_api_script_entity_filter(),
         // Register the stringGenerator factory (globalThis.__stringGeneratorFactory)
         // before the host is assembled, so the hostApi builders can install
         // runtime.stringGenerator.

@@ -280,7 +280,6 @@ if(!__hapi_runtime.getAnimation){
   __hapi_runtime.getAnimation=__hapi_getAnimation;
 }
 if(!__hapi_runtime.log){__hapi_runtime.log=h.log;}
-if(!__hapi_runtime.entity){__hapi_runtime.entity=h.entity;}
 if(!__hapi_runtime.maybe){
   __hapi_runtime.maybe={
     of:function(v){return{value:v};},

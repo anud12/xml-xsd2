@@ -1,53 +1,41 @@
-import { StringExpression } from "./primitives/stringExpression";
-import { NumberExpression } from "./primitives/numberExpression";
 import { ConditionExpression } from "./primitives/conditionExpression";
-import { ContainerExpression } from "./dataExpression/Contaier";
+import { EntityExpression } from "./dataExpression/Entity";
 
-/** API surface for building composable entity filters used by queries/rules/effects. */
-export type EntityFilterApi = {
-  /** Create an empty filter builder */
-  create: () => EntityFilter;
-  asRule?: (ruleName: string, filter: EntityFilter) => EntityFilterApi;
-  getRule?: (ruleName: string) => EntityFilter;
-  type: EntityFilterType;
-}
+/**
+ * Per-entity predicate for {@link FilterPredicates}.
+ *
+ * Invoked with the entity's {@link EntityExpression} query surface and must
+ * yield a {@link ConditionExpression}. Absent map keys never match: extract
+ * the condition through the MaybeExpression and fall back to a falsy
+ * condition, e.g.
+ *
+ * ```ts
+ * (e) => e.number_map.get("hp")
+ *   .map(n => n.isLessOrEqualTo(number.of(5)))
+ *   .orElse(condition.of(false))
+ * ```
+ */
+export type FilterLambda = (e: EntityExpression) => ConditionExpression;
 
-export type EntityFilterType = {
-  // marker for HostApi typing
-}
+/** Leaf variant: the entity matches iff every lambda yields a truthy condition. Empty array matches everything. */
+export type FilterPredicates = { filters: FilterLambda[] };
 
-/** A composable, immutable filter expression that evaluates to a list of entities. */
-export type EntityFilter = {
-  /** Narrow by a predicate over the entity id. Accepts either a plain predicate returning a ConditionExpression, or an object literal `{ id: fn }`. */
-  id?: (fn: (id: StringExpression) => ConditionExpression) => any;
-  /** Narrow by evaluating a predicate over the entity id. */
-  byId?: (fn: (id: StringExpression) => ConditionExpression) => EntityFilter;
+/** The entity matches iff every child FilterArg matches. Empty array matches everything. */
+export type FilterAnd = { and: FilterArg[] };
 
-  /** Match entities that have the given classification string (convenience). */
-  byClassification?: (classification: StringExpression) => EntityFilter;
+/** The entity matches iff at least one child FilterArg matches. Empty array matches everything. */
+export type FilterOr = { or: FilterArg[] };
 
-  /** Match where an entity has a text_map entry for `key` and at least one value satisfies `fn`. */
-  hasTextValue: (key: StringExpression, fn: (value: StringExpression) => ConditionExpression) => EntityFilter;
+/** The entity matches iff no child FilterArg matches. Empty array matches everything. */
+export type FilterNot = { not: FilterArg[] };
 
-  /** Match where an entity has a number_map entry for `key` and at least one value satisfies `fn`. */
-  hasNumberValue: (key: StringExpression, fn: (value: NumberExpression) => ConditionExpression) => EntityFilter;
+/**
+ * A data-driven, recursive filter argument. A plain object with exactly one
+ * of the four keys; anything else (plain strings, bare functions, legacy
+ * `{ id: fn }` objects, null) is malformed (logged, no matches — never a
+ * fallback entity).
+ */
+export type FilterArg = FilterPredicates | FilterAnd | FilterOr | FilterNot;
 
-  /** Match entities that are members of containers matched by the given container expression. */
-  hasContainer: (containerFilter: ContainerExpression) => EntityFilter;
-
-  /** Logical negation (set complement relative to the chosen source). */
-  not: (entityFilter: EntityFilter) => EntityFilter;
-
-  /** Intersection/union helpers. */
-  and: (...others: EntityFilter[]) => EntityFilter;
-  or: (...others: EntityFilter[]) => EntityFilter;
-}
-
-/** Helpers available while evaluating predicates in the context of a single entity. */
-export type EntityEvaluationContext = {
-  id: StringExpression;
-  text: (key: StringExpression) => StringExpression | null | undefined;
-  number: (key: StringExpression) => NumberExpression | null | undefined;
-  classifications: StringExpression[];
-  containers: ContainerExpression[];
-}
+/** Everything `getEntityBy` accepts: a plain FilterArg object. */
+export type EntityFilter = FilterArg;

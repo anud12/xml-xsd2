@@ -1,0 +1,6 @@
+{
+  "id": "emptyarrays",
+  "version": "1.0.0",
+  "name": "EntityFilter EmptyArrays",
+  "entry": "index.js"
+}

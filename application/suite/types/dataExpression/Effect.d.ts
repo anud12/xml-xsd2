@@ -3,7 +3,7 @@ import {ExpressionTypes} from "../primitives/expression";
 import {MaybeExpression} from "../primitives/maybeExpression";
 import {NumberExpression} from "../primitives/numberExpression";
 import {ConditionExpression} from "../primitives/conditionExpression";
-import {Entity, EntityExpression} from "./Entity";
+import {EntityExpression} from "./Entity";
 import {EntityFilter} from "../EntityFilter";
 import {ListExpression} from "../primitives/ListExpression";
 
@@ -51,7 +51,7 @@ export type EventContext = {
   /**
    * Query the entity repository for entities matching the given filter.
    *
-   * Returns a lazy ListExpression<Entity> that is bound to the read-buffer snapshot
+   * Returns a lazy ListExpression<EntityExpression> that is bound to the read-buffer snapshot
    * (double-buffer semantics). The filter is applied deterministically at commit time
    * against the immutable snapshot of the repository state at the start of the current tick.
    *
@@ -65,10 +65,10 @@ export type EventContext = {
    *
    * If the filter matches no entities, the expression evaluates to an empty list (not an error).
    *
-   * @param entityFilter - The EntityFilter to apply against the global repository
-   * @returns A lazy ListExpression<Entity> representing matching entities
+   * @param entityFilter - The EntityFilter (a FilterArg object) to apply against the global repository
+   * @returns A lazy ListExpression<EntityExpression> representing matching entities
    */
-   getEntityBy: (entityFilter: EntityFilter | { id: (fn: (id: any) => any) => any; [key: string]: any }) => ListExpression<Entity>;
+     getEntityBy: (entityFilter: EntityFilter) => ListExpression<EntityExpression>;
 }
 
 export type SetEventArgs<Input, Output> = {

@@ -1,0 +1,6 @@
+{
+  "id": "nomatch",
+  "version": "1.0.0",
+  "name": "EntityFilter NoMatch",
+  "entry": "index.js"
+}

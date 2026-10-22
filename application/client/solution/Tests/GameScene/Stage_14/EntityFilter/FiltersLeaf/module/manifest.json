@@ -1,0 +1,6 @@
+{
+  "id": "filtersleaf",
+  "version": "1.0.0",
+  "name": "EntityFilter FiltersLeaf",
+  "entry": "index.js"
+}

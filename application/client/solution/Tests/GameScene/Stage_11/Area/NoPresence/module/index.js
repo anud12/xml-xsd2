@@ -55,9 +55,9 @@ export default (hostApi) => {
   hostApi.runtime.setAction({
     name: string.of("query-room"),
     apply: (ctx) => {
-      const entity = ctx.getEntityBy(
-        hostApi.runtime.string.of("room"),
-      );
+      const entity = ctx.getEntityBy({
+        filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("room"))],
+      });
       entity.ifPresent((e) => {
         let out = [];
         e.getEntitiesInsideArea(hostApi.runtime.string.of("floor")).forEach((member) => {

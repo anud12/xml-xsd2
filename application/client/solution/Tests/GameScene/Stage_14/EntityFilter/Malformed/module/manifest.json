@@ -1,0 +1,6 @@
+{
+  "id": "malformed",
+  "version": "1.0.0",
+  "name": "EntityFilter Malformed",
+  "entry": "index.js"
+}

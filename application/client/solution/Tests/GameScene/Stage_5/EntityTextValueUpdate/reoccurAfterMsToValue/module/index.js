@@ -16,10 +16,12 @@ export default (hostApi) => {
     },
     apply:(context, output) => {
       context.getEntityBy({
-        id: id => id.isContainingExactly(string.of("entity_id")),
+        filters: [(e) => e.id.isContainingExactly(string.of("entity_id"))],
       })
         .map(elementExpr => {
-          elementExpr.getNumber(string.of("key")).map(v => v.sum(number.of(1)));
+          elementExpr.number_map.get(string.of("key")).ifPresent(v => {
+            v.sum(number.of(1));
+          });
         })
     }
   })

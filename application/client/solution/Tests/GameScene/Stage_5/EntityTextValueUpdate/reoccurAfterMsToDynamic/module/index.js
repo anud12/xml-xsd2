@@ -3,7 +3,7 @@ export default (hostApi) => {
   const {number, string} = hostApi.runtime;
 
   const filter = {
-    id: id => id.isContainingExactly(string.of("entity_id")),
+    filters: [(e) => e.id.isContainingExactly(string.of("entity_id"))],
   };
   const key = string.of("key")
 
@@ -17,16 +17,24 @@ export default (hostApi) => {
   const repeat = hostApi.runtime.setEffect({
     name: string.of("repeat"),
     reoccurAfterMs: (context, executionCount, input, output) => {
-      return context.getEntityBy(filter)
-        .get(number.of(0))
-        .flatMap(elementExpr => elementExpr.getNumber(key))
-        .isCondition(value => value.isLessOrEqualTo(number.of(3)))
-        .getOnTrueOrFalse(hostApi.runtime.maybe.of(hostApi.runtime.number.of(10)), hostApi.runtime.maybe.none());
+      let low = hostApi.runtime.condition.of(false);
+      context.getEntityBy(filter).map(elementExpr => {
+        low = elementExpr.number_map.get(key)
+          .map(v => v.isLessThan(number.of(3)))
+          .orElse(hostApi.runtime.condition.of(false));
+      });
+      let interval = hostApi.runtime.maybe.of(number.of(10));
+      low.ifFalse(() => {
+        interval = hostApi.runtime.maybe.none();
+      });
+      return interval;
     },
     apply: (context, output) => {
       context.getEntityBy(filter)
         .map(elementExpr => {
-          elementExpr.getNumber(key).map(v => v.sum(number.of(1)));
+          elementExpr.number_map.get(key).ifPresent(v => {
+            v.sum(number.of(1));
+          });
         })
     }
   })

@@ -1,0 +1,6 @@
+{
+  "id": "andornot",
+  "version": "1.0.0",
+  "name": "EntityFilter AndOrNot",
+  "entry": "index.js"
+}

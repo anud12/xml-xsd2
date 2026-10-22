@@ -47,7 +47,6 @@ var hostApi={
       g.push({a:na,b:nb});
     },
     log:h.log,
-    entity:h.entity,
     maybe:{
         of:function(v){return{value:v};},
         none:function(){return{value:undefined};}

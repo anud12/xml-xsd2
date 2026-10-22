@@ -5,7 +5,7 @@ import {StringGeneratorApi} from "./primitives/stringGenerator";
 import {MaybeExpressionApi} from "./primitives/maybeExpression";
 import {TemporalExpressionApi} from "./primitives/temporalExpression";
 import {SetEffectFunction, EffectExpression} from "./dataExpression/Effect";
-import {EntityExpressionApi, EntityExpression} from "./dataExpression/Entity";
+import {EntityExpression} from "./dataExpression/Entity";
 import {ContainerExpressionApi, ContainerExpression, ContainerCreationArguments, SectorSide, GridExpression} from "./dataExpression/Contaier";
 import {NumberMapExpressionApi} from "./numberMap";
 import {TextMapExpressionApi} from "./textMap";
@@ -47,7 +47,6 @@ export type HostApi = {
     numberMap: NumberMapExpressionApi,
     textMap: TextMapExpressionApi,
 
-    entity: EntityExpressionApi,
     container: ContainerExpressionApi,
 
     /**
