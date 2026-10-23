@@ -1,8 +1,8 @@
-import { TemporalExpression } from "../../primitives/temporalExpression";
-import { NumberExpression } from "../../primitives/numberExpression";
-import { EntityExpression } from "../Entity";
-import { ContainerExpression } from "../Contaier";
-import { EffectExpression } from "../Effect";
+import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
+import { NumberReadOnlyExpression } from "../../primitives/numberExpression";
+import { EntityReadOnlyExpression } from "../Entity";
+import { ContainerReadOnlyExpression } from "../Contaier";
+import { EffectReadOnlyExpression } from "../Effect";
 
 /**
  * A single recorded step of an action plan.
@@ -16,15 +16,15 @@ import { EffectExpression } from "../Effect";
  * is instant.
  */
 export type ActionPlanStep =
-  | { emit: { effect: EffectExpression; payload: Record<string, any> } }
-  | { wait: TemporalExpression }
+  | { emit: { effect: EffectReadOnlyExpression; payload: Record<string, any> } }
+  | { wait: TemporalReadOnlyExpression }
   | {
       move: {
-        containerId: ContainerExpression;
-        entityId: EntityExpression;
-        x: NumberExpression;
-        y: NumberExpression;
-        speed: NumberExpression;
+        containerId: ContainerReadOnlyExpression;
+        entityId: EntityReadOnlyExpression;
+        x: NumberReadOnlyExpression;
+        y: NumberReadOnlyExpression;
+        speed: NumberReadOnlyExpression;
         // Walker-mutated at walk time (not set by module code). The move is
         // advanced by integer Bresenham stepping in Q16.16 fixed-point: each
         // axis pools `delta * speed` per tick into a signed remainder and

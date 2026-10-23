@@ -1,7 +1,7 @@
-import { ConditionExpression } from "../../primitives/conditionExpression";
-import { TemporalExpression } from "../../primitives/temporalExpression";
-import { StringExpression } from "../../primitives/stringExpression";
-import { ContainerExpression } from "../Contaier";
+import { ConditionReadOnlyExpression } from "../../primitives/conditionExpression";
+import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
+import { StringReadOnlyExpression } from "../../primitives/stringExpression";
+import { ContainerReadOnlyExpression } from "../Contaier";
 import { ActionContext } from "./common";
 
 /**
@@ -9,19 +9,19 @@ import { ActionContext } from "./common";
  */
 export type ContainerActionTarget = {
   type: "container";
-  /** The container the action is applied to (a {@link ContainerExpression} reference). */
-  id: ContainerExpression;
+  /** The container the action is applied to (a {@link ContainerReadOnlyExpression} reference). */
+  id: ContainerReadOnlyExpression;
 };
 
 /**
  * Arguments for setting a container action via hostApi.setContainerAction
  */
 export type SetContainerActionArgs = {
-  name: StringExpression;
+  name: StringReadOnlyExpression;
   description?: string;
   cooldownGroup?: string;
-  guard?: (context: ActionContext, target: ContainerActionTarget) => ConditionExpression;
-  cooldown?: (context: ActionContext, target: ContainerActionTarget) => TemporalExpression;
+  guard?: (context: ActionContext, target: ContainerActionTarget) => ConditionReadOnlyExpression;
+  cooldown?: (context: ActionContext, target: ContainerActionTarget) => TemporalReadOnlyExpression;
   apply: (context: ActionContext, target: ContainerActionTarget) => void;
 };
 

@@ -1,9 +1,9 @@
-import { EntityExpression } from "./Entity";
-import { ContainerExpression, GridExpression } from "./Contaier";
-import { BehaviorExpression } from "./behavior";
-import { ActionExpression } from "./action/no-input-action";
-import { EffectExpression } from "./Effect";
-import { AnimationExpression } from "./animation/AnimationRegistration";
+import { EntityReadOnlyExpression } from "./Entity";
+import { ContainerReadOnlyExpression, GridReadOnlyExpression } from "./Contaier";
+import { BehaviorReadOnlyExpression } from "./behavior";
+import { ActionReadOnlyExpression } from "./action/no-input-action";
+import { EffectReadOnlyExpression } from "./Effect";
+import { AnimationReadOnlyExpression } from "./animation/AnimationRegistration";
 
 /**
  * A read-only reference to any declared module data structure. Unites all
@@ -11,10 +11,10 @@ import { AnimationExpression } from "./animation/AnimationRegistration";
  * kind (entity, container, grid, behavior, action, effect, or animation).
  */
 export type DataExpression =
-  | EntityExpression
-  | ContainerExpression
-  | GridExpression
-  | BehaviorExpression
-  | ActionExpression
-  | EffectExpression
-  | AnimationExpression;
+  | EntityReadOnlyExpression
+  | ContainerReadOnlyExpression
+  | GridReadOnlyExpression
+  | BehaviorReadOnlyExpression
+  | ActionReadOnlyExpression
+  | EffectReadOnlyExpression
+  | AnimationReadOnlyExpression;

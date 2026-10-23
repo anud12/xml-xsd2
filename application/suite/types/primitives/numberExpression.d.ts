@@ -1,29 +1,29 @@
-import {ConditionExpression} from "./conditionExpression";
-import {PrimitiveExpression} from "./primitiveExpression";
+import {ConditionReadOnlyExpression} from "./conditionExpression";
+import {PrimitiveReadOnlyExpression} from "./primitiveExpression";
 
-export type NumberExpressionApi = {
-  of: (number:number) => NumberExpression,
-  asRule:(ruleName: string, numberExpression: NumberExpression) => NumberExpressionApi,
-  getRule: (ruleName: string) => NumberExpressionApi,
+export type NumberReadOnlyExpressionApi = {
+  of: (number:number) => NumberReadOnlyExpression,
+  asRule:(ruleName: string, numberExpression: NumberReadOnlyExpression) => NumberReadOnlyExpressionApi,
+  getRule: (ruleName: string) => NumberReadOnlyExpressionApi,
   /** Marker for HostApi surfaces */
   type: unknown,
 }
 
 
-export type NumberExpression = PrimitiveExpression & {
-  of: (number:number) => NumberExpression,
-  sum: (numberExpression:NumberExpression) => NumberExpression,
-  subtract: (numberExpression:NumberExpression) => NumberExpression,
-  multiply: (numberExpression:NumberExpression) => NumberExpression,
-  divide: (numberExpression:NumberExpression) => NumberExpression,
-  modulo: (numberExpression:NumberExpression) => NumberExpression,
-  random: (fromInclusive:NumberExpression, toInclusive: NumberExpression) => NumberExpression,
+export type NumberReadOnlyExpression = PrimitiveReadOnlyExpression & {
+  of: (number:number) => NumberReadOnlyExpression,
+  sum: (numberExpression:NumberReadOnlyExpression) => NumberReadOnlyExpression,
+  subtract: (numberExpression:NumberReadOnlyExpression) => NumberReadOnlyExpression,
+  multiply: (numberExpression:NumberReadOnlyExpression) => NumberReadOnlyExpression,
+  divide: (numberExpression:NumberReadOnlyExpression) => NumberReadOnlyExpression,
+  modulo: (numberExpression:NumberReadOnlyExpression) => NumberReadOnlyExpression,
+  random: (fromInclusive:NumberReadOnlyExpression, toInclusive: NumberReadOnlyExpression) => NumberReadOnlyExpression,
 
-  /** Comparison operations returning a lazy ConditionExpression. Prefix 'is' required. */
-  isGreaterThan: (other: NumberExpression) => ConditionExpression,
-  isLessThan: (other: NumberExpression) => ConditionExpression,
-  isGreaterOrEqualTo: (other: NumberExpression) => ConditionExpression,
-  isLessOrEqualTo: (other: NumberExpression) => ConditionExpression,
-  isEqualTo: (other: NumberExpression) => ConditionExpression,
-  isNotEqualTo: (other: NumberExpression) => ConditionExpression,
+  /** Comparison operations returning a lazy ConditionReadOnlyExpression. Prefix 'is' required. */
+  isGreaterThan: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
+  isLessThan: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
+  isGreaterOrEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
+  isLessOrEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
+  isEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
+  isNotEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
 }

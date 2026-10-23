@@ -1,7 +1,7 @@
-import { ConditionExpression } from "../../primitives/conditionExpression";
-import { TemporalExpression } from "../../primitives/temporalExpression";
-import { StringExpression } from "../../primitives/stringExpression";
-import { EntityExpression } from "../Entity";
+import { ConditionReadOnlyExpression } from "../../primitives/conditionExpression";
+import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
+import { StringReadOnlyExpression } from "../../primitives/stringExpression";
+import { EntityReadOnlyExpression } from "../Entity";
 import { ActionContext } from "./common";
 
 /**
@@ -9,19 +9,19 @@ import { ActionContext } from "./common";
  */
 export type EntityActionTarget = {
   type: "entity";
-  /** The entity the action is applied to (an {@link EntityExpression} reference). */
-  id: EntityExpression;
+  /** The entity the action is applied to (an {@link EntityReadOnlyExpression} reference). */
+  id: EntityReadOnlyExpression;
 };
 
 /**
  * Arguments for setting an entity action via hostApi.setEntityAction
  */
 export type SetEntityActionArgs = {
-  name: StringExpression;
+  name: StringReadOnlyExpression;
   description?: string;
   cooldownGroup?: string;
-  guard?: (context: ActionContext, target: EntityActionTarget) => ConditionExpression;
-  cooldown?: (context: ActionContext, target: EntityActionTarget) => TemporalExpression;
+  guard?: (context: ActionContext, target: EntityActionTarget) => ConditionReadOnlyExpression;
+  cooldown?: (context: ActionContext, target: EntityActionTarget) => TemporalReadOnlyExpression;
   apply: (context: ActionContext, target: EntityActionTarget) => void;
 };
 

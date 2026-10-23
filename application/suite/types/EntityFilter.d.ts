@@ -1,11 +1,11 @@
-import { ConditionExpression } from "./primitives/conditionExpression";
-import { EntityExpression } from "./dataExpression/Entity";
+import { ConditionReadOnlyExpression } from "./primitives/conditionExpression";
+import { EntityReadOnlyExpression } from "./dataExpression/Entity";
 
 /**
  * Per-entity predicate for {@link FilterPredicates}.
  *
- * Invoked with the entity's {@link EntityExpression} query surface and must
- * yield a {@link ConditionExpression}. Absent map keys never match: extract
+ * Invoked with the entity's {@link EntityReadOnlyExpression} query surface and must
+ * yield a {@link ConditionReadOnlyExpression}. Absent map keys never match: extract
  * the condition through the MaybeExpression and fall back to a falsy
  * condition, e.g.
  *
@@ -15,7 +15,7 @@ import { EntityExpression } from "./dataExpression/Entity";
  *   .orElse(condition.of(false))
  * ```
  */
-export type FilterLambda = (e: EntityExpression) => ConditionExpression;
+export type FilterLambda = (e: EntityReadOnlyExpression) => ConditionReadOnlyExpression;
 
 /** Leaf variant: the entity matches iff every lambda yields a truthy condition. Empty array matches everything. */
 export type FilterPredicates = { filters: FilterLambda[] };

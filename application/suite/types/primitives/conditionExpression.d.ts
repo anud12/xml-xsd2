@@ -1,29 +1,29 @@
-import {MaybeExpression} from "./maybeExpression";
-import {PrimitiveExpression} from "./primitiveExpression";
+import {MaybeReadOnlyExpression} from "./maybeExpression";
+import {PrimitiveReadOnlyExpression} from "./primitiveExpression";
 
-export type ConditionExpression = PrimitiveExpression & {
+export type ConditionReadOnlyExpression = PrimitiveReadOnlyExpression & {
   /** Short-circuiting combinators. Immutable. */
-  and: (other: ConditionExpression) => ConditionExpression;
-  or:  (other: ConditionExpression) => ConditionExpression;
+  and: (other: ConditionReadOnlyExpression) => ConditionReadOnlyExpression;
+  or:  (other: ConditionReadOnlyExpression) => ConditionReadOnlyExpression;
 
   /** Logical inversion. */
-  negate: () => ConditionExpression;
+  negate: () => ConditionReadOnlyExpression;
 
-  /** Convenience combinators that accept callbacks producing ConditionExpression values lazily. Returns self. */
-  ifTrue:  (cb: () => void) => ConditionExpression; // invoke cb only when receiver is true
-  ifFalse: (cb: () => void) => ConditionExpression; // invoke cb only when receiver is false
+  /** Convenience combinators that accept callbacks producing ConditionReadOnlyExpression values lazily. Returns self. */
+  ifTrue:  (cb: () => void) => ConditionReadOnlyExpression; // invoke cb only when receiver is true
+  ifFalse: (cb: () => void) => ConditionReadOnlyExpression; // invoke cb only when receiver is false
   /** Marker for HostApi surfaces */
 } & {
   
 };
 
-export type ConditionExpressionApi = {
+export type ConditionReadOnlyExpressionApi = {
   /** Factory function */
-  of: (value: boolean) => ConditionExpression;
+  of: (value: boolean) => ConditionReadOnlyExpression;
 
   /** Register and retrieve named condition rules. */
-  asRule: (ruleName: string, expr: ConditionExpression) => ConditionExpressionApi;
-  getRule: (ruleName: string) => ConditionExpression;
+  asRule: (ruleName: string, expr: ConditionReadOnlyExpression) => ConditionReadOnlyExpressionApi;
+  getRule: (ruleName: string) => ConditionReadOnlyExpression;
 
   /** Marker for HostApi surfaces */
   type: unknown;

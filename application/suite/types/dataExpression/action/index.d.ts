@@ -11,4 +11,4 @@ export type { ContainerActionTarget, SetContainerActionArgs, SetContainerActionF
 export type { PointActionTarget, SetPointActionArgs, SetPointActionFunction } from "./point-action";
 
 // No-input actions
-export type { SetActionArgs, SetActionFunction, ActionExpression } from "./no-input-action";
+export type { SetActionArgs, SetActionFunction, ActionReadOnlyExpression } from "./no-input-action";

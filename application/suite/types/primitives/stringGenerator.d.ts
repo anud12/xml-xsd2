@@ -1,6 +1,6 @@
-import {StringExpression} from "./stringExpression";
-import {MaybeExpression} from "./maybeExpression";
-import {ConditionExpression} from "./conditionExpression";
+import {StringReadOnlyExpression} from "./stringExpression";
+import {MaybeReadOnlyExpression} from "./maybeExpression";
+import {ConditionReadOnlyExpression} from "./conditionExpression";
 
 /**
  * StringGenerator — a composable grammar over a regular language of strings,
@@ -10,13 +10,13 @@ import {ConditionExpression} from "./conditionExpression";
 export type StringGeneratorApi = {
   /**
    * Language = union of the elements' languages. Picks exactly one element at
-   * evaluation (instance RNG). Accepts StringExpressions (including a sub-generator's
+   * evaluation (instance RNG). Accepts StringReadOnlyExpressions (including a sub-generator's
    * generateValue() grammar).
    */
-  oneOf: (oneOfArray: Array<StringExpression>) => StringGenerator;
+  oneOf: (oneOfArray: Array<StringReadOnlyExpression>) => StringGenerator;
 
   /** Language = ordered concatenation (product) of the elements' languages. */
-  concat: (elements: Array<StringExpression>) => StringGenerator;
+  concat: (elements: Array<StringReadOnlyExpression>) => StringGenerator;
 
   /** Marker for HostApi surfaces */
   type: StringGeneratorType,
@@ -28,17 +28,17 @@ export type StringGeneratorType = {
 
 export type StringGenerator = {
   /**
-   * The generator -> StringExpression conversion. Present (maybe.of) with the
+   * The generator -> StringReadOnlyExpression conversion. Present (maybe.of) with the
    * language grammar when the language is non-empty; absent (maybe.none) for
    * oneOf([]). The concrete random string is produced when the returned
-   * StringExpression is evaluated.
+   * StringReadOnlyExpression is evaluated.
    */
-  generateValue: () => MaybeExpression<StringExpression>;
+  generateValue: () => MaybeReadOnlyExpression<StringReadOnlyExpression>;
 
   /**
    * Full-match membership as a condition: true iff `candidate` (evaluated to a
    * concrete string) is a member of this generator's language. NOT a substring
    * test. A non-literal candidate yields an existential over its evaluations.
    */
-  isGeneratedBy: (candidate: StringExpression) => ConditionExpression,
+  isGeneratedBy: (candidate: StringReadOnlyExpression) => ConditionReadOnlyExpression,
 }

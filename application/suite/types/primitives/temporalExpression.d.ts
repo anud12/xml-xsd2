@@ -3,11 +3,11 @@ import { Expression } from "../Expression";
 /**
  * A lazy in-game duration expression.
  * 
- * TemporalExpressions represent durations in module-defined units
+ * TemporalReadOnlyExpressions represent durations in module-defined units
  * (e.g., "round", "day") mapped to an internal GTU (game time unit) clock.
  * Used for cooldowns and effect reoccurrence scheduling.
  */
-export type TemporalExpression = Expression & (
+export type TemporalReadOnlyExpression = Expression & (
   {
     /**
      * Evaluate to a fixed number of ticks in the GTU clock.
@@ -27,18 +27,18 @@ export type TemporalExpression = Expression & (
 );
 
 /**
- * Factory API for creating TemporalExpressions.
+ * Factory API for creating TemporalReadOnlyExpressions.
  */
 export type TemporalExpressionApi = {
   /**
    * Create a temporal expression from a fixed number of ticks.
    */
-  ofTicks: (ticks: number) => TemporalExpression;
+  ofTicks: (ticks: number) => TemporalReadOnlyExpression;
 
   /**
    * Create a temporal expression from a named unit and count.
    */
-  of: (unit: string, count: number) => TemporalExpression;
+  of: (unit: string, count: number) => TemporalReadOnlyExpression;
 
   /**
    * Define a named in-game unit and its GTU multiplier.
@@ -50,12 +50,12 @@ export type TemporalExpressionApi = {
   /**
    * Register a temporal expression under a named rule for later getRule(ref) lookups.
    */
-  asRule: (ruleName: string, expr: TemporalExpression) => TemporalExpressionApi;
+  asRule: (ruleName: string, expr: TemporalReadOnlyExpression) => TemporalExpressionApi;
 
   /**
    * Retrieve a previously registered temporal expression by rule name.
    */
-  getRule: (ruleName: string) => TemporalExpression;
+  getRule: (ruleName: string) => TemporalReadOnlyExpression;
 
   /**
    * Marker for HostApi surfaces.

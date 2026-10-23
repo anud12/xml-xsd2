@@ -1,9 +1,9 @@
-import { NumberExpression } from "../primitives/numberExpression";
-import { StringExpression } from "../primitives/stringExpression";
-import { ConditionExpression } from "../primitives/conditionExpression";
+import { NumberReadOnlyExpression } from "../primitives/numberExpression";
+import { StringReadOnlyExpression } from "../primitives/stringExpression";
+import { ConditionReadOnlyExpression } from "../primitives/conditionExpression";
 import { Expression } from "../Expression";
 import { Entity } from "./Entity";
-import { ActionExpression } from "./action/no-input-action";
+import { ActionReadOnlyExpression } from "./action/no-input-action";
 
 /**
  * A single atomic step within a behavior rule's execution script.
@@ -18,14 +18,14 @@ import { ActionExpression } from "./action/no-input-action";
  */
 export type BehaviorStep =
   | {
-      /** The action to execute (an {@link ActionExpression} reference). */
-      action: ActionExpression;
+      /** The action to execute (an {@link ActionReadOnlyExpression} reference). */
+      action: ActionReadOnlyExpression;
       /** Arbitrary payload passed to the action at emit time. */
       payload?: Record<string, any>;
     }
   | {
       /** Suspend the script for a duration (in game time units). */
-      wait: NumberExpression;
+      wait: NumberReadOnlyExpression;
     };
 
 /**
@@ -35,10 +35,10 @@ export type BehaviorStep =
  * (queries, state, rng) is deliberately out of reach.
  */
 export type DoContext = {
-  /** Declare a step that executes the action (an {@link ActionExpression} reference). */
-  action: (action: ActionExpression, payload?: Record<string, any>) => BehaviorStep;
+  /** Declare a step that executes the action (an {@link ActionReadOnlyExpression} reference). */
+  action: (action: ActionReadOnlyExpression, payload?: Record<string, any>) => BehaviorStep;
   /** Declare a step that waits for the given duration. */
-  wait: (duration: NumberExpression) => BehaviorStep;
+  wait: (duration: NumberReadOnlyExpression) => BehaviorStep;
 };
 
 /**
@@ -51,7 +51,7 @@ export type UtilityRule = {
    * Score, evaluated against the entity only (read-only).
    * Re-evaluated only when an entity key the score reads is written.
    */
-  score: (entity: Entity) => NumberExpression;
+  score: (entity: Entity) => NumberReadOnlyExpression;
   /** Builds the execution script for this rule. */
   do: (ctx: DoContext) => BehaviorStep[];
 };
@@ -65,7 +65,7 @@ export type PriorityRule = {
   /** Human-readable name for the debug trace; required. */
   label: string;
   /** Enable gate, evaluated against the entity only (read-only). */
-  condition: (entity: Entity) => ConditionExpression;
+  condition: (entity: Entity) => ConditionReadOnlyExpression;
   /** The fuzzy decision made within this branch. */
   utility: UtilityRule[];
 };
@@ -87,7 +87,7 @@ export type BehaviorNode =
  * `hostApi.runtime.setBehavior`. Attach to entities via the `behavior`
  * field in `setEntity` arguments.
  */
-export type BehaviorExpression = Expression & {
+export type BehaviorReadOnlyExpression = Expression & {
   /** The behavior's name. */
   readonly name: string;
 };
@@ -135,7 +135,7 @@ export type BehaviorApi = {
    *
    * @param definition - Declarative behavior definition: a name plus
    *   the behavior graph root (`priority` or `utility`).
-   * @returns BehaviorExpression for the `behavior` field in `setEntity`.
+   * @returns BehaviorReadOnlyExpression for the `behavior` field in `setEntity`.
    */
-    setBehavior: (definition: { name: StringExpression } & BehaviorNode) => BehaviorExpression;
+    setBehavior: (definition: { name: StringReadOnlyExpression } & BehaviorNode) => BehaviorReadOnlyExpression;
 };

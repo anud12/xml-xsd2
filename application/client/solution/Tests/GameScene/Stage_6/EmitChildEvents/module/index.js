@@ -58,7 +58,7 @@ export default (hostApi) => {
       return {value};
     },
     apply: (context, output) => {
-      /** @type {ConditionExpression} */
+      /** @type {ConditionReadOnlyExpression} */
       const shouldDouble = output.value;
 
       context.getEntityBy(filter)

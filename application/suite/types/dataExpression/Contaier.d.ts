@@ -1,25 +1,25 @@
-import {EntityExpression} from "./Entity";
-import {NumberExpression} from "../primitives/numberExpression";
-import {StringExpression} from "../primitives/stringExpression";
+import {EntityReadOnlyExpression} from "./Entity";
+import {NumberReadOnlyExpression} from "../primitives/numberExpression";
+import {StringReadOnlyExpression} from "../primitives/stringExpression";
 import {Expression} from "../Expression";
 
 export type ContainerCreationArguments = {
   /** Keyed string metadata for the container */
-  textMap?: Record<string, StringExpression>
+  textMap?: Record<string, StringReadOnlyExpression>
   /** Keyed numeric metadata for the container */
-  numberMap?: Record<string, NumberExpression>
-  /** Maps a member entity to its x-coordinate as a NumberExpression */
-  getX?: (entity: EntityExpression) => NumberExpression
-  /** Maps a member entity to its y-coordinate as a NumberExpression */
-  getY?: (entity: EntityExpression) => NumberExpression
+  numberMap?: Record<string, NumberReadOnlyExpression>
+  /** Maps a member entity to its x-coordinate as a NumberReadOnlyExpression */
+  getX?: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression
+  /** Maps a member entity to its y-coordinate as a NumberReadOnlyExpression */
+  getY?: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression
   /** Maps a member entity to the number of cells it occupies along the x-axis. Defaults to 1 when not set */
-  getSpanX?: (entity: EntityExpression) => NumberExpression
+  getSpanX?: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression
   /** Maps a member entity to the number of cells it occupies along the y-axis. Defaults to 1 when not set */
-  getSpanY?: (entity: EntityExpression) => NumberExpression
+  getSpanY?: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression
   /** Optional size bounds along the x-axis */
-  sizeX?: { value: NumberExpression, outOfBounds: OutOfBoundsRule }
+  sizeX?: { value: NumberReadOnlyExpression, outOfBounds: OutOfBoundsRule }
   /** Optional size bounds along the y-axis */
-  sizeY?: { value: NumberExpression, outOfBounds: OutOfBoundsRule }
+  sizeY?: { value: NumberReadOnlyExpression, outOfBounds: OutOfBoundsRule }
   /**
    * How each entity's marker is placed over its span.
    * - `"center"`: center the marker on the span midpoint.
@@ -31,11 +31,11 @@ export type ContainerCreationArguments = {
   sector?: SectorDeclaration
 
   /**
-   * Member entities. Each entry is an {@link EntityExpression} reference
+   * Member entities. Each entry is an {@link EntityReadOnlyExpression} reference
    * (the value returned by `hostApi.runtime.setEntity`, or an entity from
    * `getEntityBy`), resolved to its id by the runtime.
    */
-  entities: Array<EntityExpression>
+  entities: Array<EntityReadOnlyExpression>
 }
 
 /** A grid square coordinate [x, y]. y increases downward. */
@@ -50,24 +50,24 @@ export type SectorOpening = {
   cell: SectorCoord,
   side: SectorSide,
   /** First interior cell along the edge. */
-  start: NumberExpression,
+  start: NumberReadOnlyExpression,
   /** Number of interior cells the opening spans. */
-  length: NumberExpression,
+  length: NumberReadOnlyExpression,
 }
 
 /**
  * A read-only reference to a named sector grid, returned by
  * `hostApi.world.sectorGrid`. Use it anywhere a grid is referenced.
  */
-export type GridExpression = Expression & {
+export type GridReadOnlyExpression = Expression & {
   /** The grid's id. */
   id: string;
 }
 
 /** A polyomino footprint placed on a named grid; shapes topology only. */
 export type SectorDeclaration = {
-  /** The named grid this footprint is placed on (a {@link GridExpression} reference). */
-  grid: GridExpression,
+  /** The named grid this footprint is placed on (a {@link GridReadOnlyExpression} reference). */
+  grid: GridReadOnlyExpression,
   /** Footprint square offsets, normalized to min x/y = 0. */
   footprint: Array<SectorCoord>,
   /** Grid coordinate the whole footprint is placed at. */
@@ -80,10 +80,10 @@ export type ContainerAlignment = "center" | "top-left"
 
 export type ContainerExpressionApi = {
   /** Create an empty container builder */
-  create: () => ContainerExpression,
+  create: () => ContainerReadOnlyExpression,
   /** Register and retrieve named container templates */
-  asRule?: (ruleName: string, expr: ContainerExpression) => ContainerExpressionApi,
-  getRule?: (ruleName: string) => ContainerExpression,
+  asRule?: (ruleName: string, expr: ContainerReadOnlyExpression) => ContainerExpressionApi,
+  getRule?: (ruleName: string) => ContainerReadOnlyExpression,
   type: ContainerExpressionType,
 }
 
@@ -93,27 +93,27 @@ export type ContainerExpressionType = {
 
 export type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
 
-export type ContainerExpression = Expression & {
+export type ContainerReadOnlyExpression = Expression & {
   /** The container's id. */
   id: string;
-  /** Member entities (an {@link EntityExpression} reference). */
-  entities: Array<EntityExpression>;
+  /** Member entities (an {@link EntityReadOnlyExpression} reference). */
+  entities: Array<EntityReadOnlyExpression>;
   /** Keyed string metadata. */
-  textMap?: Record<string, StringExpression>;
+  textMap?: Record<string, StringReadOnlyExpression>;
   /** Keyed numeric metadata. */
-  numberMap?: Record<string, NumberExpression>;
+  numberMap?: Record<string, NumberReadOnlyExpression>;
   /** The x-coordinate function. */
-  getX?: (entity: EntityExpression) => NumberExpression;
+  getX?: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression;
   /** The y-coordinate function. */
-  getY?: (entity: EntityExpression) => NumberExpression;
+  getY?: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression;
   /** The x-span function. */
-  getSpanX?: (entity: EntityExpression) => NumberExpression;
+  getSpanX?: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression;
   /** The y-span function. */
-  getSpanY?: (entity: EntityExpression) => NumberExpression;
+  getSpanY?: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression;
   /** The x-axis size bounds. */
-  sizeX?: { value: NumberExpression, outOfBounds: OutOfBoundsRule };
+  sizeX?: { value: NumberReadOnlyExpression, outOfBounds: OutOfBoundsRule };
   /** The y-axis size bounds. */
-  sizeY?: { value: NumberExpression, outOfBounds: OutOfBoundsRule };
+  sizeY?: { value: NumberReadOnlyExpression, outOfBounds: OutOfBoundsRule };
   /** Marker placement over each entity's span. */
   alignment?: ContainerAlignment;
   /** Optional sector/portal attachment. */

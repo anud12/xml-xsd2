@@ -1,6 +1,6 @@
-import { ConditionExpression } from "../../primitives/conditionExpression";
-import { TemporalExpression } from "../../primitives/temporalExpression";
-import { StringExpression } from "../../primitives/stringExpression";
+import { ConditionReadOnlyExpression } from "../../primitives/conditionExpression";
+import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
+import { StringReadOnlyExpression } from "../../primitives/stringExpression";
 import { Expression } from "../../Expression";
 import { ActionContext } from "./common";
 
@@ -8,11 +8,11 @@ import { ActionContext } from "./common";
  * Arguments for setting a no-input action via hostApi.setAction
  */
 export type SetActionArgs = {
-  name: StringExpression;
+  name: StringReadOnlyExpression;
   description?: string;
   cooldownGroup?: string;
-  guard?: (context: ActionContext) => ConditionExpression;
-  cooldown?: (context: ActionContext) => TemporalExpression;
+  guard?: (context: ActionContext) => ConditionReadOnlyExpression;
+  cooldown?: (context: ActionContext) => TemporalReadOnlyExpression;
   apply: (context: ActionContext) => void;
 };
 
@@ -20,7 +20,7 @@ export type SetActionArgs = {
  * A read-only reference to a registered action, returned by
  * `hostApi.runtime.setAction`. Use it anywhere an action is referenced.
  */
-export type ActionExpression = Expression & {
+export type ActionReadOnlyExpression = Expression & {
   /** The action's name. */
   name: string;
 };
@@ -28,4 +28,4 @@ export type ActionExpression = Expression & {
 /**
  * Type for setAction function (no-input actions).
  */
-export type SetActionFunction = (args: SetActionArgs) => ActionExpression;
+export type SetActionFunction = (args: SetActionArgs) => ActionReadOnlyExpression;

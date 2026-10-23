@@ -1,10 +1,10 @@
-import {NumberExpression} from "../primitives/numberExpression";
-import {Entity, EntityExpression} from "../dataExpression/Entity";
-import {AnimationExpression, GetAnimationFunction} from "../dataExpression/animation/AnimationRegistration";
+import {NumberReadOnlyExpression} from "../primitives/numberExpression";
+import {Entity, EntityReadOnlyExpression} from "../dataExpression/Entity";
+import {AnimationReadOnlyExpression, GetAnimationFunction} from "../dataExpression/animation/AnimationRegistration";
 import {SpriteResource} from "../texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "../texture/SpriteMap";
-import {ContainerExpression, GridExpression} from "../dataExpression/Contaier";
-import {ActionExpression} from "../dataExpression/action/no-input-action";
+import {ContainerReadOnlyExpression, GridReadOnlyExpression} from "../dataExpression/Contaier";
+import {ActionReadOnlyExpression} from "../dataExpression/action/no-input-action";
 
 /**
  * A raw node id string.
@@ -86,7 +86,7 @@ export type NineSlice = {
 /**
  * A texture: what to paint + how to paint it. The single shape every textured
  * ui slot accepts (background, border, hover outline/background, progress
- * fill/track, screen). Replaces the old `UiBackground = AnimationExpression |
+ * fill/track, screen). Replaces the old `UiBackground = AnimationReadOnlyExpression |
  * SpriteResource` union — a still image is a one-frame animation registration
  * and sprite maps are reachable only through animation frames.
  */
@@ -94,7 +94,7 @@ export type UiTexture = {
   /** What to paint: a registered animation — the `setAnimation`/`getAnimation`
    * handle, or a `{name}` ref. The engine resolves the registration's
    * frames/duration/loop live every tick. */
-  animation: AnimationExpression;
+  animation: AnimationReadOnlyExpression;
   /** How to paint: required, per axis. */
   fill: TextureFill;
   /** Optional 9-slice geometry. */
@@ -137,7 +137,7 @@ export type UiLayout = {
    * resolution (the "board" pattern): a click resolves to a container cell
    * from the container's sizeX/sizeY, independent of the layout tracks.
    */
-  container?: ContainerExpression;
+  container?: ContainerReadOnlyExpression;
 } | "column" | "row";
 
 /**
@@ -158,7 +158,7 @@ export type UiPanelOptions = {
     align?: AlignOption;
     background?: UiTexture;
     border?: { texture?: UiTexture; thickness?: number; width?: number; height?: number };
-    onHover?: { texture?: UiTexture; background?: UiTexture; thickness?: number; emitAction?: ActionExpression; stopPropagation?: boolean };
+    onHover?: { texture?: UiTexture; background?: UiTexture; thickness?: number; emitAction?: ActionReadOnlyExpression; stopPropagation?: boolean };
     onClick?: (ctx: UiClickContext) => void;
     layout?: UiLayout;
     /**
@@ -207,7 +207,7 @@ export type UiPanelOptions = {
  * Click context handed to a panel's onClick handler.
  */
 export type UiClickContext = {
-  emitAction: (action: ActionExpression, args?: Record<string, unknown>) => void;
+  emitAction: (action: ActionReadOnlyExpression, args?: Record<string, unknown>) => void;
   cursor?: { getX: () => number; getY: () => number };
   [key: string]: unknown;
 };
@@ -217,7 +217,7 @@ export type UiClickContext = {
  * it as the field's text/number value.
  */
 export type UiFieldBinding = {
-  entity: EntityExpression | Entity;
+  entity: EntityReadOnlyExpression | Entity;
   map: "number" | "text";
   name: string;
   fallback?: string;
@@ -255,34 +255,34 @@ export type UiProgressOptions = UiPanelOptions & {
      * selects a field from the bound entity's number map (re-read every tick):
      * `(entity) => entity.number_map.get(key).orElse(...)`. The `.orElse` default
      * is used when the field is absent on the entity. Alternatively, a lambda
-     * may return a constant NumberExpression (e.g. `(entity) => number.of(0)`),
+     * may return a constant NumberReadOnlyExpression (e.g. `(entity) => number.of(0)`),
      * which is used as-is with no per-tick re-read.
      */
-    min?: (entity: EntityExpression) => NumberExpression;
+    min?: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression;
     /**
      * Upper bound of the value's range. A lambda that selects a field from the
      * bound entity's number map (re-read every tick):
      * `(entity) => entity.number_map.get(key).orElse(...)`. The `.orElse` default
      * is used when the field is absent on the entity. Alternatively, a lambda
-     * may return a constant NumberExpression (e.g. `(entity) => number.of(10)`),
+     * may return a constant NumberReadOnlyExpression (e.g. `(entity) => number.of(10)`),
      * which is used as-is with no per-tick re-read. Required.
      */
-    max: (entity: EntityExpression) => NumberExpression;
+    max: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression;
     /** Entity to bind. Required. */
-    entity: EntityExpression;
+    entity: EntityReadOnlyExpression;
     /**
      * Selects the entity's number field to read. A lambda that uses the
-     * EntityExpression api to pick the field from the number map and returns a
-     * `NumberExpression`, e.g.
+     * EntityReadOnlyExpression api to pick the field from the number map and returns a
+     * `NumberReadOnlyExpression`, e.g.
      * `(entity) => entity.number_map.get("hp").orElse(...)`. Returning a
-     * `NumberExpression` (rather than the raw `MaybeExpression`) forces the
+     * `NumberReadOnlyExpression` (rather than the raw `MaybeReadOnlyExpression`) forces the
      * `Maybe` to be resolved via `orElse`. The selected field is re-read from
      * the entity's number data every tick; its `.orElse` default is the raw
      * value used when the field is absent. Alternatively, a lambda may return
-     * a constant NumberExpression (e.g. `(entity) => number.of(3)`), which is
+     * a constant NumberReadOnlyExpression (e.g. `(entity) => number.of(3)`), which is
      * used as-is with no per-tick re-read. Required.
      */
-    value: (entity: EntityExpression) => NumberExpression;
+    value: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression;
   };
 };
 
@@ -293,7 +293,7 @@ export type UiProgressOptions = UiPanelOptions & {
  * width/height live in `panel` (host-validated as positive).
  */
 export type UiContainerViewOptions = UiPanelOptions & {
-  container: ContainerExpression;
+  container: ContainerReadOnlyExpression;
   /**
    * The declared areas to draw as outlines, one entry per area. Each entry
    * selects a named area and the outline style for it. When omitted, the
@@ -320,8 +320,8 @@ export type UiContainerViewOptions = UiPanelOptions & {
  * tick. Portals are engine-owned; the render is never invoked for them.
  */
 export type UiSectorGridOptions = UiPanelOptions & {
-  /** The runtime sector grid (a {@link GridExpression} reference, declared via world.sectorGrid). */
-  grid: GridExpression;
+  /** The runtime sector grid (a {@link GridReadOnlyExpression} reference, declared via world.sectorGrid). */
+  grid: GridReadOnlyExpression;
   /** Edge length of one grid cell in logical units (default 32). */
   cellSize?: number;
   /** Gap between adjacent cells in logical units: each cell is inset by half
@@ -357,7 +357,7 @@ export type UiSectorGridItem = {
  * the render lambda) per entity in the named container.
  */
 export type UiEntityListOptions = {
-  container: ContainerExpression;
+  container: ContainerReadOnlyExpression;
   vertical?: boolean;
 };
 

@@ -1,15 +1,15 @@
-import {ConditionExpression} from "./conditionExpression";
-import {PrimitiveExpression} from "./primitiveExpression";
+import {ConditionReadOnlyExpression} from "./conditionExpression";
+import {PrimitiveReadOnlyExpression} from "./primitiveExpression";
 
-export type MaybeExpressionApi = {
+export type MaybeReadOnlyExpressionApi = {
   /** Wrap an expression/value as present */
-  of: <T>(v: T) => MaybeExpression<T>,
+  of: <T>(v: T) => MaybeReadOnlyExpression<T>,
   /** Create an absent value */
-  none: <T>() => MaybeExpression<T>,
+  none: <T>() => MaybeReadOnlyExpression<T>,
 
   /** Register/lookup named maybe rules (optional) */
-  asRule: <T>(ruleName: string, expr: MaybeExpression<T>) => MaybeExpressionApi,
-  getRule:<T>(ruleName: string) => MaybeExpression<T>,
+  asRule: <T>(ruleName: string, expr: MaybeReadOnlyExpression<T>) => MaybeReadOnlyExpressionApi,
+  getRule:<T>(ruleName: string) => MaybeReadOnlyExpression<T>,
   /** Marker for HostApi surfaces */
   type: unknown,
 }
@@ -17,21 +17,21 @@ export type MaybeExpressionApi = {
 
 type ConditionalMaybe<T> = {
   /** Get true/false branches based on condition result */
-  getOnTrueOrFalse: <U>(trueCase: MaybeExpression<U>, falseCase: MaybeExpression<U>) => MaybeExpression<U>,
+  getOnTrueOrFalse: <U>(trueCase: MaybeReadOnlyExpression<U>, falseCase: MaybeReadOnlyExpression<U>) => MaybeReadOnlyExpression<U>,
 }
 
-export type MaybeExpression<T> = PrimitiveExpression & {
-  of: (v: T) => MaybeExpression<T>,
-  none: () => MaybeExpression<T>,
+export type MaybeReadOnlyExpression<T> = PrimitiveReadOnlyExpression & {
+  of: (v: T) => MaybeReadOnlyExpression<T>,
+  none: () => MaybeReadOnlyExpression<T>,
 
   /** Presence checks */
-  isPresent: () => ConditionExpression,
-  isEmpty: () => ConditionExpression,
+  isPresent: () => ConditionReadOnlyExpression,
+  isEmpty: () => ConditionReadOnlyExpression,
 
   /** Transformations */
-  map: <U>(mapper: (v: T) => U) => MaybeExpression<U>,
-  flatMap: <U>(mapper: (v: T) => MaybeExpression<U>) => MaybeExpression<U>,
-  filter: (predicate: (v: T) => ConditionExpression) => MaybeExpression<T>,
+  map: <U>(mapper: (v: T) => U) => MaybeReadOnlyExpression<U>,
+  flatMap: <U>(mapper: (v: T) => MaybeReadOnlyExpression<U>) => MaybeReadOnlyExpression<U>,
+  filter: (predicate: (v: T) => ConditionReadOnlyExpression) => MaybeReadOnlyExpression<T>,
 
   /** Unwrapping */
   orElse: (defaultValue: T) => T,
@@ -40,5 +40,5 @@ export type MaybeExpression<T> = PrimitiveExpression & {
   ifPresent: (cb: (v: T) => void) => void,
 
   /** Check presence and apply a condition on the unwrapped value */
-  isCondition: (predicate: (v: T) => ConditionExpression) => ConditionalMaybe<T>,
+  isCondition: (predicate: (v: T) => ConditionReadOnlyExpression) => ConditionalMaybe<T>,
 }

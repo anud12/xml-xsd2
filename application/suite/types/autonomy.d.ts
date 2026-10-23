@@ -1,18 +1,18 @@
-import { ConditionExpression } from "./primitives/conditionExpression";
-import { NumberExpression } from "./primitives/numberExpression";
-import { EntityExpression } from "./dataExpression/Entity";
-import { ActionExpression } from "./dataExpression/action/no-input-action";
+import { ConditionReadOnlyExpression } from "./primitives/conditionExpression";
+import { NumberReadOnlyExpression } from "./primitives/numberExpression";
+import { EntityReadOnlyExpression } from "./dataExpression/Entity";
+import { ActionReadOnlyExpression } from "./dataExpression/action/no-input-action";
 
 /**
  * Level 0 script builder — a linear sequence of atomic steps.
  */
 export type ScriptBuilder = {
   /** Wait for a duration (in game time units). */
-  wait: (duration: NumberExpression) => ScriptBuilder;
-  /** Execute an action (an {@link ActionExpression} reference). */
-  executeAction: (action: ActionExpression) => ScriptBuilder;
+  wait: (duration: NumberReadOnlyExpression) => ScriptBuilder;
+  /** Execute an action (an {@link ActionReadOnlyExpression} reference). */
+  executeAction: (action: ActionReadOnlyExpression) => ScriptBuilder;
   /** Navigate to a position. */
-  navigateTo: (x: NumberExpression, y: NumberExpression) => ScriptBuilder;
+  navigateTo: (x: NumberReadOnlyExpression, y: NumberReadOnlyExpression) => ScriptBuilder;
   /** Transition to a named reaction state. */
   goto: (stateName: string) => ScriptBuilder;
   /** Return to the idle state. */
@@ -28,12 +28,12 @@ export type ReactionChainBuilder = {
    * then transition as the script dictates via `goto` / `gotoIdle`.
    *
    * @param name      - Unique name for this reaction state.
-   * @param condition - ConditionExpression gating the transition into this state.
+   * @param condition - ConditionReadOnlyExpression gating the transition into this state.
    * @param fn        - Callback receiving the level 0 script builder.
    */
   reaction: (
     name: string,
-    condition: ConditionExpression,
+    condition: ConditionReadOnlyExpression,
     fn: (script: ScriptBuilder) => void
   ) => ReactionChainBuilder;
 };
@@ -60,11 +60,11 @@ export type AutonomyApi = {
   /**
    * Register a reactive autonomy state machine for an entity.
    *
-   * @param entityName - The entity to attach autonomy to (an {@link EntityExpression} reference).
+   * @param entityName - The entity to attach autonomy to (an {@link EntityReadOnlyExpression} reference).
    * @param fn         - Callback receiving the autonomy builder.
    */
   setAutonomy: (
-    entityName: EntityExpression,
+    entityName: EntityReadOnlyExpression,
     fn: (builder: AutonomyBuilder) => void
   ) => void;
 };

@@ -1,7 +1,7 @@
-import { ConditionExpression } from "../../primitives/conditionExpression";
-import { TemporalExpression } from "../../primitives/temporalExpression";
-import { StringExpression } from "../../primitives/stringExpression";
-import { ContainerExpression } from "../Contaier";
+import { ConditionReadOnlyExpression } from "../../primitives/conditionExpression";
+import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
+import { StringReadOnlyExpression } from "../../primitives/stringExpression";
+import { ContainerReadOnlyExpression } from "../Contaier";
 import { ActionContext, ContainerPoint } from "./common";
 
 /**
@@ -9,8 +9,8 @@ import { ActionContext, ContainerPoint } from "./common";
  */
 export type PointActionTarget = {
   type: "point";
-  /** The container the point is in (a {@link ContainerExpression} reference). */
-  containerId: ContainerExpression;
+  /** The container the point is in (a {@link ContainerReadOnlyExpression} reference). */
+  containerId: ContainerReadOnlyExpression;
   position: ContainerPoint;
 };
 
@@ -18,11 +18,11 @@ export type PointActionTarget = {
  * Arguments for setting a point action via hostApi.setPointAction
  */
 export type SetPointActionArgs = {
-  name: StringExpression;
+  name: StringReadOnlyExpression;
   description?: string;
   cooldownGroup?: string;
-  guard?: (context: ActionContext, target: PointActionTarget) => ConditionExpression;
-  cooldown?: (context: ActionContext, target: PointActionTarget) => TemporalExpression;
+  guard?: (context: ActionContext, target: PointActionTarget) => ConditionReadOnlyExpression;
+  cooldown?: (context: ActionContext, target: PointActionTarget) => TemporalReadOnlyExpression;
   apply: (context: ActionContext, target: PointActionTarget) => void;
 };
 

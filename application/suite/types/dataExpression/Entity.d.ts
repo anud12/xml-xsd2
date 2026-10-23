@@ -1,17 +1,17 @@
-import {ContainerExpression} from "./Contaier";
-import {StringExpression} from "../primitives/stringExpression";
-import {ListExpression} from "../primitives/ListExpression";
-import {NumberExpression} from "../primitives/numberExpression";
-import {MaybeExpression} from "../primitives/maybeExpression";
+import {ContainerReadOnlyExpression} from "./Contaier";
+import {StringReadOnlyExpression} from "../primitives/stringExpression";
+import {ListReadOnlyExpression} from "../primitives/ListExpression";
+import {NumberReadOnlyExpression} from "../primitives/numberExpression";
+import {MaybeReadOnlyExpression} from "../primitives/maybeExpression";
 import {Expression} from "../Expression";
 
 export type EntityExpressionApi = {
   /** Create an empty entity builder */
-  create: () => EntityExpression,
+  create: () => EntityReadOnlyExpression,
 
   /** Optional rule registration helpers (follow repository pattern) */
-  asRule?: (ruleName: string, expr: EntityExpression) => EntityExpressionApi,
-  getRule?: (ruleName: string) => EntityExpression,
+  asRule?: (ruleName: string, expr: EntityReadOnlyExpression) => EntityExpressionApi,
+  getRule?: (ruleName: string) => EntityReadOnlyExpression,
 
   type: EntityExpressionType,
 }
@@ -32,13 +32,13 @@ export type Area = {
 }
 
 export type EntityCreationArguments = {
-  textMap?: Record<string, StringExpression>
-  numberMap?: Record<string, NumberExpression>
+  textMap?: Record<string, StringReadOnlyExpression>
+  numberMap?: Record<string, NumberReadOnlyExpression>
   /**
    * The entity's named areas (entityMap): area name -> polygon. Areas are
    * always declared here (there is no unnamed area). Each named area can be
    * queried independently via
-   * {@link EntityExpression.getEntitiesInsideArea}.
+   * {@link EntityReadOnlyExpression.getEntitiesInsideArea}.
    */
   areaMap?: Record<string, Area>
 }
@@ -47,15 +47,15 @@ export type EntityExpressionType = {
   // marker for dynamic HostApi typing
 }
 
-export type EntityExpression = Expression & {
+export type EntityReadOnlyExpression = Expression & {
   /** The containers this entity belongs to. */
-  containers: ListExpression<ContainerExpression>;
-  /** The entity's id as a StringExpression (isContainingExactly, isContaining, ...). */
-  id: StringExpression;
-  /** The entity's number_map accessor (keyed lookups returning MaybeExpressions). */
-  number_map: { get: (key: string | StringExpression) => MaybeExpression<NumberExpression> };
-  /** The entity's text_map accessor (keyed lookups returning MaybeExpressions). */
-  text_map: { get: (key: string | StringExpression) => MaybeExpression<StringExpression> };
+  containers: ListReadOnlyExpression<ContainerReadOnlyExpression>;
+  /** The entity's id as a StringReadOnlyExpression (isContainingExactly, isContaining, ...). */
+  id: StringReadOnlyExpression;
+  /** The entity's number_map accessor (keyed lookups returning MaybeReadOnlyExpressions). */
+  number_map: { get: (key: string | StringReadOnlyExpression) => MaybeReadOnlyExpression<NumberReadOnlyExpression> };
+  /** The entity's text_map accessor (keyed lookups returning MaybeReadOnlyExpressions). */
+  text_map: { get: (key: string | StringReadOnlyExpression) => MaybeReadOnlyExpression<StringReadOnlyExpression> };
   /**
    * The entities inside one *named* area of this entity. The area name is
    * required: it is resolved first, then the containment/overlap test runs.
@@ -65,10 +65,10 @@ export type EntityExpression = Expression & {
    * yields an empty list (not an error). Each element is a minimal entity
    * reference exposing `getId`.
    */
-  getEntitiesInsideArea: (areaName: string | StringExpression) => ListExpression<EntityInsideAreaReference>
+  getEntitiesInsideArea: (areaName: string | StringReadOnlyExpression) => ListReadOnlyExpression<EntityInsideAreaReference>
 }
 
-/** A minimal entity reference returned by {@link EntityExpression.getEntitiesInsideArea}. */
+/** A minimal entity reference returned by {@link EntityReadOnlyExpression.getEntitiesInsideArea}. */
 export type EntityInsideAreaReference = {
   /** The contained entity's id. */
   getId: () => string
@@ -77,16 +77,16 @@ export type EntityInsideAreaReference = {
 export type Entity = {
   /** The entity's id (plain string, stable across ticks). */
   id: string;
-  getId:() => StringExpression,
-  getText: (key: StringExpression) => MaybeExpression<StringExpression>,
-  getNumber: (key: StringExpression) => MaybeExpression<NumberExpression>,
-  getTextKeys: () => ListExpression<string>,
-  getNumberKeys: () => ListExpression<string>,
-  containers: ListExpression<ContainerExpression>,
+  getId:() => StringReadOnlyExpression,
+  getText: (key: StringReadOnlyExpression) => MaybeReadOnlyExpression<StringReadOnlyExpression>,
+  getNumber: (key: StringReadOnlyExpression) => MaybeReadOnlyExpression<NumberReadOnlyExpression>,
+  getTextKeys: () => ListReadOnlyExpression<string>,
+  getNumberKeys: () => ListReadOnlyExpression<string>,
+  containers: ListReadOnlyExpression<ContainerReadOnlyExpression>,
   /**
    * The entities inside one *named* area of this entity (see
-   * {@link EntityExpression.getEntitiesInsideArea}). The area name is
+   * {@link EntityReadOnlyExpression.getEntitiesInsideArea}). The area name is
    * required; an entity with no such area yields an empty list.
    */
-  getEntitiesInsideArea: (areaName: string) => ListExpression<EntityInsideAreaReference>
+  getEntitiesInsideArea: (areaName: string) => ListReadOnlyExpression<EntityInsideAreaReference>
 }
