@@ -1,6 +1,7 @@
 import { ConditionExpression } from "../../primitives/conditionExpression";
 import { TemporalExpression } from "../../primitives/temporalExpression";
 import { StringExpression } from "../../primitives/stringExpression";
+import { Expression } from "../../Expression";
 import { ActionContext } from "./common";
 
 /**
@@ -19,7 +20,7 @@ export type SetActionArgs = {
  * A read-only reference to a registered action, returned by
  * `hostApi.runtime.setAction`. Use it anywhere an action is referenced.
  */
-export type ActionExpression = {
+export type ActionExpression = Expression & {
   /** The action's name. */
   name: string;
 };

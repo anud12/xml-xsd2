@@ -1,6 +1,7 @@
 import {MaybeExpression} from "./maybeExpression";
+import {PrimitiveExpression} from "./primitiveExpression";
 
-export type ConditionExpression = {
+export type ConditionExpression = PrimitiveExpression & {
   /** Short-circuiting combinators. Immutable. */
   and: (other: ConditionExpression) => ConditionExpression;
   or:  (other: ConditionExpression) => ConditionExpression;

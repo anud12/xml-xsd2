@@ -1,6 +1,7 @@
 import { NumberExpression } from "../primitives/numberExpression";
 import { StringExpression } from "../primitives/stringExpression";
 import { ConditionExpression } from "../primitives/conditionExpression";
+import { Expression } from "../Expression";
 import { Entity } from "./Entity";
 import { ActionExpression } from "./action/no-input-action";
 
@@ -86,7 +87,7 @@ export type BehaviorNode =
  * `hostApi.runtime.setBehavior`. Attach to entities via the `behavior`
  * field in `setEntity` arguments.
  */
-export type BehaviorExpression = {
+export type BehaviorExpression = Expression & {
   /** The behavior's name. */
   readonly name: string;
 };

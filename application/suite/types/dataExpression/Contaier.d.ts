@@ -1,6 +1,7 @@
 import {EntityExpression} from "./Entity";
 import {NumberExpression} from "../primitives/numberExpression";
 import {StringExpression} from "../primitives/stringExpression";
+import {Expression} from "../Expression";
 
 export type ContainerCreationArguments = {
   /** Keyed string metadata for the container */
@@ -58,7 +59,7 @@ export type SectorOpening = {
  * A read-only reference to a named sector grid, returned by
  * `hostApi.world.sectorGrid`. Use it anywhere a grid is referenced.
  */
-export type GridExpression = {
+export type GridExpression = Expression & {
   /** The grid's id. */
   id: string;
 }
@@ -92,7 +93,7 @@ export type ContainerExpressionType = {
 
 export type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
 
-export type ContainerExpression = {
+export type ContainerExpression = Expression & {
   /** The container's id. */
   id: string;
   /** Member entities (an {@link EntityExpression} reference). */

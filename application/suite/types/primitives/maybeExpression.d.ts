@@ -1,4 +1,5 @@
 import {ConditionExpression} from "./conditionExpression";
+import {PrimitiveExpression} from "./primitiveExpression";
 
 export type MaybeExpressionApi = {
   /** Wrap an expression/value as present */
@@ -19,7 +20,7 @@ type ConditionalMaybe<T> = {
   getOnTrueOrFalse: <U>(trueCase: MaybeExpression<U>, falseCase: MaybeExpression<U>) => MaybeExpression<U>,
 }
 
-export type MaybeExpression<T> = {
+export type MaybeExpression<T> = PrimitiveExpression & {
   of: (v: T) => MaybeExpression<T>,
   none: () => MaybeExpression<T>,
 

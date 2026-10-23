@@ -1,4 +1,5 @@
 import {ConditionExpression} from "./conditionExpression";
+import {PrimitiveExpression} from "./primitiveExpression";
 
 export type StringExpressionApi = {
   /** Create a literal */
@@ -11,7 +12,7 @@ export type StringExpressionApi = {
   type: unknown,
 }
 
-export type StringExpression = {
+export type StringExpression = PrimitiveExpression & {
   /** Replaces string, and returns the new value */
   set: (s: StringExpression) => StringExpression,
   /** Concatenate two expressions */

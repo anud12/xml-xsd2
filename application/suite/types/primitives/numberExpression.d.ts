@@ -1,4 +1,5 @@
 import {ConditionExpression} from "./conditionExpression";
+import {PrimitiveExpression} from "./primitiveExpression";
 
 export type NumberExpressionApi = {
   of: (number:number) => NumberExpression,
@@ -9,7 +10,7 @@ export type NumberExpressionApi = {
 }
 
 
-export type NumberExpression = {
+export type NumberExpression = PrimitiveExpression & {
   of: (number:number) => NumberExpression,
   sum: (numberExpression:NumberExpression) => NumberExpression,
   subtract: (numberExpression:NumberExpression) => NumberExpression,

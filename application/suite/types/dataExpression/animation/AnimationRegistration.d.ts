@@ -1,5 +1,6 @@
 import {StringExpression} from "../../primitives/stringExpression";
 import {NumberExpression} from "../../primitives/numberExpression";
+import {Expression} from "../../Expression";
 import {SpriteResource} from "../../texture/SpriteResource";
 
 /**
@@ -26,7 +27,7 @@ export type AnimationRegistrationArguments = {
  * A read-only reference to a registered animation, returned by
  * `hostApi.runtime.setAnimation`. Use it anywhere an animation is referenced.
  */
-export type AnimationExpression = {
+export type AnimationExpression = Expression & {
   /** The animation's name. */
   name: string;
 };

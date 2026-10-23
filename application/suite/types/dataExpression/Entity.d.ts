@@ -3,6 +3,7 @@ import {StringExpression} from "../primitives/stringExpression";
 import {ListExpression} from "../primitives/ListExpression";
 import {NumberExpression} from "../primitives/numberExpression";
 import {MaybeExpression} from "../primitives/maybeExpression";
+import {Expression} from "../Expression";
 
 export type EntityExpressionApi = {
   /** Create an empty entity builder */
@@ -46,7 +47,7 @@ export type EntityExpressionType = {
   // marker for dynamic HostApi typing
 }
 
-export type EntityExpression = {
+export type EntityExpression = Expression & {
   /** The containers this entity belongs to. */
   containers: ListExpression<ContainerExpression>;
   /** The entity's id as a StringExpression (isContainingExactly, isContaining, ...). */

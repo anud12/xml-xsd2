@@ -1,5 +1,6 @@
 import {StringExpression} from "./primitives/stringExpression";
 import {ConditionExpression} from "./primitives/conditionExpression";
+import {PrimitiveExpression} from "./primitives/primitiveExpression";
 
 export type TextMap = {
   [name:string]: StringExpression, //colection of `StringExpression` values accesible by `name`.
@@ -9,7 +10,7 @@ export type TextMapExpressionApi = {
   create: () => TextMapExpression,
 }
 
-export type TextMapExpression = {
+export type TextMapExpression = PrimitiveExpression & {
   /** Insert or replace a key's value with a StringExpression */
   put: (key: string, value: StringExpression) => TextMapExpression,
   /** Remove a key (optional) */

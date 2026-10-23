@@ -1,6 +1,7 @@
 import {NumberExpression} from "./numberExpression";
 import {MaybeExpression} from "./maybeExpression";
 import {ConditionExpression} from "./conditionExpression";
+import {PrimitiveExpression} from "./primitiveExpression";
 
 export type HostApi = {
 /* ... rest of declarations ... */
@@ -20,7 +21,7 @@ export type ListExpressionType = {
 // used when declaring argument types dynamically in HostApi clients
 }
 
-export type ListExpression<T> = {
+export type ListExpression<T> = PrimitiveExpression & {
 /** Convenience to create a literal (delegates to ListExpressionApi.of) */
 of: (...items: T[]) => ListExpression<T>;
 

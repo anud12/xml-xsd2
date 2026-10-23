@@ -1,3 +1,5 @@
+import { Expression } from "../Expression";
+
 /**
  * A lazy in-game duration expression.
  * 
@@ -5,22 +7,24 @@
  * (e.g., "round", "day") mapped to an internal GTU (game time unit) clock.
  * Used for cooldowns and effect reoccurrence scheduling.
  */
-export type TemporalExpression = {
-  /**
-   * Evaluate to a fixed number of ticks in the GTU clock.
-   * Used for testing and simple fixed delays.
-   */
-  type: 'ticks';
-  ticks: number;
-} | {
-  /**
-   * Evaluate to a named in-game unit (e.g., "round", "day").
-   * The unit must be registered via hostApi.temporal.defineUnit().
-   */
-  type: 'unit';
-  unit: string;
-  count: number;
-};
+export type TemporalExpression = Expression & (
+  {
+    /**
+     * Evaluate to a fixed number of ticks in the GTU clock.
+     * Used for testing and simple fixed delays.
+     */
+    type: 'ticks';
+    ticks: number;
+  } | {
+    /**
+     * Evaluate to a named in-game unit (e.g., "round", "day").
+     * The unit must be registered via hostApi.temporal.defineUnit().
+     */
+    type: 'unit';
+    unit: string;
+    count: number;
+  }
+);
 
 /**
  * Factory API for creating TemporalExpressions.

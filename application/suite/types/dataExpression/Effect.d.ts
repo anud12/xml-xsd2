@@ -1,5 +1,6 @@
 import {StringExpression} from "../primitives/stringExpression";
-import {ExpressionTypes} from "../primitives/expression";
+import {Expression} from "../Expression";
+import {ExpressionTypes} from "../primitives/primitiveExpression";
 import {MaybeExpression} from "../primitives/maybeExpression";
 import {NumberExpression} from "../primitives/numberExpression";
 import {ConditionExpression} from "../primitives/conditionExpression";
@@ -11,7 +12,7 @@ import {ListExpression} from "../primitives/ListExpression";
  * A read-only reference to a registered effect, returned by
  * `hostApi.runtime.setEffect`. Use it anywhere an effect is referenced.
  */
-export type EffectExpression = {
+export type EffectExpression = Expression & {
   /** The effect's name. */
   name: string;
 }
