@@ -1,0 +1,6 @@
+{
+  "id": "font-size-change",
+  "version": "1.0.0",
+  "name": "Font Size Change",
+  "entry": "index.js"
+}

@@ -1,0 +1,6 @@
+{
+  "id": "font-color-change",
+  "version": "1.0.0",
+  "name": "Font Color Change",
+  "entry": "index.js"
+}

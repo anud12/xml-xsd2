@@ -481,7 +481,7 @@ export type UiApi = {
 
   entityList: UiEntityListComponent;
 
-  containerView: UiContainerViewComponent;
+  containerView: UiContainerViewComponent;s
 
   sectorGrid: UiSectorGridComponent;
 
