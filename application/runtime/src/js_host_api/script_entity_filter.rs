@@ -113,6 +113,7 @@ pub fn host_api_script_entity_filter() -> &'static str {
       if (!Object.prototype.hasOwnProperty.call(nm, key)) return absentMaybe;
       function wrap(v) {
         return {
+          _raw: v,
           isGreaterThan: function (t) { return conditionOf(Number(v) > Number(t)); },
           isLessThan: function (t) { return conditionOf(Number(v) < Number(t)); },
           isGreaterOrEqualTo: function (t) { return conditionOf(Number(v) >= Number(t)); },
@@ -131,6 +132,7 @@ pub fn host_api_script_entity_filter() -> &'static str {
       if (!Object.prototype.hasOwnProperty.call(tm, key)) return absentMaybe;
       function wrap(v) {
         return {
+          _raw: v,
           isContaining: function (o) { return conditionOf(String(v).indexOf(String(o)) >= 0); },
           isContainingExactly: function (o) { return conditionOf(String(v) === String(o)); },
           map: function (s) { return wrap(s); }
@@ -148,11 +150,31 @@ pub fn host_api_script_entity_filter() -> &'static str {
       },
       number_map: {
         get: function (key) { return numberMaybe(key); },
-        put: function (key, value) {
-          var v = (value && typeof value === 'object' && typeof value.orElse === 'function')
-            ? value.orElse(value) : value;
-          data.numberMap = data.numberMap || {};
-          data.numberMap[key] = Number(v);
+        put: function (key, transform) {
+          var current = numberMaybe(key);
+          var result;
+          try { result = transform(current); } catch (e) { return selfProxy(); }
+          if (!result || typeof result !== 'object') return selfProxy();
+          var isPresent;
+          if (typeof result.isPresent === 'function') {
+            isPresent = globalThis.__condToBool(result.isPresent());
+          } else if ('value' in result) {
+            isPresent = result.value !== undefined;
+          } else {
+            return selfProxy();
+          }
+          if (isPresent) {
+            var raw;
+            if (typeof result.orElse === 'function') { raw = result.orElse(result); }
+            else { raw = result.value; }
+            if (raw && typeof raw === 'object' && typeof raw._raw === 'number') { raw = raw._raw; }
+            data.numberMap = data.numberMap || {};
+            data.numberMap[key] = Number(raw);
+          } else {
+            if (data.numberMap && Object.prototype.hasOwnProperty.call(data.numberMap, key)) {
+              delete data.numberMap[key];
+            }
+          }
           return selfProxy();
         },
         remove: function (key) {
@@ -164,11 +186,31 @@ pub fn host_api_script_entity_filter() -> &'static str {
       },
       text_map: {
         get: function (key) { return textMaybe(key); },
-        put: function (key, value) {
-          var v = (value && typeof value === 'object' && typeof value.orElse === 'function')
-            ? value.orElse(value) : value;
-          data.textMap = data.textMap || {};
-          data.textMap[key] = String(v);
+        put: function (key, transform) {
+          var current = textMaybe(key);
+          var result;
+          try { result = transform(current); } catch (e) { return selfProxy(); }
+          if (!result || typeof result !== 'object') return selfProxy();
+          var isPresent;
+          if (typeof result.isPresent === 'function') {
+            isPresent = globalThis.__condToBool(result.isPresent());
+          } else if ('value' in result) {
+            isPresent = result.value !== undefined;
+          } else {
+            return selfProxy();
+          }
+          if (isPresent) {
+            var raw;
+            if (typeof result.orElse === 'function') { raw = result.orElse(result); }
+            else { raw = result.value; }
+            if (raw && typeof raw === 'object' && typeof raw._raw === 'string') { raw = raw._raw; }
+            data.textMap = data.textMap || {};
+            data.textMap[key] = String(raw);
+          } else {
+            if (data.textMap && Object.prototype.hasOwnProperty.call(data.textMap, key)) {
+              delete data.textMap[key];
+            }
+          }
           return selfProxy();
         },
         remove: function (key) {

@@ -20,8 +20,7 @@ export default (hostApi) => {
         filters: [(e) => e.id.isContainingExactly(string.of("node-1"))],
       })
         .map(elementExpr => {
-          const current = Number(elementExpr.number_map.get(string.of("key")).orElse(number.of(0)));
-          elementExpr.number_map.put("key", number.of(current + 1));
+          elementExpr.number_map.put("key", (current) => current.map(v => v.sum(number.of(1))));
         })
     }
   });

@@ -20,8 +20,7 @@ const entry = (hostApi) => {
             context.getMutableEntityBy({
                 filters: [(e) => e.id.isContainingExactly(string.of("game"))],
             }).map((entity) => {
-                const current = Number(entity.number_map.get("progress").orElse(number.of(0)));
-                entity.number_map.put("progress", number.of(Math.max(0, current - 1)));
+                entity.number_map.put("progress", (current) => current.map(v => v.sum(number.of(-1))));
             });
         },
     });
@@ -40,7 +39,7 @@ const entry = (hostApi) => {
             context.getMutableEntityBy({
                 filters: [(e) => e.id.isContainingExactly(string.of("game"))],
             }).map((entity) => {
-                entity.number_map.put("progress", number.of(100));
+                entity.number_map.put("progress", () => hostApi.runtime.maybe.of(number.of(100)));
             });
         },
     });

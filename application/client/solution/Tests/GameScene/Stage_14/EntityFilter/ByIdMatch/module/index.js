@@ -22,7 +22,7 @@ export default (hostApi) => {
        ctx.getMutableEntityBy({
          filters: [(e) => e.id.isContainingExactly(string.of("second"))],
        })
-         .map(ee => ee.text_map.put("flag", string.of("exact")))
+         .map(ee => ee.text_map.put("flag", () => hostApi.runtime.maybe.of(string.of("exact"))))
     }
   });
 
@@ -34,7 +34,7 @@ export default (hostApi) => {
        ctx.getMutableEntityBy({
          filters: [(e) => e.id.isContaining(string.of("sec"))],
        })
-         .map(ee => ee.text_map.put("flag", string.of("contains")))
+         .map(ee => ee.text_map.put("flag", () => hostApi.runtime.maybe.of(string.of("contains"))))
     }
   });
 

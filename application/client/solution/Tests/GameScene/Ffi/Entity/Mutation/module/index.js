@@ -14,13 +14,13 @@ export default (hostApi) => {
       context.getMutableEntityBy({ filters: [
         (e) => e.id.isContainingExactly(string.of("entity-1"))
       ]}).forEach((entity) => {
-        entity.number_map.put("value_a", number.of(80));
-        entity.number_map.put("value_b", number.of(2));
-        entity.text_map.put("label", string.of("updated"));
+        entity.number_map.put("value_a", () => hostApi.runtime.maybe.of(number.of(80)));
+        entity.number_map.put("value_b", () => hostApi.runtime.maybe.of(number.of(2)));
+        entity.text_map.put("label", () => hostApi.runtime.maybe.of(string.of("updated")));
         hostApi.runtime.log("value_a=" + entity.number_map.get("value_a").orElse(number.of(0)));
         hostApi.runtime.log("value_b=" + entity.number_map.get("value_b").orElse(number.of(0)));
         hostApi.runtime.log("label=" + entity.text_map.get("label").orElse(string.of("")));
-        entity.number_map.remove("value_b");
+        entity.number_map.put("value_b", () => hostApi.runtime.maybe.none());
         let present = false;
         entity.number_map.get("value_b").isPresent().ifTrue(() => { present = true; });
         hostApi.runtime.log("value_b=" + (present ? "present" : "absent"));

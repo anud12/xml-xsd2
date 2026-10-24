@@ -34,7 +34,7 @@ export default (hostApi) => {
     prepare: () => ({value: true}),
     apply: (ctx) => {
       ctx.getMutableEntityBy(leaf)
-         .map(ee => ee.text_map.put("flag", string.of("leaf")))
+         .map(ee => ee.text_map.put("flag", () => hostApi.runtime.maybe.of(string.of("leaf"))))
     }
   });
 
@@ -50,7 +50,7 @@ export default (hostApi) => {
             .orElse(condition.of(false)),
         ],
       })
-        .map(ee => ee.text_map.put("flag", string.of("eq")))
+        .map(ee => ee.text_map.put("flag", () => hostApi.runtime.maybe.of(string.of("eq"))))
     }
   });
 

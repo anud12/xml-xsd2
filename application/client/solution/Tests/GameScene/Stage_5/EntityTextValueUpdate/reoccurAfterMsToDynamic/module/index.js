@@ -32,8 +32,7 @@ export default (hostApi) => {
     apply: (context, output) => {
       context.getMutableEntityBy(filter)
         .map(elementExpr => {
-          const current = Number(elementExpr.number_map.get(key).orElse(number.of(0)));
-          elementExpr.number_map.put("key", number.of(current + 1));
+          elementExpr.number_map.put(key, (current) => current.map(v => v.sum(number.of(1))));
         })
     }
   })

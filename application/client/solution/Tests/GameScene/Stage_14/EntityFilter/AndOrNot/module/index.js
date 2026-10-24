@@ -57,7 +57,7 @@ export default (hostApi) => {
     prepare: () => ({value: true}),
     apply: (ctx) => {
       ctx.getMutableEntityBy(nested)
-         .map(ee => ee.text_map.put("flag", string.of("yes")))
+         .map(ee => ee.text_map.put("flag", () => hostApi.runtime.maybe.of(string.of("yes"))))
     }
   });
 
