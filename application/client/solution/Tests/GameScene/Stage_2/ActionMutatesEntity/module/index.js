@@ -46,7 +46,7 @@ const entry = (hostApi) => {
     const reset = hostApi.runtime.setAction({
         name: string.of("reset"),
         apply: (ctx) => {
-            ctx.emitEvent("reset-event");
+            ctx.emitEffect(resetEffect, {});
         },
     });
 

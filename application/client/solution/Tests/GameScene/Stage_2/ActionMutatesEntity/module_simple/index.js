@@ -6,7 +6,7 @@ const entry = (hostApi) => {
         numberMap: { score: number.of(0) },
     });
 
-    hostApi.runtime.setEffect({
+    const incrementEffect = hostApi.runtime.setEffect({
         name: string.of("increment"),
         apply: (context) => {
             context.getMutableEntityBy({
@@ -22,7 +22,7 @@ const entry = (hostApi) => {
     const clickAction = hostApi.runtime.setAction({
         name: string.of("click-action"),
         apply: (ctx) => {
-            ctx.emitEvent("increment");
+            ctx.emitEffect(incrementEffect, {});
         },
     });
 

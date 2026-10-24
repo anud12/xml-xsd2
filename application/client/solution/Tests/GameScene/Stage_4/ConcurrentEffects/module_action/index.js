@@ -28,7 +28,7 @@ export default (hostApi) => {
   });
 
   // Action-triggered effect: adds 10 each time it fires.
-  hostApi.runtime.setEffect({
+  const actionEffect = hostApi.runtime.setEffect({
     name: string.of("action-effect"),
     apply: (context) => {
       context.getMutableEntityBy({
@@ -45,7 +45,7 @@ export default (hostApi) => {
   hostApi.runtime.setAction({
     name: string.of("action-effect"),
     apply: (context) => {
-      context.emitEvent("action-effect");
+      context.emitEffect(actionEffect, {});
     },
   });
 

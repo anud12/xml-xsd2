@@ -58,7 +58,7 @@ export default (hostApi) => {
       const entity = ctx.getEntityBy({
         filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("room"))],
       });
-      entity.ifPresent((e) => {
+      entity.forEach((e) => {
         let out = [];
         e.getEntitiesInsideArea(hostApi.runtime.string.of("floor")).forEach((member) => {
           out.push(member.getId());

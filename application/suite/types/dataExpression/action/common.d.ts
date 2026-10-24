@@ -4,6 +4,8 @@ import { ContainerReadOnlyExpression } from "../Contaier";
 import { NumberReadOnlyExpression } from "../../primitives/numberExpression";
 import { EffectReadOnlyExpression } from "../Effect";
 import { ActionReadOnlyExpression } from "./no-input-action";
+import { EntityFilter } from "../../EntityFilter";
+import { ListReadOnlyExpression } from "../../primitives/ListExpression";
 
 /**
  * 1D or 2D position within a container.
@@ -22,6 +24,8 @@ export type ActionContext = {
   args: Record<string, any>;
   /** Emit a registered effect (a {@link EffectReadOnlyExpression} reference) with arbitrary input. */
   emitEffect: (effect: EffectReadOnlyExpression, input: Record<string, any>) => any;
+  /** Query entities matching a filter. */
+  getEntityBy: (entityFilter: EntityFilter) => ListReadOnlyExpression<EntityReadOnlyExpression>;
   /** Schedule the actor to idle for a temporal duration before resuming. */
   wait: (duration: TemporalReadOnlyExpression) => void;
   /** Teleport an entity to a cell in a container. */
@@ -42,5 +46,4 @@ export type ActionContext = {
   }) => void;
   /** Trigger another registered action (an {@link ActionReadOnlyExpression} reference). */
   action?: (action: ActionReadOnlyExpression) => any;
-  [key: string]: any;
 };

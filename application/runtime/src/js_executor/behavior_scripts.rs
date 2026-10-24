@@ -121,9 +121,11 @@ pub fn dispatch_action_in_sim_for(action_name: &str, actor: &str) -> Result<()> 
           if (actionObj) {{\
             var ctx = {{\
               emitEffect: function(n,p){{\
+                if(n&&typeof n==='object'){{n=(typeof n.name==='string')?n.name:((typeof n.value==='string')?n.value:String(n));}}\
                 globalThis.__planSteps.push({{emit:{{name:n,payload:p||{{}}}}}});\
               }},\
               emitEvent: function(n,p){{\
+                if(n&&typeof n==='object'){{n=(typeof n.name==='string')?n.name:((typeof n.value==='string')?n.value:String(n));}}\
                 globalThis.__planSteps.push({{emit:{{name:n,payload:p||{{}}}}}});\
               }},\
               wait: function(d){{\

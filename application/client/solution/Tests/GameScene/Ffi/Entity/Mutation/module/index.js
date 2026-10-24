@@ -8,7 +8,7 @@ export default (hostApi) => {
     textMap: { label: string.of("initial") }
   });
 
-  hostApi.runtime.setEffect({
+  const mutateEffect = hostApi.runtime.setEffect({
     name: string.of("mutate"),
     apply: (context) => {
       context.getMutableEntityBy({ filters: [
@@ -31,7 +31,7 @@ export default (hostApi) => {
   hostApi.runtime.setAction({
     name: string.of("mutate"),
     apply: (context) => {
-      context.emitEvent("mutate");
+      context.emitEffect(mutateEffect, {});
     }
   });
 }

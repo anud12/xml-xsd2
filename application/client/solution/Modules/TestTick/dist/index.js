@@ -46,7 +46,7 @@ const entry = (hostApi) => {
     const increment = hostApi.runtime.setAction({
         name: string.of("increment"),
         apply: (ctx) => {
-            ctx.emitEvent("increment-event");
+            ctx.emitEffect(incrementEffect, {});
         },
     });
     hostApi.ui.window("progress", {
