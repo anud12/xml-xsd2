@@ -31,17 +31,13 @@ export default (hostApi) => {
     },
     apply:(context, output) => {
       output.ifTrue(() => {
-        context.getEntityBy(filter).map(elementExpr => {
-          elementExpr.text_map.get(string.of("isModified")).ifPresent(v => {
-            v.set(string.of("Yes"))
-          })
+        context.getMutableEntityBy(filter).map(elementExpr => {
+          elementExpr.text_map.put("isModified", string.of("Yes"))
         })
       })
       output.ifFalse(() => {
-        context.getEntityBy(filter).map(elementExpr => {
-          elementExpr.text_map.get(string.of("isModified")).ifPresent(v => {
-            v.set(string.of("No"))
-          })
+        context.getMutableEntityBy(filter).map(elementExpr => {
+          elementExpr.text_map.put("isModified", string.of("No"))
         })
       })
     }
@@ -61,16 +57,15 @@ export default (hostApi) => {
       /** @type {ConditionReadOnlyExpression} */
       const shouldDouble = output.value;
 
-      context.getEntityBy(filter)
+      context.getMutableEntityBy(filter)
         .map(elementExpr => {
-          elementExpr.number_map.get(key).ifPresent(v => {
-            shouldDouble.ifFalse(() => {
-              v.sum(number.of(1))
-            })
-            shouldDouble.ifTrue(() => {
-              v.sum(number.of(3))
-            })
-          });
+          const current = Number(elementExpr.number_map.get(key).orElse(number.of(0)));
+          shouldDouble.ifFalse(() => {
+            elementExpr.number_map.put(key, number.of(current + 1));
+          })
+          shouldDouble.ifTrue(() => {
+            elementExpr.number_map.put(key, number.of(current + 3));
+          })
         })
     }
   })

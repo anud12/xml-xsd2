@@ -908,14 +908,25 @@ fn parse_background(
 ) -> UiBackground {
     let mut b = empty_options().background;
     if let Some(v) = opts.get("background") {
-        if let Some(m) = v.as_object() {
-            if let Some(anim) = m.get("animation") {
-                parse_background_ref(anim, &mut b, slab, layer_base);
+        match v {
+            Value::String(s) if !s.is_empty() => {
+                b.kind = UI_BG_STATIC;
+                b.path = slab.intern(s);
             }
-            if let Some(fill) = m.get("fill") {
-                apply_fill(&mut b, fill);
+            Value::Object(m) => {
+                if m.get("animation").is_some() {
+                    if let Some(anim) = m.get("animation") {
+                        parse_background_ref(anim, &mut b, slab, layer_base);
+                    }
+                    if let Some(fill) = m.get("fill") {
+                        apply_fill(&mut b, fill);
+                    }
+                    apply_nine_slice(&mut b, m.get("nineSlice"));
+                } else {
+                    parse_background_ref(v, &mut b, slab, layer_base);
+                }
             }
-            apply_nine_slice(&mut b, m.get("nineSlice"));
+            _ => {}
         }
     }
     b.layers = layer_base;
@@ -967,14 +978,25 @@ fn parse_progress_tex(opts: &Map<String, Value>, key: &str, slab: &mut Slab, ver
     let mut b = empty_options().background;
     b.paint = UiPaintSpec::tile_axis(!vertical, vertical);
     if let Some(v) = opts.get(key) {
-        if let Some(m) = v.as_object() {
-            if let Some(anim) = m.get("animation") {
-                parse_background_ref(anim, &mut b, slab, ptr::null_mut());
+        match v {
+            Value::String(s) if !s.is_empty() => {
+                b.kind = UI_BG_STATIC;
+                b.path = slab.intern(s);
             }
-            if let Some(fill) = m.get("fill") {
-                apply_fill(&mut b, fill);
+            Value::Object(m) => {
+                if m.get("animation").is_some() {
+                    if let Some(anim) = m.get("animation") {
+                        parse_background_ref(anim, &mut b, slab, ptr::null_mut());
+                    }
+                    if let Some(fill) = m.get("fill") {
+                        apply_fill(&mut b, fill);
+                    }
+                    apply_nine_slice(&mut b, m.get("nineSlice"));
+                } else {
+                    parse_background_ref(v, &mut b, slab, ptr::null_mut());
+                }
             }
-            apply_nine_slice(&mut b, m.get("nineSlice"));
+            _ => {}
         }
     }
     b
@@ -1200,29 +1222,34 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     o.layout = parse_layout(panel, slab, r.col_tracks, r.row_tracks);
     o.background = parse_background(panel, slab, r.layers);
     if let Some(border) = panel.get("border").and_then(|b| b.as_object()) {
-        if let Some(tx) = border.get("texture").and_then(|t| t.as_object()) {
-            o.border_texture = match tx.get("animation") {
-                Some(a) => first_frame_path(a, slab),
-                None => NO_STR,
-            };
-            // The border is a nine-slice frame; the margin comes from the
-            // `width` option, and an explicit fill/nineSlice override the
-            // stretch-default paint.
-            let margin = opt_num(border, "width").map(|f| f as u32).unwrap_or(1).max(1);
-            o.border_paint = UiPaintSpec::nine_slice(margin, margin);
-            if let Some(fill) = tx.get("fill") {
-                let mut b = empty_options().background;
-                b.paint = o.border_paint;
-                apply_fill(&mut b, fill);
-                o.border_paint = b.paint;
+        match border.get("texture") {
+            Some(Value::String(s)) if !s.is_empty() => {
+                o.border_texture = slab.intern(s);
             }
-            if let Some(nine) = tx.get("nineSlice") {
-                let mut b = empty_options().background;
-                b.paint = o.border_paint;
-                apply_nine_slice(&mut b, Some(nine));
-                o.border_paint = b.paint;
+            Some(Value::Object(tx)) => {
+                o.border_texture = match tx.get("animation") {
+                    Some(a) => first_frame_path(a, slab),
+                    None => NO_STR,
+                };
+                if let Some(fill) = tx.get("fill") {
+                    let mut b = empty_options().background;
+                    b.paint = o.border_paint;
+                    apply_fill(&mut b, fill);
+                    o.border_paint = b.paint;
+                }
+                if let Some(nine) = tx.get("nineSlice") {
+                    let mut b = empty_options().background;
+                    b.paint = o.border_paint;
+                    apply_nine_slice(&mut b, Some(nine));
+                    o.border_paint = b.paint;
+                }
             }
+            _ => {}
         }
+        // The border is a nine-slice frame; the margin comes from the
+        // `width` option.
+        let margin = opt_num(border, "width").map(|f| f as u32).unwrap_or(1).max(1);
+        o.border_paint = UiPaintSpec::nine_slice(margin, margin);
         o.border_width = opt_f32(border, "width");
         o.has_border = 1;
     }
@@ -1233,41 +1260,54 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
         o.on_hover.thickness = opt_f32(h, "thickness");
         let thickness_margin = (o.on_hover.thickness as u32).max(1);
         // Background swap: a unified texture slot; the default fill is cover.
-        if let Some(bv) = h.get("background").and_then(|b| b.as_object()) {
-            o.on_hover.background = match bv.get("animation") {
-                Some(a) => first_frame_path(a, slab),
-                None => NO_STR,
-            };
-            if let Some(fill) = bv.get("fill") {
-                let mut b = empty_options().background;
-                b.paint = UiPaintSpec::cover();
-                apply_fill(&mut b, fill);
-                if let Some(nine) = bv.get("nineSlice") {
-                    apply_nine_slice(&mut b, Some(nine));
-                }
-                o.on_hover.background_paint = b.paint;
+        match h.get("background") {
+            Some(Value::String(s)) if !s.is_empty() => {
+                o.on_hover.background = slab.intern(s);
             }
+            Some(Value::Object(bv)) => {
+                o.on_hover.background = match bv.get("animation") {
+                    Some(a) => first_frame_path(a, slab),
+                    None => NO_STR,
+                };
+                if let Some(fill) = bv.get("fill") {
+                    let mut b = empty_options().background;
+                    b.paint = UiPaintSpec::cover();
+                    apply_fill(&mut b, fill);
+                    if let Some(nine) = bv.get("nineSlice") {
+                        apply_nine_slice(&mut b, Some(nine));
+                    }
+                    o.on_hover.background_paint = b.paint;
+                }
+            }
+            _ => {}
         }
         // Outline texture: a unified texture slot; the default fill is a
         // nine-slice frame at `thickness`.
-        if let Some(tv) = h.get("texture").and_then(|t| t.as_object()) {
-            o.on_hover.texture = match tv.get("animation") {
-                Some(a) => first_frame_path(a, slab),
-                None => NO_STR,
-            };
-            o.on_hover.texture_paint = UiPaintSpec::nine_slice(thickness_margin, thickness_margin);
-            if let Some(fill) = tv.get("fill") {
-                let mut b = empty_options().background;
-                b.paint = o.on_hover.texture_paint;
-                apply_fill(&mut b, fill);
-                o.on_hover.texture_paint = b.paint;
+        match h.get("texture") {
+            Some(Value::String(s)) if !s.is_empty() => {
+                o.on_hover.texture = slab.intern(s);
+                o.on_hover.texture_paint = UiPaintSpec::nine_slice(thickness_margin, thickness_margin);
             }
-            if let Some(nine) = tv.get("nineSlice") {
-                let mut b = empty_options().background;
-                b.paint = o.on_hover.texture_paint;
-                apply_nine_slice(&mut b, Some(nine));
-                o.on_hover.texture_paint = b.paint;
+            Some(Value::Object(tv)) => {
+                o.on_hover.texture = match tv.get("animation") {
+                    Some(a) => first_frame_path(a, slab),
+                    None => NO_STR,
+                };
+                o.on_hover.texture_paint = UiPaintSpec::nine_slice(thickness_margin, thickness_margin);
+                if let Some(fill) = tv.get("fill") {
+                    let mut b = empty_options().background;
+                    b.paint = o.on_hover.texture_paint;
+                    apply_fill(&mut b, fill);
+                    o.on_hover.texture_paint = b.paint;
+                }
+                if let Some(nine) = tv.get("nineSlice") {
+                    let mut b = empty_options().background;
+                    b.paint = o.on_hover.texture_paint;
+                    apply_nine_slice(&mut b, Some(nine));
+                    o.on_hover.texture_paint = b.paint;
+                }
             }
+            _ => {}
         }
     }
     // The click-cursor container: for a board panel it lives in the layout

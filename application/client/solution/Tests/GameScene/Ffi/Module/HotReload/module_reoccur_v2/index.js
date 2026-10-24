@@ -20,13 +20,12 @@ export default (hostApi) => {
       return hostApi.runtime.maybe.of(number.of(3));
     },
     apply: (context, output) => {
-      context.getEntityBy({
+      context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(string.of("node-1"))],
       })
         .map(elementExpr => {
-          elementExpr.number_map.get(string.of("key")).ifPresent(v => {
-            v.sum(number.of(1));
-          });
+          const current = Number(elementExpr.number_map.get(string.of("key")).orElse(number.of(0)));
+          elementExpr.number_map.put("key", number.of(current + 1));
         })
     }
   });

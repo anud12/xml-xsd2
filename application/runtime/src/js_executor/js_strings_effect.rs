@@ -6,7 +6,7 @@ const PREPARE_JS: &str = r#"(function(){
         typeof globalThis.__foundEffect.prepare === 'function') {
         globalThis.__dbg.step = 'found-prepare';
         try { globalThis.__prepared =
-            globalThis.__foundEffect.prepare(globalThis.__context);
+            globalThis.__foundEffect.prepare(globalThis.__prepareContext);
         globalThis.__dbg.step = 'prepare-ok';
         } catch(e) { globalThis.__dbg.err = String(e); }
     } else {
@@ -23,7 +23,7 @@ const APPLY_JS: &str = r#"(function(){
         try {
             globalThis.__dbg.applyStep = 'calling';
             globalThis.__foundEffect.apply(
-                globalThis.__context, globalThis.__prepared);
+                globalThis.__applyContext, globalThis.__prepared);
             globalThis.__dbg.applyStep = 'apply-ok';
         } catch(e) { globalThis.__dbg.applyErr = String(e); }
     } else {
@@ -36,7 +36,7 @@ const REOCCUR_JS: &str = r#"(function() {
         typeof globalThis.__foundEffect.reoccurAfterMs === 'function') {
         try {
             var r = globalThis.__foundEffect.reoccurAfterMs(
-                globalThis.__context);
+                globalThis.__prepareContext);
             if (r && typeof r === 'object') {
                 if (typeof r.value === 'number') return r.value;
                 if (r.value === undefined) return -1;

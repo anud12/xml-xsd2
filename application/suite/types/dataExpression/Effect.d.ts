@@ -4,7 +4,7 @@ import {ExpressionTypes} from "../primitives/primitiveExpression";
 import {MaybeReadOnlyExpression} from "../primitives/maybeExpression";
 import {NumberReadOnlyExpression} from "../primitives/numberExpression";
 import {ConditionReadOnlyExpression} from "../primitives/conditionExpression";
-import {EntityReadOnlyExpression} from "./Entity";
+import {EntityReadOnlyExpression, EntityMutableExpression} from "./Entity";
 import {EntityFilter} from "../EntityFilter";
 import {ListReadOnlyExpression} from "../primitives/ListExpression";
 
@@ -19,7 +19,7 @@ export type EffectReadOnlyExpression = Expression & {
 
 export type SetEffectFunction = <Input, Output>(argument: SetEventArgs<Input, Output>) => EffectReadOnlyExpression;
 
-export type EventContext = {
+export type EventPrepareContext = {
   /**
    * Emit a named event synchronously within the current `prepare` wave.
    *
@@ -33,30 +33,13 @@ export type EventContext = {
   emitEvent: <T>(effect: EffectReadOnlyExpression, input: Record<string, any>) => T;
 
   /**
-   * Create a new entity during the effect's `apply` phase.
-   *
-   * Entities are created as part of the effect's recorded mutations and are
-   * committed atomically with other state changes. If the commit fails, the
-   * entity creation is rolled back.
-   *
-   * Must only be called from `apply`, not from `prepare`.
-   *
-   * The newly created entity is not available for querying or mutation within
-   * the same apply phase; it materializes at commit time.
-   *
-   * @param entity - An EntityReadOnlyExpression built via hostApi.entity.create()...
-   * @returns This EventContext for method chaining.
-   */
-  createEntity: (entity: EntityReadOnlyExpression) => EventContext;
-
-  /**
    * Query the entity repository for entities matching the given filter.
    *
    * Returns a lazy ListReadOnlyExpression<EntityReadOnlyExpression> that is bound to the read-buffer snapshot
    * (double-buffer semantics). The filter is applied deterministically at commit time
    * against the immutable snapshot of the repository state at the start of the current tick.
    *
-   * Available in `prepare`, `apply`, and `isReoccuranceApplicable` phases. Multiple calls
+   * Available in `prepare` phase. Multiple calls
    * with the same filter produce semantically identical results (deterministic), but each
    * call returns a freshly-constructed expression node.
    *
@@ -69,7 +52,48 @@ export type EventContext = {
    * @param entityFilter - The EntityFilter (a FilterArg object) to apply against the global repository
    * @returns A lazy ListReadOnlyExpression<EntityReadOnlyExpression> representing matching entities
    */
-     getEntityBy: (entityFilter: EntityFilter) => ListReadOnlyExpression<EntityReadOnlyExpression>;
+  getEntityBy: (entityFilter: EntityFilter) => ListReadOnlyExpression<EntityReadOnlyExpression>;
+}
+
+export type EventApplyContext = {
+  /**
+   * Create a new entity during the effect's `apply` phase.
+   *
+   * Entities are created as part of the effect's recorded mutations and are
+   * committed atomically with other state changes. If the commit fails, the
+   * entity creation is rolled back.
+   *
+   * Must only be called from `apply`, not from `prepare`.
+   *
+   * The newly created entity is not available for querying or mutation within
+   * the same apply phase; it materializes at commit time.
+   *
+   * @param entity - An EntityReadOnlyExpression built via hostApi.entity.create()...
+   * @returns This EventApplyContext for method chaining.
+   */
+  createEntity: (entity: EntityReadOnlyExpression) => EventApplyContext;
+
+  /**
+   * Query the entity repository for entities matching the given filter.
+   *
+   * Returns a lazy ListReadOnlyExpression<EntityReadOnlyExpression> that is bound to the read-buffer snapshot
+   * (double-buffer semantics). The filter is applied deterministically at commit time
+   * against the immutable snapshot of the repository state at the start of the current tick.
+   *
+   * Available in `apply` phase. Multiple calls
+   * with the same filter produce semantically identical results (deterministic), but each
+   * call returns a freshly-constructed expression node.
+   *
+   * The returned ListReadOnlyExpression can be composed with other list operations:
+   * - map, filter, length, forEach, randomElement, etc.
+   * - Composition is lazy; evaluation occurs only at commit time.
+   *
+   * If the filter matches no entities, the expression evaluates to an empty list (not an error).
+   *
+   * @param entityFilter - The EntityFilter (a FilterArg object) to apply against the global repository
+   * @returns A lazy ListReadOnlyExpression<EntityReadOnlyExpression> representing matching entities
+   */
+   getMutableEntityBy: (entityFilter: EntityFilter) => ListReadOnlyExpression<EntityMutableExpression>;
 }
 
 export type SetEventArgs<Input, Output> = {
@@ -77,8 +101,8 @@ export type SetEventArgs<Input, Output> = {
   description?: string;
   input?: Record<string, { type: ExpressionTypes; description?: string }>;
   output?: Record<string, { type: ExpressionTypes; description?: string }>;
-  prepare?: (context: EventContext, input: Input /* structure declared in `this.input` */) => Output; /* returns structure declared in `this.output` */
-  apply?: (context: EventContext, output: Output /* passed from result of `this.prepare` */) => void;
+  prepare?: (context: EventPrepareContext, input: Input /* structure declared in `this.input` */) => Output; /* returns structure declared in `this.output` */
+  apply?: (context: EventApplyContext, output: Output /* passed from result of `this.prepare` */) => void;
 
   // Optional repeat hooks for effects that reoccur
   /**
@@ -86,11 +110,11 @@ export type SetEventArgs<Input, Output> = {
    * Return a MaybeReadOnlyExpression<NumberReadOnlyExpression> evaluated at commit time. If the Maybe is empty (or the function is not provided), no scheduling will occur.
    * When present, the runtime computes nextScheduledTime = currentCommitTime + evaluatedDelay (values <= 0 schedule for next tick).
    */
-  reoccurAfterMs?: (context: EventContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => MaybeReadOnlyExpression<NumberReadOnlyExpression>;
+  reoccurAfterMs?: (context: EventPrepareContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => MaybeReadOnlyExpression<NumberReadOnlyExpression>;
 
   /**
    * Called when a scheduled delay elapses to determine whether the effect should re-run.
    * Returns a ConditionReadOnlyExpression evaluated in a fresh ExecutionContext. If true, the runtime re-enqueues the effect using the preserved input and increments executionCount.
    */
-  isReoccuranceApplicable?: (context: EventContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => ConditionReadOnlyExpression;
+  isReoccuranceApplicable?: (context: EventPrepareContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => ConditionReadOnlyExpression;
 }

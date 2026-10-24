@@ -119,10 +119,7 @@ pub fn host_api_script_entity_filter() -> &'static str {
           isLessOrEqualTo: function (t) { return conditionOf(Number(v) <= Number(t)); },
           isEqualTo: function (t) { return conditionOf(Number(v) === Number(t)); },
           isNotEqualTo: function (t) { return conditionOf(Number(v) !== Number(t)); },
-          sum: function (d) {
-            nm[key] = Number(nm[key]) + Number(d);
-            return wrap(nm[key]);
-          },
+          sum: function (d) { return wrap(Number(v) + Number(d)); },
           divide: function (d) { return wrap(Number(v) / Number(d)); },
           modulo: function (d) { return wrap(Number(v) % Number(d)); }
         };
@@ -136,19 +133,51 @@ pub fn host_api_script_entity_filter() -> &'static str {
         return {
           isContaining: function (o) { return conditionOf(String(v).indexOf(String(o)) >= 0); },
           isContainingExactly: function (o) { return conditionOf(String(v) === String(o)); },
-          set: function (s) { tm[key] = s; return wrap(tm[key]); }
+          map: function (s) { return wrap(s); }
         };
       }
       return presentMaybe(tm[key], wrap(tm[key]));
     }
+
+    function selfProxy() { return globalThis.__entityProxy(id); }
 
     return {
       id: {
         isContaining: function (o) { return conditionOf(String(eid).indexOf(String(o)) >= 0); },
         isContainingExactly: function (o) { return conditionOf(String(eid) === String(o)); }
       },
-      number_map: { get: function (key) { return numberMaybe(key); } },
-      text_map: { get: function (key) { return textMaybe(key); } },
+      number_map: {
+        get: function (key) { return numberMaybe(key); },
+        put: function (key, value) {
+          var v = (value && typeof value === 'object' && typeof value.orElse === 'function')
+            ? value.orElse(value) : value;
+          data.numberMap = data.numberMap || {};
+          data.numberMap[key] = Number(v);
+          return selfProxy();
+        },
+        remove: function (key) {
+          if (data.numberMap && Object.prototype.hasOwnProperty.call(data.numberMap, key)) {
+            delete data.numberMap[key];
+          }
+          return selfProxy();
+        }
+      },
+      text_map: {
+        get: function (key) { return textMaybe(key); },
+        put: function (key, value) {
+          var v = (value && typeof value === 'object' && typeof value.orElse === 'function')
+            ? value.orElse(value) : value;
+          data.textMap = data.textMap || {};
+          data.textMap[key] = String(v);
+          return selfProxy();
+        },
+        remove: function (key) {
+          if (data.textMap && Object.prototype.hasOwnProperty.call(data.textMap, key)) {
+            delete data.textMap[key];
+          }
+          return selfProxy();
+        }
+      },
       getEntitiesInsideArea: function (areaName) {
         var areaMap = (globalThis.__insideArea && globalThis.__insideArea[id]) || {};
         var ids = areaMap[areaName] || [];

@@ -1,9 +1,16 @@
-// sim_template part 2: buildEventContext
+// sim_template part 2: buildPrepareContext, buildApplyContext
 
 const SIM_TPL_P2: &str = r#"
-  function buildEventContext() {
-    return { createEntity: recordCreated,
+  function buildPrepareContext() {
+    return { emitEvent: emitEvent,
       getEntityBy: function(filter) {
+        return globalThis.__evalEntityFilter(filter);
+      }
+    };
+  }
+  function buildApplyContext() {
+    return { createEntity: recordCreated,
+      getMutableEntityBy: function(filter) {
         return globalThis.__evalEntityFilter(filter);
       }
     };

@@ -33,10 +33,8 @@ export default (hostApi) => {
     name: string.of("mark-leaf"),
     prepare: () => ({value: true}),
     apply: (ctx) => {
-      ctx.getEntityBy(leaf)
-        .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
-          v.set(string.of("leaf"));
-        }))
+      ctx.getMutableEntityBy(leaf)
+         .map(ee => ee.text_map.put("flag", string.of("leaf")))
     }
   });
 
@@ -45,16 +43,14 @@ export default (hostApi) => {
     name: string.of("mark-eq"),
     prepare: () => ({value: true}),
     apply: (ctx) => {
-      ctx.getEntityBy({
+      ctx.getMutableEntityBy({
         filters: [
           (e) => e.number_map.get(string.of("hp"))
             .map(n => n.isEqualTo(number.of(8)))
             .orElse(condition.of(false)),
         ],
       })
-        .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
-          v.set(string.of("eq"));
-        }))
+        .map(ee => ee.text_map.put("flag", string.of("eq")))
     }
   });
 

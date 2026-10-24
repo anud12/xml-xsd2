@@ -30,11 +30,10 @@ export default (hostApi) => {
       return interval;
     },
     apply: (context, output) => {
-      context.getEntityBy(filter)
+      context.getMutableEntityBy(filter)
         .map(elementExpr => {
-          elementExpr.number_map.get(key).ifPresent(v => {
-            v.sum(number.of(1));
-          });
+          const current = Number(elementExpr.number_map.get(key).orElse(number.of(0)));
+          elementExpr.number_map.put("key", number.of(current + 1));
         })
     }
   })

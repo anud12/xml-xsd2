@@ -219,8 +219,10 @@ function (root) {
     function normalizeTexture(v, live) {
         // A texture slot is optional: an absent (null/undefined) slot is a no-op.
         if (v == null) return v;
+        // A plain string is a static texture path (shorthand for { animation: <path> }).
+        if (typeof v === 'string' && v.length > 0) return v;
         if (typeof v !== 'object' || Array.isArray(v)) {
-            throw new Error('ui: a texture must be an object { animation, fill, nineSlice? }');
+            throw new Error('ui: a texture must be an object { animation, fill, nineSlice? } or a string path');
         }
         var fill = v.fill;
         if (!fill || typeof fill !== 'object' || !isFillAxis(fill.width) || !isFillAxis(fill.height)) {

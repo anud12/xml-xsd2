@@ -25,10 +25,8 @@ export default (hostApi) => {
       name: string.of("mark-" + flag),
       prepare: () => ({value: true}),
       apply: (ctx) => {
-        ctx.getEntityBy(variant)
-          .map(ee => ee.text_map.get(string.of(flag)).ifPresent(v => {
-            v.set(string.of("yes"));
-          }))
+        ctx.getMutableEntityBy(variant)
+           .map(ee => ee.text_map.put(flag, string.of("yes")))
       }
     });
     hostApi.runtime.emitEvent(effect, {});

@@ -1561,13 +1561,15 @@ export default (hostApi) => {
     sizeX: { value: hostApi.runtime.number.of(100), outOfBounds: 'clamp' },
     sizeY: { value: hostApi.runtime.number.of(100), outOfBounds: 'clamp' }
   });
-  hostApi.ui.containerView('world', {
-    container: 'grid-1',
-    panel: { width: 700, height: 500 },
-    area: [
-      { name: 'floor', color: [1, 0, 0, 1], bodyColor: [0, 1, 0, 1], thickness: 3 }
-    ]
-  }, (entity) => hostApi.ui.window(entity.id, {}, []));
+  hostApi.ui.window('world-win', {}, [
+    hostApi.ui.containerView('world', {
+      container: 'grid-1',
+      panel: { width: 700, height: 500 },
+      area: [
+        { name: 'floor', color: [1, 0, 0, 1], bodyColor: [0, 1, 0, 1], thickness: 3 }
+      ]
+    }, (entity) => hostApi.ui.window(entity.id, {}, []))
+  ]);
 };
 "#;
 

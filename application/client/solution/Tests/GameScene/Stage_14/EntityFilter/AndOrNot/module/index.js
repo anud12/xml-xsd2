@@ -56,10 +56,8 @@ export default (hostApi) => {
     name: string.of("mark-nested"),
     prepare: () => ({value: true}),
     apply: (ctx) => {
-      ctx.getEntityBy(nested)
-        .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
-          v.set(string.of("yes"));
-        }))
+      ctx.getMutableEntityBy(nested)
+         .map(ee => ee.text_map.put("flag", string.of("yes")))
     }
   });
 

@@ -5,8 +5,8 @@ const SIM_TPL_P3: &str = r#"
     const ef = findEffectByName(name);
     if (!ef) return;
     let prepared;
-    if (typeof ef.prepare === 'function') { try { prepared = ef.prepare(payload); } catch(e) {} }
-    if (typeof ef.apply === 'function') { try { ef.apply(buildEventContext(), prepared); } catch(e) {} }
+    if (typeof ef.prepare === 'function') { try { prepared = ef.prepare(buildPrepareContext(), payload); } catch(e) {} }
+    if (typeof ef.apply === 'function') { try { ef.apply(buildApplyContext(), prepared); } catch(e) {} }
   }
   function emitEvent(name, payload) {
     if (name && typeof name === 'object') {
@@ -68,6 +68,7 @@ const SIM_TPL_P3: &str = r#"
       else if (typeof actionObj === 'function') { try { actionObj(ctx); } catch(e) {} }
     } catch(e) {}
   }
+  try { globalThis.__processPendingEffects(); } catch(e) {}
   return JSON.stringify({ created: globalThis.__createdEntities,
     store: globalThis.__entityStore,
     pendingEffects: globalThis.__pendingEffects || [],

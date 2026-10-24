@@ -19,12 +19,10 @@ export default (hostApi) => {
     name: string.of("mark-exact"),
     prepare: () => ({value: true}),
     apply: (ctx) => {
-      ctx.getEntityBy({
-        filters: [(e) => e.id.isContainingExactly(string.of("second"))],
-      })
-        .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
-          v.set(string.of("exact"));
-        }))
+       ctx.getMutableEntityBy({
+         filters: [(e) => e.id.isContainingExactly(string.of("second"))],
+       })
+         .map(ee => ee.text_map.put("flag", string.of("exact")))
     }
   });
 
@@ -33,12 +31,10 @@ export default (hostApi) => {
     name: string.of("mark-contains"),
     prepare: () => ({value: true}),
     apply: (ctx) => {
-      ctx.getEntityBy({
-        filters: [(e) => e.id.isContaining(string.of("sec"))],
-      })
-        .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
-          v.set(string.of("contains"));
-        }))
+       ctx.getMutableEntityBy({
+         filters: [(e) => e.id.isContaining(string.of("sec"))],
+       })
+         .map(ee => ee.text_map.put("flag", string.of("contains")))
     }
   });
 

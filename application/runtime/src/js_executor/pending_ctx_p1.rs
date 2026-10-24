@@ -2,7 +2,7 @@
 // the shared FilterArg evaluator installed by the host API).
 
 const PENDING_CTX_JS_P1: &str = r#"(function() {
-    globalThis.__context = {
+    globalThis.__prepareContext = {
         getEntityBy: function(filter) {
             return globalThis.__evalEntityFilter(filter);
         },
@@ -21,12 +21,12 @@ const PENDING_CTX_JS_P1: &str = r#"(function() {
             if(target){try{
                 var prepared=null;
                 if(typeof target.prepare==='function')
-                    prepared=target.prepare(globalThis.__context);
+                    prepared=target.prepare(globalThis.__prepareContext);
                 var hasVal=prepared&&typeof prepared==='object'&&'value' in prepared;
                 if(hasVal){
                     cm=!!prepared.value;
                     if(typeof target.apply==='function')
-                        target.apply(globalThis.__context,prepared);
+                        target.apply(globalThis.__applyContext,prepared);
                 }
             }catch(e){}}
             var _s=[cm];
@@ -34,6 +34,25 @@ const PENDING_CTX_JS_P1: &str = r#"(function() {
                 ifTrue:function(cb){if(_s[0]&&typeof cb==='function'){cb();_s[0]=false;}},
                 ifFalse:function(cb){if(!_s[0]&&typeof cb==='function')cb();}
             };
+        }
+    };
+    globalThis.__applyContext = {
+        createEntity: function(o) {
+            globalThis.__createdEntities = globalThis.__createdEntities || [];
+            globalThis.__entityStore = globalThis.__entityStore || [];
+            if (o && typeof o === 'object' && typeof o.firstName === 'string') {
+                var e = {}; e[o.firstName]=o.firstName; globalThis.__entityStore.push(e);
+                globalThis.__createdEntities.push(o.firstName);
+            } else if (o && typeof o === 'object') {
+                globalThis.__entityStore.push(o);
+                globalThis.__createdEntities.push(JSON.stringify(o));
+            } else {
+                globalThis.__entityStore.push({textMap_name: String(o)});
+                globalThis.__createdEntities.push(String(o));
+            }
+        },
+        getMutableEntityBy: function(filter) {
+            return globalThis.__evalEntityFilter(filter);
         }
     };
 })()"#;

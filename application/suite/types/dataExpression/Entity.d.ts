@@ -68,6 +68,24 @@ export type EntityReadOnlyExpression = Expression & {
   getEntitiesInsideArea: (areaName: string | StringReadOnlyExpression) => ListReadOnlyExpression<EntityInsideAreaReference>
 }
 
+/**
+ * A mutable reference to an entity, returned by `EventApplyContext.getMutableEntityBy`.
+ * Extends the read-only expression with in-place map mutation. Available only
+ * during the `apply` phase; mutations are committed atomically with the tick.
+ */
+export type EntityMutableExpression = EntityReadOnlyExpression & {
+  /** The entity's number_map accessor with in-place mutation. */
+  number_map: EntityReadOnlyExpression["number_map"] & {
+    put: (key: string | StringReadOnlyExpression, value: NumberReadOnlyExpression) => EntityMutableExpression;
+    remove: (key: string | StringReadOnlyExpression) => EntityMutableExpression;
+  };
+  /** The entity's text_map accessor with in-place mutation. */
+  text_map: EntityReadOnlyExpression["text_map"] & {
+    put: (key: string | StringReadOnlyExpression, value: StringReadOnlyExpression) => EntityMutableExpression;
+    remove: (key: string | StringReadOnlyExpression) => EntityMutableExpression;
+  };
+}
+
 /** A minimal entity reference returned by {@link EntityReadOnlyExpression.getEntitiesInsideArea}. */
 export type EntityInsideAreaReference = {
   /** The contained entity's id. */

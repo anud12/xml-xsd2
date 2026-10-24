@@ -13,8 +13,8 @@ export type StringReadOnlyExpressionApi = {
 }
 
 export type StringReadOnlyExpression = PrimitiveReadOnlyExpression & {
-  /** Replaces string, and returns the new value */
-  set: (s: StringReadOnlyExpression) => StringReadOnlyExpression,
+  /** Returns a new expression with the replaced string value (non-mutating) */
+  map: (s: StringReadOnlyExpression) => StringReadOnlyExpression,
   /** Concatenate two expressions */
   concat: (other: StringReadOnlyExpression) => StringReadOnlyExpression,
   /** Join multiple expressions using an optional separator */

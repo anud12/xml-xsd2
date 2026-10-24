@@ -16,9 +16,9 @@ export default (hostApi) => {
     name: string.of("mark-two-keys"),
     prepare: () => ({value: true}),
     apply: (ctx) => {
-      ctx.getEntityBy(twoKeys)
+      ctx.getMutableEntityBy(twoKeys)
         .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
-          v.set(string.of("marked"));
+          v.map(string.of("marked"));
         }))
     }
   });
@@ -30,9 +30,9 @@ export default (hostApi) => {
     apply: (ctx) => {
       /** @type {any} */
       const unknown = { something: string.of("else") };
-      ctx.getEntityBy(unknown)
+      ctx.getMutableEntityBy(unknown)
         .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
-          v.set(string.of("marked"));
+          v.map(string.of("marked"));
         }))
     }
   });
@@ -44,9 +44,9 @@ export default (hostApi) => {
     apply: (ctx) => {
       /** @type {any} */
       const asString = string.of("m");
-      ctx.getEntityBy(asString)
+      ctx.getMutableEntityBy(asString)
         .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
-          v.set(string.of("marked"));
+          v.map(string.of("marked"));
         }))
     }
   });
@@ -58,9 +58,9 @@ export default (hostApi) => {
     apply: (ctx) => {
       /** @type {any} */
       const legacy = { id: id => id.isContainingExactly(string.of("m")) };
-      ctx.getEntityBy(legacy)
+      ctx.getMutableEntityBy(legacy)
         .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
-          v.set(string.of("marked"));
+          v.map(string.of("marked"));
         }))
     }
   });
@@ -70,9 +70,9 @@ export default (hostApi) => {
     name: string.of("mark-null"),
     prepare: () => ({value: true}),
     apply: (ctx) => {
-      ctx.getEntityBy(null)
+      ctx.getMutableEntityBy(null)
         .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
-          v.set(string.of("marked"));
+          v.map(string.of("marked"));
         }))
     }
   });
