@@ -81,7 +81,7 @@ public partial class Game : Node {
             _runtimeRunning = true;
             new Thread(() => {
                 var stopwatch = new System.Diagnostics.Stopwatch();
-                const long cycleDurationMs = 250;
+                const long cycleDurationMs = 125;
 
                 while (RUN_RUNTIME_LOOP) {
                     stopwatch.Restart();
