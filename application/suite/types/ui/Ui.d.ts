@@ -22,8 +22,6 @@ export type UiFontConfig = {
   size: number;
   /** Text color as a CSS hex string, e.g. "#FF0000". */
   color: string;
-  /** Font style flags. */
-  style: ("bold" | "italic" | "underline" | "line-through")[];
 };
 
 /**

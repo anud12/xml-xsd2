@@ -4,13 +4,11 @@ export default (hostApi) => {
     file: "fonts/Ubuntu-Regular.ttf",
     size: 12,
     color: "#FFFFFF",
-    style: [],
   });
   const largeFont = hostApi.ui.setFont({
     file: "fonts/Ubuntu-Regular.ttf",
     size: 32,
     color: "#FFFFFF",
-    style: [],
   });
 
   hostApi.ui.window("small-window", {

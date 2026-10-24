@@ -1,6 +1,6 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF", style: [] });
+  const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF" });
   const win = hostApi.ui.window("add-child", {
     panel: {
       x: 100,

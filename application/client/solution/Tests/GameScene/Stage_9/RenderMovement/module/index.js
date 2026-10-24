@@ -1,5 +1,5 @@
 export default (hostApi) => {
-    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF", style: [] });
+    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF" });
 const { number, string } = hostApi.runtime;
 
   const marker = hostApi.runtime.setAnimation(string.of("marker"), {

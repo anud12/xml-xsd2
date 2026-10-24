@@ -986,8 +986,7 @@ function (root) {
             fontRegistry[name] = {
                 file: config.file,
                 size: typeof config.size === 'number' ? config.size : 16,
-                color: typeof config.color === 'string' ? config.color : '#FFFFFF',
-                style: Array.isArray(config.style) ? config.style : []
+                color: typeof config.color === 'string' ? config.color : '#FFFFFF'
             };
             return {
                 name: name, value: name,

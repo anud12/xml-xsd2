@@ -1,6 +1,6 @@
 const entry = (hostApi) => {
     const { string, number, maybe, condition } = hostApi.runtime;
-    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF", style: [] });
+    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF" });
     const game = hostApi.runtime.setEntity({
         id: string.of("game"),
         numberMap: {
