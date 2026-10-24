@@ -17,6 +17,7 @@ public class TestClass : Steps {
     public async Task Given_panel_it_should_have_content_with_full_align() {
         // I create a module from the first folder
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .AddFileToArchive("module/texture.png", "texture.png")
             .EnsureDllAccessible()

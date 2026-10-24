@@ -11,6 +11,7 @@ public class TestClass : Steps {
     public async Task Given_grid_entity_it_should_advance_one_cell_per_tick_when_march_fired() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();
@@ -64,6 +65,7 @@ public class TestClass : Steps {
     public async Task Given_grid_entity_it_should_cover_multiple_cells_per_tick_when_speed_greater_than_one() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();
@@ -112,6 +114,7 @@ public class TestClass : Steps {
     public async Task Given_high_speed_diagonal_move_it_should_stop_at_destination_without_overshooting() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();
@@ -155,6 +158,7 @@ public class TestClass : Steps {
     public async Task Given_target_beyond_size_it_should_stop_early_at_bound_when_march_fired() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();
@@ -191,6 +195,7 @@ public class TestClass : Steps {
     public async Task Given_non_interruptible_move_it_should_reject_new_action_when_march_in_progress() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();
@@ -227,6 +232,7 @@ public class TestClass : Steps {
     public async Task Given_entity_in_negative_x_it_should_advance_toward_origin_when_march_fired() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();
@@ -273,6 +279,7 @@ public class TestClass : Steps {
     public async Task Given_entity_in_negative_diagonal_it_should_stop_when_destination_reached() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();
@@ -346,6 +353,7 @@ public class TestClass : Steps {
     public async Task Given_odd_angle_target_it_should_walk_straight_staircase_when_march_fired() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();

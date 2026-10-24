@@ -38,6 +38,8 @@ public partial class RootNode
             ApplyLabelAlignment(label, ParseOptions(node), ParseOptions(childNode));
             win.AddChild(label);
             label.Text = childNode.Value;
+            if (childNode.Font != null)
+                win.ApplyFont(label, childNode.Font);
             _flattened.Add(childNode.Id);
             if (childNode.Kind == UiNodeKind.Field)
                 _flattenedFields[childNode.Id] = (win, childNode.Id);

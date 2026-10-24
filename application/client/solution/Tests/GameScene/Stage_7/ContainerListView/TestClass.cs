@@ -14,6 +14,7 @@ public partial class TestClass : Steps {
     public async Task Given_container_list_view_it_renders_three_entity_panels() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .AddFileToArchive("module/texture.png", "texture.png")
             .AddFileToArchive("module/texture2.png", "texture2.png")

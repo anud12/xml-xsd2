@@ -82,6 +82,7 @@ if (__uih && globalThis.host) {
   };
   __u.div = __uih.div;
   __u.text = __uih.text;
+  __u.setFont = __uih.setFont;
   __u.window = __uih.window;
   // setScreen creates the single global full-screen screen (a top-level
   // surface like a window; each call replaces the previous screen).

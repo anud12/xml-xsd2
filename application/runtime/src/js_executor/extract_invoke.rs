@@ -122,6 +122,7 @@ if (globalThis.__stringGeneratorFactory) {
   if(!u.entityList)u.entityList=noop;
   if(!u.getSpritePNG)u.getSpritePNG=function(p){return p;};
   if(!u.getAnimation)u.getAnimation=function(){return null;};
+  if(!u.setFont)u.setFont=function(){return {name:'',value:'',toString:function(){return ''},toJSON:function(){return ''}};};
 })();
 var __mod=globalThis.__module_default||__module_default;
 if(typeof __mod==='function'){__mod(hostApi);}

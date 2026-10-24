@@ -1,6 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const { number, string } = hostApi.runtime;
+    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF", style: [] });
+ const { number, string } = hostApi.runtime;
 
   const itemA = hostApi.runtime.setEntity({
     id: string.of("item-a"),
@@ -51,7 +52,7 @@ export default (hostApi) => {
             map: "number",
             name: "value",
             fallback: "0",
-          }),
+          }, font),
         ]),
       ]),
   ])

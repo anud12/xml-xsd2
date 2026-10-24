@@ -46,6 +46,7 @@ export default (hostApi) => {
         container: grid_1,
       },
       onClick: (ctx) => {
+        if (!ctx.cursor) return;
         ctx.emitAction(action, {
           x: ctx.cursor.getX(),
           y: ctx.cursor.getY(),

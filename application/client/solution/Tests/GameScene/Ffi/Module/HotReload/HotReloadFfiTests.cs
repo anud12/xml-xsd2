@@ -15,6 +15,7 @@ public class HotReloadFfiTests : Steps
     {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .AddFileToArchive("module/tex1.png", "tex1.png")
             .EnsureDllAccessible()
@@ -40,6 +41,7 @@ public class HotReloadFfiTests : Steps
 
         // Swap the module content (same entry names) and hot reload.
         AddFileToArchive("module_v2/index.js", "index.js")
+                .AddFileToArchive("module_v2/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module_v2/manifest.json", "manifest.json")
             .AddFileToArchive("module_v2/tex2.png", "tex2.png")
             .ReloadCurrentArchive();

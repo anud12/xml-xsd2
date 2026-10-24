@@ -61,6 +61,16 @@ public static class UiSlab
             OptionsJson = SerializeOptions(node.Opt, arena),
             BindingJson = SerializeBinding(node.Binding, arena)
         };
+        if (node.Opt.HasFont != 0)
+        {
+            data.Font = new UiFontData
+            {
+                File = Str(arena, node.Opt.FontFile),
+                Size = node.Opt.FontSize,
+                Color = node.Opt.FontColor,
+                Style = node.Opt.FontStyle
+            };
+        }
         if (node.ChildCount > 0 && node.Children != IntPtr.Zero)
         {
             for (uint i = 0; i < node.ChildCount; i++)

@@ -27,6 +27,8 @@ public class UiNodeData
     public List<string> Children { get; set; } = new();
     /// Archive path for image nodes (empty for all other kinds).
     public string Src { get; set; } = "";
+    /// Font configuration (null when no font is set).
+    public UiFontData? Font { get; set; }
 
     public override bool Equals(object? obj)
     {
@@ -37,6 +39,14 @@ public class UiNodeData
             && o.Children.Count == Children.Count
             && o.Children.SequenceEqual(Children);
     }
+}
+
+public class UiFontData
+{
+    public string File { get; set; } = "";
+    public float Size { get; set; } = 16f;
+    public uint Color { get; set; } = 0xFFFFFFFF;
+    public uint Style { get; set; }
 }
 
 public class UiDeltaOp

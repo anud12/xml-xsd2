@@ -14,6 +14,7 @@ public class TestClass : Steps {
     public async Task Given_grid_panel_it_should_move_node_to_clicked_cell() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();

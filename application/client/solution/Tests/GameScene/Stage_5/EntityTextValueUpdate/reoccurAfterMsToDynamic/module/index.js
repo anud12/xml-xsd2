@@ -1,6 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const {number, string} = hostApi.runtime;
+    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF", style: [] });
+ const {number, string} = hostApi.runtime;
 
   const filter = {
     filters: [(e) => e.id.isContainingExactly(string.of("entity_id"))],
@@ -54,6 +55,6 @@ export default (hostApi) => {
       background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [
-    hostApi.ui.field("content", { entity: entity, map: "number", name: "key", fallback: "0" }),
+    hostApi.ui.field("content", { entity: entity, map: "number", name: "key", fallback: "0" }, font),
   ])
 }

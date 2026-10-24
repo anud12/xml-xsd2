@@ -13,6 +13,7 @@ public class TestClass : Steps {
     public async Task HasChildPanelNamed_it_should_assert_orientation_length_and_templates() {
         try {
             AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .EnsureDllAccessible()
                 .ProcessArchive();
@@ -45,6 +46,7 @@ public class TestClass : Steps {
     public async Task HasChildPanelNamed_it_should_fail_for_wrong_orientation_length_and_templates() {
         try {
             AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .EnsureDllAccessible()
                 .ProcessArchive();

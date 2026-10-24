@@ -11,6 +11,7 @@ public class TestClass : Steps {
     public async Task Given_interruptible_plan_it_should_overwrite_not_queue_when_action_repeatedly_emitted() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();

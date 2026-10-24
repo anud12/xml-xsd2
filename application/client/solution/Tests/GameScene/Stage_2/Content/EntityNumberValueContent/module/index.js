@@ -1,6 +1,7 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const {number, string} = hostApi.runtime;
+    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF", style: [] });
+ const {number, string} = hostApi.runtime;
   const entity = hostApi.runtime.setEntity({
     id: string.of("entity_id"),
     numberMap: {
@@ -21,6 +22,6 @@ export default (hostApi) => {
       align: "center",
     },
   }, [
-    hostApi.ui.field("content", { entity: entity, map: "number", name: "numberKey", fallback: "0" }),
+    hostApi.ui.field("content", { entity: entity, map: "number", name: "numberKey", fallback: "0" }, font),
   ])
 }

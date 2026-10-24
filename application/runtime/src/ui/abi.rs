@@ -256,6 +256,12 @@ pub struct UiNodeOptions {
     /// title strip across the window top and the user can drag the window
     /// by it.
     pub title: u32,
+    /// Font configuration for text/field nodes (has_font=0 when absent).
+    pub has_font: u8,
+    pub font_file: u32,
+    pub font_size: f32,
+    pub font_color: u32,
+    pub font_style: u32,
 }
 
 #[repr(C)]
@@ -759,6 +765,11 @@ fn empty_options() -> UiNodeOptions {
         progress_orientation: 0,
         progress_steps: 100,
         title: NO_STR,
+        has_font: 0,
+        font_file: NO_STR,
+        font_size: 0.0,
+        font_color: 0,
+        font_style: 0,
     }
 }
 
@@ -779,6 +790,42 @@ fn opt_str(opts: &Map<String, Value>, key: &str, slab: &mut Slab) -> u32 {
         Some(s) if !s.is_empty() => slab.intern(s),
         _ => NO_STR,
     }
+}
+
+fn parse_hex_color(hex: &str) -> u32 {
+    let s = hex.trim_start_matches('#');
+    let r = u8::from_str_radix(&s[0..2], 16).unwrap_or(255);
+    let g = u8::from_str_radix(&s[2..4], 16).unwrap_or(255);
+    let b = u8::from_str_radix(&s[4..6], 16).unwrap_or(255);
+    let a = if s.len() >= 8 {
+        u8::from_str_radix(&s[6..8], 16).unwrap_or(255)
+    } else {
+        255
+    };
+    ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | (b as u32)
+}
+
+fn font_style_flags(styles: &[String]) -> u32 {
+    let mut flags: u32 = 0;
+    for s in styles {
+        match s.as_str() {
+            "bold" => flags |= 1,
+            "italic" => flags |= 2,
+            "underline" => flags |= 4,
+            "line-through" => flags |= 8,
+            _ => {}
+        }
+    }
+    flags
+}
+
+fn font_to_abi(font: &crate::ui::UiFont, slab: &mut Slab, mut o: UiNodeOptions) -> UiNodeOptions {
+    o.has_font = 1;
+    o.font_file = slab.intern(&font.file);
+    o.font_size = font.size as f32;
+    o.font_color = parse_hex_color(&font.color);
+    o.font_style = font_style_flags(&font.style);
+    o
 }
 
 fn track_to_abi(t: &Value) -> UiTrack {
@@ -1123,26 +1170,38 @@ fn node_to_abi(node: &DomainNode, slab: &mut Slab, r: &NodeRegions) -> UiNode {
             child_count,
             children: children_ptr,
         },
-        DomainNode::Text { id, value, .. } => UiNode {
-            kind: UI_KIND_TEXT,
-            id: slab.intern(id),
-            value: slab.intern(value),
-            src: NO_STR,
-            binding: empty_binding(),
-            opt: empty_options(),
-            child_count,
-            children: children_ptr,
-        },
-        DomainNode::Field { id, binding, value, .. } => UiNode {
-            kind: UI_KIND_FIELD,
-            id: slab.intern(id),
-            value: slab.intern(value),
-            src: NO_STR,
-            binding: binding_to_abi(binding, slab),
-            opt: empty_options(),
-            child_count,
-            children: children_ptr,
-        },
+        DomainNode::Text { id, value, font, .. } => {
+            let mut o = empty_options();
+            if let Some(f) = font {
+                o = font_to_abi(f, slab, o);
+            }
+            UiNode {
+                kind: UI_KIND_TEXT,
+                id: slab.intern(id),
+                value: slab.intern(value),
+                src: NO_STR,
+                binding: empty_binding(),
+                opt: o,
+                child_count,
+                children: children_ptr,
+            }
+        }
+        DomainNode::Field { id, binding, value, font, .. } => {
+            let mut o = empty_options();
+            if let Some(f) = font {
+                o = font_to_abi(f, slab, o);
+            }
+            UiNode {
+                kind: UI_KIND_FIELD,
+                id: slab.intern(id),
+                value: slab.intern(value),
+                src: NO_STR,
+                binding: binding_to_abi(binding, slab),
+                opt: o,
+                child_count,
+                children: children_ptr,
+            }
+        }
         DomainNode::Window { id, options, .. } => UiNode {
             kind: UI_KIND_WINDOW,
             id: slab.intern(id),
@@ -1690,12 +1749,12 @@ mod tests {
         assert_eq!(s.size_background, 48);
         assert_eq!(s.size_paint_spec, 12);
         assert_eq!(s.size_on_hover, 44);
-        assert_eq!(s.size_options, 368);
-        assert_eq!(s.size_node, 416);
+        assert_eq!(s.size_options, 384);
+        assert_eq!(s.size_node, 432);
         assert_eq!(s.size_animation, 24);
         assert_eq!(s.size_snapshot, 40);
         assert_eq!(s.size_delta, 32);
-        assert_eq!(s.size_delta_op, 424);
+        assert_eq!(s.size_delta_op, 440);
         // Pointer offsets land on 8-byte boundaries.
         for off in [
             s.off_node_children,

@@ -12,6 +12,32 @@ import {ActionReadOnlyExpression} from "../dataExpression/action/no-input-action
 export type UiNodeId = string;
 
 /**
+ * Configuration for `ui.setFont`: registers a font file from the archive and
+ * returns a reference handle usable on `text`/`field` nodes.
+ */
+export type UiFontConfig = {
+  /** Archive-relative path to the .ttf file. */
+  file: string;
+  /** Font size in logical units. */
+  size: number;
+  /** Text color as a CSS hex string, e.g. "#FF0000". */
+  color: string;
+  /** Font style flags. */
+  style: ("bold" | "italic" | "underline" | "line-through")[];
+};
+
+/**
+ * The handle returned by `ui.setFont`. Pass it (or its name string) as the
+ * `fontRef` argument to `ui.text` / `ui.field`.
+ */
+export type UiFontReference = {
+  readonly name: string;
+  readonly value: string;
+  toString(): string;
+  toJSON(): string;
+};
+
+/**
  * The *Expression handle a ui factory returns for the node it registered —
  * the same object shape as the handles returned by `setAnimation` or
  * `world.sectorGrid`. It carries the node id on `.id`/`.value` and
@@ -444,10 +470,12 @@ export type UiApi = {
    * node factories it takes no id (the id is managed).
    */
   setScreen: UiScreenComponent;
+  /** Register a font from an archive .ttf file; returns a reference handle. */
+  setFont: (config: UiFontConfig) => UiFontReference;
   /** A text label: must be nested under a window. */
-  text: (id: string, value: string | number) => UiNodeExpression;
+  text: (id: string, value: string | number, fontRef: UiFontReference) => UiNodeExpression;
   /** A bound field: must be nested under a window. */
-  field: (id: string, binding: UiFieldBinding) => UiNodeExpression;
+  field: (id: string, binding: UiFieldBinding, fontRef: UiFontReference) => UiNodeExpression;
   /** A progress bar: tiled fill clipped to a 0..1 fraction (static or entity-bound). Must be nested under a window. */
   progress: (id: string, options: UiProgressOptions) => UiNodeExpression;
 

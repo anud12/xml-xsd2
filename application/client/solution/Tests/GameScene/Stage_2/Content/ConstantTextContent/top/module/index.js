@@ -1,5 +1,6 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
+  const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF", style: [] });
   const {number, string} = hostApi.runtime;
   const texture = hostApi.runtime.setAnimation(string.of("texture"), {
     frames: [
@@ -15,6 +16,6 @@ export default (hostApi) => {
       align: "top",
     },
   }, [
-    hostApi.ui.text("content", "top"),
+    hostApi.ui.text("content", "top", font),
   ])
 }

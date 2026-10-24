@@ -193,6 +193,11 @@ public static class UiAbi
         public byte ProgressOrientation;
         public uint ProgressSteps;
         public uint Title;
+        public byte HasFont;
+        public uint FontFile;
+        public float FontSize;
+        public uint FontColor;
+        public uint FontStyle;
     }
 
     [StructLayout(LayoutKind.Sequential)]

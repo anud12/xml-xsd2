@@ -1,5 +1,6 @@
 export default (hostApi) => {
-  const { number, string } = hostApi.runtime;
+    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF", style: [] });
+ const { number, string } = hostApi.runtime;
 
   hostApi.runtime.setEntity({
     id: "node-1",
@@ -215,7 +216,7 @@ export default (hostApi) => {
       y: 10,
     },
   }, [
-    hostApi.ui.field("col-1-value", { entity: "node-1", map: "number", name: "column", fallback: "0" }),
+    hostApi.ui.field("col-1-value", { entity: "node-1", map: "number", name: "column", fallback: "0" }, font),
   ]);
 
   hostApi.ui.window("row-1", {
@@ -226,7 +227,7 @@ export default (hostApi) => {
       y: 10,
     },
   }, [
-    hostApi.ui.field("row-1-value", { entity: "node-1", map: "number", name: "row", fallback: "0" }),
+    hostApi.ui.field("row-1-value", { entity: "node-1", map: "number", name: "row", fallback: "0" }, font),
   ]);
 
   hostApi.ui.window("col-3", {
@@ -237,7 +238,7 @@ export default (hostApi) => {
       y: 10,
     },
   }, [
-    hostApi.ui.field("col-3-value", { entity: "node-3", map: "number", name: "column", fallback: "0" }),
+    hostApi.ui.field("col-3-value", { entity: "node-3", map: "number", name: "column", fallback: "0" }, font),
   ]);
 
   hostApi.ui.window("row-3", {
@@ -248,7 +249,7 @@ export default (hostApi) => {
       y: 10,
     },
   }, [
-    hostApi.ui.field("row-3-value", { entity: "node-3", map: "number", name: "row", fallback: "0" }),
+    hostApi.ui.field("row-3-value", { entity: "node-3", map: "number", name: "row", fallback: "0" }, font),
   ]);
 
   hostApi.ui.window("col-4", {
@@ -259,7 +260,7 @@ export default (hostApi) => {
       y: 10,
     },
   }, [
-    hostApi.ui.field("col-4-value", { entity: "node-4", map: "number", name: "column", fallback: "0" }),
+    hostApi.ui.field("col-4-value", { entity: "node-4", map: "number", name: "column", fallback: "0" }, font),
   ]);
 
   hostApi.ui.window("row-4", {
@@ -270,7 +271,7 @@ export default (hostApi) => {
       y: 10,
     },
   }, [
-    hostApi.ui.field("row-4-value", { entity: "node-4", map: "number", name: "row", fallback: "0" }),
+    hostApi.ui.field("row-4-value", { entity: "node-4", map: "number", name: "row", fallback: "0" }, font),
   ]);
 
   hostApi.ui.window("col-5", {
@@ -281,7 +282,7 @@ export default (hostApi) => {
       y: 10,
     },
   }, [
-    hostApi.ui.field("col-5-value", { entity: "node-5", map: "number", name: "column", fallback: "0" }),
+    hostApi.ui.field("col-5-value", { entity: "node-5", map: "number", name: "column", fallback: "0" }, font),
   ]);
 
   hostApi.ui.window("row-5", {
@@ -292,6 +293,6 @@ export default (hostApi) => {
       y: 10,
     },
   }, [
-    hostApi.ui.field("row-5-value", { entity: "node-5", map: "number", name: "row", fallback: "0" }),
+    hostApi.ui.field("row-5-value", { entity: "node-5", map: "number", name: "row", fallback: "0" }, font),
   ]);
 }

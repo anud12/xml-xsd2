@@ -70,6 +70,7 @@ export default (hostApi) => {
     name: string.of("mark-null"),
     prepare: () => ({value: true}),
     apply: (ctx) => {
+      // @ts-expect-error deliberately malformed filter for error-path test
       ctx.getMutableEntityBy(null)
         .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
           v.map(string.of("marked"));

@@ -13,6 +13,7 @@ public class TestClass : Steps {
     public async Task Given_window_handle_it_should_render_children_added_before_and_after_the_first_paint() {
         try {
             AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .EnsureDllAccessible()
                 .ProcessArchive();

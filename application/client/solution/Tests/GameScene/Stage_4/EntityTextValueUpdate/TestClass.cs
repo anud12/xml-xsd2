@@ -13,6 +13,7 @@ public partial class TestClass : Steps {
     [RequireGodotRuntime]
     public async Task Given_panel_it_should_update_text_value_when_entity_changes() {
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .AddFileToArchive("module/texture.png", "texture.png")
             .EnsureDllAccessible()

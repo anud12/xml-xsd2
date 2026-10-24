@@ -1,18 +1,19 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
+    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF", style: [] });
   const { number, string } = hostApi.runtime;
   const hero = hostApi.runtime.setEntity({
     id: string.of("hero"),
     numberMap: { hp: number.of(7), max: number.of(10) }
   });
   hostApi.ui.window("slab-win", { panel: { width: 200, height: 100 } }, [
-    hostApi.ui.text("slab-text", "slab"),
+    hostApi.ui.text("slab-text", "slab", font),
     hostApi.ui.field("slab-field", {
       entity: hero,
       map: "number",
       name: "hp",
       fallback: "n/a"
-    })
+    }, font)
   ]);
   // Still images are single-frame animations.
   const fill = hostApi.runtime.setAnimation(string.of("fill"), {

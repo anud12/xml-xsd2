@@ -161,6 +161,7 @@ if (globalThis.__stringGeneratorFactory) {
     if(H.containerView)u.containerView=H.containerView;
     if(H.sectorGrid)u.sectorGrid=H.sectorGrid;
     if(H.setActor)u.setActor=H.setActor;
+    if(H.setFont)u.setFont=H.setFont;
   }
   // panel is a plain flow container (a division): only ui.window creates a
   // window and ui.setScreen the screen (the top-level surfaces). A standalone

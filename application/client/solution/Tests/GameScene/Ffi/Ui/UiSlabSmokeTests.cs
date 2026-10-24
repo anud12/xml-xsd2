@@ -19,6 +19,7 @@ public class UiSlabSmokeTests : Steps
     {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();
@@ -86,6 +87,7 @@ public class UiSlabSmokeTests : Steps
     {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .EnsureDllAccessible()
             .ProcessArchive();

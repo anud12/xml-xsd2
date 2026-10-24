@@ -17,6 +17,7 @@ public class TestClass : Steps {
     public async Task Given_grid_entity_it_should_render_moving_cell_on_plane_when_march_fired() {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .AddFileToArchive("module/marker.png", "marker.png")
             .EnsureDllAccessible()

@@ -13,6 +13,7 @@ public class TestClass : Steps {
         // Test ConstantTextContent
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .AddFileToArchive("module/texture.png", "texture.png")
             .EnsureDllAccessible()

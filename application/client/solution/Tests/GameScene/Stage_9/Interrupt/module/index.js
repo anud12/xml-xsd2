@@ -1,5 +1,6 @@
 export default (hostApi) => {
-  const { number, string } = hostApi.runtime;
+    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF", style: [] });
+ const { number, string } = hostApi.runtime;
 
   hostApi.runtime.setEntity({
     id: "worker-1",
@@ -63,7 +64,7 @@ export default (hostApi) => {
       y: 10,
     },
   }, [
-    hostApi.ui.field("col-value", { entity: "worker-1", map: "number", name: "column", fallback: "0" }),
+    hostApi.ui.field("col-value", { entity: "worker-1", map: "number", name: "column", fallback: "0" }, font),
   ]);
 
   hostApi.ui.window("row", {
@@ -74,6 +75,6 @@ export default (hostApi) => {
       y: 10,
     },
   }, [
-    hostApi.ui.field("row-value", { entity: "worker-1", map: "number", name: "row", fallback: "0" }),
+    hostApi.ui.field("row-value", { entity: "worker-1", map: "number", name: "row", fallback: "0" }, font),
   ]);
 }

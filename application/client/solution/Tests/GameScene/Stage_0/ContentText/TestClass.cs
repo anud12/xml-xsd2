@@ -13,6 +13,7 @@ public class TestClass : Steps {
     public async Task HasContentText_it_should_match_text_nodes_and_resolved_field_values() {
         try {
             AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .EnsureDllAccessible()
                 .ProcessArchive();
@@ -41,6 +42,7 @@ public class TestClass : Steps {
     public async Task HasContentText_it_should_fail_when_text_is_wrong() {
         try {
             AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .EnsureDllAccessible()
                 .ProcessArchive();

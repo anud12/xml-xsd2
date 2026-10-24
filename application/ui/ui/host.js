@@ -42,6 +42,8 @@ function (root) {
     // unreachable (a no-op, like any orphan node).
     var screenSeq = 0;
     var currentScreenId = null;
+    var fontSeq = 0;
+    var fontRegistry = Object.create(null);
 
     function transport() {
         var t = root.__uiTransport;
@@ -49,6 +51,13 @@ function (root) {
             throw new Error('ui: transport not installed on globalThis.__uiTransport');
         }
         return t;
+    }
+
+    function resolveFont(fontRef) {
+        if (!fontRef) return null;
+        var name = typeof fontRef === 'string' ? fontRef : fontRef.name;
+        if (!name || !fontRegistry[name]) return null;
+        return fontRegistry[name];
     }
 
     function requireId(id, kind) {
@@ -966,11 +975,32 @@ function (root) {
                 children: childIds(children)
             }));
         },
-        text: function (id, value) {
+        setFont: function (config) {
+            if (!config || typeof config !== 'object') {
+                throw new Error('ui: setFont config must be an object');
+            }
+            if (typeof config.file !== 'string' || config.file.length === 0) {
+                throw new Error('ui: setFont config.file is required (archive path to .ttf)');
+            }
+            var name = '__ui-font-' + (fontSeq++);
+            fontRegistry[name] = {
+                file: config.file,
+                size: typeof config.size === 'number' ? config.size : 16,
+                color: typeof config.color === 'string' ? config.color : '#FFFFFF',
+                style: Array.isArray(config.style) ? config.style : []
+            };
+            return {
+                name: name, value: name,
+                toString: function() { return name; },
+                toJSON: function() { return name; }
+            };
+        },
+        text: function (id, value, fontRef) {
             return nodeHandle(register({
                 id: id,
                 kind: 'text',
                 value: typeof value === 'string' ? value : String(value),
+                font: resolveFont(fontRef),
                 children: []
             }));
         },
@@ -1085,7 +1115,7 @@ function (root) {
                 children: [sectorGridMarker(name)]
             }));
         },
-        field: function (id, binding) {
+        field: function (id, binding, fontRef) {
             if (!binding || typeof binding !== 'object') {
                 throw new Error('ui: field binding must be an object with entity, map, name');
             }
@@ -1110,6 +1140,7 @@ function (root) {
                     fallback: fallback
                 },
                 value: fallback,
+                font: resolveFont(fontRef),
                 children: []
             }));
         },

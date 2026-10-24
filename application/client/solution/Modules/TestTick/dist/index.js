@@ -1,5 +1,6 @@
 const entry = (hostApi) => {
     const { string, number, maybe, condition } = hostApi.runtime;
+    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF", style: [] });
     const game = hostApi.runtime.setEntity({
         id: string.of("game"),
         numberMap: {
@@ -96,7 +97,7 @@ const entry = (hostApi) => {
             },
         },
     }, [
-        hostApi.ui.field("add-label", { entity: game, map: "number", name: "progress", fallback: "0" }),
+        hostApi.ui.field("add-label", { entity: game, map: "number", name: "progress", fallback: "0" }, font),
     ]);
 };
 export default entry;

@@ -1,0 +1,6 @@
+{
+  "id": "progress-recurring-deplete",
+  "version": "1.0.0",
+  "name": "Progress Recurring Deplete",
+  "entry": "index.js"
+}

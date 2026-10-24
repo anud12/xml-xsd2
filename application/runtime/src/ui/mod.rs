@@ -44,6 +44,8 @@ pub enum UiNode {
         #[serde(default)]
         value: String,
         #[serde(default)]
+        font: Option<UiFont>,
+        #[serde(default)]
         children: Vec<String>,
     },
     #[serde(rename = "field")]
@@ -53,6 +55,8 @@ pub enum UiNode {
         binding: serde_json::Value,
         #[serde(default)]
         value: String,
+        #[serde(default)]
+        font: Option<UiFont>,
         #[serde(default)]
         children: Vec<String>,
     },
@@ -96,6 +100,25 @@ pub enum UiNode {
         children: Vec<String>,
     },
 }
+
+/// Font configuration for text/field nodes.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UiFont {
+    /// Archive path to the .ttf/.otf file.
+    pub file: String,
+    /// Font size in pixels.
+    #[serde(default = "default_font_size")]
+    pub size: f64,
+    /// Color as hex string (#RRGGBB or #RRGGBBAA).
+    #[serde(default = "default_font_color")]
+    pub color: String,
+    /// Style flags: "bold", "italic", "underline", "line-through".
+    #[serde(default)]
+    pub style: Vec<String>,
+}
+
+fn default_font_size() -> f64 { 16.0 }
+fn default_font_color() -> String { "#FFFFFF".to_string() }
 
 impl UiNode {
     pub fn id(&self) -> &str {

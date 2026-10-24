@@ -10,6 +10,7 @@ public class TestClass : Steps {
     public async Task Given_panel_without_surface_or_layout_it_should_render_as_bare_group() {
         try {
             AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .EnsureDllAccessible()
                 .ProcessArchive();

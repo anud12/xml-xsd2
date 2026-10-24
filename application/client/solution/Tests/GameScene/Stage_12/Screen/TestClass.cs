@@ -29,6 +29,7 @@ public class TestClass : Steps {
     public async Task Given_set_screen_it_should_fill_the_viewport_below_buttons_and_windows() {
         try {
             AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .AddFileToArchive("module/texture.png", "texture.png")
                 .EnsureDllAccessible()
@@ -72,6 +73,7 @@ public class TestClass : Steps {
     public async Task Given_set_screen_the_viewport_should_match_the_reference() {
         try {
             AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .AddFileToArchive("module/texture.png", "texture.png")
                 .EnsureDllAccessible()
@@ -102,6 +104,7 @@ public class TestClass : Steps {
     public async Task Given_screen_child_click_it_should_replace_the_current_screen() {
         try {
             AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .AddFileToArchive("module/texture.png", "texture.png")
                 .EnsureDllAccessible()
@@ -145,6 +148,7 @@ public class TestClass : Steps {
     public async Task Given_button_above_screen_child_click_it_should_not_replace_the_screen() {
         try {
             AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .AddFileToArchive("module/texture.png", "texture.png")
                 .EnsureDllAccessible()
