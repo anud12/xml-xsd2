@@ -50,7 +50,7 @@ const entry: ModuleEntrypoint = (hostApi) => {
       context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(string.of("game"))],
       }).map((entity) => {
-        entity.number_map.put("progress", () => hostApi.runtime.maybe.of(number.of(100)));
+        entity.number_map.put("progress", (current) => current.map(c => c.sum(number.of(10))));
       });
     },
   });
@@ -59,7 +59,7 @@ const entry: ModuleEntrypoint = (hostApi) => {
   const increment = hostApi.runtime.setAction({
     name: string.of("increment"),
     apply: (ctx) => {
-      ctx.emitEvent(incrementEffect);
+      ctx.emitEvent("increment-event");
     },
   });
 

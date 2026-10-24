@@ -1,0 +1,6 @@
+{
+  "id": "module",
+  "version": "1.0.0",
+  "name": "Concurrent Effects Module",
+  "entry": "index.js"
+}

@@ -101,6 +101,9 @@ public partial class UiWindow : Control
         _nodeId = node.Id;
         var opts = ParseOptions(node);
         WireInteractivity(node, opts);
+        if (!_guiInputWired && !_hoverWired
+            && (node.Kind == UiNodeKind.Text || node.Kind == UiNodeKind.Field || node.Kind == UiNodeKind.Image))
+            MouseFilter = MouseFilterEnum.Ignore;
     }
 
     public void SetChildren(List<string> childIds)
