@@ -1,3 +1,4 @@
+import { Expression } from "../../Expression";
 import { ConditionReadOnlyExpression } from "../../primitives/conditionExpression";
 import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
 import { StringReadOnlyExpression } from "../../primitives/stringExpression";
@@ -20,7 +21,7 @@ export type SetEntityActionArgs = {
   name: StringReadOnlyExpression;
   description?: string;
   cooldownGroup?: string;
-  guard?: (context: ActionContext, target: EntityActionTarget) => ConditionReadOnlyExpression;
+  guard?: (context: ActionContext, target: EntityActionTarget) => ConditionReadOnlyExpression<Expression>;
   cooldown?: (context: ActionContext, target: EntityActionTarget) => TemporalReadOnlyExpression;
   apply: (context: ActionContext, target: EntityActionTarget) => void;
 };

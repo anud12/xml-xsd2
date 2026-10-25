@@ -1,6 +1,6 @@
 const entry: ModuleEntrypoint = (hostApi) => {
   const { string, number, maybe, condition } = hostApi.runtime;
-  const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF" });
+  const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 10, color: "#FFFFFF" });
 
   const game = hostApi.runtime.setEntity({
     id: string.of("game"),
@@ -12,14 +12,6 @@ const entry: ModuleEntrypoint = (hostApi) => {
   const tick = hostApi.runtime.setEffect({
     name: string.of("tick"),
     reoccurAfterMs: (context, executionCount, input, output) => {
-      const current = Number(
-        context.getEntityBy({
-          filters: [(e) => e.id.isContainingExactly(string.of("game"))],
-        }).map((el) =>
-          el.number_map.get("progress").orElse(number.of(0))
-        )
-      );
-      if (current <= 0) return maybe.none();
       return maybe.of(number.of(1));
     },
     apply: (context, output) => {
@@ -67,6 +59,7 @@ const entry: ModuleEntrypoint = (hostApi) => {
 
   hostApi.ui.window("progress", {
     panel: {
+      title: "Title",
       x: 600,
       y: 400,
       width: 500,

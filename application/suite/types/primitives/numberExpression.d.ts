@@ -19,11 +19,11 @@ export type NumberReadOnlyExpression = PrimitiveReadOnlyExpression & {
   modulo: (numberExpression:NumberReadOnlyExpression) => NumberReadOnlyExpression,
   random: (fromInclusive:NumberReadOnlyExpression, toInclusive: NumberReadOnlyExpression) => NumberReadOnlyExpression,
 
-  /** Comparison operations returning a lazy ConditionReadOnlyExpression. Prefix 'is' required. */
-  isGreaterThan: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
-  isLessThan: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
-  isGreaterOrEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
-  isLessOrEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
-  isEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
-  isNotEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression,
+  /** Comparison operations returning a lazy ConditionReadOnlyExpression carrying this value. Prefix 'is' required. */
+  isGreaterThan: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression<NumberReadOnlyExpression>,
+  isLessThan: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression<NumberReadOnlyExpression>,
+  isGreaterOrEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression<NumberReadOnlyExpression>,
+  isLessOrEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression<NumberReadOnlyExpression>,
+  isEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression<NumberReadOnlyExpression>,
+  isNotEqualTo: (other: NumberReadOnlyExpression) => ConditionReadOnlyExpression<NumberReadOnlyExpression>,
 }

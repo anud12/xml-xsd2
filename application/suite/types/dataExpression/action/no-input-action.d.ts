@@ -11,7 +11,7 @@ export type SetActionArgs = {
   name: StringReadOnlyExpression;
   description?: string;
   cooldownGroup?: string;
-  guard?: (context: ActionContext) => ConditionReadOnlyExpression;
+  guard?: (context: ActionContext) => ConditionReadOnlyExpression<Expression>;
   cooldown?: (context: ActionContext) => TemporalReadOnlyExpression;
   apply: (context: ActionContext) => void;
 };

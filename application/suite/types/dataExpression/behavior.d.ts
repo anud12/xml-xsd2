@@ -65,7 +65,7 @@ export type PriorityRule = {
   /** Human-readable name for the debug trace; required. */
   label: string;
   /** Enable gate, evaluated against the entity only (read-only). */
-  condition: (entity: Entity) => ConditionReadOnlyExpression;
+  condition: (entity: Entity) => ConditionReadOnlyExpression<Expression>;
   /** The fuzzy decision made within this branch. */
   utility: UtilityRule[];
 };

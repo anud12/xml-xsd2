@@ -1,3 +1,4 @@
+import {Expression} from "../Expression";
 import {NumberReadOnlyExpression} from "./numberExpression";
 import {MaybeReadOnlyExpression} from "./maybeExpression";
 import {ConditionReadOnlyExpression} from "./conditionExpression";
@@ -10,18 +11,18 @@ list: ListReadOnlyExpressionApi
 
 export type ListReadOnlyExpressionApi = {
 /** Create a literal list (elements may be primitives or expression wrappers). Accepts variable arguments. */
-of: <T> (...items: T[]) => ListReadOnlyExpression<T>;
+of: <T extends Expression> (...items: T[]) => ListReadOnlyExpression<T>;
 
 /** Register and retrieve named list rules. */
-asRule: (ruleName: string, expr: ListReadOnlyExpression<unknown>) => ListReadOnlyExpressionApi;
-getRule: (ruleName: string) => ListReadOnlyExpression<unknown>;
+asRule: (ruleName: string, expr: ListReadOnlyExpression<Expression>) => ListReadOnlyExpressionApi;
+getRule: (ruleName: string) => ListReadOnlyExpression<Expression>;
 }
 
 export type ListReadOnlyExpressionType = {
 // used when declaring argument types dynamically in HostApi clients
 }
 
-export type ListReadOnlyExpression<T> = PrimitiveReadOnlyExpression & {
+export type ListReadOnlyExpression<T extends Expression> = PrimitiveReadOnlyExpression & {
 /** Convenience to create a literal (delegates to ListReadOnlyExpressionApi.of) */
 of: (...items: T[]) => ListReadOnlyExpression<T>;
 
@@ -47,7 +48,7 @@ forEach: (cb: (element: T, index?: number) => void) => void;
 map: (cb: (elementExpr: T, index?: number) => any) => ListReadOnlyExpression<T>;
 
 /** Existential membership test returning a ConditionReadOnlyExpression */
-isContaining: (element: T) => ConditionReadOnlyExpression;
+  isContaining: (element: T) => ConditionReadOnlyExpression<T>;
 
 /** Treat a collection of list alternatives and pick one whole list deterministically.
 *  Accepts an array of ListReadOnlyExpression alternatives and returns a MaybeReadOnlyExpression containing the chosen ListReadOnlyExpression.

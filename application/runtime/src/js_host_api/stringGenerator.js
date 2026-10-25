@@ -73,16 +73,23 @@
     return !!x;
   }
 
-  function conditionOf(v) {
+  function conditionOf(v, carried) {
     var b = !!v;
     return {
       __isCondition: true,
       value: b,
-      and: function (o) { return conditionOf(b && asBool(o)); },
-      or: function (o) { return conditionOf(b || asBool(o)); },
-      negate: function () { return conditionOf(!b); },
-      ifTrue: function (cb) { if (b && typeof cb === 'function') cb(); },
-      ifFalse: function (cb) { if (!b && typeof cb === 'function') cb(); }
+      __carried: carried,
+      and: function (o) { return conditionOf(b && asBool(o), carried); },
+      or: function (o) { return conditionOf(b || asBool(o), carried); },
+      negate: function () { return conditionOf(!b, carried); },
+      ifTrue: function (cb) {
+        var primary = (b && typeof cb === 'function') ? cb(carried) : undefined;
+        return { or: function (cb2) { return b ? primary : (typeof cb2 === 'function' ? cb2(carried) : undefined); } };
+      },
+      ifFalse: function (cb) {
+        var primary = (!b && typeof cb === 'function') ? cb(carried) : undefined;
+        return { or: function (cb2) { return !b ? primary : (typeof cb2 === 'function' ? cb2(carried) : undefined); } };
+      }
     };
   }
 
@@ -148,7 +155,7 @@
         } else {
           s = String(candidate);
         }
-        return conditionOf(lang.indexOf(s) !== -1);
+        return conditionOf(lang.indexOf(s) !== -1, candidate);
       }
     };
   }

@@ -1,3 +1,4 @@
+import { Expression } from "./Expression";
 import { ConditionReadOnlyExpression } from "./primitives/conditionExpression";
 import { EntityReadOnlyExpression } from "./dataExpression/Entity";
 
@@ -15,7 +16,7 @@ import { EntityReadOnlyExpression } from "./dataExpression/Entity";
  *   .orElse(condition.of(false))
  * ```
  */
-export type FilterLambda = (e: EntityReadOnlyExpression) => ConditionReadOnlyExpression;
+export type FilterLambda = (e: EntityReadOnlyExpression) => ConditionReadOnlyExpression<Expression>;
 
 /** Leaf variant: the entity matches iff every lambda yields a truthy condition. Empty array matches everything. */
 export type FilterPredicates = { filters: FilterLambda[] };

@@ -22,7 +22,7 @@ export default (hostApi) => {
         hostApi.runtime.log("label=" + entity.text_map.get("label").orElse(string.of("")));
         entity.number_map.put("value_b", () => hostApi.runtime.maybe.none());
         let present = false;
-        entity.number_map.get("value_b").isPresent().ifTrue(() => { present = true; });
+        entity.number_map.get("value_b").isPresent().ifTrue(() => { present = true; return number.of(1); });
         hostApi.runtime.log("value_b=" + (present ? "present" : "absent"));
       });
     }

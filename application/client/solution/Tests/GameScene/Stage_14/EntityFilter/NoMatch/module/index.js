@@ -25,14 +25,20 @@ export default (hostApi) => {
     apply: (ctx) => {
       // Direct map: the callback must never run.
       ctx.getMutableEntityBy(noMatch)
-        .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
-          v.map(string.of("marked"));
-        }));
+        .map(ee => {
+          ee.text_map.get(string.of("flag")).ifPresent(v => {
+            v.map(string.of("marked"));
+          });
+          return number.of(0);
+        });
       // Degraded element access: the element callback must never run.
       ctx.getMutableEntityBy(noMatch).get(number.of(0))
-        .map(v => v.text_map.get(string.of("flag")).ifPresent(t => {
-          t.map(string.of("marked"));
-        }));
+        .map(v => {
+          v.text_map.get(string.of("flag")).ifPresent(t => {
+            t.map(string.of("marked"));
+          });
+          return number.of(0);
+        });
     }
   });
 

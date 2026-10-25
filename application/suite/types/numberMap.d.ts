@@ -11,5 +11,5 @@ export type NumberMapReadOnlyExpressionApi = {
 
 export type NumberMapReadOnlyExpression = {
   get: (key: string) => NumberReadOnlyExpression,
-  has: (key: string) => ConditionReadOnlyExpression,
+  has: (key: string) => ConditionReadOnlyExpression<string>,
 }

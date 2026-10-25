@@ -116,5 +116,5 @@ export type SetEventArgs<Input, Output> = {
    * Called when a scheduled delay elapses to determine whether the effect should re-run.
    * Returns a ConditionReadOnlyExpression evaluated in a fresh ExecutionContext. If true, the runtime re-enqueues the effect using the preserved input and increments executionCount.
    */
-  isReoccuranceApplicable?: (context: EventPrepareContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => ConditionReadOnlyExpression;
+  isReoccuranceApplicable?: (context: EventPrepareContext, executionCount: number, input: Input /* structure declared in `this.input` */, output: Output /* passed from result of `this.prepare` */) => ConditionReadOnlyExpression<Expression>;
 }

@@ -35,11 +35,13 @@ export default (hostApi) => {
         context.getMutableEntityBy(filter).map(elementExpr => {
           elementExpr.text_map.put("isModified", () => hostApi.runtime.maybe.of(string.of("Yes")))
         })
+        return number.of(1);
       })
       output.ifFalse(() => {
         context.getMutableEntityBy(filter).map(elementExpr => {
           elementExpr.text_map.put("isModified", () => hostApi.runtime.maybe.of(string.of("No")))
         })
+        return number.of(0);
       })
     }
   })
@@ -55,16 +57,18 @@ export default (hostApi) => {
       return {value};
     },
     apply: (context, output) => {
-      /** @type {ConditionReadOnlyExpression} */
+      /** @type {ConditionReadOnlyExpression<Expression>} */
       const shouldDouble = output.value;
 
       context.getMutableEntityBy(filter)
         .map(elementExpr => {
           shouldDouble.ifFalse(() => {
             elementExpr.number_map.put(key, (current) => current.map(v => v.sum(number.of(1))));
+            return number.of(1);
           })
           shouldDouble.ifTrue(() => {
             elementExpr.number_map.put(key, (current) => current.map(v => v.sum(number.of(3))));
+            return number.of(3);
           })
         })
     }

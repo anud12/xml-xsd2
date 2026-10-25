@@ -18,6 +18,7 @@ export default (hostApi) => {
     let v = "0";
     name.isGeneratedBy(candidate).ifTrue(() => {
       v = "1";
+      return string.of("1");
     });
     return v;
   };
@@ -26,10 +27,12 @@ export default (hostApi) => {
   let present = "0";
   name.generateValue().isPresent().ifTrue(() => {
     present = "1";
+    return string.of("1");
   });
   let emptyAbsent = "0";
   sg.oneOf([]).generateValue().isEmpty().ifTrue(() => {
     emptyAbsent = "1";
+    return string.of("1");
   });
 
   // Self-consistency: a generated grammar is a member of its own language.

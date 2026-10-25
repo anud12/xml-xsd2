@@ -1,0 +1,6 @@
+{
+  "id": "condition-value-carry",
+  "version": "1.0.0",
+  "name": "Condition Value CarryThrough",
+  "entry": "index.js"
+}

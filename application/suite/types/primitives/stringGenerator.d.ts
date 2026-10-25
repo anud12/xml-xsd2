@@ -40,5 +40,5 @@ export type StringGenerator = {
    * concrete string) is a member of this generator's language. NOT a substring
    * test. A non-literal candidate yields an existential over its evaluations.
    */
-  isGeneratedBy: (candidate: StringReadOnlyExpression) => ConditionReadOnlyExpression,
+  isGeneratedBy: (candidate: StringReadOnlyExpression) => ConditionReadOnlyExpression<StringReadOnlyExpression>,
 }

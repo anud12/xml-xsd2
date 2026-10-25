@@ -35,11 +35,11 @@ export type StringReadOnlyExpression = PrimitiveReadOnlyExpression & {
    *  Existential semantics: returns a ConditionReadOnlyExpression that is true if there exists s in L(this) and t in L(other) where t is a substring of s.
    *  Use isContainingExactly for a strict universal check.
    */
-  isContaining: (other: StringReadOnlyExpression) => ConditionReadOnlyExpression,
+  isContaining: (other: StringReadOnlyExpression) => ConditionReadOnlyExpression<StringReadOnlyExpression>,
   /** Strict universal check: returns true only if for every expansion s in L(this) and every expansion t in L(other), t is a substring of s.
-   *  This is more expensive to compute; implementations MAY fall back to conservative results or timeouts.
-   */
-  isContainingExactly: (other: StringReadOnlyExpression) => ConditionReadOnlyExpression,
+    *  This is more expensive to compute; implementations MAY fall back to conservative results or timeouts.
+    */
+  isContainingExactly: (other: StringReadOnlyExpression) => ConditionReadOnlyExpression<StringReadOnlyExpression>,
   /** Optional simple transforms (implementation may provide) */
   upper?: () => StringReadOnlyExpression,
   lower?: () => StringReadOnlyExpression,

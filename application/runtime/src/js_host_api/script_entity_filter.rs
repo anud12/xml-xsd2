@@ -52,22 +52,30 @@ pub fn host_api_script_entity_filter() -> &'static str {
 
   // A condition object over a concrete boolean (the runtime shape of
   // ConditionExpression; cf. the host's condition.of factory).
-  function conditionOf(b) {
+  // Carries the asserted value so ifTrue/ifFalse can pass it to callbacks.
+  function conditionOf(b, carried) {
     b = !!b;
     return {
       value: b,
-      and: function (o) { return conditionOf(b && globalThis.__condToBool(o)); },
-      or: function (o) { return conditionOf(b || globalThis.__condToBool(o)); },
-      negate: function () { return conditionOf(!b); },
-      ifTrue: function (cb) { if (b && typeof cb === 'function') cb(); },
-      ifFalse: function (cb) { if (!b && typeof cb === 'function') cb(); }
+      __carried: carried,
+      and: function (o) { return conditionOf(b && globalThis.__condToBool(o), carried); },
+      or: function (o) { return conditionOf(b || globalThis.__condToBool(o), carried); },
+      negate: function () { return conditionOf(!b, carried); },
+      ifTrue: function (cb) {
+        var primary = (b && typeof cb === 'function') ? cb(carried) : undefined;
+        return { or: function (cb2) { return b ? primary : (typeof cb2 === 'function' ? cb2(carried) : undefined); } };
+      },
+      ifFalse: function (cb) {
+        var primary = (!b && typeof cb === 'function') ? cb(carried) : undefined;
+        return { or: function (cb2) { return !b ? primary : (typeof cb2 === 'function' ? cb2(carried) : undefined); } };
+      }
     };
   }
 
   // The absent MaybeExpression.
   var absentMaybe = {
-    isPresent: function () { return conditionOf(false); },
-    isEmpty: function () { return conditionOf(true); },
+    isPresent: function () { return conditionOf(false, undefined); },
+    isEmpty: function () { return conditionOf(true, undefined); },
     orElse: function (d) { return d; },
     ifPresent: function () { },
     map: function () { return absentMaybe; },
@@ -79,16 +87,16 @@ pub fn host_api_script_entity_filter() -> &'static str {
   // a new maybe over the transformed value.
   function presentMaybe(raw, wrapper) {
     return {
-      isPresent: function () { return conditionOf(true); },
-      isEmpty: function () { return conditionOf(false); },
+      isPresent: function () { return conditionOf(true, wrapper); },
+      isEmpty: function () { return conditionOf(false, wrapper); },
       orElse: function (d) { return raw; },
       ifPresent: function (cb) { if (typeof cb === 'function') cb(wrapper); },
       map: function (fn) {
         var r;
         try { r = fn(wrapper); } catch (e) { return absentMaybe; }
         return {
-          isPresent: function () { return conditionOf(true); },
-          isEmpty: function () { return conditionOf(false); },
+          isPresent: function () { return conditionOf(true, r); },
+          isEmpty: function () { return conditionOf(false, r); },
           orElse: function (d) { return r; },
           ifPresent: function (cb) { if (typeof cb === 'function') cb(r); },
           map: function (fn2) {
@@ -112,18 +120,19 @@ pub fn host_api_script_entity_filter() -> &'static str {
     function numberMaybe(key) {
       if (!Object.prototype.hasOwnProperty.call(nm, key)) return absentMaybe;
       function wrap(v) {
-        return {
+        var self = {
           _raw: v,
-          isGreaterThan: function (t) { return conditionOf(Number(v) > Number(t)); },
-          isLessThan: function (t) { return conditionOf(Number(v) < Number(t)); },
-          isGreaterOrEqualTo: function (t) { return conditionOf(Number(v) >= Number(t)); },
-          isLessOrEqualTo: function (t) { return conditionOf(Number(v) <= Number(t)); },
-          isEqualTo: function (t) { return conditionOf(Number(v) === Number(t)); },
-          isNotEqualTo: function (t) { return conditionOf(Number(v) !== Number(t)); },
+          isGreaterThan: function (t) { return conditionOf(Number(v) > Number(t), self); },
+          isLessThan: function (t) { return conditionOf(Number(v) < Number(t), self); },
+          isGreaterOrEqualTo: function (t) { return conditionOf(Number(v) >= Number(t), self); },
+          isLessOrEqualTo: function (t) { return conditionOf(Number(v) <= Number(t), self); },
+          isEqualTo: function (t) { return conditionOf(Number(v) === Number(t), self); },
+          isNotEqualTo: function (t) { return conditionOf(Number(v) !== Number(t), self); },
           sum: function (d) { return wrap(Number(v) + Number(d)); },
           divide: function (d) { return wrap(Number(v) / Number(d)); },
           modulo: function (d) { return wrap(Number(v) % Number(d)); }
         };
+        return self;
       }
       return presentMaybe(nm[key], wrap(nm[key]));
     }
@@ -131,12 +140,13 @@ pub fn host_api_script_entity_filter() -> &'static str {
     function textMaybe(key) {
       if (!Object.prototype.hasOwnProperty.call(tm, key)) return absentMaybe;
       function wrap(v) {
-        return {
+        var self = {
           _raw: v,
-          isContaining: function (o) { return conditionOf(String(v).indexOf(String(o)) >= 0); },
-          isContainingExactly: function (o) { return conditionOf(String(v) === String(o)); },
+          isContaining: function (o) { return conditionOf(String(v).indexOf(String(o)) >= 0, self); },
+          isContainingExactly: function (o) { return conditionOf(String(v) === String(o), self); },
           map: function (s) { return wrap(s); }
         };
+        return self;
       }
       return presentMaybe(tm[key], wrap(tm[key]));
     }
@@ -145,8 +155,8 @@ pub fn host_api_script_entity_filter() -> &'static str {
 
     return {
       id: {
-        isContaining: function (o) { return conditionOf(String(eid).indexOf(String(o)) >= 0); },
-        isContainingExactly: function (o) { return conditionOf(String(eid) === String(o)); }
+        isContaining: function (o) { return conditionOf(String(eid).indexOf(String(o)) >= 0, { _raw: eid }); },
+        isContainingExactly: function (o) { return conditionOf(String(eid) === String(o), { _raw: eid }); }
       },
       number_map: {
         get: function (key) { return numberMaybe(key); },

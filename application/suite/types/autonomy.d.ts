@@ -1,3 +1,4 @@
+import { Expression } from "./Expression";
 import { ConditionReadOnlyExpression } from "./primitives/conditionExpression";
 import { NumberReadOnlyExpression } from "./primitives/numberExpression";
 import { EntityReadOnlyExpression } from "./dataExpression/Entity";
@@ -33,7 +34,7 @@ export type ReactionChainBuilder = {
    */
   reaction: (
     name: string,
-    condition: ConditionReadOnlyExpression,
+    condition: ConditionReadOnlyExpression<Expression>,
     fn: (script: ScriptBuilder) => void
   ) => ReactionChainBuilder;
 };

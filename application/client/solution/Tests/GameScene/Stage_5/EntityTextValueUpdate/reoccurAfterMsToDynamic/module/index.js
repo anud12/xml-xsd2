@@ -27,6 +27,7 @@ export default (hostApi) => {
       let interval = hostApi.runtime.maybe.of(number.of(10));
       low.ifFalse(() => {
         interval = hostApi.runtime.maybe.none();
+        return number.of(0);
       });
       return interval;
     },
