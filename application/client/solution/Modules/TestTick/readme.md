@@ -25,3 +25,4 @@ Player entity is an investor
 The game needs conditions to end. To win the game you must have the highest score.
 Each ending has a different scoring rules.
 - Initial condition is interest, It starts at X and it must not breach 0
+- At at specific times (time/ combination of tags that are in play) would trigger other advancements/actions

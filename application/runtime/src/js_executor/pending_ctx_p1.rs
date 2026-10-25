@@ -53,6 +53,9 @@ const PENDING_CTX_JS_P1: &str = r#"(function() {
         },
         getMutableEntityBy: function(filter) {
             return globalThis.__evalEntityFilter(filter);
+        },
+        getMutableContainersBy: function(filter) {
+            return globalThis.__evalContainerFilter(filter);
         }
     };
 })()"#;

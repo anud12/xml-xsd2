@@ -5,8 +5,45 @@ pub fn host_api_script_log() -> &'static str {
                 globalThis.__logs || [];
             globalThis.__logs.push(String(msg));
         } catch(e) { }
-    }, number: { of: function(n) { return n; } },
-    string: { of: function(s) { return s; } },
+    }, number: { of: function(n) {
+        var v = Number(n);
+        function wrap(x) {
+            x = Number(x);
+            return {
+                _raw: x,
+                value: x,
+                of: function(y) { return wrap(y); },
+                sum: function(o) { return wrap(x + Number(typeof o === 'object' ? o._raw || o.value : o)); },
+                subtract: function(o) { return wrap(x - Number(typeof o === 'object' ? o._raw || o.value : o)); },
+                multiply: function(o) { return wrap(x * Number(typeof o === 'object' ? o._raw || o.value : o)); },
+                divide: function(o) { return wrap(x / Number(typeof o === 'object' ? o._raw || o.value : o)); },
+                modulo: function(o) { return wrap(x % Number(typeof o === 'object' ? o._raw || o.value : o)); },
+                toString: function() { return String(x); },
+                toJSON: function() { return x; },
+                isGreaterThan: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x > t); },
+                isLessThan: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x < t); },
+                isGreaterOrEqualTo: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x >= t); },
+                isLessOrEqualTo: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x <= t); },
+                isEqualTo: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x === t); },
+                isNotEqualTo: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x !== t); }
+            };
+        }
+        return wrap(v);
+    } },
+    string: { of: function(s) {
+        var v = String(s);
+        return {
+            _raw: v,
+            value: v,
+            of: function(x) { return globalThis.host.string.of(x); },
+            map: function(x) { return globalThis.host.string.of(typeof x === 'object' ? x._raw || x.value : x); },
+            concat: function(o) { return globalThis.host.string.of(v + String(typeof o === 'object' ? o._raw || o.value : o)); },
+            toString: function() { return v; },
+            toJSON: function() { return v; },
+            isContaining: function(o) { var t = String(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(v.indexOf(t) >= 0); },
+            isContainingExactly: function(o) { var t = String(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(v === t); }
+        };
+    } },
     texture: {
         of: function(t) { return t; }
     },"#

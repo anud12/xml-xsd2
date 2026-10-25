@@ -34,8 +34,27 @@ fn build_effect_context_impl(ctx: &Context, kind: &str) -> anyhow::Result<()> {
     // this point (synced before context build).
     let containers = crate::state::last_containers().lock().unwrap().clone();
     let inside_json = crate::state::inside_area_map_json(&containers);
+
+    // Build __containerData from the Rust-side container state so that
+    // getMutableContainersBy can filter and mutate in the effect context.
+    // Only inject if not already present (the persistent sim context already
+    // has the full objects from module loading; overwriting would lose
+    // non-serializable fields like behavior and position functions).
+    let mut entries = Vec::new();
+    for json_str in &containers {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(json_str) {
+            if let Some(id) = val.get("id").and_then(|v| v.as_str()) {
+                entries.push(format!("'{}': {}", id, json_str));
+            }
+        }
+    }
+    let container_data_js = format!(
+        "if (!globalThis.__containerData) {{ globalThis.__containerData = {{{}}}; }} ",
+        entries.join(", ")
+    );
+
     let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(
-        format!("globalThis.__insideArea = {}; ", inside_json).as_str()
+        format!("globalThis.__insideArea = {}; {}", inside_json, container_data_js).as_str()
     ));
 
     // Evaluate full JS directly

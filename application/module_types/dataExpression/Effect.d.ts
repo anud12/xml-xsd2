@@ -5,6 +5,7 @@ import {MaybeReadOnlyExpression} from "../primitives/maybeExpression";
 import {NumberReadOnlyExpression} from "../primitives/numberExpression";
 import {ConditionReadOnlyExpression} from "../primitives/conditionExpression";
 import {EntityReadOnlyExpression, EntityMutableExpression} from "./Entity";
+import {ContainerMutableExpression} from "./Contaier";
 import {EntityFilter} from "../EntityFilter";
 import {ListReadOnlyExpression} from "../primitives/ListExpression";
 
@@ -93,7 +94,19 @@ export type EventApplyContext = {
    * @param entityFilter - The EntityFilter (a FilterArg object) to apply against the global repository
    * @returns A lazy ListReadOnlyExpression<EntityReadOnlyExpression> representing matching entities
    */
-   getMutableEntityBy: (entityFilter: EntityFilter) => ListReadOnlyExpression<EntityMutableExpression>;
+    getMutableEntityBy: (entityFilter: EntityFilter) => ListReadOnlyExpression<EntityMutableExpression>;
+
+  /**
+   * Query the container repository for containers matching the given filter.
+   *
+   * Returns a lazy ListReadOnlyExpression<ContainerMutableExpression> that is
+   * bound to the read-buffer snapshot. Available in `apply` phase only.
+   * Mutations (addEntity, removeEntity) are committed atomically with the tick.
+   *
+   * @param containerFilter - A predicate that receives a ContainerReadOnlyExpression and returns a condition
+   * @returns A lazy ListReadOnlyExpression<ContainerMutableExpression> representing matching containers
+   */
+  getMutableContainersBy: (containerFilter: { filters: ((c: import("./Contaier").ContainerReadOnlyExpression) => ConditionReadOnlyExpression<Expression>)[] }) => ListReadOnlyExpression<ContainerMutableExpression>;
 }
 
 export type SetEventArgs<Input, Output> = {

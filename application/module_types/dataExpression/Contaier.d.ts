@@ -95,7 +95,7 @@ export type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
 
 export type ContainerReadOnlyExpression = Expression & {
   /** The container's id. */
-  id: string;
+  id: StringReadOnlyExpression;
   /** Member entities (an {@link EntityReadOnlyExpression} reference). */
   entities: Array<EntityReadOnlyExpression>;
   /** Keyed string metadata. */
@@ -118,4 +118,16 @@ export type ContainerReadOnlyExpression = Expression & {
   alignment?: ContainerAlignment;
   /** Optional sector/portal attachment. */
   sector?: SectorDeclaration;
+}
+
+/**
+ * A mutable reference to a container, returned by `EventApplyContext.getMutableContainersBy`.
+ * Extends the read-only expression with member mutation. Available only during
+ * the `apply` phase; mutations are committed atomically with the tick.
+ */
+export type ContainerMutableExpression = ContainerReadOnlyExpression & {
+  /** Add an entity to this container's member list. */
+  addEntity: (entity: EntityReadOnlyExpression) => ContainerMutableExpression;
+  /** Remove an entity from this container's member list by id. */
+  removeEntity: (entityId: StringReadOnlyExpression) => ContainerMutableExpression;
 }

@@ -70,6 +70,24 @@ fn parse_polygon(area_obj: &serde_json::Value) -> Vec<(f64, f64)> {
     poly
 }
 
+pub fn sync_container_data_back(ctx: &Context) {
+    let cj = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<String, _>(
+        r#"JSON.stringify(Object.keys(globalThis.__containerData || {}).map(function(k){return JSON.stringify(globalThis.__containerData[k]);}))"#))
+        .unwrap_or_else(|_| "[]".into());
+    if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&cj) {
+        if arr.is_empty() { return; }
+        let mut rows = Vec::new();
+        for v in &arr {
+            if let Some(s) = v.as_str() {
+                rows.push(s.to_string());
+            } else {
+                rows.push(v.to_string());
+            }
+        }
+        crate::state::set_last_containers(rows);
+    }
+}
+
 pub fn collect_logs(ctx: &Context) {
     let lj = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<String, _>(
         "JSON.stringify(globalThis.__logs || [])"))

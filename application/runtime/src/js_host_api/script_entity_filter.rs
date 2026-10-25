@@ -82,14 +82,14 @@ pub fn host_api_script_entity_filter() -> &'static str {
     flatMap: function () { return absentMaybe; }
   };
 
-  // A present MaybeExpression: orElse -> raw value, ifPresent -> value
-  // wrapper (carrying the expression's comparison/mutation surface), map ->
+  // A present MaybeExpression: orElse -> expression wrapper (carrying the
+  // value's comparison/mutation surface), ifPresent -> wrapper, map ->
   // a new maybe over the transformed value.
   function presentMaybe(raw, wrapper) {
     return {
       isPresent: function () { return conditionOf(true, wrapper); },
       isEmpty: function () { return conditionOf(false, wrapper); },
-      orElse: function (d) { return raw; },
+      orElse: function (d) { return wrapper; },
       ifPresent: function (cb) { if (typeof cb === 'function') cb(wrapper); },
       map: function (fn) {
         var r;
@@ -119,18 +119,25 @@ pub fn host_api_script_entity_filter() -> &'static str {
 
     function numberMaybe(key) {
       if (!Object.prototype.hasOwnProperty.call(nm, key)) return absentMaybe;
+      function numOf(x) { return (typeof x === 'object' && x !== null) ? (x._raw !== undefined ? x._raw : x.value) : x; }
       function wrap(v) {
         var self = {
           _raw: v,
-          isGreaterThan: function (t) { return conditionOf(Number(v) > Number(t), self); },
-          isLessThan: function (t) { return conditionOf(Number(v) < Number(t), self); },
-          isGreaterOrEqualTo: function (t) { return conditionOf(Number(v) >= Number(t), self); },
-          isLessOrEqualTo: function (t) { return conditionOf(Number(v) <= Number(t), self); },
-          isEqualTo: function (t) { return conditionOf(Number(v) === Number(t), self); },
-          isNotEqualTo: function (t) { return conditionOf(Number(v) !== Number(t), self); },
-          sum: function (d) { return wrap(Number(v) + Number(d)); },
-          divide: function (d) { return wrap(Number(v) / Number(d)); },
-          modulo: function (d) { return wrap(Number(v) % Number(d)); }
+          value: v,
+          of: function (x) { return wrap(Number(numOf(x))); },
+          toString: function () { return String(v); },
+          toJSON: function () { return v; },
+          isGreaterThan: function (t) { return conditionOf(Number(v) > Number(numOf(t)), self); },
+          isLessThan: function (t) { return conditionOf(Number(v) < Number(numOf(t)), self); },
+          isGreaterOrEqualTo: function (t) { return conditionOf(Number(v) >= Number(numOf(t)), self); },
+          isLessOrEqualTo: function (t) { return conditionOf(Number(v) <= Number(numOf(t)), self); },
+          isEqualTo: function (t) { return conditionOf(Number(v) === Number(numOf(t)), self); },
+          isNotEqualTo: function (t) { return conditionOf(Number(v) !== Number(numOf(t)), self); },
+          sum: function (d) { return wrap(Number(v) + Number(numOf(d))); },
+          subtract: function (d) { return wrap(Number(v) - Number(numOf(d))); },
+          multiply: function (d) { return wrap(Number(v) * Number(numOf(d))); },
+          divide: function (d) { return wrap(Number(v) / Number(numOf(d))); },
+          modulo: function (d) { return wrap(Number(v) % Number(numOf(d))); }
         };
         return self;
       }
@@ -142,9 +149,14 @@ pub fn host_api_script_entity_filter() -> &'static str {
       function wrap(v) {
         var self = {
           _raw: v,
-          isContaining: function (o) { return conditionOf(String(v).indexOf(String(o)) >= 0, self); },
-          isContainingExactly: function (o) { return conditionOf(String(v) === String(o), self); },
-          map: function (s) { return wrap(s); }
+          value: v,
+          of: function (x) { return wrap(String(typeof x === 'object' && x !== null ? (x._raw !== undefined ? x._raw : x.value) : x)); },
+          toString: function () { return String(v); },
+          toJSON: function () { return v; },
+          isContaining: function (o) { return conditionOf(String(v).indexOf(String(typeof o === 'object' && o !== null ? (o._raw !== undefined ? o._raw : o.value) : o)) >= 0, self); },
+          isContainingExactly: function (o) { return conditionOf(String(v) === String(typeof o === 'object' && o !== null ? (o._raw !== undefined ? o._raw : o.value) : o), self); },
+          map: function (s) { return wrap(String(typeof s === 'object' && s !== null ? (s._raw !== undefined ? s._raw : s.value) : s)); },
+          concat: function (o) { return wrap(String(v) + String(typeof o === 'object' && o !== null ? (o._raw !== undefined ? o._raw : o.value) : o)); }
         };
         return self;
       }
@@ -425,6 +437,110 @@ pub fn host_api_script_entity_filter() -> &'static str {
     }
     if (matched.length === 0) filterLog('___filter-no-match');
     return globalThis.__makeEntityList(matched);
+  };
+
+  // Container proxy: read-only surface + mutable addEntity/removeEntity.
+  globalThis.__containerProxy = function (id) {
+    var data = (globalThis.__containerData || {})[id] || {};
+    var cid = (typeof data.id === 'string' && data.id) ? data.id : id;
+    function selfProxy() { return globalThis.__containerProxy(id); }
+    return {
+      id: {
+        isContaining: function (o) { return conditionOf(String(cid).indexOf(String(o)) >= 0, { _raw: cid }); },
+        isContainingExactly: function (o) { return conditionOf(String(cid) === String(o), { _raw: cid }); }
+      },
+      entities: data.entities || [],
+      textMap: data.textMap || {},
+      numberMap: data.numberMap || {},
+      addEntity: function (entity) {
+        var target = (globalThis.__containerData || {})[id];
+        if (!target) return selfProxy();
+        target.entities = target.entities || [];
+        var entityId = (entity && typeof entity === 'object' && typeof entity.firstName === 'string')
+          ? entity.firstName
+          : (entity && typeof entity === 'object' && typeof entity.id === 'string')
+            ? entity.id
+            : String(entity);
+        var resolved = (entity && typeof entity === 'object' && typeof entity.value === 'string') ? entity.value : entityId;
+        if (target.entities.indexOf(resolved) < 0) {
+          target.entities.push(resolved);
+        }
+        return selfProxy();
+      },
+      removeEntity: function (entityId) {
+        var target = (globalThis.__containerData || {})[id];
+        if (!target || !target.entities) return selfProxy();
+        var resolved = (entityId && typeof entityId === 'object' && typeof entityId.value === 'string') ? entityId.value : String(entityId);
+        target.entities = target.entities.filter(function (e) {
+          var ev = (typeof e === 'object' && e !== null && typeof e.value === 'string') ? e.value : String(e);
+          return ev !== resolved;
+        });
+        return selfProxy();
+      }
+    };
+  };
+
+  // ListExpression-shaped result over matched container ids.
+  globalThis.__makeContainerList = function (ids) {
+    return {
+      map: function (cb) {
+        for (var i = 0; i < ids.length; i++) {
+          try { cb(globalThis.__containerProxy(ids[i])); } catch (e) { }
+        }
+      },
+      forEach: function (cb) {
+        for (var i = 0; i < ids.length; i++) {
+          try { cb(globalThis.__containerProxy(ids[i]), i); } catch (e) { }
+        }
+      },
+      size: function () { return ids.length; },
+      length: function () { return ids.length; },
+      get: function (index) {
+        var i = Number(index);
+        if (isNaN(i)) i = 0;
+        if (i < 0 || i >= ids.length) return { map: function () { return { orElse: function (d) { return d; } }; } };
+        var cp = globalThis.__containerProxy(ids[i]);
+        return {
+          map: function (cb) {
+            if (typeof cb === 'function') { try { cb(cp); } catch (e) { } }
+            return { orElse: function (d) { return d; } };
+          }
+        };
+      },
+      ifPresent: function (cb) {
+        if (ids.length > 0 && typeof cb === 'function') {
+          cb(globalThis.__containerProxy(ids[0]));
+        }
+      }
+    };
+  };
+
+  // Container filter entry point: { filters: [(c) => condition] }
+  globalThis.__evalContainerFilter = function (filter) {
+    if (!filter || typeof filter !== 'object' || typeof filter === 'function') {
+      return globalThis.__makeContainerList([]);
+    }
+    var filters = filter.filters;
+    if (!Array.isArray(filters)) return globalThis.__makeContainerList([]);
+    var containerData = globalThis.__containerData || {};
+    var ids = [];
+    for (var id in containerData) {
+      if (Object.prototype.hasOwnProperty.call(containerData, id)) ids.push(id);
+    }
+    var matched = [];
+    for (var j = 0; j < ids.length; j++) {
+      var proxy = globalThis.__containerProxy(ids[j]);
+      var allPass = true;
+      for (var k = 0; k < filters.length; k++) {
+        var f = filters[k];
+        if (typeof f !== 'function') { allPass = false; break; }
+        var ok;
+        try { ok = globalThis.__condToBool(f(proxy)); } catch (err) { ok = false; }
+        if (!ok) { allPass = false; break; }
+      }
+      if (allPass) matched.push(ids[j]);
+    }
+    return globalThis.__makeContainerList(matched);
   };
 })();"#
 }

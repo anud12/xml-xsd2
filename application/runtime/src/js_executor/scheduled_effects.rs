@@ -51,6 +51,7 @@ pub fn process_scheduled_effects(
             );
         }
         sync_entity_data_back(ctx);
+        super::entity_sync_back::sync_container_data_back(ctx);
         collect_logs(ctx);
     }
     Ok(())

@@ -12,6 +12,9 @@ const SIM_TPL_P2: &str = r#"
     return { createEntity: recordCreated,
       getMutableEntityBy: function(filter) {
         return globalThis.__evalEntityFilter(filter);
+      },
+      getMutableContainersBy: function(filter) {
+        return globalThis.__evalContainerFilter(filter);
       }
     };
   }"#;
