@@ -4,7 +4,7 @@
  * real module. The compiled JavaScript for every file lands next to each
  * other in the `module/` folder, ready to be loaded by the runtime.
  */
-import type { ModuleEntrypoint } from "suite/types/ModuleEntrypoint";
+import type { ModuleEntrypoint } from "module_types/ModuleEntrypoint";
 import { buildBasePanel } from "./panels/base";
 import { buildOffsetPanel } from "./panels/offset";
 

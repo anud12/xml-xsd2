@@ -1,4 +1,5 @@
-export const interestModule = (hostApi) => {
+import { memoize } from "../../util/memoize";
+export const getInterestModule = memoize((hostApi) => {
     const key = "property";
     const entityNumberMap = {
         [key]: hostApi.runtime.number.of(100)
@@ -27,4 +28,4 @@ export const interestModule = (hostApi) => {
         effect: tick,
         initialize
     };
-};
+});

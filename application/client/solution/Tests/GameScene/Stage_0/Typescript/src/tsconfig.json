@@ -11,6 +11,6 @@
     "./index.ts",
     "./panels/**/*.ts",
     "../../../../../../types/global.d.ts",
-    "../../../../../../../../suite/types/**/*.d.ts"
+    "../../../../../../../../module_types/**/*.d.ts"
   ]
 }

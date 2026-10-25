@@ -9,11 +9,11 @@
     "noEmit": false,
     "noEmitOnError": false,
     "outDir": "../TestTick",
-    "rootDir": "./"
+    "rootDir": "./src"
   },
   "include": [
-    "./**/*.ts",
-    "../../../../suite/types/**/*.d.ts",
+    "./src/**/*.ts",
+    "../../../../module_types/**/*.d.ts",
     "../../../../ui/types/**/*.d.ts"
   ]
 }

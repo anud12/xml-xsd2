@@ -1,0 +1,8 @@
+{
+  "name": "ui",
+  "version": "1.0.0",
+  "description": "UI type contracts and host API",
+  "license": "ISC",
+  "main": "./ui/host.js",
+  "types": "./types/ui.d.ts"
+}

@@ -1,14 +1,15 @@
-﻿import {HostApi} from "suite/types/HostApi";
-import {EntityCreationArguments} from "../../../../../../suite/types/dataExpression/Entity";
+﻿import {HostApi} from "module_types/HostApi";
+import {EntityCreationArguments} from "module_types/dataExpression/Entity";
+import {memoize} from "../../util/memoize";
 
-export const interestModule = (hostApi:HostApi, ) => {
-  
+export const getInterestModule = memoize((hostApi:HostApi, ) => {
+
   const key = "property";
-  
+
   const entityNumberMap:EntityCreationArguments["numberMap"] = {
     [key] : hostApi.runtime.number.of(100)
-  } 
-  
+  }
+
   const tick = hostApi.runtime.setEffect({
     name: hostApi.runtime.string.of("tick"),
     reoccurAfterMs: () => {
@@ -26,15 +27,15 @@ export const interestModule = (hostApi:HostApi, ) => {
       });
     },
   });
-  
+
   const initialize = () => {
     hostApi.runtime.emitEvent(tick, {});
   }
-  
+
   return {
     propertyKey: key,
     entityNumberMap: entityNumberMap,
     effect: tick,
     initialize
   }
-}
+})

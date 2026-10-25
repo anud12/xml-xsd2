@@ -1,6 +1,8 @@
 {
   "dependencies": {
+    "module_types": "file:../../module_types",
     "suite": "file:../../suite",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "ui": "file:../../ui"
   }
 }

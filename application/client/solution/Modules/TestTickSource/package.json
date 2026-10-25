@@ -6,6 +6,10 @@
   "scripts": {
     "watch": "tsc --watch --preserveWatchOutput"
   },
+  "dependencies": {
+    "module_types": "file:../../../../module_types",
+    "ui": "file:../../../../ui"
+  },
   "devDependencies": {
     "typescript": "^5.5.0"
   }

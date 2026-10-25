@@ -1,4 +1,4 @@
-import type { HostApi } from "suite/types/HostApi";
+import type { HostApi } from "module_types/HostApi";
 
 /**
  * Registers the base panel at the viewport center.

@@ -1,4 +1,4 @@
-import type { HostApi } from "suite/types/HostApi";
+import type { HostApi } from "module_types/HostApi";
 
 /**
  * Registers an offset panel displaced from the viewport center.

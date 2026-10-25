@@ -11,7 +11,7 @@
     "typeRoots": ["./types"]
   },
   "include": [
-    "../../suite/types/**/*.d.ts",
+    "../../module_types/**/*.d.ts",
     "./**/*.js",
     "Modules/**/*.ts"
   ],

@@ -1,18 +1,13 @@
-import {interestModule} from "./module/interest/interest";
+import {HostApi} from "module_types/HostApi";
+import {EntityReadOnlyExpression} from "../../../../../../../module_types/dataExpression/Entity";
+import {getInterestModule} from "./interest";
 
-const entry: ModuleEntrypoint = (hostApi) => {
+export const interestUi = (hostApi:HostApi, game:EntityReadOnlyExpression) => {
+
   const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 10, color: "#FFFFFF" });
 
-  const module = interestModule(hostApi);
-  
-  const game = hostApi.runtime.setEntity({
-    id: hostApi.runtime.string.of("game"),
-    numberMap: {
-      ...module.entityNumberMap
-    },
-  });
+  const module = getInterestModule(hostApi);
 
-  
   const fill = hostApi.runtime.setAnimation(hostApi.runtime.string.of("fill"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("assets/loading_bar.png") }],
     duration: hostApi.runtime.number.of(1),
@@ -22,6 +17,7 @@ const entry: ModuleEntrypoint = (hostApi) => {
     frames: [{ sprite: hostApi.ui.getSpritePNG("black_pixel.png") }],
     duration: hostApi.runtime.number.of(1),
   });
+
 
   const incrementEffect = hostApi.runtime.setEffect({
     name: hostApi.runtime.string.of("increment-effect"),
@@ -41,8 +37,6 @@ const entry: ModuleEntrypoint = (hostApi) => {
       ctx.emitEffect(incrementEffect, {});
     },
   });
-
-  module.initialize();
 
   hostApi.ui.window("progress", {
     panel: {
@@ -94,6 +88,4 @@ const entry: ModuleEntrypoint = (hostApi) => {
   }, [
     hostApi.ui.field("add-label", { entity: game, map: "number", name: module.propertyKey, fallback: "0" }, font),
   ]);
-};
-
-export default entry;
+}

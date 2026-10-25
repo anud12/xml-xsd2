@@ -1,4 +1,4 @@
-import type { ModuleEntrypoint as _ModuleEntrypoint } from "suite/types/ModuleEntrypoint";
+import type { ModuleEntrypoint as _ModuleEntrypoint } from "module_types/ModuleEntrypoint";
 
 declare global {
   // expose a global type alias named `ModuleEntrypoint`
