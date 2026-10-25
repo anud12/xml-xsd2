@@ -1,65 +1,51 @@
+import {interestModule} from "./module/interest/interest";
+
 const entry: ModuleEntrypoint = (hostApi) => {
-  const { string, number, maybe, condition } = hostApi.runtime;
   const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 10, color: "#FFFFFF" });
 
+  const module = interestModule(hostApi);
+  
   const game = hostApi.runtime.setEntity({
-    id: string.of("game"),
+    id: hostApi.runtime.string.of("game"),
     numberMap: {
-      progress: number.of(100),
+      ...module.entityNumberMap
     },
   });
 
-  const tick = hostApi.runtime.setEffect({
-    name: string.of("tick"),
-    reoccurAfterMs: (context, executionCount, input, output) => {
-      return maybe.of(number.of(1));
-    },
-    apply: (context, output) => {
-      context.getMutableEntityBy({
-        filters: [(e) => e.id.isContainingExactly(string.of("game"))],
-      }).map((entity) => {
-        entity.number_map.put("progress", (current) =>
-          current.map(v => v.sum(number.of(-1)))
-        );
-      });
-    },
-  });
-
-  hostApi.runtime.emitEvent(tick, {});
-
-  const fill = hostApi.runtime.setAnimation(string.of("fill"), {
+  
+  const fill = hostApi.runtime.setAnimation(hostApi.runtime.string.of("fill"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("assets/loading_bar.png") }],
-    duration: number.of(1),
+    duration: hostApi.runtime.number.of(1),
   });
 
-  const track = hostApi.runtime.setAnimation(string.of("track"), {
+  const track = hostApi.runtime.setAnimation(hostApi.runtime.string.of("track"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("black_pixel.png") }],
-    duration: number.of(1),
+    duration: hostApi.runtime.number.of(1),
   });
 
   const incrementEffect = hostApi.runtime.setEffect({
-    name: string.of("increment-event"),
+    name: hostApi.runtime.string.of("increment-effect"),
     apply: (context) => {
       context.getMutableEntityBy({
-        filters: [(e) => e.id.isContainingExactly(string.of("game"))],
+        filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
       }).map((entity) => {
-        entity.number_map.put("progress", (current) => current.map(c => c.sum(number.of(10))));
+        entity.number_map.put(module.propertyKey, (current) => current.map(c => c.sum(hostApi.runtime.number.of(10))));
       });
     },
   });
 
 
   const increment = hostApi.runtime.setAction({
-    name: string.of("increment"),
+    name: hostApi.runtime.string.of("increment"),
     apply: (ctx) => {
       ctx.emitEffect(incrementEffect, {});
     },
   });
 
+  module.initialize();
 
   hostApi.ui.window("progress", {
     panel: {
-      title: "Title",
       x: 600,
       y: 400,
       width: 500,
@@ -74,9 +60,9 @@ const entry: ModuleEntrypoint = (hostApi) => {
         height: 30,
       },
       progress: {
-        value: (entity) => entity.number_map.get("progress").orElse(number.of(0)),
-        max: (entity) => number.of(100),
-        min: (entity) => number.of(0),
+        value: (entity) => entity.number_map.get(module.propertyKey).orElse(hostApi.runtime.number.of(0)),
+        max: (entity) => hostApi.runtime.number.of(100),
+        min: (entity) => hostApi.runtime.number.of(0),
         entity: game,
         steps: 100,
         fill: {
@@ -106,7 +92,7 @@ const entry: ModuleEntrypoint = (hostApi) => {
       },
     },
   }, [
-    hostApi.ui.field("add-label", { entity: game, map: "number", name: "progress", fallback: "0" }, font),
+    hostApi.ui.field("add-label", { entity: game, map: "number", name: module.propertyKey, fallback: "0" }, font),
   ]);
 };
 

@@ -3,16 +3,17 @@
     "target": "ES2020",
     "module": "ES2020",
     "moduleResolution": "Node",
-    "rootDir": "./src",
-    "outDir": "./dist",
     "strict": false,
     "noImplicitAny": false,
     "skipLibCheck": true,
     "noEmit": false,
-    "noEmitOnError": false
+    "noEmitOnError": false,
+    "outDir": "../TestTick",
+    "rootDir": "./"
   },
   "include": [
-    "./src/**/*.ts",
-    "../../../../suite/types/**/*.d.ts"
+    "./**/*.ts",
+    "../../../../suite/types/**/*.d.ts",
+    "../../../../ui/types/**/*.d.ts"
   ]
 }

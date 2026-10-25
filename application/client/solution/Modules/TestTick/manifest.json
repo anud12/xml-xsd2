@@ -2,5 +2,5 @@
   "id": "test-tick",
   "version": "1.0.0",
   "name": "TestTick",
-  "entry": "dist/index.js"
+  "entry": "index.js"
 }
