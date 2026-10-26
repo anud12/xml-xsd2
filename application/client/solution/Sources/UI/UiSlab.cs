@@ -265,6 +265,8 @@ public static class UiSlab
         sb.Append("\"tileWidth\":").Append(p.TileWidth != 0 ? "true" : "false");
         sb.Append(",\"tileHeight\":").Append(p.TileHeight != 0 ? "true" : "false");
         sb.Append(",\"keepAspect\":").Append(p.KeepAspect != 0 ? "true" : "false");
+        sb.Append(",\"fitWidth\":").Append(p.FitWidth != 0 ? "true" : "false");
+        sb.Append(",\"fitHeight\":").Append(p.FitHeight != 0 ? "true" : "false");
         sb.Append(",\"sliceWidth\":").Append(p.SliceWidth);
         sb.Append(",\"sliceHeight\":").Append(p.SliceHeight);
         sb.Append('}');

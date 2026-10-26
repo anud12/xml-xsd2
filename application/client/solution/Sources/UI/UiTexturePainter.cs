@@ -9,6 +9,9 @@ namespace GdUnit4.Examples.Basics.Setup.Sources.UI;
 /// Fill rules (unsliced region):
 ///   stretch/stretch                 independent scale per axis (may distort)
 ///   stretch/stretch + KeepAspect    uniform scale, centered, overflow clipped
+///   fit/fit                         uniform scale (min), centered (contain)
+///   fit/stretch                     uniform scale capped by the fit axis,
+///                                   centered on the fit axis
 ///   tile/stretch                    uniform scale taken from the stretch
 ///                                   axis; the tile axis repeats at that scale
 ///   tile/tile                       native pixel size, repeated on both axes
@@ -20,16 +23,21 @@ public readonly struct UiPaintSpec
     public readonly bool TileWidth;
     public readonly bool TileHeight;
     public readonly bool KeepAspect;
+    public readonly bool FitWidth;
+    public readonly bool FitHeight;
     public readonly int SliceWidth;
     public readonly int SliceHeight;
 
     public UiPaintSpec(
         bool tileWidth, bool tileHeight, bool keepAspect,
+        bool fitWidth = false, bool fitHeight = false,
         int sliceWidth = 0, int sliceHeight = 0)
     {
         TileWidth = tileWidth;
         TileHeight = tileHeight;
         KeepAspect = keepAspect;
+        FitWidth = fitWidth;
+        FitHeight = fitHeight;
         SliceWidth = sliceWidth;
         SliceHeight = sliceHeight;
     }
@@ -37,14 +45,17 @@ public readonly struct UiPaintSpec
     /// Full-rect cover: uniform scale, centered, overflow clipped.
     public static UiPaintSpec Cover => new(false, false, true);
 
+    /// Full-rect contain: uniform scale (min), centered, letterboxed.
+    public static UiPaintSpec Contain => new(false, false, false, true, true);
+
     /// Nine-slice frame: corners fixed at `margin`, edges and the (transparent)
     /// center stretched per the fill rules.
     public static UiPaintSpec Frame(int margin)
-        => new(false, false, false, margin, margin);
+        => new(false, false, false, false, false, margin, margin);
 
     /// Nine-slice frame with the center stretched per the fill rules.
     public static UiPaintSpec FrameCentered(int margin)
-        => new(false, false, false, margin, margin);
+        => new(false, false, false, false, false, margin, margin);
 }
 
 /// The single paint primitive all textured ui surfaces go through.
@@ -89,6 +100,17 @@ public static class UiTexturePainter
 
         if (!spec.TileWidth && !spec.TileHeight)
         {
+            var hasFit = spec.FitWidth || spec.FitHeight;
+            if (hasFit)
+            {
+                var fs = Mathf.Min(sx, sy);
+                var fw = srcSize.X * fs;
+                var fh = srcSize.Y * fs;
+                var fx = dest.Position.X + (dest.Size.X - fw) / 2f;
+                var fy = dest.Position.Y + (dest.Size.Y - fh) / 2f;
+                ci.DrawTextureRect(tex, new Rect2(fx, fy, fw, fh), false);
+                return;
+            }
             if (!spec.KeepAspect)
             {
                 ci.DrawTextureRectRegion(tex, dest, new Rect2(srcOrigin, srcSize));
@@ -109,6 +131,11 @@ public static class UiTexturePainter
         }
 
         var s = spec.TileWidth ? sy : sx;
+        if (spec.FitWidth || spec.FitHeight)
+        {
+            var freeScale = spec.TileWidth ? sx : sy;
+            s = Mathf.Min(s, freeScale);
+        }
         Repeat(ci, dest, tex, srcOrigin, srcSize, s, s,
             spec.TileWidth, !spec.TileWidth);
     }

@@ -354,6 +354,7 @@ public partial class Steps {
         /// </summary>
         public AssertPanel BackgroundPaint(
             bool? tileWidth = null, bool? tileHeight = null, bool? keepAspect = null,
+            bool? fitWidth = null, bool? fitHeight = null,
             int? sliceWidth = null, int? sliceHeight = null)
         {
             var rect = node?.GetNodeOrNull<UiTextureSurface>("background");
@@ -376,6 +377,14 @@ public partial class Steps {
             if (keepAspect is bool k)
                 Assertions.AssertBool(s.KeepAspect == k)
                     .OverrideFailureMessage($"Background KeepAspect is {s.KeepAspect}, expected {k}")
+                    .IsTrue();
+            if (fitWidth is bool fw)
+                Assertions.AssertBool(s.FitWidth == fw)
+                    .OverrideFailureMessage($"Background FitWidth is {s.FitWidth}, expected {fw}")
+                    .IsTrue();
+            if (fitHeight is bool fh)
+                Assertions.AssertBool(s.FitHeight == fh)
+                    .OverrideFailureMessage($"Background FitHeight is {s.FitHeight}, expected {fh}")
                     .IsTrue();
             if (sliceWidth is int sw)
                 Assertions.AssertInt(s.SliceWidth)

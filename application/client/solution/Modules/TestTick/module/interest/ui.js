@@ -1,6 +1,6 @@
 import { getInterestModule } from "./interest";
 export const interestUi = (hostApi, game) => {
-    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 10, color: "#FFFFFF" });
+    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF" });
     const module = getInterestModule(hostApi);
     const fill = hostApi.runtime.setAnimation(hostApi.runtime.string.of("fill"), {
         frames: [{ sprite: hostApi.ui.getSpritePNG("assets/loading_bar.png") }],

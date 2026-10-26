@@ -118,7 +118,7 @@ public static class UiAbi
     }
 
     // Per-axis fill rules plus optional nine-slice geometry (mirrors the Rust
-    // UiPaintSpec). 12 bytes, align 4: three u8 flags, one pad byte, two u32
+    // UiPaintSpec). 16 bytes, align 4: five u8 flags, three pad bytes, two u32
     // slice dims.
     [StructLayout(LayoutKind.Sequential)]
     public struct UiPaintSpec
@@ -126,6 +126,8 @@ public static class UiAbi
         public byte TileWidth;
         public byte TileHeight;
         public byte KeepAspect;
+        public byte FitWidth;
+        public byte FitHeight;
         public uint SliceWidth;
         public uint SliceHeight;
     }

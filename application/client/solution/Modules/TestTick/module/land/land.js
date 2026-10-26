@@ -7,7 +7,7 @@ export const getLandModule = (hostApi) => {
     });
     const landTick = hostApi.runtime.setEffect({
         name: string.of("land-tick"),
-        reoccurAfterMs: () => {
+        reoccurAfterMs: (context) => {
             return hostApi.runtime.maybe.of(number.of(10));
         },
         apply: (context) => {
@@ -58,11 +58,12 @@ export const landUi = (hostApi, landContainer) => {
     });
     hostApi.ui.window("land-list", {
         panel: {
-            x: 100,
+            x: 50,
             y: 100,
             width: 200,
-            height: 400,
+            height: 900,
             title: "Lands",
+            layout: "row",
             background: {
                 animation: track,
                 fill: { width: "stretch", height: "stretch" },
@@ -74,29 +75,43 @@ export const landUi = (hostApi, landContainer) => {
                 panel: {
                     width: 180,
                     height: 60,
-                    layout: "column",
-                    background: {
-                        animation: portrait,
-                        fill: {
-                            width: "stretch",
-                            height: "stretch",
-                            keepAspectRatio: true,
-                        }
-                    }
+                    layout: "row",
                 },
             }, [
-                hostApi.ui.field(entity.id + ":name", {
-                    entity: entity,
-                    map: "text",
-                    name: "name",
-                    fallback: "Unknown",
-                }, font),
-                hostApi.ui.field(entity.id + ":cost", {
-                    entity: entity,
-                    map: "number",
-                    name: "cost",
-                    fallback: "0",
-                }, font),
+                hostApi.ui.panel(entity.id + ":portrait", {
+                    panel: {
+                        width: 100,
+                        height: 60,
+                        background: {
+                            animation: portrait,
+                            fill: {
+                                width: "fit",
+                                height: "stretch",
+                                keepAspectRatio: true,
+                            }
+                        }
+                    }
+                }),
+                hostApi.ui.panel(entity.id + ":stats", {
+                    panel: {
+                        width: 180,
+                        height: 60,
+                        layout: "column"
+                    }
+                }, [
+                    hostApi.ui.field(entity.id + ":stats:name", {
+                        entity: entity,
+                        map: "text",
+                        name: "name",
+                        fallback: "Unknown",
+                    }, font),
+                    hostApi.ui.field(entity.id + ":stats:cost", {
+                        entity: entity,
+                        map: "number",
+                        name: "cost",
+                        fallback: "0",
+                    }, font),
+                ])
             ]),
         ]),
     ]);

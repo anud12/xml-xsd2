@@ -447,9 +447,9 @@ public partial class UiWindow
     UiPaintSpec _backgroundPaint = UiPaintSpec.Cover;
 
     /// Parses a flat paint spec object
-    /// `{tileWidth,tileHeight,keepAspect,sliceWidth,sliceHeight}` out of `opts`
-    /// under `key`, falling back to `fallback` when the property is absent or
-    /// not an object. Shared by every textured slot reader.
+    /// `{tileWidth,tileHeight,keepAspect,fitWidth,fitHeight,sliceWidth,sliceHeight}`
+    /// out of `opts` under `key`, falling back to `fallback` when the property
+    /// is absent or not an object. Shared by every textured slot reader.
     internal static UiPaintSpec ParsePaintSpec(JsonElement opts, string key, UiPaintSpec fallback)
     {
         if (opts.ValueKind != JsonValueKind.Object
@@ -459,11 +459,13 @@ public partial class UiWindow
         var tw = p.TryGetProperty("tileWidth", out var v) && v.ValueKind == JsonValueKind.True;
         var th = p.TryGetProperty("tileHeight", out v) && v.ValueKind == JsonValueKind.True;
         var ka = p.TryGetProperty("keepAspect", out v) && v.ValueKind == JsonValueKind.True;
+        var fw = p.TryGetProperty("fitWidth", out v) && v.ValueKind == JsonValueKind.True;
+        var fh = p.TryGetProperty("fitHeight", out v) && v.ValueKind == JsonValueKind.True;
         var sw = p.TryGetProperty("sliceWidth", out var s) && s.ValueKind == JsonValueKind.Number
             ? (int)s.GetDouble() : 0;
         var sh = p.TryGetProperty("sliceHeight", out s) && s.ValueKind == JsonValueKind.Number
             ? (int)s.GetDouble() : sw;
-        return new UiPaintSpec(tw, th, ka, sw, sh);
+        return new UiPaintSpec(tw, th, ka, fw, fh, sw, sh);
     }
 
     /// Renders the background as a full-rect paint surface behind the content

@@ -4,7 +4,7 @@ import {getInterestModule} from "./interest";
 
 export const interestUi = (hostApi:HostApi, game:EntityReadOnlyExpression) => {
 
-  const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 10, color: "#FFFFFF" });
+  const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 16, color: "#FFFFFF" });
 
   const module = getInterestModule(hostApi);
 

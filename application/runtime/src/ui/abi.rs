@@ -142,17 +142,21 @@ pub struct UiPaintSpec {
     pub tile_width: u8,
     pub tile_height: u8,
     pub keep_aspect: u8,
+    pub fit_width: u8,
+    pub fit_height: u8,
     pub slice_width: u32,
     pub slice_height: u32,
 }
 
 impl UiPaintSpec {
-    /// Plain independent-axis stretch (no tile, no aspect, no slice).
+    /// Plain independent-axis stretch (no tile, no aspect, no fit, no slice).
     fn stretch() -> Self {
         UiPaintSpec {
             tile_width: 0,
             tile_height: 0,
             keep_aspect: 0,
+            fit_width: 0,
+            fit_height: 0,
             slice_width: 0,
             slice_height: 0,
         }
@@ -923,11 +927,13 @@ fn apply_fill(b: &mut UiBackground, fill: &Value) {
     let Some(m) = fill.as_object() else {
         return;
     };
-    let axis = |key: &str| -> bool {
-        m.get(key).and_then(|v| v.as_str()) == Some("tile")
+    let axis = |key: &str| -> (&str) {
+        m.get(key).and_then(|v| v.as_str()).unwrap_or("stretch")
     };
-    b.paint.tile_width = axis("width") as u8;
-    b.paint.tile_height = axis("height") as u8;
+    b.paint.tile_width = (axis("width") == "tile") as u8;
+    b.paint.tile_height = (axis("height") == "tile") as u8;
+    b.paint.fit_width = (axis("width") == "fit") as u8;
+    b.paint.fit_height = (axis("height") == "fit") as u8;
     b.paint.keep_aspect = m.get("keepAspectRatio").and_then(|v| v.as_bool()).unwrap_or(false) as u8;
 }
 

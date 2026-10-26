@@ -13,7 +13,7 @@ export const getInterestModule = memoize((hostApi:HostApi, ) => {
   const tick = hostApi.runtime.setEffect({
     name: hostApi.runtime.string.of("tick"),
     reoccurAfterMs: () => {
-      return hostApi.runtime.maybe.of(hostApi.runtime.number.of(1));
+      return hostApi.runtime.maybe.of(hostApi.runtime.number.random(hostApi.runtime.number.of(1), hostApi.runtime.number.of(15)));
     },
     apply: (context) => {
       context.getMutableEntityBy({

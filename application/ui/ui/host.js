@@ -215,7 +215,7 @@ function (root) {
 
     // A valid per-axis paint rule value.
     function isFillAxis(v) {
-        return v === 'stretch' || v === 'tile';
+        return v === 'stretch' || v === 'tile' || v === 'fit';
     }
 
     // Normalizes a unified texture slot `{ animation, fill, nineSlice? }` for
@@ -235,7 +235,7 @@ function (root) {
         }
         var fill = v.fill;
         if (!fill || typeof fill !== 'object' || !isFillAxis(fill.width) || !isFillAxis(fill.height)) {
-            throw new Error('ui: a texture fill must be an object { width: "stretch"|"tile", height: "stretch"|"tile", keepAspectRatio? }');
+            throw new Error('ui: a texture fill must be an object { width: "stretch"|"tile"|"fit", height: "stretch"|"tile"|"fit", keepAspectRatio? }');
         }
         if (fill.keepAspectRatio != null && typeof fill.keepAspectRatio !== 'boolean') {
             throw new Error('ui: a texture fill.keepAspectRatio must be a boolean');

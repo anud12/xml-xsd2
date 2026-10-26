@@ -78,15 +78,17 @@ export type UiParentExpression = UiNodeExpression & {
  * Per-axis paint rule: `"stretch"` scales the texture to fill that axis
  * (distorting when the two axes use different scales) or, with
  * `keepAspectRatio`, scales uniformly and clips; `"tile"` repeats the texture
- * at the scale set by the stretch axis (native pixel size when both axes tile).
+ * at the scale set by the stretch axis (native pixel size when both axes tile);
+ * `"fit"` scales uniformly to avoid overflow on that axis (contain), centered.
  */
-export type TextureFillAxis = "stretch" | "tile";
+export type TextureFillAxis = "stretch" | "tile" | "fit";
 
 /**
  * The paint rule for a texture: one entry per axis. The stretch axis(es) set
- * the scale; the tile axis(es) repeat at that scale. Both tile = native pixel
- * size. `keepAspectRatio` makes the scale uniform (stretch axes clip, tile
- * axes may letterbox) instead of per-axis.
+ * the scale; the tile axis(es) repeat at that scale; the fit axis(es) cap the
+ * uniform scale to avoid overflow (centered/letterboxed). Both tile = native
+ * pixel size. `keepAspectRatio` makes the scale uniform (stretch axes clip,
+ * tile axes may letterbox) instead of per-axis.
  */
 export type TextureFill = {
   width: TextureFillAxis;
