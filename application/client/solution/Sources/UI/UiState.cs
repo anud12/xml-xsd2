@@ -63,6 +63,29 @@ public class UiDelta
 
 public static class UiState
 {
+    // Per-node animation start times (elapsed ticks when the node first
+    // appeared). Survives UiWindow destroy/recreate cycles so entity-list
+    // rows keep their own animation counter across per-tick resets.
+    static readonly Dictionary<string, long> _animStartTimes = new();
+
+    public static long GetOrSetAnimStartTime(string nodeId)
+    {
+        if (_animStartTimes.TryGetValue(nodeId, out var t)) return t;
+        var t2 = RuntimeInterop.GetElapsedTimeUnits();
+        _animStartTimes[nodeId] = t2;
+        return t2;
+    }
+
+    public static void RemoveAnimStartTime(string nodeId)
+    {
+        _animStartTimes.Remove(nodeId);
+    }
+
+    public static void ClearAnimStartTimes()
+    {
+        _animStartTimes.Clear();
+    }
+
     public static List<UiNodeData> FetchState()
     {
         var ptr = RuntimeInterop.FetchUiState();

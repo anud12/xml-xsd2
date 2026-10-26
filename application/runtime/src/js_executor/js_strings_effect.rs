@@ -40,6 +40,10 @@ const REOCCUR_JS: &str = r#"(function() {
             if (r && typeof r === 'object') {
                 if (typeof r.value === 'number') return r.value;
                 if (r.value === undefined) return -1;
+                if (typeof r.value === 'object' && r.value !== null) {
+                    if (typeof r.value._raw === 'number') return r.value._raw;
+                    if (typeof r.value.value === 'number') return r.value.value;
+                }
             }
             if (typeof r === 'number') return r;
         } catch(e) {}

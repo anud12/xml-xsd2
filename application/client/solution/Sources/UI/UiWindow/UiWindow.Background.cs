@@ -73,6 +73,7 @@ public partial class UiWindow
             _animDurationTicks = Math.Max(1, (int)d.GetDouble());
         if (bg.TryGetProperty("loop", out var l) && l.ValueKind == JsonValueKind.True)
             _animLoop = true;
+        _animStartTime = UiState.GetOrSetAnimStartTime(_nodeId);
         _animLastElapsed = -1;
         _currentFramePath = null;
         // Render frame 0 immediately: in test mode the runtime loop is off, so
@@ -373,11 +374,15 @@ public partial class UiWindow
         }
         if (frameSprites.Count == 0) return;
 
-        // Same frame scheme as the legacy Panel: frame 0 from the first
-        // elapsed unit, ticksPerFrame = duration / frames.
+        // Per-node frame counter: ticksPerFrame = duration / frames, frame
+        // index advances from 0 at this node's start time (persisted by node
+        // id so entity-list rows keep independent counters across resets).
+        // The -1 offset matches the original scheme: the first local elapsed
+        // unit (localElapsed=1) shows frame 0.
+        var localElapsed = elapsed - _animStartTime;
         var ticksPerFrame = Math.Max(
             (int)Math.Round(_animDurationTicks / (double)frameSprites.Count), 1);
-        var rawIndex = (int)((elapsed - 1) / ticksPerFrame);
+        var rawIndex = (int)((localElapsed - 1) / ticksPerFrame);
         if (rawIndex < 0) rawIndex = 0;
         var frameIndex = _animLoop
             ? rawIndex % frameSprites.Count

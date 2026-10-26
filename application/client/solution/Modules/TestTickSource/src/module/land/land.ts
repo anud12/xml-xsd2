@@ -1,6 +1,8 @@
 import {HostApi} from "module_types/HostApi";
 import {EntityReadOnlyExpression} from "module_types/dataExpression/Entity";
 import {ContainerReadOnlyExpression} from "module_types/dataExpression/Contaier";
+import {getLandSprites} from "./sprites";
+
 
 export const getLandModule = (hostApi: HostApi) => {
 
@@ -24,7 +26,7 @@ export const getLandModule = (hostApi: HostApi) => {
         const next = count.sum(number.of(1));
 
         const land = hostApi.runtime.setEntity({
-          id: next,
+          id: string.of(next.toString()),
           textMap: {
             name: string.of("Land"),
           },
@@ -58,12 +60,18 @@ export const getLandModule = (hostApi: HostApi) => {
 };
 
 export const landUi = (hostApi: HostApi, landContainer: ContainerReadOnlyExpression) => {
-  const { string } = hostApi.runtime;
+  const { string, number } = hostApi.runtime;
   const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 14, color: "#FFFFFF" });
 
   const track = hostApi.runtime.setAnimation(string.of("land-track"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("black_pixel.png") }],
-    duration: hostApi.runtime.number.of(1),
+    duration: number.of(1),
+  });
+
+  const portrait = hostApi.runtime.setAnimation(string.of("land-portrait"), {
+    frames: getLandSprites(hostApi).map(value => ({sprite:value})),
+    duration: number.of(1),
+    loop: true,
   });
 
   hostApi.ui.window("land-list", {
@@ -86,6 +94,14 @@ export const landUi = (hostApi: HostApi, landContainer: ContainerReadOnlyExpress
             width: 180,
             height: 60,
             layout: "column" as const,
+            background: {
+              animation: portrait,
+              fill: {
+                width: "stretch",
+                height: "stretch",
+                keepAspectRatio:true,
+              }
+            }
           },
         }, [
           hostApi.ui.field(entity.id + ":name", {

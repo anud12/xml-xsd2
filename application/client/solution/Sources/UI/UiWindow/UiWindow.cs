@@ -69,6 +69,7 @@ public partial class UiWindow : Control
     int _animDurationTicks = 1;
     bool _animLoop;
     long _animLastElapsed = -1;
+    long _animStartTime;
     Texture2D? _animTexture;
 
     /// True when the window declares explicit x/y position options.

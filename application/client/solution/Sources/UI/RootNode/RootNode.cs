@@ -28,6 +28,7 @@ public partial class RootNode : Godot.Panel
         // otherwise the window nodes it hosts never receive MouseEntered /
         // GuiInput (hover and click).
         MouseFilter = Control.MouseFilterEnum.Ignore;
+        UiState.ClearAnimStartTimes();
     }
 
     readonly Dictionary<UiWindow, bool> _hoverStates = new();
@@ -78,6 +79,7 @@ public partial class RootNode : Godot.Panel
                 removed.QueueFree();
                 _windows.Remove(id);
                 _hoverStates.Remove(removed);
+                UiState.RemoveAnimStartTime(id);
             }
         }
 
@@ -186,6 +188,7 @@ public partial class RootNode : Godot.Panel
                         rem.QueueFree();
                         _windows.Remove(op.Id);
                         _hoverStates.Remove(rem);
+                        UiState.RemoveAnimStartTime(op.Id);
                     }
                     break;
             }

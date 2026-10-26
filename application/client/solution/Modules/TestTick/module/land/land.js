@@ -1,3 +1,4 @@
+import { getLandSprites } from "./sprites";
 export const getLandModule = (hostApi) => {
     const { number, string } = hostApi.runtime;
     const landContainer = hostApi.runtime.setContainer({
@@ -16,7 +17,7 @@ export const getLandModule = (hostApi) => {
                 const count = game.number_map.get("landCount").orElse(number.of(0));
                 const next = count.sum(number.of(1));
                 const land = hostApi.runtime.setEntity({
-                    id: next,
+                    id: string.of(next.toString()),
                     textMap: {
                         name: string.of("Land"),
                     },
@@ -44,11 +45,16 @@ export const getLandModule = (hostApi) => {
     };
 };
 export const landUi = (hostApi, landContainer) => {
-    const { string } = hostApi.runtime;
+    const { string, number } = hostApi.runtime;
     const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 14, color: "#FFFFFF" });
     const track = hostApi.runtime.setAnimation(string.of("land-track"), {
         frames: [{ sprite: hostApi.ui.getSpritePNG("black_pixel.png") }],
-        duration: hostApi.runtime.number.of(1),
+        duration: number.of(1),
+    });
+    const portrait = hostApi.runtime.setAnimation(string.of("land-portrait"), {
+        frames: getLandSprites(hostApi).map(value => ({ sprite: value })),
+        duration: number.of(1),
+        loop: true,
     });
     hostApi.ui.window("land-list", {
         panel: {
@@ -69,6 +75,14 @@ export const landUi = (hostApi, landContainer) => {
                     width: 180,
                     height: 60,
                     layout: "column",
+                    background: {
+                        animation: portrait,
+                        fill: {
+                            width: "stretch",
+                            height: "stretch",
+                            keepAspectRatio: true,
+                        }
+                    }
                 },
             }, [
                 hostApi.ui.field(entity.id + ":name", {
