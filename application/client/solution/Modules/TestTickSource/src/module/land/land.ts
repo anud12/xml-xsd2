@@ -26,7 +26,7 @@ export const getLandModule = (hostApi: HostApi) => {
         const next = count.sum(number.of(1));
 
         const land = hostApi.runtime.setEntity({
-          id: string.of(next.toString()),
+          id: next.toStringExpression(),
           textMap: {
             name: string.of("Land"),
           },

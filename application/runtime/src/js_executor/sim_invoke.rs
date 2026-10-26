@@ -19,7 +19,7 @@ var hostApi={
   },
   runtime:{
     string:{of:function(s){return s;}},
-    number:{of:function(n){return n;}},
+    number:(function(){function numOf(o){return Number(typeof o==='object'&&o!==null?(o._raw!==undefined?o._raw:o.value):o);}function wrap(x){x=Number(x);return{_raw:x,value:x,of:function(y){return wrap(numOf(y));},sum:function(o){return wrap(x+numOf(o));},subtract:function(o){return wrap(x-numOf(o));},multiply:function(o){return wrap(x*numOf(o));},divide:function(o){return wrap(x/numOf(o));},modulo:function(o){return wrap(x%numOf(o));},toString:function(){return String(x);},toJSON:function(){return x;},isGreaterThan:function(o){return globalThis.hostApi.runtime.condition.of(x>numOf(o));},isLessThan:function(o){return globalThis.hostApi.runtime.condition.of(x<numOf(o));},isGreaterOrEqualTo:function(o){return globalThis.hostApi.runtime.condition.of(x>=numOf(o));},isLessOrEqualTo:function(o){return globalThis.hostApi.runtime.condition.of(x<=numOf(o));},isEqualTo:function(o){return globalThis.hostApi.runtime.condition.of(x===numOf(o));},isNotEqualTo:function(o){return globalThis.hostApi.runtime.condition.of(x!==numOf(o));},toStringExpression:function(){return globalThis.hostApi.runtime.string.of(String(x));}};}var _s=0x7FFFFFFF;function lxm(){_s=(Math.imul(_s,1664525)+1013904223)&0xFFFFFFFF;var x=_s;x^=x<<13;x&=0xFFFFFFFF;x^=x>>>17;x^=x<<5;x&=0xFFFFFFFF;x^=x>>>16;x=Math.imul(x,0x85ebca6b);x^=x>>>13;x=Math.imul(x,0xc2b2ae35);x^=x>>>16;return(x>>>0)/4294967296;}return{of:function(n){return n;},random:function(f,t){var a=Math.floor(numOf(f));var b=Math.floor(numOf(t));return wrap(a+Math.floor(lxm()*(b-a+1)));}};})(),
     emitEvent:h.emitEvent,
     setEvent:h.setEvent,
     setAction:h.setAction,

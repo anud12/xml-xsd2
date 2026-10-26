@@ -60,9 +60,8 @@ export default (hostApi) => {
       }).map((g) => {
         const count = g.number_map.get("landCount").orElse(number.of(0));
         const next = count.sum(number.of(1));
-        const nextStr = string.of(next.toString());
         const item = hostApi.runtime.setEntity({
-          id: nextStr,
+          id: next.toStringExpression(),
           textMap: { name: string.of("Item") },
           numberMap: { cost: number.of(10) },
         });

@@ -137,7 +137,23 @@ pub fn host_api_script_entity_filter() -> &'static str {
           subtract: function (d) { return wrap(Number(v) - Number(numOf(d))); },
           multiply: function (d) { return wrap(Number(v) * Number(numOf(d))); },
           divide: function (d) { return wrap(Number(v) / Number(numOf(d))); },
-          modulo: function (d) { return wrap(Number(v) % Number(numOf(d))); }
+          modulo: function (d) { return wrap(Number(v) % Number(numOf(d))); },
+          toStringExpression: function () {
+            var sv = String(v);
+            function strWrap(s) {
+              return {
+                _raw: s, value: s,
+                of: function (x) { return strWrap(String(typeof x === 'object' && x !== null ? (x._raw !== undefined ? x._raw : x.value) : x)); },
+                toString: function () { return String(s); },
+                toJSON: function () { return s; },
+                isContaining: function (o) { return conditionOf(String(s).indexOf(String(typeof o === 'object' && o !== null ? (o._raw !== undefined ? o._raw : o.value) : o)) >= 0, { _raw: s }); },
+                isContainingExactly: function (o) { return conditionOf(String(s) === String(typeof o === 'object' && o !== null ? (o._raw !== undefined ? o._raw : o.value) : o), { _raw: s }); },
+                map: function (fn) { return strWrap(String(typeof fn === 'object' && fn !== null ? (fn._raw !== undefined ? fn._raw : fn.value) : fn)); },
+                concat: function (o) { return strWrap(String(s) + String(typeof o === 'object' && o !== null ? (o._raw !== undefined ? o._raw : o.value) : o)); }
+              };
+            }
+            return strWrap(sv);
+          }
         };
         return self;
       }

@@ -5,31 +5,50 @@ pub fn host_api_script_log() -> &'static str {
                 globalThis.__logs || [];
             globalThis.__logs.push(String(msg));
         } catch(e) { }
-    }, number: { of: function(n) {
-        var v = Number(n);
+    }, number: (function() {
+        function numOf(o) { return Number(typeof o === 'object' && o !== null ? (o._raw !== undefined ? o._raw : o.value) : o); }
         function wrap(x) {
             x = Number(x);
             return {
                 _raw: x,
                 value: x,
                 of: function(y) { return wrap(y); },
-                sum: function(o) { return wrap(x + Number(typeof o === 'object' ? o._raw || o.value : o)); },
-                subtract: function(o) { return wrap(x - Number(typeof o === 'object' ? o._raw || o.value : o)); },
-                multiply: function(o) { return wrap(x * Number(typeof o === 'object' ? o._raw || o.value : o)); },
-                divide: function(o) { return wrap(x / Number(typeof o === 'object' ? o._raw || o.value : o)); },
-                modulo: function(o) { return wrap(x % Number(typeof o === 'object' ? o._raw || o.value : o)); },
+                sum: function(o) { return wrap(x + numOf(o)); },
+                subtract: function(o) { return wrap(x - numOf(o)); },
+                multiply: function(o) { return wrap(x * numOf(o)); },
+                divide: function(o) { return wrap(x / numOf(o)); },
+                modulo: function(o) { return wrap(x % numOf(o)); },
                 toString: function() { return String(x); },
                 toJSON: function() { return x; },
-                isGreaterThan: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x > t); },
-                isLessThan: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x < t); },
-                isGreaterOrEqualTo: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x >= t); },
-                isLessOrEqualTo: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x <= t); },
-                isEqualTo: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x === t); },
-                isNotEqualTo: function(o) { var t = Number(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(x !== t); }
+                isGreaterThan: function(o) { var t = numOf(o); return globalThis.condition.of(x > t); },
+                isLessThan: function(o) { var t = numOf(o); return globalThis.condition.of(x < t); },
+                isGreaterOrEqualTo: function(o) { var t = numOf(o); return globalThis.condition.of(x >= t); },
+                isLessOrEqualTo: function(o) { var t = numOf(o); return globalThis.condition.of(x <= t); },
+                isEqualTo: function(o) { var t = numOf(o); return globalThis.condition.of(x === t); },
+                isNotEqualTo: function(o) { var t = numOf(o); return globalThis.condition.of(x !== t); },
+                toStringExpression: function() { return globalThis.host.string.of(String(x)); }
             };
         }
-        return wrap(v);
-    } },
+        // LXM PRNG: LCG + Xorshift + MurmurHash3 mixer
+        var _lxm_state = 0x7FFFFFFF; // 2147483647 (Mersenne prime M31)
+        function lxm_next() {
+            _lxm_state = (Math.imul(_lxm_state, 1664525) + 1013904223) & 0xFFFFFFFF;
+            var x = _lxm_state;
+            x ^= x << 13; x &= 0xFFFFFFFF;
+            x ^= x >>> 17;
+            x ^= x << 5; x &= 0xFFFFFFFF;
+            x ^= x >>> 16;
+            x = Math.imul(x, 0x85ebca6b);
+            x ^= x >>> 13;
+            x = Math.imul(x, 0xc2b2ae35);
+            x ^= x >>> 16;
+            return (x >>> 0) / 4294967296;
+        }
+        return {
+            of: function(n) { return wrap(Number(n)); },
+            random: function(from, to) { var f = Math.floor(numOf(from)); var t = Math.floor(numOf(to)); var r = f + Math.floor(lxm_next() * (t - f + 1)); return wrap(r); }
+        };
+    })(),
     string: { of: function(s) {
         var v = String(s);
         return {

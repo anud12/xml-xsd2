@@ -1,0 +1,6 @@
+{
+  "id": "number-to-string-expression",
+  "version": "1.0.0",
+  "name": "Number toStringExpression",
+  "entry": "index.js"
+}

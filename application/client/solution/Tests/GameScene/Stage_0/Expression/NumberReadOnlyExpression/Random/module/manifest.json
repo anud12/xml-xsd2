@@ -1,0 +1,6 @@
+{
+  "id": "number-random-expression",
+  "version": "1.0.0",
+  "name": "Number Random Expression",
+  "entry": "index.js"
+}
