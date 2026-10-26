@@ -882,7 +882,7 @@ fn parse_layout(
             }
             "row" => {
                 l.kind = UI_LAYOUT_ROW;
-                l.equal_tracks = 1;
+                l.equal_tracks = 0;
             }
             _ => {}
         },

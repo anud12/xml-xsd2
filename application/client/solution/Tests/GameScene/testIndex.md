@@ -34,6 +34,9 @@ Baseline panel rendering with no interactivity or data binding.
 | Folder | Scope |
 |--------|-------|
 | `Background` | Panel background color/texture rendering |
+| `Background/Fit` | Texture fill mode `"fit"` (uniform contain, centered, letterboxed) |
+| `Background/NestedLayout` | Nested row/column layout: row → [full-height panel, column → [top, bottom]] |
+| `Background/PaintMode` | Texture fill modes (stretch/tile), 9-slice, per-slot paint override |
 | `Border` | Panel border (default and custom) rendering |
 | `ChildPanels` | Nested child panel layout |
 | `ConditionReadOnlyExpression/ValueCarryThrough` | Condition expression value propagation through ifTrue/ifFalse |
@@ -47,7 +50,6 @@ Baseline panel rendering with no interactivity or data binding.
 | `LintInvalid` | TypeScript lint rejection of invalid module code |
 | `OnClick` | Panel click event registration (no action, just cursor) |
 | `OnClickCursor` | Cursor change on hover/click |
-| `PaintMode` | Panel paint mode (opaque/transparent) |
 | `PanelSurface` | Panel surface (title bar, content area) layout |
 | `Positioning` | Absolute panel positioning (x, y) |
 | `ScreenRegion` | Screen region clipping |

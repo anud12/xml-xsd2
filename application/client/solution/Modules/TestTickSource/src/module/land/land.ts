@@ -79,7 +79,7 @@ export const landUi = (hostApi: HostApi, landContainer: ContainerReadOnlyExpress
       x: 50,
       y: 100,
       width: 200,
-      height: 900,
+      height: 500,
       title: "Lands",
       layout: "row",
       background: {
@@ -114,7 +114,7 @@ export const landUi = (hostApi: HostApi, landContainer: ContainerReadOnlyExpress
           }),
           hostApi.ui.panel(entity.id + ":stats", {
             panel: {
-              width: 180,
+              width: 80,
               height: 60,
               layout: "column"
             }
