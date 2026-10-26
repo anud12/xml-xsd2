@@ -54,13 +54,13 @@ export type HostApi = {
      * Returns an {@link EntityReadOnlyExpression} reference to the entity, usable
      * anywhere an entity id is expected (e.g. `setContainer` `entities`).
      */
-    setEntity: (arguments: { id: string | any } & EntityCreationArguments & { behavior?: BehaviorReadOnlyExpression }) => EntityReadOnlyExpression;
+    setEntity: (arguments: { id: StringReadOnlyExpression } & EntityCreationArguments & { behavior?: BehaviorReadOnlyExpression }) => EntityReadOnlyExpression;
 
     /**
      * Sets (creates or updates) a container by id, including its geometry and
      * members. Returns a {@link ContainerReadOnlyExpression} reference to the container.
      */
-    setContainer: (arguments: { id: string | any } & ContainerCreationArguments) => ContainerReadOnlyExpression;
+    setContainer: (arguments: { id: StringReadOnlyExpression } & ContainerCreationArguments) => ContainerReadOnlyExpression;
 
     /**
      * Links two sector openings into an explicit portal. Each opening names its

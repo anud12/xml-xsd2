@@ -21,7 +21,7 @@ export default (hostApi) => {
 
   // ...and a container holding both entities.
   hostApi.runtime.setContainer({
-    id: "grid-2",
+    id: string.of("grid-2"),
     entities: [
       node1,
       node2,

@@ -3,7 +3,7 @@ export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
   const node_1 = hostApi.runtime.setEntity({
-    id: "node-1",
+    id: string.of("node-1"),
     numberMap: {
       column: number.of(0),
       row: number.of(0),
@@ -11,7 +11,7 @@ export default (hostApi) => {
   });
 
   const grid_1 = hostApi.runtime.setContainer({
-    id: "grid-1",
+    id: string.of("grid-1"),
     entities: [node_1],
     getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
     getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),

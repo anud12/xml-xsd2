@@ -3,13 +3,13 @@ export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
   const sword = hostApi.runtime.setEntity({
-    id: "sword-1",
+    id: string.of("sword-1"),
     numberMap: { attack: number.of(25) },
     textMap: { name: string.of("Sword") },
   });
 
   const shield = hostApi.runtime.setEntity({
-    id: "shield-1",
+    id: string.of("shield-1"),
     numberMap: { defense: number.of(15) },
     textMap: { name: string.of("Shield") },
   });

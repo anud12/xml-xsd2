@@ -3,17 +3,17 @@ export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
   hostApi.runtime.setEntity({
-    id: "item-1",
+    id: string.of("item-1"),
     numberMap: { cost: number.of(5) },
   });
 
   hostApi.runtime.setEntity({
-    id: "item-2",
+    id: string.of("item-2"),
     numberMap: { cost: number.of(10) },
   });
 
   hostApi.runtime.setEntity({
-    id: "item-3",
+    id: string.of("item-3"),
     numberMap: { cost: number.of(15) },
   });
 
@@ -26,7 +26,7 @@ export default (hostApi) => {
     name: string.of("add-to-bag"),
     apply: (context) => {
       const item = hostApi.runtime.setEntity({
-        id: "item-3",
+        id: string.of("item-3"),
         numberMap: { cost: number.of(15) },
       });
 

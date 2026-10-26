@@ -3,7 +3,7 @@ export default (hostApi) => {
   const { number, string, condition } = hostApi.runtime;
 
   hostApi.runtime.setEntity({
-    id: "entity-1",
+    id: string.of("entity-1"),
     numberMap: { value_a: number.of(100), value_b: number.of(1) },
     textMap: { label: string.of("initial") }
   });
