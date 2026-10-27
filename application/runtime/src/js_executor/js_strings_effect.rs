@@ -6,7 +6,8 @@ const PREPARE_JS: &str = r#"(function(){
         typeof globalThis.__foundEffect.prepare === 'function') {
         globalThis.__dbg.step = 'found-prepare';
         try { globalThis.__prepared =
-            globalThis.__foundEffect.prepare(globalThis.__prepareContext);
+            globalThis.__foundEffect.prepare(globalThis.__prepareContext,
+              (globalThis.__effectInputs && globalThis.__effectInputs[globalThis.__foundEffect.name]));
         globalThis.__dbg.step = 'prepare-ok';
         } catch(e) { globalThis.__dbg.err = String(e); }
     } else {

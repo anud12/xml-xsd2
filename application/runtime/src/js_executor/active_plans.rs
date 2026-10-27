@@ -243,6 +243,13 @@ pub fn process_active_plans(now: i64) {
                 .and_then(|e| e.get("name"))
                 .and_then(|n| n.as_str())
             {
+                // Carry the emit step's payload into the typed `prepare` input
+                // (the pending queue is name-only, so stash it separately).
+                let payload = step.get("emit")
+                    .and_then(|e| e.get("payload"))
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
+                crate::js_executor::sim_ctx::stash_effect_input(name, payload);
                 emitted.push(name.to_string());
                 i += 1;
                 continue;

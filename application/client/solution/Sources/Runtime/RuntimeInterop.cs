@@ -331,6 +331,64 @@ public static class RuntimeInterop
     }
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_publish_action_args_and_queue_effect(
+        [MarshalAs(UnmanagedType.LPStr)] string action,
+        [MarshalAs(UnmanagedType.LPStr)] string effect,
+        ref int count,
+        IntPtr keys,
+        IntPtr values);
+
+    /// Publishes `argsJson`'s key/value pairs into the persistent sim context
+    /// (so the action's `ctx.args` / the effect's `__actionArgs` sees them) and
+    /// queues `effect` to fire on the next {@link RunIteration}. This mirrors
+    /// the real `.ui` click flow: `emitAction` publishes `__actionArgs`, the
+    /// action's `emitEffect` enqueues the effect by name, and `RunIteration`'s
+    /// `process_pending_effects` fires it against the persistent context (where
+    /// `__actionArgs` and the synced `__containerData` live).
+    public static void PublishActionArgsAndQueueEffect(string action, string effect, string argsJson)
+    {
+        var pairs = ParseArgsJson(argsJson);
+        var count = pairs.Count;
+        if (count == 0)
+        {
+            var zero = 0;
+            runtime_publish_action_args_and_queue_effect(action, effect, ref zero, IntPtr.Zero, IntPtr.Zero);
+            return;
+        }
+
+        var keys = new IntPtr[count];
+        var values = new double[count];
+        var nativeKeys = new IntPtr[count];
+        try
+        {
+            for (var i = 0; i < count; i++)
+            {
+                nativeKeys[i] = Marshal.StringToHGlobalAnsi(pairs[i].Key);
+                keys[i] = nativeKeys[i];
+                values[i] = pairs[i].Value;
+            }
+            var keyArr = GCHandle.Alloc(keys, GCHandleType.Pinned);
+            var valArr = GCHandle.Alloc(values, GCHandleType.Pinned);
+            try
+            {
+                runtime_publish_action_args_and_queue_effect(
+                    action, effect, ref count,
+                    keyArr.AddrOfPinnedObject(), valArr.AddrOfPinnedObject());
+            }
+            finally
+            {
+                keyArr.Free();
+                valArr.Free();
+            }
+        }
+        finally
+        {
+            for (var i = 0; i < nativeKeys.Length; i++)
+                if (nativeKeys[i] != IntPtr.Zero) Marshal.FreeHGlobal(nativeKeys[i]);
+        }
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern void runtime_emit_action_for(
         [MarshalAs(UnmanagedType.LPStr)] string action,
         [MarshalAs(UnmanagedType.LPStr)] string actor);

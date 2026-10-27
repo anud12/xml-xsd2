@@ -217,6 +217,23 @@ where
     ctx.with(f)
 }
 
+/// Stash a typed input payload for the named effect in the persistent sim
+/// context, so that when the effect fires, `prepare(context, input)` receives
+/// `input` = payload. No-op if no module is installed. Used by the action
+/// paths (FFI publish, plan walker) that queue an effect by name and must also
+/// carry its payload into the typed `prepare` flow.
+pub fn stash_effect_input(name: &str, payload: serde_json::Value) {
+    if let Some(ctx) = ctx() {
+        let name_json = serde_json::to_string(name).unwrap_or_else(|_| "\"\"".to_string());
+        let payload_json = serde_json::to_string(&payload)
+            .unwrap_or_else(|_| "{}".to_string());
+        let _ = sim_with(ctx, |c| c.eval::<(), _>(format!(
+            "globalThis.__effectInputs = globalThis.__effectInputs || {{}};\
+             globalThis.__effectInputs[{name_json}] = {payload_json};"
+        )));
+    }
+}
+
 /// Drop the persistent context, if any.
 pub fn reset() {
     unsafe {

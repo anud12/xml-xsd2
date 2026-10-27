@@ -1,138 +1,78 @@
 import {HostApi} from "module_types/HostApi";
-import {EntityReadOnlyExpression} from "module_types/dataExpression/Entity";
-import {ContainerReadOnlyExpression} from "module_types/dataExpression/Contaier";
-import {getLandSprites} from "./sprites";
+import {EntityCreationArguments} from "module_types/dataExpression/Entity";
+import {memoize} from "../../util/memoize";
 
+export const getLandModule = memoize((hostApi: HostApi) => {
 
-export const getLandModule = (hostApi: HostApi) => {
+  const countKey = "landCount";
+  const costKey = "cost";
 
-  const { number, string } = hostApi.runtime;
+  const maxCount = hostApi.runtime.number.of(4);
+
+  const landNumberMap: EntityCreationArguments["numberMap"] = {
+    [costKey]: hostApi.runtime.number.of(10),
+  };
 
   const landContainer = hostApi.runtime.setContainer({
-    id: string.of("lands"),
+    id: hostApi.runtime.string.of("lands"),
     entities: [],
   });
 
-  const landTick = hostApi.runtime.setEffect({
-    name: string.of("land-tick"),
+  const tick = hostApi.runtime.setEffect({
+    name: hostApi.runtime.string.of("land-tick"),
     reoccurAfterMs: (context) => {
-      return hostApi.runtime.maybe.of(number.of(10));
+      let atLimit = hostApi.runtime.condition.of(false);
+      context.getEntityBy({
+        filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
+      }).map((game) => {
+        atLimit = game.number_map.get(countKey)
+          .map((v) => v.isGreaterOrEqualTo(maxCount))
+          .orElse(hostApi.runtime.condition.of(false));
+      });
+      let interval = hostApi.runtime.maybe.of(hostApi.runtime.number.of(10));
+      atLimit.ifTrue(() => {
+        interval = hostApi.runtime.maybe.none();
+        return hostApi.runtime.number.of(0);
+      });
+      return interval;
     },
     apply: (context) => {
       context.getMutableEntityBy({
-        filters: [(e) => e.id.isContainingExactly(string.of("game"))],
+        filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
       }).map((game) => {
-        const count = game.number_map.get("landCount").orElse(number.of(0));
-        const next = count.sum(number.of(1));
+        const count = game.number_map.get(countKey).orElse(hostApi.runtime.number.of(0));
+        const next = count.sum(hostApi.runtime.number.of(1));
 
         const land = hostApi.runtime.setEntity({
           id: next.toStringExpression(),
           textMap: {
-            name: string.of("Land"),
+            name: hostApi.runtime.string.of("Land"),
           },
-          numberMap: {
-            cost: number.of(10),
-          },
+          numberMap: landNumberMap,
         });
 
         context.createEntity(land);
 
         context.getMutableContainersBy({
-          filters: [(c) => c.id.isContainingExactly(string.of("lands"))],
+          filters: [(c) => c.id.isContainingExactly(hostApi.runtime.string.of("lands"))],
         }).map((container) => {
           container.addEntity(land);
         });
 
-        game.number_map.put("landCount", () => hostApi.runtime.maybe.of(next));
+        game.number_map.put(countKey, () => hostApi.runtime.maybe.of(next));
       });
     },
   });
 
   const initialize = () => {
-    hostApi.runtime.emitEvent(landTick, {});
+    hostApi.runtime.emitEvent(tick, {});
   };
 
   return {
-    landContainer,
-    landTick,
+    container: landContainer,
+    countKey: countKey,
+    maxCount: maxCount,
+    effect: tick,
     initialize,
   };
-};
-
-export const landUi = (hostApi: HostApi, landContainer: ContainerReadOnlyExpression) => {
-  const { string, number } = hostApi.runtime;
-  const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 14, color: "#FFFFFF" });
-
-  const track = hostApi.runtime.setAnimation(string.of("land-track"), {
-    frames: [{ sprite: hostApi.ui.getSpritePNG("black_pixel.png") }],
-    duration: number.of(1),
-  });
-
-  const portrait = hostApi.runtime.setAnimation(string.of("land-portrait"), {
-    frames: getLandSprites(hostApi).map(value => ({sprite:value})),
-    duration: number.of(1),
-    loop: true,
-  });
-
-  hostApi.ui.window("land-list", {
-    panel: {
-      x: 50,
-      y: 100,
-      width: 200,
-      height: 500,
-      title: "Lands",
-      layout: "row",
-      background: {
-        animation: track,
-        fill: { width: "stretch" as const, height: "stretch" as const },
-      },
-    },
-  }, [
-    hostApi.ui.entityList("land-items", { container: landContainer },
-      (entity) => [
-        hostApi.ui.window(entity.id, {
-          panel: {
-            width: 180,
-            height: 60,
-            layout: "row" as const,
-          },
-
-        }, [
-          hostApi.ui.panel(entity.id + ":portrait", {
-            panel: {
-              width: 100,
-              height: 60,
-              background: {
-                animation: portrait,
-                fill: {
-                  width: "fit",
-                  height: "stretch",
-                  keepAspectRatio:true,
-                }
-              }
-            }
-          }),
-          hostApi.ui.panel(entity.id + ":stats", {
-            panel: {
-              width: 80,
-              height: 60,
-              layout: "column"
-            }
-          }, [
-            hostApi.ui.field(entity.id + ":stats:name", {
-              entity: entity,
-              map: "text",
-              name: "name",
-              fallback: "Unknown",
-            }, font),
-            hostApi.ui.field(entity.id + ":stats:cost", {
-              entity: entity,
-              map: "number",
-              name: "cost",
-              fallback: "0",
-            }, font),
-          ])
-        ]),
-      ]),
-  ]);
-};
+});

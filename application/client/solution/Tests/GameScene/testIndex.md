@@ -44,6 +44,7 @@ Baseline panel rendering with no interactivity or data binding.
 | `DivLayout` | Div layout (row/column) child arrangement |
 | `EsModule` | ES module entrypoint loading and panel creation |
 | `Existence` | Panel existence (show/hide) verification |
+| `Expression/ListReadOnlyExpression/Count` | `count()` on a list expression: returns element count and updates when the list changes |
 | `ExpressionInto` | Expression-to-value resolution in panel properties |
 | `Font/ColorChange` | Font color rendering |
 | `Font/SizeChange` | Font size rendering |
@@ -108,6 +109,7 @@ Scheduled/concurrent effects that update entity values visible in the UI.
 | Folder | Scope |
 |--------|-------|
 | `ConcurrentEffects` | Multiple effects executing concurrently in one iteration |
+| `EffectInputOutputFlow` | Emit payload reaches `prepare`'s `input`; `prepare`'s return reaches `apply`'s `output` |
 | `EntityNumberValueUpdate` | Effect updates entity number map; UI reflects new value |
 | `EntityTextValueUpdate` | Effect updates entity text map; UI reflects new value |
 

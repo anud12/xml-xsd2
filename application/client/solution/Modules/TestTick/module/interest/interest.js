@@ -1,20 +1,21 @@
 import { memoize } from "../../util/memoize";
 export const getInterestModule = memoize((hostApi) => {
     const key = "property";
+    const max = hostApi.runtime.number.of(1000);
     const entityNumberMap = {
-        [key]: hostApi.runtime.number.of(100)
+        [key]: max,
     };
     const tick = hostApi.runtime.setEffect({
         name: hostApi.runtime.string.of("tick"),
         reoccurAfterMs: () => {
-            return hostApi.runtime.maybe.of(hostApi.runtime.number.random(hostApi.runtime.number.of(1), hostApi.runtime.number.of(15)));
+            return hostApi.runtime.maybe.of(hostApi.runtime.number.of(1));
         },
         apply: (context) => {
             context.getMutableEntityBy({
                 filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
             }).map((entity) => {
                 entity.number_map.put(key, (current) => current.map(v => v.isGreaterThan(hostApi.runtime.number.of(0))
-                    .ifTrue(v => v.sum(hostApi.runtime.number.of(-1)))
+                    .ifTrue(v => v.sum(hostApi.runtime.number.random(hostApi.runtime.number.of(-10), hostApi.runtime.number.of(-1))))
                     .or(() => hostApi.runtime.number.of(0))));
             });
         },
@@ -26,6 +27,7 @@ export const getInterestModule = memoize((hostApi) => {
         propertyKey: key,
         entityNumberMap: entityNumberMap,
         effect: tick,
+        maxValue: max,
         initialize
     };
 });

@@ -1,0 +1,6 @@
+{
+  "id": "list-count-expression",
+  "version": "1.0.0",
+  "name": "List Count Expression",
+  "entry": "index.js"
+}

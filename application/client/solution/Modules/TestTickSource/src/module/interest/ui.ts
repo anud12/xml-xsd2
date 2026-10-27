@@ -55,7 +55,7 @@ export const interestUi = (hostApi:HostApi, game:EntityReadOnlyExpression) => {
       },
       progress: {
         value: (entity) => entity.number_map.get(module.propertyKey).orElse(hostApi.runtime.number.of(0)),
-        max: (entity) => hostApi.runtime.number.of(100),
+        max: (entity) => module.maxValue,
         min: (entity) => hostApi.runtime.number.of(0),
         entity: game,
         steps: 100,

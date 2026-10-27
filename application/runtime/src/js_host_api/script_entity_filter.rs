@@ -391,6 +391,7 @@ pub fn host_api_script_entity_filter() -> &'static str {
       },
       size: function () { return ids.length; },
       length: function () { return ids.length; },
+      count: function () { return globalThis.host.number.of(ids.length); },
       get: function (index) {
         var i = Number(index);
         if (isNaN(i)) i = 0;
@@ -511,6 +512,7 @@ pub fn host_api_script_entity_filter() -> &'static str {
       },
       size: function () { return ids.length; },
       length: function () { return ids.length; },
+      count: function () { return globalThis.host.number.of(ids.length); },
       get: function (index) {
         var i = Number(index);
         if (isNaN(i)) i = 0;

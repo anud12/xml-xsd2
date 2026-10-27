@@ -5,7 +5,7 @@ pub fn host_api_script_part1() -> &'static str {
 }
 
 pub fn host_api_script_emit() -> &'static str {
-    r#"emitEvent(name) {
+    r#"emitEvent(name, payload) {
         globalThis.__logs = globalThis.__logs || [];
         globalThis.__logs.push('DEBUG: emitEvent called');
         globalThis.__pendingEffects =
@@ -13,9 +13,16 @@ pub fn host_api_script_emit() -> &'static str {
         var eventName = (name && typeof name === 'object'
                 && typeof name.name === 'string')
                 ? name.name : String(name);
+        // Stash the emit payload on the persistent sim context, keyed by
+        // effect name, so the effect runner (which fires effects by name only)
+        // can hand it back to `prepare(context, input)` at fire time.
+        if (payload !== undefined && payload !== null) {
+            globalThis.__effectInputs = globalThis.__effectInputs || {};
+            globalThis.__effectInputs[eventName] = payload;
+        }
         globalThis.__pendingEffects.push({
             name: eventName,
-            payload: {}
+            payload: (payload !== undefined && payload !== null) ? payload : {}
         });
         globalThis.__logs.push('event: ' + eventName);
     },"#

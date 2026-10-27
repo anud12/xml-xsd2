@@ -1,6 +1,5 @@
 import {StringReadOnlyExpression} from "../primitives/stringExpression";
 import {Expression} from "../Expression";
-import {ExpressionTypes} from "../primitives/primitiveExpression";
 import {MaybeReadOnlyExpression} from "../primitives/maybeExpression";
 import {NumberReadOnlyExpression} from "../primitives/numberExpression";
 import {ConditionReadOnlyExpression} from "../primitives/conditionExpression";
@@ -112,8 +111,6 @@ export type EventApplyContext = {
 export type SetEventArgs<Input, Output> = {
   name: StringReadOnlyExpression;
   description?: string;
-  input?: Record<string, { type: ExpressionTypes; description?: string }>;
-  output?: Record<string, { type: ExpressionTypes; description?: string }>;
   prepare?: (context: EventPrepareContext, input: Input /* structure declared in `this.input` */) => Output; /* returns structure declared in `this.output` */
   apply?: (context: EventApplyContext, output: Output /* passed from result of `this.prepare` */) => void;
 
