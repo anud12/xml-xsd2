@@ -14,13 +14,15 @@ export const getInventoryModule = memoize((hostApi) => {
             if (landId == null)
                 return;
             const idStr = String(landId);
-            // Deduct the land's cost from the game's value.
-            let cost = hostApi.runtime.number.of(0);
-            context.getMutableEntityBy({
+            // Deduct the land's cost from the game's value. `.exactlyOne()` yields the
+            // land's cost when exactly one land matches (it always does by id), and
+            // an absent value otherwise — so no captured mutable is needed.
+            const cost = context.getMutableEntityBy({
                 filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of(idStr))],
-            }).map((land) => {
-                cost = land.number_map.get("cost").orElse(hostApi.runtime.number.of(0));
-            });
+            })
+                .exactlyOne()
+                .map((land) => land.number_map.get("cost").orElse(hostApi.runtime.number.of(0)))
+                .orElse(hostApi.runtime.number.of(0));
             context.getMutableEntityBy({
                 filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
             }).map((game) => {

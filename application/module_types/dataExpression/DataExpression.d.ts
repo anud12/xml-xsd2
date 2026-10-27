@@ -16,5 +16,5 @@ export type DataExpression =
   | GridReadOnlyExpression
   | BehaviorReadOnlyExpression
   | ActionReadOnlyExpression
-  | EffectReadOnlyExpression
+  | EffectReadOnlyExpression<unknown, unknown>
   | AnimationReadOnlyExpression;

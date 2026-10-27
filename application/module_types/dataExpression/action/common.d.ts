@@ -22,8 +22,8 @@ export type ActionContext = {
   actor: EntityReadOnlyExpression;
   /** Raw arguments the action was invoked with (empty for no-input actions). */
   args: Record<string, any>;
-  /** Emit a registered effect (a {@link EffectReadOnlyExpression} reference) with arbitrary input. */
-  emitEffect: (effect: EffectReadOnlyExpression, input: Record<string, any>) => any;
+  /** Emit a registered effect (a {@link EffectReadOnlyExpression} reference). The `input` must match the effect's declared `prepare` input. */
+  emitEffect: <Input, Output>(effect: EffectReadOnlyExpression<Input, Output>, input: Input) => any;
   /** Query entities matching a filter. */
   getEntityBy: (entityFilter: EntityFilter) => ListReadOnlyExpression<EntityReadOnlyExpression>;
   /** Schedule the actor to idle for a temporal duration before resuming. */

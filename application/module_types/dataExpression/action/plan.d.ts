@@ -15,8 +15,10 @@ import { EffectReadOnlyExpression } from "../Effect";
  * `wait`/`move` steps walks to completion in the dispatch tick — the action
  * is instant.
  */
+export type EmitPlanStep<Input, Output> = { emit: { effect: EffectReadOnlyExpression<Input, Output>; payload: Input } };
+
 export type ActionPlanStep =
-  | { emit: { effect: EffectReadOnlyExpression; payload: Record<string, any> } }
+  | EmitPlanStep<unknown, unknown>
   | { wait: TemporalReadOnlyExpression }
   | {
       move: {

@@ -94,8 +94,8 @@ export type HostApi = {
     /** Returns the animation registration for the given name and duration configuration. */
     getAnimation: GetAnimationFunction,
 
-    /** Emits a registered event (an {@link EffectReadOnlyExpression} reference) with arbitrary payload. */
-    emitEvent: <T>(effect: EffectReadOnlyExpression, arguments: T) => void
+    /** Emits a registered event (an {@link EffectReadOnlyExpression} reference). The `arguments` must match the effect's declared `prepare` input. */
+    emitEvent: <Input, Output>(effect: EffectReadOnlyExpression<Input, Output>, arguments: Input) => void
     /** Logs a string message to the runtime log. */
     log:(string:string) => void;
 

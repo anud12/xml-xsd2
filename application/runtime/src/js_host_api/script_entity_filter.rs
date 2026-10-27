@@ -413,6 +413,10 @@ pub fn host_api_script_entity_filter() -> &'static str {
             }
           }
         };
+      },
+      exactlyOne: function () {
+        if (ids.length === 1) return presentMaybe(ids[0], globalThis.__entityProxy(ids[0]));
+        return absentMaybe;
       }
     };
   };
@@ -529,6 +533,10 @@ pub fn host_api_script_entity_filter() -> &'static str {
         if (ids.length > 0 && typeof cb === 'function') {
           cb(globalThis.__containerProxy(ids[0]));
         }
+      },
+      exactlyOne: function () {
+        if (ids.length === 1) return presentMaybe(ids[0], globalThis.__containerProxy(ids[0]));
+        return absentMaybe;
       }
     };
   };

@@ -8,16 +8,30 @@ import {ContainerMutableExpression} from "./Contaier";
 import {EntityFilter} from "../EntityFilter";
 import {ListReadOnlyExpression} from "../primitives/ListExpression";
 
+/** Phantom key: carries the effect's `prepare` input type through the reference. */
+export const EffectInputType: unique symbol;
+/** Phantom key: carries the effect's `prepare` output type through the reference. */
+export const EffectOutputType: unique symbol;
+
 /**
  * A read-only reference to a registered effect, returned by
  * `hostApi.runtime.setEffect`. Use it anywhere an effect is referenced.
+ *
+ * Generic over the effect's `prepare` input (`Input`) and output (`Output`).
+ * The emit-family functions (`emitEvent`/`emitEffect`) use `Input` to require
+ * that the payload passed when emitting matches what the effect's `prepare`
+ * expects, and return `Output`.
  */
-export type EffectReadOnlyExpression = Expression & {
+export type EffectReadOnlyExpression<Input, Output> = Expression & {
   /** The effect's name. */
   name: string;
+  /** Phantom: the input shape this effect's `prepare` expects (never present at runtime). */
+  readonly [EffectInputType]: Input;
+  /** Phantom: the output shape this effect's `prepare` produces (never present at runtime). */
+  readonly [EffectOutputType]: Output;
 }
 
-export type SetEffectFunction = <Input, Output>(argument: SetEventArgs<Input, Output>) => EffectReadOnlyExpression;
+export type SetEffectFunction = <Input, Output>(argument: SetEventArgs<Input, Output>) => EffectReadOnlyExpression<Input, Output>;
 
 export type EventPrepareContext = {
   /**
@@ -30,7 +44,7 @@ export type EventPrepareContext = {
    * The runtime enforces a recursion guard to prevent infinite synchronous
    * emission chains.
    */
-  emitEvent: <T>(effect: EffectReadOnlyExpression, input: Record<string, any>) => T;
+  emitEvent: <Input, Output>(effect: EffectReadOnlyExpression<Input, Output>, input: Input) => Output;
 
   /**
    * Query the entity repository for entities matching the given filter.

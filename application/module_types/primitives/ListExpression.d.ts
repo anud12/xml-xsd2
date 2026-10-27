@@ -60,4 +60,7 @@ export type ListReadOnlyExpression<T extends Expression> = PrimitiveReadOnlyExpr
 
   /** Deterministic selection of an element using the instance RNG (returns MaybeReadOnlyExpression) */
   randomElement: () => MaybeReadOnlyExpression<T>;
+
+  /** Extracts the element when the list holds exactly one value; an absent `MaybeReadOnlyExpression` when it holds zero or more than one. */
+  exactlyOne: () => MaybeReadOnlyExpression<T>;
 }

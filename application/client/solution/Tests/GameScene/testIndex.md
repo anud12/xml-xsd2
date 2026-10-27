@@ -45,6 +45,7 @@ Baseline panel rendering with no interactivity or data binding.
 | `EsModule` | ES module entrypoint loading and panel creation |
 | `Existence` | Panel existence (show/hide) verification |
 | `Expression/ListReadOnlyExpression/Count` | `count()` on a list expression: returns element count and updates when the list changes |
+| `Expression/ListReadOnlyExpression/ExactlyOne` | `exactlyOne()` on a list expression: present iff exactly one value, absent for zero or multiple |
 | `ExpressionInto` | Expression-to-value resolution in panel properties |
 | `Font/ColorChange` | Font color rendering |
 | `Font/SizeChange` | Font size rendering |
