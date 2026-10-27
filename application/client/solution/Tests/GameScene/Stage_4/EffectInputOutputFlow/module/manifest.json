@@ -1,0 +1,8 @@
+{
+  "id": "effect-input-output-flow",
+  "name": "Effect Input/Output Flow",
+  "version": "1.0.0",
+  "author": "test",
+  "description": "Verifies that the emit payload is delivered to prepare's `input` and prepare's return value is delivered to apply's `output`.",
+  "entry": "index.js"
+}
