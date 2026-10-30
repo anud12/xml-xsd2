@@ -256,6 +256,7 @@ fn tick_inner() -> Result<()> {
     resolve_field_values(&mut snapshot);
     resolve_progress_values(&mut snapshot);
     resolve_container_view_positions(&mut snapshot);
+    let snapshot = visible_nodes(&snapshot);
 
     // Keep the animation-definition store in sync for the fetch FFI (the
     // module's setAnimation calls filled __registeredAnimations at
@@ -757,6 +758,45 @@ fn num_json(n: f64) -> serde_json::Value {
     serde_json::Number::from_f64(n)
         .map(serde_json::Value::Number)
         .unwrap_or(serde_json::Value::Null)
+}
+
+fn node_children_ids(n: &UiNode) -> &[String] {
+    match n {
+        UiNode::Division { children, .. }
+        | UiNode::Text { children, .. }
+        | UiNode::Field { children, .. }
+        | UiNode::Window { children, .. }
+        | UiNode::Screen { children, .. }
+        | UiNode::Image { children, .. }
+        | UiNode::Progress { children, .. } => children,
+    }
+}
+
+/// A top-level surface is a window or a screen; a node enters the view only
+/// when it is a surface or reachable from one through `children`. Standalone
+/// nodes (and their subtrees) register but never reach the store.
+fn visible_nodes(snapshot: &[UiNode]) -> Vec<UiNode> {
+    let children_of: HashMap<&str, &[String]> = snapshot
+        .iter()
+        .map(|n| (n.id(), node_children_ids(n)))
+        .collect();
+    let mut keep: std::collections::HashSet<&str> = std::collections::HashSet::new();
+    let mut stack: Vec<&str> = snapshot
+        .iter()
+        .filter(|n| matches!(n, UiNode::Window { .. } | UiNode::Screen { .. }))
+        .map(|n| n.id())
+        .collect();
+    while let Some(id) = stack.pop() {
+        if !keep.insert(id) {
+            continue;
+        }
+        if let Some(children) = children_of.get(id) {
+            for c in *children {
+                stack.push(c);
+            }
+        }
+    }
+    snapshot.iter().filter(|n| keep.contains(n.id())).cloned().collect()
 }
 
 fn apply_diff(snapshot: &[UiNode]) -> Result<()> {

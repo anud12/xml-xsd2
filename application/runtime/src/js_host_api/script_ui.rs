@@ -32,6 +32,7 @@ if (globalThis.__uiHost && globalThis.hostApi) {
   globalThis.hostApi.ui.div = globalThis.__uiHost.div;
   hostApi.ui.text = globalThis.__uiHost.text;
   if (globalThis.__uiHost.window) hostApi.ui.window = globalThis.__uiHost.window;
+  if (globalThis.__uiHost.setScreen) hostApi.ui.setScreen = globalThis.__uiHost.setScreen;
   if (globalThis.__uiHost.field) hostApi.ui.field = globalThis.__uiHost.field;
   if (globalThis.__uiHost.image) hostApi.ui.image = globalThis.__uiHost.image;
   if (globalThis.__uiHost.canvas) hostApi.ui.canvas = globalThis.__uiHost.canvas;

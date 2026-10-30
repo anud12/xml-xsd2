@@ -31,7 +31,7 @@ export default (hostApi) => {
     apply: (context) => {
       context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(string.of("game"))],
-      }).map((entity) => {
+      }).forEach((entity) => {
         entity.number_map.put("progress", (cur) =>
           cur.map(v => v.sum(number.of(-1)))
         );

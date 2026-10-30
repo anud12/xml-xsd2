@@ -1,0 +1,7 @@
+{
+  "name": "module_types",
+  "version": "1.0.0",
+  "description": "Shared type definitions for the application",
+  "license": "ISC",
+  "types": "./global.d.ts"
+}

@@ -142,7 +142,15 @@ public partial class UiWindow
         TryNum(opts, "width", out var w);
         TryNum(opts, "height", out var h);
         _windowExplicitSize = new Vector2(w, h);
-        if (_windowExplicitSize != Vector2.Zero)
+        // A container view (top-level `container` option) stretches to fill
+        // its host window like a division; the declared extent is cached only
+        // for cursor-cell resolution, never as a fixed flow size, so a user
+        // resize of the host carries the view with it.
+        bool isContainerView = opts.ValueKind == JsonValueKind.Object
+            && opts.TryGetProperty("container", out var ctr)
+            && ctr.ValueKind == JsonValueKind.String
+            && !string.IsNullOrEmpty(ctr.GetString());
+        if (_windowExplicitSize != Vector2.Zero && !isContainerView)
         {
             // A user resize overrides the declared minimum so a shrunken size
             // is not clamped back up to the declared explicit size each frame.

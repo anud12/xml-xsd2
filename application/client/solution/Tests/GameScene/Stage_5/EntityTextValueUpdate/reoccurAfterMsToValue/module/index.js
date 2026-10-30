@@ -19,7 +19,7 @@ export default (hostApi) => {
       context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(string.of("entity_id"))],
       })
-        .map(elementExpr => {
+        .forEach(elementExpr => {
           elementExpr.number_map.put("key", (current) => current.map(v => v.sum(number.of(1))));
         })
     }

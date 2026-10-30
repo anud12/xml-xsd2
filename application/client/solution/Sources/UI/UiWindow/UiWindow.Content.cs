@@ -18,13 +18,14 @@ public partial class UiWindow
             GD.PushWarning($"ui: font file not found in archive: {path}");
             return null!;
         }
-        var dir = System.IO.Path.Combine(OS.GetUserDataDir(), "fonts");
-        System.IO.Directory.CreateDirectory(dir);
-        var hash = System.BitConverter.ToString(System.Security.Cryptography.SHA256.HashData(data).Take(8).ToArray()).Replace("-", "").ToLower();
-        var filePath = System.IO.Path.Combine(dir, "f_" + hash + ".ttf");
-        if (!System.IO.File.Exists(filePath))
-            System.IO.File.WriteAllBytes(filePath, data);
-        var font = (FontFile)Godot.ResourceLoader.Load(Godot.ProjectSettings.GlobalizePath("user://fonts/f_" + hash + ".ttf"));
+        var hash = string.Join("", System.Security.Cryptography.MD5.HashData(data)
+            .Take(8).Select(b => b.ToString("x2")));
+        var userFonts = ProjectSettings.GlobalizePath("user://fonts");
+        System.IO.Directory.CreateDirectory(userFonts);
+        var ttfPath = System.IO.Path.Combine(userFonts, "f_" + hash + ".ttf");
+        System.IO.File.WriteAllBytes(ttfPath, data);
+        var globPath = ProjectSettings.GlobalizePath("user://fonts/f_" + hash + ".ttf");
+        var font = ResourceLoader.Load<FontFile>(globPath);
         _fontCache[path] = font;
         return font;
     }

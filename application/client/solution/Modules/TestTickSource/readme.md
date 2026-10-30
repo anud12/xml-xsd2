@@ -11,8 +11,8 @@
 
 
 
-Initial flow
 
+# Flow
 An idle game with a finite end.
 A playthrough should be around 10 minutes.
 
@@ -26,3 +26,17 @@ The game needs conditions to end. To win the game you must have the highest scor
 Each ending has a different scoring rules.
 - Initial condition is interest, It starts at X and it must not breach 0
 - At at specific times (time/ combination of tags that are in play) would trigger other advancements/actions
+
+
+## Initial Flow
+Start with just an inventory.
+In it there is a single `outpost`(4 triple chevron `>>>` pointing to circle ) which would
+- allow "discovering" of "points of interest"
+- start with 3,
+- progress bar for "discovering" others
+
+
+### Points of interest
+  - Each point of interest can be surveyed and that will at tags
+    - can find minerals
+    - can find magic 

@@ -26,7 +26,7 @@ export const getValueModule = memoize((hostApi: HostApi) => {
     apply: (context) => {
       context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
-      }).map((entity) => {
+      }).forEach((entity) => {
         entity.number_map.put(key, (current) =>
           current.map(v =>
             v.isGreaterOrEqualTo(max)

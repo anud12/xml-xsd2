@@ -20,7 +20,7 @@ export default (hostApi) => {
         apply: (context, output) => {
             context.getMutableEntityBy({
                 filters: [(e) => e.id.isContainingExactly(string.of("game"))],
-            }).map((game) => {
+            }).forEach((game) => {
                 game.number_map.put("result", () => hostApi.runtime.maybe.of(output));
             });
         },

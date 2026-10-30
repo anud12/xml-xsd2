@@ -1,0 +1,99 @@
+# save.yaml — full save, YAML rendering of the same data as save.sql / save.db
+#
+# Note the quoting — it is load-bearing, not style:
+#   * side: "N" — quoted for parser variance (some YAML 1.1 parsers treat
+#     y/n as booleans; PyYAML does not). The sharper risk is yes/no/on/off:
+#     any *entity text value* spelled "no" silently becomes the boolean False.
+#   * savedAtUtc quoted — YAML 1.1 auto-converts ISO timestamps to date objects.
+
+formatVersion: 1
+savedAtUtc: "2026-10-16T12:00:00Z"
+
+module:
+  id: main-module
+  name: MainModule
+  version: 0.1.0
+
+elapsedTime: 12345
+
+entities:
+  node-1:
+    text: {}
+    number:
+      column: 3
+      row: 2
+  player:
+    text:
+      state: alive
+    number:
+      health: 87.5
+      energy: 40
+
+containers:
+  - id: grid-1
+    alignment: center
+    xKey: column
+    yKey: row
+    sizeX: { value: 40, outOfBounds: clamp }
+    sizeY: { value: 40, outOfBounds: clamp }
+    entities: [node-1]
+    # position-function snapshots (evaluated per entity at declaration time)
+    getX:     { node-1: 3 }
+    getY:     { node-1: 2 }
+    getSpanX: { node-1: 10 }
+    getSpanY: { node-1: 10 }
+
+sectorGrids:
+  cave:
+    cells:
+      - x: 0
+        y: 0
+        container: room-a
+        boundaryEdges:
+          - { square: [0, 0], side: "N" }
+          - { square: [0, 0], side: "E" }
+        openings:
+          - { cell: [0, 0], side: "N", start: 13, length: 4 }
+      - x: 1
+        y: 0
+        container: room-b
+        boundaryEdges:
+          - { square: [1, 0], side: "W" }
+        openings:
+          - { cell: [1, 0], side: "W", start: 7, length: 4 }
+    portals:
+      - id: p-0
+        a: { cell: [0, 0], side: "E", span: 3, length: 4 }
+        b: { cell: [1, 0], side: "W", span: 3, length: 4 }
+
+entityAreas:
+  player:
+    collider: [[0, 0], [40, 0], [40, 30], [0, 30]]
+
+scheduledEffects:
+  - name: repeat
+    payload: {}                  # opaque JS data — a native YAML node here,
+    nextExecTime: 12400          # not an embedded JSON string like in the .db
+    reoccurrenceInterval: 100
+    executionCount: 42
+
+activePlans:
+  - actionName: move-to-cursor
+    actor: node-1
+    resumeAt: 12345
+    interruptible: true
+    steps:                       # opaque, heterogeneous — also native here
+      - type: move
+        container: grid-1
+        entity: node-1
+        startX: 0
+        startY: 0
+        deltaX: 3
+        deltaY: 2
+        dist: 3.6
+        remX: 0
+        remY: 0
+        posX: 3
+        posY: 2
+        lastTick: 12345
+        speed: 2

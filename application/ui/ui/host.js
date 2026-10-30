@@ -36,14 +36,16 @@ function (root) {
     // by the last expansion, so resetContainers can drop them and restore the
     // view's marker between engine ticks.
     var sectorGridItems = Object.create(null);
-    // The global screen: each setScreen call registers a fresh screen node
-    // (host-owned id, so re-declarations never collide); the snapshot keeps
-    // only the latest one visible — earlier screens stay registered but
-    // unreachable (a no-op, like any orphan node).
-    var screenSeq = 0;
-    var currentScreenId = null;
-    var fontSeq = 0;
+    // The single global screen: a top-level surface like a window. Each
+    // setScreen call replaces the previous screen (and its subtree); the
+    // per-call id keeps the replacement visible to the id-diff as a
+    // remove + add.
+    var screenCounter = 0;
+    var currentScreen = null;
+    // Registered fonts, keyed by name. setFont stores the resolved config
+    // here; text/field nodes carry the config (plain JSON) on `font`.
     var fontRegistry = Object.create(null);
+    var fontCounter = 0;
 
     function transport() {
         var t = root.__uiTransport;
@@ -51,13 +53,6 @@ function (root) {
             throw new Error('ui: transport not installed on globalThis.__uiTransport');
         }
         return t;
-    }
-
-    function resolveFont(fontRef) {
-        if (!fontRef) return null;
-        var name = typeof fontRef === 'string' ? fontRef : fontRef.name;
-        if (!name || !fontRegistry[name]) return null;
-        return fontRegistry[name];
     }
 
     function requireId(id, kind) {
@@ -87,54 +82,55 @@ function (root) {
         }
         return String(v);
     }
-
-    // The *Expression handle a public factory returns for the node it
-    // registered: the same shape as the set*/world.sectorGrid handles (id on
-    // `.id`/`.value` plus toString/toJSON), so it flows into any id-accepting
-    // slot (children, binding.entity, args.container) or stringifies back to
-    // the raw id.
-    function nodeHandle(id) {
-        return {
-            id: id,
-            value: id,
-            toString: function () { return id; },
-            toJSON: function () { return id; }
-        };
+    // Font reference for text/field nodes: a setFont handle, its name
+    // string, or an inline config object. Resolves to the plain JSON config
+    // { file, size, color, style? } that the engine forwards to the
+    // renderer; null when no font is requested.
+    function resolveFontRef(v) {
+        if (v == null) return null;
+        if (typeof v === 'string') {
+            var reg = fontRegistry[v];
+            if (reg) return reg;
+            // Unregistered name: treat as an archive font path with the
+            // engine defaults.
+            return { file: v, size: 16, color: '#FFFFFF' };
+        }
+        if (typeof v === 'object') {
+            if (v.__font) return v.__font;
+            if (typeof v.file === 'string' && v.file.length > 0) {
+                var c = { file: v.file };
+                c.size = (typeof v.size === 'number' && v.size > 0) ? v.size : 16;
+                c.color = (typeof v.color === 'string' && v.color.length > 0) ? v.color : '#FFFFFF';
+                if (Array.isArray(v.style) && v.style.length > 0) c.style = v.style.slice();
+                return c;
+            }
+            var key = resolveId(v);
+            var byName = fontRegistry[key];
+            if (byName) return byName;
+            throw new Error('ui: unknown font reference "' + key + '"');
+        }
+        throw new Error('ui: fontRef must be a setFont handle, its name string, or a config object');
     }
 
-    // The *Expression handle for a node with an explicit children list
-    // (division/window): nodeHandle plus addChild, which appends a child
-    // after the node was created. The child resolves exactly like a factory
-    // children entry (a raw id or another handle); the same handle is
-    // returned so calls chain.
-    function parentHandle(id) {
-        var h = nodeHandle(id);
-        h.addChild = function (child) {
-            var node = nodes[id];
-            if (!node) {
-                throw new Error('ui: addChild on unknown node "' + id + '"');
-            }
-            node.children.push(childIds([child])[0]);
-            return h;
-        };
-        return h;
+    // A child reference (a `children` element or a render result): a raw id
+    // string or a node handle. Resolves to the plain id string the engine
+    // stores; null when the value is not a usable reference.
+    function childRefId(v) {
+        if (typeof v === 'string') return v.length > 0 ? v : null;
+        if (v != null && typeof v === 'object') {
+            var s = resolveId(v);
+            if (s.length > 0 && s !== '[object Object]') return s;
+        }
+        return null;
     }
 
     function childIds(children) {
         return (children || []).map(function (c) {
-            // A child is either a raw id string or a *Expression handle (an
-            // object); anything else (a number, null, ...) is rejected.
-            if (typeof c === 'string') {
-                if (c.length === 0) {
-                    throw new Error('ui: children must be node ids returned by ui.* factories');
-                }
-                return c;
+            var cid = childRefId(c);
+            if (cid == null) {
+                throw new Error('ui: children must be node ids or handles returned by ui.* factories');
             }
-            if (c != null && typeof c === 'object') {
-                var id = resolveId(c);
-                if (typeof id === 'string' && id.length > 0) return id;
-            }
-            throw new Error('ui: children must be node ids returned by ui.* factories');
+            return cid;
         });
     }
 
@@ -142,23 +138,49 @@ function (root) {
         return typeof c === 'string' && c.indexOf('$$container:') === 0;
     }
 
-    // Hover visuals must carry a concrete texture reference (an archive path
-    // or a sprite map ref) that the renderer can load directly; an animation
-    // (a { frames: [...] } registration or a { name } ref resolved through
-    // the registration store) resolves to its first frame's reference.
-    function animationFrames(v) {
+    // Hover/border visuals carry a UiTexture shape ({ animation, fill,
+    // nineSlice? }) or a bare animation reference. The engine needs a
+    // concrete first-frame reference for the texture slot, so resolve the
+    // animation with firstFrameRef and pass the paint rule / slice geometry
+    // through.
+    function resolveSlotVisual(v) {
+        if (v == null) return null;
+        if (typeof v === 'string') return v;
         if (!v || typeof v !== 'object') return null;
-        if (Array.isArray(v.frames)) return v.frames;
-        if (typeof v.name === 'string' && v.name.length > 0) {
-            var reg = (root.__registeredAnimations || {})[v.name];
-            if (reg && Array.isArray(reg.frames)) return reg.frames;
+        if (v.animation != null) {
+            var out = { animation: firstFrameRef(v.animation) };
+            if (v.fill != null) out.fill = v.fill;
+            if (v.nineSlice != null) out.nineSlice = v.nineSlice;
+            return out;
         }
-        return null;
+        return firstFrameRef(v);
     }
+
+    // Hover visuals must carry a concrete texture reference (an archive path
+    // or a sprite map ref) that the renderer can load directly; animation
+    // registrations ({ frames: [...] }) resolve to their first frame's
+    // reference.
+    // Reads a registration duration that may be a plain number or a wrapped
+    // NumberExpression ({ value }).
+    function regDuration(reg) {
+        if (!reg) return 1;
+        var d = reg.duration;
+        if (typeof d === 'number') return d;
+        if (d && typeof d === 'object' && typeof d.value === 'number') return d.value;
+        return 1;
+    }
+
     function firstFrameRef(v) {
         if (typeof v === 'string' && v.length > 0) return v;
-        var frames = animationFrames(v);
-        if (!frames) return null;
+        if (!v || typeof v !== 'object') return null;
+        // A named reference (a setAnimation handle or { name }) resolves
+        // through the animation registration store.
+        var frames = v.frames;
+        if (!Array.isArray(frames) && typeof v.name === 'string') {
+            var reg = (root.__registeredAnimations || {})[v.name];
+            if (reg && Array.isArray(reg.frames)) frames = reg.frames;
+        }
+        if (!Array.isArray(frames)) return null;
         for (var i = 0; i < frames.length; i++) {
             var f = frames[i];
             if (typeof f === 'string' && f.length > 0) return f;
@@ -180,116 +202,70 @@ function (root) {
         return null;
     }
 
-    // A texture is passed by reference, like a bound entity: an animation
-    // reference — the setAnimation handle (the object it returns) or a
-    // { name } ref. The renderer consumes a named reference
-    // { name, duration, loop }; normalize any accepted shape to that,
-    // resolving missing duration/loop from the registration store (the
-    // engine re-reads the registration live every tick). Normalizing to a
-    // plain object matters: the handle's toJSON degrades to a bare string
-    // under the register() JSON round-trip, and a bare string encodes as a
-    // static texture path, not an animation. A full registration object
-    // ({ frames: [...] }) is rejected — pass the name or handle instead.
-    function isAnimationRef(v) {
-        return !!v && typeof v === 'object'
-            && typeof v.name === 'string' && v.name.length > 0;
-    }
+    // A background may be a registered animation object (the registry
+    // reference itself, with no name of its own). The renderer consumes a
+    // named reference { name, duration, loop }, so resolve the object back to
+    // its registry key by reference equality (ui.getAnimation returns the
+    // stored object itself).
     function backgroundRef(v) {
-        if (!v || typeof v !== 'object' || !isAnimationRef(v)) {
-            throw new Error('ui: a texture animation must be an animation name or the setAnimation handle');
-        }
-        var reg = (root.__registeredAnimations || {})[v.name];
-        var ref = { name: v.name };
-        if (typeof v.duration === 'number' && isFinite(v.duration)) {
-            ref.duration = v.duration;
-        } else if (reg && typeof reg.duration === 'number' && isFinite(reg.duration)) {
-            ref.duration = reg.duration;
-        }
-        if (typeof v.loop === 'boolean') {
-            ref.loop = v.loop;
-        } else if (reg) {
-            ref.loop = reg.loop === true;
-        }
-        return ref;
-    }
-
-    // A valid per-axis paint rule value.
-    function isFillAxis(v) {
-        return v === 'stretch' || v === 'tile' || v === 'fit';
-    }
-
-    // Normalizes a unified texture slot `{ animation, fill, nineSlice? }` for
-    // the renderer wire. When `live` is true the animation is kept as a
-    // named reference ({ name, duration, loop }); when false (hover visuals
-    // and borders, which paint a fixed first frame) it is resolved to a
-    // concrete first-frame reference. Returns the input unchanged when it is
-    // already a plain normalized object, so callers can cheaply detect a
-    // no-op.
-    function normalizeTexture(v, live) {
-        // A texture slot is optional: an absent (null/undefined) slot is a no-op.
-        if (v == null) return v;
-        // A plain string is a static texture path (shorthand for { animation: <path> }).
-        if (typeof v === 'string' && v.length > 0) return v;
-        if (typeof v !== 'object' || Array.isArray(v)) {
-            throw new Error('ui: a texture must be an object { animation, fill, nineSlice? } or a string path');
-        }
-        var fill = v.fill;
-        if (!fill || typeof fill !== 'object' || !isFillAxis(fill.width) || !isFillAxis(fill.height)) {
-            throw new Error('ui: a texture fill must be an object { width: "stretch"|"tile"|"fit", height: "stretch"|"tile"|"fit", keepAspectRatio? }');
-        }
-        if (fill.keepAspectRatio != null && typeof fill.keepAspectRatio !== 'boolean') {
-            throw new Error('ui: a texture fill.keepAspectRatio must be a boolean');
-        }
-        var nineSlice = null;
-        if (v.nineSlice != null) {
-            if (typeof v.nineSlice.width !== 'number' || typeof v.nineSlice.height !== 'number'
-                || v.nineSlice.width < 0 || v.nineSlice.height < 0) {
-                throw new Error('ui: a texture nineSlice must be an object { width, height } with non-negative numbers');
+        if (typeof v === 'string') return v;
+        if (!v || typeof v !== 'object') return v;
+        if (typeof v.name === 'string') {
+            // A setAnimation handle stringifies to its bare name via toJSON,
+            // which the engine would read as a static texture path. Normalize
+            // it to a plain named reference (with the registration's timing).
+            if (typeof v.toJSON === 'function') {
+                var reg = (root.__registeredAnimations || {})[v.name];
+                return {
+                    name: v.name,
+                    duration: regDuration(reg),
+                    loop: !!(reg && reg.loop === true)
+                };
             }
-            nineSlice = { width: v.nineSlice.width, height: v.nineSlice.height };
-        }
-        var animation;
-        if (live) {
-            animation = backgroundRef(v.animation);
-        } else {
-            animation = firstFrameRef(v.animation);
-            if (animation == null) {
-                throw new Error('ui: a texture animation must resolve to a frame');
-            }
-        }
-        // A normalized object is the exact plain shape we emit, so re-normalizing
-        // it is a no-op (identity preserved for the callers' fast-path checks).
-        if (v.animation === animation && v.fill === fill
-            && (nineSlice == null ? v.nineSlice == null : v.nineSlice === nineSlice)) {
             return v;
         }
-        var out = { animation: animation, fill: fill };
-        if (nineSlice != null) out.nineSlice = nineSlice;
-        return out;
+        // UiTexture shape: { animation, fill, nineSlice? }. Resolve the
+        // animation ref (a registered object or {name}) and pass the paint
+        // rule (fill) and slice geometry (nineSlice) through for the engine.
+        if (v.animation != null) {
+            var out = { animation: backgroundRef(v.animation), fill: v.fill };
+            if (v.nineSlice != null) out.nineSlice = v.nineSlice;
+            return out;
+        }
+        var store = root.__registeredAnimations || {};
+        for (var k in store) {
+            if (store[k] === v) {
+                return {
+                    name: k,
+                    duration: typeof v.duration === 'number' ? v.duration : 1,
+                    loop: v.loop === true
+                };
+            }
+        }
+        return v;
     }
 
-    // Normalizes a live textured slot (background, progress fill/track): the
-    // animation is kept as a named reference for per-tick resolution.
-    function normalizeBackground(v) {
-        return normalizeTexture(v, true);
-    }
-
-    // Resolves a fixed textured slot (hover outline/background, border) to its
-    // first-frame reference.
-    function resolveFrameTex(v) {
-        return normalizeTexture(v, false);
+    // A progress fill/track reference: a non-empty archive path string, a
+    // named animation reference (the background shape, with a "name"), or a
+    // UiTexture ({ animation, fill, nineSlice? }) whose animation is valid.
+    function validProgressTexRef(v) {
+        if (typeof v === 'string') return v.length > 0;
+        if (!v || typeof v !== 'object') return false;
+        if (v.animation != null) return validProgressTexRef(v.animation);
+        return typeof v.name === 'string' && v.name.length > 0;
     }
 
     // A progress field (`value`/`min`/`max`) is a lambda
-    // `(entity: EntityExpression) => NumberExpression`. It either selects a
+    // `(entity: EntityExpression) => NumberExpression` that either selects a
     // field off the entity's number map (e.g.
     // `(e) => e.number_map.get("hp").orElse(0)`) or returns a constant
-    // NumberExpression (e.g. `(e) => number.of(3)`). We invoke the lambda
-    // against a capturing proxy whose number_map.get records the requested
-    // key and whose orElse records the default. A field select is re-read
-    // from the entity's number data every tick, using the captured orElse
-    // default when the key is absent; a constant is used as-is. Returns
-    // { key, fallback }: key null marks a constant.
+    // NumberReadOnlyExpression (e.g. `(e) => number.of(3)`). We invoke the
+    // lambda against a capturing proxy whose number_map.get records the
+    // requested key and whose orElse records the default. When the lambda
+    // selects a field the engine re-reads the key from the entity's number
+    // data every tick and uses the captured orElse default when the key is
+    // absent; when it returns a constant the value is used as-is (no re-read).
+    // Returns { key, fallback } where key is null for a constant.
     function progressFieldRef(fn, entity, label) {
         var ref = { key: null, fallback: 0 };
         var proxy = {
@@ -305,25 +281,26 @@ function (root) {
             getText: function () { return ''; }
         };
         var result = fn(proxy);
-        if (typeof ref.key === 'string' && ref.key.length > 0) {
-            if (typeof ref.fallback !== 'number' || !isFinite(ref.fallback)) {
-                throw new Error('ui: progress options.progress.' + label + ' lambda .orElse default must be a finite number');
+        if (typeof ref.key !== 'string' || ref.key.length === 0) {
+            // Constant lambda: no number_map.get call. In the simulation
+            // number.of(n) yields a raw number; capture it as the fallback.
+            var constant = typeof result === 'number' ? result
+                : (result && typeof result.value === 'number' ? result.value : NaN);
+            if (typeof constant !== 'number' || !isFinite(constant)) {
+                throw new Error('ui: progress options.progress.' + label + ' lambda must select a number_map field or return a constant number');
             }
-            return ref;
+            return { key: null, fallback: constant };
         }
-        if (typeof result !== 'number' || !isFinite(result)) {
-            throw new Error('ui: progress options.progress.' + label + ' lambda must select a number_map field via entity.number_map.get or return a finite number');
+        if (typeof ref.fallback !== 'number' || !isFinite(ref.fallback)) {
+            throw new Error('ui: progress options.progress.' + label + ' lambda .orElse default must be a finite number');
         }
-        ref.fallback = result;
         return ref;
     }
 
-    // A progress min/max is an entity-bound or constant lambda (field selects
-    // are re-read every tick) or, if omitted, a static default. Returns
-    // { key, fallback }: a field lambda yields { key: <captured field>,
-    // fallback: <orElse default> }, a constant lambda yields
-    // { key: null, fallback: <constant> }, and an omitted value yields
-    // { key: null, fallback: <static default> }.
+    // A progress min/max is an entity-bound lambda (re-read every tick) or, if
+    // omitted, a static default. Returns { key, fallback }: a lambda yields
+    // { key: <captured field>, fallback: <orElse default> }; an omitted value
+    // yields { key: null, fallback: <static default> }.
     function progressRange(opt, entity, label, staticDefault) {
         if (opt == null) {
             return { key: null, fallback: staticDefault };
@@ -343,7 +320,7 @@ function (root) {
     function normalizeOptions(options) {
         if (!options || typeof options !== 'object') return options;
         if (options.background == null) return options;
-        var bg = normalizeBackground(options.background);
+        var bg = backgroundRef(options.background);
         if (bg === options.background) return options;
         var copy = {};
         for (var k in options) {
@@ -357,20 +334,26 @@ function (root) {
         if (!options || typeof options !== 'object') return options;
         var h = options.onHover;
         if (!h || typeof h !== 'object') return options;
-        var texture = resolveFrameTex(h.texture);
-        var background = resolveFrameTex(h.background);
-        if (texture === h.texture && background === h.background) return options;
+        var needCopy = (h.texture != null && typeof h.texture !== 'string')
+            || (h.background != null && typeof h.background !== 'string');
+        if (!needCopy) return options;
         var copy = {};
         for (var k in options) {
             if (Object.prototype.hasOwnProperty.call(options, k)) copy[k] = options[k];
         }
         copy.onHover = {
-            texture: texture,
+            texture: h.texture,
             thickness: h.thickness,
-            background: background,
+            background: h.background,
             emitAction: h.emitAction,
             stopPropagation: h.stopPropagation
         };
+        if (copy.onHover.texture != null && typeof copy.onHover.texture !== 'string') {
+            copy.onHover.texture = resolveSlotVisual(copy.onHover.texture);
+        }
+        if (copy.onHover.background != null && typeof copy.onHover.background !== 'string') {
+            copy.onHover.background = resolveSlotVisual(copy.onHover.background);
+        }
         return copy;
     }
 
@@ -380,9 +363,8 @@ function (root) {
     function resolveBorderOptions(options) {
         if (!options || typeof options !== 'object') return options;
         var b = options.border;
-        if (!b || typeof b !== 'object' || b.texture == null) return options;
-        var texture = resolveFrameTex(b.texture);
-        if (texture === b.texture) return options;
+        if (!b || typeof b !== 'object') return options;
+        if (b.texture == null || typeof b.texture === 'string') return options;
         var copy = {};
         for (var k in options) {
             if (Object.prototype.hasOwnProperty.call(options, k)) copy[k] = options[k];
@@ -391,7 +373,7 @@ function (root) {
         for (var bk in b) {
             if (Object.prototype.hasOwnProperty.call(b, bk)) border[bk] = b[bk];
         }
-        border.texture = texture;
+        border.texture = resolveSlotVisual(b.texture);
         copy.border = border;
         return copy;
     }
@@ -454,8 +436,8 @@ function (root) {
                         if (result == null) continue;
                         var arr = Array.isArray(result) ? result : [result];
                         for (var k = 0; k < arr.length; k++) {
-                            var rid = resolveId(arr[k]);
-                            if (typeof rid === 'string' && rid.length > 0) itemIds.push(rid);
+                            var cid2 = childRefId(arr[k]);
+                            if (cid2 != null) itemIds.push(cid2);
                         }
                     }
                 }
@@ -483,10 +465,7 @@ function (root) {
     function expandContainerViews(entitiesFor) {
         for (var i = 0; i < order.length; i++) {
             var node = nodes[order[i]];
-            // A container view is a division (it must live under a window), so
-            // its marker is scanned on division nodes (windows are kept for
-            // safety, in case a view is ever nested directly in one).
-            if (!node || (node.kind !== 'window' && node.kind !== 'division')) continue;
+            if (!node || node.kind !== 'window') continue;
             if (!Array.isArray(node.children)) continue;
             var changed = false;
             for (var j = 0; j < node.children.length; j++) {
@@ -502,17 +481,18 @@ function (root) {
                     for (var e = 0; e < entities.length; e++) {
                         var result = render({ id: entities[e], index: e });
                         if (result == null) continue;
-                        // The render returns a single panel id (a raw string or
-                        // a node handle). If a module returns an array or
-                        // multiple, take the first id; the view cannot place
-                        // more than one panel per entity.
-                        var itemId = resolveId(Array.isArray(result) ? result[0] : result);
-                        if (typeof itemId !== 'string' || itemId.length === 0) continue;
-                        itemIds.push(itemId);
+                        // The render returns a single panel id (a string). If a
+                        // module returns an array or multiple, take the first
+                        // id; the view cannot place more than one panel per
+                        // entity.
+                        var itemId = Array.isArray(result) ? result[0] : result;
+                        var vid = childRefId(itemId);
+                        if (vid == null) continue;
+                        itemIds.push(vid);
                         // Stamp the item with its entity so the position pass
                         // can resolve geometry. The item node may be a window
                         // or division; both carry an options object.
-                        var itemNode = nodes[itemId];
+                        var itemNode = nodes[vid];
                         if (itemNode) {
                             if (!itemNode.options || typeof itemNode.options !== 'object')
                                 itemNode.options = {};
@@ -584,10 +564,11 @@ function (root) {
                             y: cell.y,
                             container: cell.container
                         });
-                        var itemId = resolveId(Array.isArray(pid) ? pid[0] : pid);
-                        if (typeof itemId !== 'string' || itemId.length === 0) continue;
-                        itemIds.push(itemId);
-                        var in1 = nodes[itemId];
+                        var itemId = Array.isArray(pid) ? pid[0] : pid;
+                        var gid = childRefId(itemId);
+                        if (gid == null) continue;
+                        itemIds.push(gid);
+                        var in1 = nodes[gid];
                         if (in1) {
                             if (!in1.options || typeof in1.options !== 'object') in1.options = {};
                             // Extend toward a same-container neighbour (no inset, so
@@ -939,7 +920,65 @@ function (root) {
         return node.id;
     }
 
+    // The UiNodeExpression handle a factory returns for a registered node:
+    // it carries the id on .id/.value and stringifies back to it
+    // (toString/toJSON), so it flows into any id-accepting slot (a parent's
+    // children, binding.entity, args.container) or where a plain id string
+    // is expected.
+    function nodeHandle(id) {
+        return {
+            id: id,
+            value: id,
+            toString: function () { return id; },
+            toJSON: function () { return id; }
+        };
+    }
+
+    // The UiParentExpression handle the child-hosting factories return: the
+    // node handle plus addChild, which appends a child (raw id or another
+    // node handle) to the node's children list after creation and returns
+    // the same handle so calls chain. The per-tick snapshot serializes the
+    // live children list, so the engine sees the append on its next tick.
+    function parentHandle(id) {
+        var h = nodeHandle(id);
+        h.addChild = function (child) {
+            var node = nodes[id];
+            var cid = childRefId(child);
+            if (!node || cid == null) {
+                throw new Error('ui: addChild requires a registered parent node and a child id or handle');
+            }
+            if (!Array.isArray(node.children)) node.children = [];
+            node.children.push(cid);
+            return h;
+        };
+        return h;
+    }
+
     var api = {
+        // Register a font file from the archive; returns a reference handle
+        // that text/field nodes accept as their fontRef. The handle
+        // stringifies back to its name, so the name string also works.
+        setFont: function (config) {
+            if (!config || typeof config !== 'object') {
+                throw new Error('ui: setFont config must be an object with file');
+            }
+            if (typeof config.file !== 'string' || config.file.length === 0) {
+                throw new Error('ui: setFont config.file must be a non-empty archive path string');
+            }
+            var entry = { file: config.file };
+            entry.size = (typeof config.size === 'number' && config.size > 0) ? config.size : 16;
+            entry.color = (typeof config.color === 'string' && config.color.length > 0) ? config.color : '#FFFFFF';
+            if (Array.isArray(config.style) && config.style.length > 0) entry.style = config.style.slice();
+            var name = '__ui-font-' + (++fontCounter);
+            fontRegistry[name] = entry;
+            return {
+                name: name,
+                value: name,
+                __font: entry,
+                toString: function () { return name; },
+                toJSON: function () { return name; }
+            };
+        },
         div: function (id, options, children) {
             var panel = (options && typeof options.panel === 'object' && options.panel) ? options.panel : {};
             return parentHandle(register({
@@ -950,7 +989,7 @@ function (root) {
             }));
         },
         window: function (id, options, children) {
-            var panel = (options && typeof options.panel === 'object' && options.panel) ? options.panel : {};
+            var panel = (options && typeof options.panel === 'object') ? options.panel : {};
             return parentHandle(register({
                 id: id,
                 kind: 'window',
@@ -958,50 +997,44 @@ function (root) {
                 children: childIds(children)
             }));
         },
-        // The global full-screen screen: the panel api minus positioning/
-        // sizing (the renderer fills the viewport). Presentation is nested
-        // under `screen`; only `background` is honored for now. Each call
-        // replaces the current screen (the previous screen node is dropped
-        // from the view on the next snapshot).
+        // The single global full-screen screen (a top-level surface like a
+        // window). `options.screen` carries the presentation (the renderer
+        // fills the viewport, so no position/size fields exist); each call
+        // replaces the previous screen and its subtree.
         setScreen: function (options, children) {
-            var scr = (options && typeof options.screen === 'object' && options.screen) ? options.screen : {};
-            screenSeq += 1;
-            var id = '__ui-screen-' + screenSeq;
-            currentScreenId = id;
+            if (!options || typeof options !== 'object') {
+                throw new Error('ui: setScreen options must be an object');
+            }
+            if (currentScreen != null) {
+                removeSubtree(currentScreen);
+            }
+            var screen = (options.screen && typeof options.screen === 'object')
+                ? options.screen
+                : options;
+            var opts = {};
+            for (var k in options) {
+                if (Object.prototype.hasOwnProperty.call(options, k)) opts[k] = options[k];
+            }
+            opts.screen = resolveBorderOptions(resolveHoverOptions(normalizeOptions(screen)));
+            var id = '__ui-screen-' + (++screenCounter);
+            currentScreen = id;
             return parentHandle(register({
                 id: id,
                 kind: 'screen',
-                options: { screen: normalizeOptions(scr) },
+                options: opts,
                 children: childIds(children)
             }));
         },
-        setFont: function (config) {
-            if (!config || typeof config !== 'object') {
-                throw new Error('ui: setFont config must be an object');
-            }
-            if (typeof config.file !== 'string' || config.file.length === 0) {
-                throw new Error('ui: setFont config.file is required (archive path to .ttf)');
-            }
-            var name = '__ui-font-' + (fontSeq++);
-            fontRegistry[name] = {
-                file: config.file,
-                size: typeof config.size === 'number' ? config.size : 16,
-                color: typeof config.color === 'string' ? config.color : '#FFFFFF'
-            };
-            return {
-                name: name, value: name,
-                toString: function() { return name; },
-                toJSON: function() { return name; }
-            };
-        },
         text: function (id, value, fontRef) {
-            return nodeHandle(register({
+            var node = {
                 id: id,
                 kind: 'text',
                 value: typeof value === 'string' ? value : String(value),
-                font: resolveFont(fontRef),
                 children: []
-            }));
+            };
+            var font = resolveFontRef(fontRef);
+            if (font) node.font = font;
+            return nodeHandle(register(node));
         },
         image: function (id, src) {
             requireId(id, 'image');
@@ -1030,7 +1063,7 @@ function (root) {
                 throw new Error('ui: entityList render must be a function(entity) => nodeIds');
             }
             containerRenders[name] = render;
-            return nodeHandle(register({
+            return parentHandle(register({
                 id: name,
                 kind: 'division',
                 options: { container: entityListContainer },
@@ -1059,11 +1092,10 @@ function (root) {
                 throw new Error('ui: containerView render must be a function(entity) => panelId');
             }
             containerViewRenders[name] = render;
-            // The view node is a division (it extends panel: the size/position/
-            // background/anchor live in `panel`). It is NOT a top-level surface:
-            // like a panel/entityList it must live under a window to be viewable.
-            // It carries `container`, `viewWidth`, `viewHeight` (top-level, for
-            // the per-tick position pass) plus `area?` and the resolved `panel`.
+            // The view node is a window (it extends panel: the size/position/
+            // background/anchor live in `panel`). It carries `container`,
+            // `viewWidth`, `viewHeight` (top-level, for the per-tick position
+            // pass) plus `area?` and the resolved `panel` config.
             var opts = {
                 container: containerViewContainer,
                 viewWidth: panel.width,
@@ -1071,9 +1103,9 @@ function (root) {
             };
             if (args.area != null) opts.area = args.area;
             opts.panel = resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel)));
-            return nodeHandle(register({
+            return parentHandle(register({
                 id: name,
-                kind: 'division',
+                kind: 'window',
                 options: opts,
                 children: [containerViewMarker(name)]
             }));
@@ -1107,7 +1139,7 @@ function (root) {
             opts.cellSize = (typeof args.cellSize === 'number' && args.cellSize > 0) ? args.cellSize : 32;
             if (args.cellGap != null) opts.cellGap = args.cellGap;
             if (args.portalThickness != null) opts.portalThickness = args.portalThickness;
-            return nodeHandle(register({
+            return parentHandle(register({
                 id: name,
                 kind: 'window',
                 options: opts,
@@ -1129,7 +1161,7 @@ function (root) {
                 throw new Error('ui: field binding.name must be a non-empty field name');
             }
             var fallback = typeof binding.fallback === 'string' ? binding.fallback : '';
-            return nodeHandle(register({
+            var node = {
                 id: id,
                 kind: 'field',
                 binding: {
@@ -1139,9 +1171,11 @@ function (root) {
                     fallback: fallback
                 },
                 value: fallback,
-                font: resolveFont(fontRef),
                 children: []
-            }));
+            };
+            var font = resolveFontRef(fontRef);
+            if (font) node.font = font;
+            return nodeHandle(register(node));
         },
         progress: function (id, options) {
             if (!options || typeof options !== 'object') {
@@ -1151,18 +1185,15 @@ function (root) {
             if (!progress || typeof progress !== 'object') {
                 throw new Error('ui: progress options.progress is required (an object)');
             }
-            var fill;
-            try {
-                fill = normalizeBackground(progress.fill);
-            } catch (e) {
-                throw new Error('ui: progress options.progress.fill ' + (e && e.message));
+            var fill = backgroundRef(progress.fill);
+            if (!validProgressTexRef(fill)) {
+                throw new Error('ui: progress options.progress.fill must be a non-empty archive path or animation');
             }
             var track = null;
             if (progress.track != null) {
-                try {
-                    track = normalizeBackground(progress.track);
-                } catch (e) {
-                    throw new Error('ui: progress options.progress.track ' + (e && e.message));
+                track = backgroundRef(progress.track);
+                if (!validProgressTexRef(track)) {
+                    throw new Error('ui: progress options.progress.track must be a non-empty archive path or animation');
                 }
             }
             var orientation = progress.orientation == null ? 'horizontal' : progress.orientation;
@@ -1188,10 +1219,10 @@ function (root) {
                 throw new Error('ui: progress options.progress.max is required (a lambda (entity) => NumberExpression)');
             }
             // value is a lambda: (entity: EntityExpression) => NumberExpression.
-            // It either selects a field via the entity's number_map api (the
-            // engine re-reads the field from the entity's number data every
-            // tick and uses the .orElse default when the field is absent) or
-            // returns a constant NumberExpression (used as-is).
+            // It uses the entity's number_map api to select the field; we
+            // capture the field name and the .orElse default (the engine
+            // re-reads the field from the entity's number data every tick and
+            // uses the default when the field is absent on the entity).
             var valueRef;
             try {
                 valueRef = progressFieldRef(progress.value, progress.entity, 'value');
@@ -1199,8 +1230,8 @@ function (root) {
                 throw new Error('ui: progress options.progress.value lambda threw: ' + (e && e.message));
             }
             // max is a required lambda; min is an optional lambda (default 0).
-            // The captured .orElse defaults / constants are the raw-value
-            // fallbacks used when a field is absent on the entity.
+            // The captured .orElse defaults are the raw-value fallbacks used
+            // when a field is absent on the entity.
             var maxRef;
             try {
                 maxRef = progressFieldRef(progress.max, progress.entity, 'max');
@@ -1208,6 +1239,8 @@ function (root) {
                 throw new Error('ui: progress options.progress.max lambda threw: ' + (e && e.message));
             }
             var minR = progressRange(progress.min, progress.entity, 'min', 0);
+            // Constant lambdas carry their value only as the fallback; the
+            // per-tick key is omitted so the engine keeps the static value.
             var binding = {
                 entity: entity,
                 map: 'number',
@@ -1215,8 +1248,6 @@ function (root) {
                 maxFallback: maxRef.fallback,
                 minFallback: minR.fallback
             };
-            // Field selects carry their key for the per-tick re-read; constant
-            // fields omit it (the engine keeps the captured value).
             if (valueRef.key != null) binding.name = valueRef.key;
             if (maxRef.key != null) binding.maxName = maxRef.key;
             if (minR.key != null) binding.minName = minR.key;
@@ -1241,40 +1272,9 @@ function (root) {
             }));
         },
         snapshot: function () {
-            // Only nodes reachable from a top-level surface belong to the view:
-            // a window, or the current screen (the latest setScreen). A
-            // standalone node (no window/screen ancestor) is a no-op: it
-            // registers, but is never added to the view.
-            var parent = Object.create(null);
-            for (var i = 0; i < order.length; i++) {
-                var pn = nodes[order[i]];
-                if (!pn || !Array.isArray(pn.children)) continue;
-                for (var k = 0; k < pn.children.length; k++) {
-                    var ck = pn.children[k];
-                    if (typeof ck === 'string' && nodes[ck]) parent[ck] = pn.id;
-                }
-            }
-            var visMemo = Object.create(null);
-            function visible(id) {
-                if (id in visMemo) return visMemo[id];
-                visMemo[id] = false;
-                var n = nodes[id];
-                var v = false;
-                if (n) {
-                    var p = parent[id];
-                    v = p == null
-                        ? (n.kind === 'window'
-                            || (n.kind === 'screen' && id === currentScreenId))
-                        : visible(p);
-                }
-                visMemo[id] = v;
-                return v;
-            }
             var out = [];
-            for (var i2 = 0; i2 < order.length; i2++) {
-                var nid = order[i2];
-                if (!visible(nid)) continue;
-                out.push(JSON.parse(JSON.stringify(nodes[nid])));
+            for (var i = 0; i < order.length; i++) {
+                out.push(JSON.parse(JSON.stringify(nodes[order[i]])));
             }
             return out;
         },
@@ -1287,8 +1287,10 @@ function (root) {
             containerViewItems = Object.create(null);
             sectorGridRenders = Object.create(null);
             sectorGridItems = Object.create(null);
-            screenSeq = 0;
-            currentScreenId = null;
+            screenCounter = 0;
+            currentScreen = null;
+            fontRegistry = Object.create(null);
+            fontCounter = 0;
         },
         loadSnapshot: function (arr) {
             nodes = Object.create(null);

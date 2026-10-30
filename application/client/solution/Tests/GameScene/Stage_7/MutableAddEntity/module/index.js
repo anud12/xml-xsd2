@@ -32,7 +32,7 @@ export default (hostApi) => {
 
       context.getMutableContainersBy({
         filters: [(c) => c.id.isContainingExactly(string.of("bag-1"))],
-      }).map((container) => {
+      }).forEach((container) => {
         container.addEntity(item);
       });
     },

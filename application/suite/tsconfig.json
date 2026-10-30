@@ -12,7 +12,7 @@
   },
   "include": [
     "src/test/resources/**/*.js",
-    "../module_types/**/*.d.ts",
+    "types/**/*.d.ts",
     "../client/solution/**/*.js"
   ]
 }

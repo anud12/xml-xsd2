@@ -12,7 +12,7 @@ namespace NewGameProject.UI;
 /// offset into that arena; `NoStr` means "no string".
 public static class UiAbi
 {
-    public const uint AbiVersion = 7;
+    public const uint AbiVersion = 8;
     public const uint NoStr = uint.MaxValue;
 
     public const uint KindDivision = 0;
@@ -118,18 +118,19 @@ public static class UiAbi
     }
 
     // Per-axis fill rules plus optional nine-slice geometry (mirrors the Rust
-    // UiPaintSpec). 16 bytes, align 4: five u8 flags, three pad bytes, two u32
-    // slice dims.
+    // UiPaintSpec). 12 bytes, align 4: a u32 flag word, two u32 slice dims.
     [StructLayout(LayoutKind.Sequential)]
     public struct UiPaintSpec
     {
-        public byte TileWidth;
-        public byte TileHeight;
-        public byte KeepAspect;
-        public byte FitWidth;
-        public byte FitHeight;
+        public uint Flags;
         public uint SliceWidth;
         public uint SliceHeight;
+
+        public const uint PaintTileWidth = 1u << 0;
+        public const uint PaintTileHeight = 1u << 1;
+        public const uint PaintKeepAspect = 1u << 2;
+        public const uint PaintFitWidth = 1u << 3;
+        public const uint PaintFitHeight = 1u << 4;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -200,6 +201,7 @@ public static class UiAbi
         public float FontSize;
         public uint FontColor;
         public uint FontStyle;
+        public byte ContainerView;
     }
 
     [StructLayout(LayoutKind.Sequential)]

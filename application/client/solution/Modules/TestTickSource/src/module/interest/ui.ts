@@ -14,7 +14,7 @@ export const interestUi = (hostApi:HostApi, game:EntityReadOnlyExpression) => {
   });
 
   const track = hostApi.runtime.setAnimation(hostApi.runtime.string.of("track"), {
-    frames: [{ sprite: hostApi.ui.getSpritePNG("black_pixel.png") }],
+    frames: [{ sprite: hostApi.ui.getSpritePNG("assets/black_pixel.png") }],
     duration: hostApi.runtime.number.of(1),
   });
 
@@ -24,7 +24,7 @@ export const interestUi = (hostApi:HostApi, game:EntityReadOnlyExpression) => {
     apply: (context) => {
       context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
-      }).map((entity) => {
+      }).forEach((entity) => {
         entity.number_map.put(module.propertyKey, (current) => current.map(c => c.sum(hostApi.runtime.number.of(10))));
       });
     },

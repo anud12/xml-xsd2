@@ -109,6 +109,80 @@ pub fn host_api_script_entity_filter() -> &'static str {
     };
   }
 
+  // A NumberExpression value over a concrete number: comparisons return
+  // condition objects, arithmetic returns new values. Carries _raw for
+  // extraction and valueOf so plain arithmetic still coerces.
+  function numValue(v) {
+    v = Number(v);
+    function numOf(x) {
+      return (typeof x === 'object' && x !== null)
+        ? (x._raw !== undefined ? x._raw : x.value) : x;
+    }
+    var self = {
+      _raw: v,
+      value: v,
+      valueOf: function () { return v; },
+      of: function (x) { return numValue(numOf(x)); },
+      toString: function () { return String(v); },
+      toJSON: function () { return v; },
+      isGreaterThan: function (t) { return conditionOf(v > Number(numOf(t)), self); },
+      isLessThan: function (t) { return conditionOf(v < Number(numOf(t)), self); },
+      isGreaterOrEqualTo: function (t) { return conditionOf(v >= Number(numOf(t)), self); },
+      isLessOrEqualTo: function (t) { return conditionOf(v <= Number(numOf(t)), self); },
+      isEqualTo: function (t) { return conditionOf(v === Number(numOf(t)), self); },
+      isNotEqualTo: function (t) { return conditionOf(v !== Number(numOf(t)), self); },
+      sum: function (d) { return numValue(v + Number(numOf(d))); },
+      subtract: function (d) { return numValue(v - Number(numOf(d))); },
+      multiply: function (d) { return numValue(v * Number(numOf(d))); },
+      divide: function (d) { return numValue(v / Number(numOf(d))); },
+      modulo: function (d) { return numValue(v % Number(numOf(d))); },
+      toStringExpression: function () { return String(v); }
+    };
+    return self;
+  }
+
+  // ArrayReadOnlyExpression over concrete values (mapped results): length/
+  // count as number values, map transforms into a new value list,
+  // exactlyOne -> a Maybe over the single element.
+  globalThis.__makeValueList = function (values, elementWrap) {
+    if (!Array.isArray(values)) values = [];
+    elementWrap = elementWrap || function (v) { return v; };
+    return {
+      of: function () {
+        var args = Array.prototype.slice.call(arguments);
+        return globalThis.__makeValueList(args, function (v) { return v; });
+      },
+      map: function (cb) {
+        var out = [];
+        if (typeof cb === 'function') {
+          for (var i = 0; i < values.length; i++) {
+            try { out.push(cb(elementWrap(values[i]), i)); } catch (e) { }
+          }
+        }
+        return globalThis.__makeValueList(out, function (v) { return v; });
+      },
+      forEach: function (cb) {
+        if (typeof cb !== 'function') return;
+        for (var i = 0; i < values.length; i++) {
+          try { cb(elementWrap(values[i]), i); } catch (e) { }
+        }
+      },
+      size: function () { return values.length; },
+      length: function () { return numValue(values.length); },
+      count: function () { return numValue(values.length); },
+      get: function (index) {
+        var i = Number(index);
+        if (isNaN(i)) i = 0;
+        if (i < 0 || i >= values.length) return absentMaybe;
+        return presentMaybe(values[i], elementWrap(values[i]));
+      },
+      exactlyOne: function () {
+        if (values.length === 1) return presentMaybe(values[0], elementWrap(values[0]));
+        return absentMaybe;
+      }
+    };
+  };
+
   // The per-entity query surface handed to FilterLambda predicates and list
   // element accessors.
   globalThis.__entityProxy = function (id) {
@@ -380,9 +454,13 @@ pub fn host_api_script_entity_filter() -> &'static str {
     }
     return {
       map: function (cb) {
-        for (var i = 0; i < ids.length; i++) {
-          try { cb(globalThis.__entityProxy(ids[i])); } catch (e) { }
+        var out = [];
+        if (typeof cb === 'function') {
+          for (var i = 0; i < ids.length; i++) {
+            try { out.push(cb(globalThis.__entityProxy(ids[i]), i)); } catch (e) { }
+          }
         }
+        return globalThis.__makeValueList(out, function (v) { return v; });
       },
       forEach: function (cb) {
         for (var i = 0; i < ids.length; i++) {
@@ -470,7 +548,14 @@ pub fn host_api_script_entity_filter() -> &'static str {
         isContaining: function (o) { return conditionOf(String(cid).indexOf(String(o)) >= 0, { _raw: cid }); },
         isContainingExactly: function (o) { return conditionOf(String(cid) === String(o), { _raw: cid }); }
       },
-      entities: data.entities || [],
+      entities: (function () {
+        var ids = (data.entities || []).map(function (e) {
+          return (typeof e === 'object' && e !== null && typeof e.value === 'string') ? e.value : String(e);
+        });
+        return globalThis.__makeValueList(ids, function (eid) {
+          return globalThis.__entityProxy(String(eid));
+        });
+      })(),
       textMap: data.textMap || {},
       numberMap: data.numberMap || {},
       addEntity: function (entity) {
@@ -505,9 +590,13 @@ pub fn host_api_script_entity_filter() -> &'static str {
   globalThis.__makeContainerList = function (ids) {
     return {
       map: function (cb) {
-        for (var i = 0; i < ids.length; i++) {
-          try { cb(globalThis.__containerProxy(ids[i])); } catch (e) { }
+        var out = [];
+        if (typeof cb === 'function') {
+          for (var i = 0; i < ids.length; i++) {
+            try { out.push(cb(globalThis.__containerProxy(ids[i]), i)); } catch (e) { }
+          }
         }
+        return globalThis.__makeValueList(out, function (v) { return v; });
       },
       forEach: function (cb) {
         for (var i = 0; i < ids.length; i++) {

@@ -1,6 +1,7 @@
 import {EntityReadOnlyExpression} from "./Entity";
 import {NumberReadOnlyExpression} from "../primitives/numberExpression";
 import {StringReadOnlyExpression} from "../primitives/stringExpression";
+import {ArrayReadOnlyExpression} from "../primitives/arrayExpression";
 import {Expression} from "../Expression";
 
 export type ContainerCreationArguments = {
@@ -96,8 +97,8 @@ export type OutOfBoundsRule = "unbound" | "clamp" | "wrap"
 export type ContainerReadOnlyExpression = Expression & {
   /** The container's id. */
   id: StringReadOnlyExpression;
-  /** Member entities (an {@link EntityReadOnlyExpression} reference). */
-  entities: Array<EntityReadOnlyExpression>;
+  /** Member entities (an {@link ArrayReadOnlyExpression} of {@link EntityReadOnlyExpression} references). */
+  entities: ArrayReadOnlyExpression<EntityReadOnlyExpression>;
   /** Keyed string metadata. */
   textMap?: Record<string, StringReadOnlyExpression>;
   /** Keyed numeric metadata. */

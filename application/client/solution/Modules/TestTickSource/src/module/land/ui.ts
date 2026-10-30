@@ -12,7 +12,7 @@ export const landUi = (hostApi: HostApi) => {
   const inventory = getInventoryModule(hostApi);
 
   const track = hostApi.runtime.setAnimation(hostApi.runtime.string.of("land-track"), {
-    frames: [{ sprite: hostApi.ui.getSpritePNG("black_pixel.png") }],
+    frames: [{ sprite: hostApi.ui.getSpritePNG("assets/black_pixel.png") }],
     duration: hostApi.runtime.number.of(1),
   });
 

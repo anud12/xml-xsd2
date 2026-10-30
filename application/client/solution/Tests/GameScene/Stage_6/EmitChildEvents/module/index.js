@@ -22,7 +22,7 @@ export default (hostApi) => {
     name: string.of("key-modify-if-par"),
     prepare: (context, input) => {
       let output = hostApi.runtime.condition.of(false);
-      context.getEntityBy(filter).map(elementExpr => {
+      context.getEntityBy(filter).forEach(elementExpr => {
         output = elementExpr.number_map.get(key)
           .map(v => v.modulo(number.of(2))
             .isEqualTo(number.of(0)))
@@ -32,13 +32,13 @@ export default (hostApi) => {
     },
     apply:(context, output) => {
       output.ifTrue(() => {
-        context.getMutableEntityBy(filter).map(elementExpr => {
+        context.getMutableEntityBy(filter).forEach(elementExpr => {
           elementExpr.text_map.put("isModified", () => hostApi.runtime.maybe.of(string.of("Yes")))
         })
         return number.of(1);
       })
       output.ifFalse(() => {
-        context.getMutableEntityBy(filter).map(elementExpr => {
+        context.getMutableEntityBy(filter).forEach(elementExpr => {
           elementExpr.text_map.put("isModified", () => hostApi.runtime.maybe.of(string.of("No")))
         })
         return number.of(0);
@@ -61,7 +61,7 @@ export default (hostApi) => {
       const shouldDouble = output.value;
 
       context.getMutableEntityBy(filter)
-        .map(elementExpr => {
+        .forEach(elementExpr => {
           shouldDouble.ifFalse(() => {
             elementExpr.number_map.put(key, (current) => current.map(v => v.sum(number.of(1))));
             return number.of(1);

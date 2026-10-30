@@ -79,9 +79,9 @@
     <Content Include="Modules\TestTickSource\node_modules\typescript\ThirdPartyNoticeText.txt" />
     <Content Include="Modules\TestTickSource\package-lock.json" />
     <Content Include="Modules\TestTickSource\package.json" />
+    <Content Include="Modules\TestTickSource\readme.md" />
     <Content Include="Modules\TestTickSource\tsconfig.json" />
     <Content Include="Modules\TestTick\manifest.json" />
-    <Content Include="Modules\TestTick\readme.md" />
     <Content Include="Modules\TestTick\fonts\Ubuntu-Regular.ttf" />
     <Content Include="Tests\Cases\**\*.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

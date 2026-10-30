@@ -17,7 +17,7 @@ export default (hostApi) => {
     prepare: () => ({value: true}),
     apply: (ctx) => {
       ctx.getMutableEntityBy(twoKeys)
-        .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
+        .forEach(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
           v.map(string.of("marked"));
         }))
     }
@@ -31,7 +31,7 @@ export default (hostApi) => {
       /** @type {any} */
       const unknown = { something: string.of("else") };
       ctx.getMutableEntityBy(unknown)
-        .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
+        .forEach(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
           v.map(string.of("marked"));
         }))
     }
@@ -45,7 +45,7 @@ export default (hostApi) => {
       /** @type {any} */
       const asString = string.of("m");
       ctx.getMutableEntityBy(asString)
-        .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
+        .forEach(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
           v.map(string.of("marked"));
         }))
     }
@@ -59,7 +59,7 @@ export default (hostApi) => {
       /** @type {any} */
       const legacy = { id: id => id.isContainingExactly(string.of("m")) };
       ctx.getMutableEntityBy(legacy)
-        .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
+        .forEach(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
           v.map(string.of("marked"));
         }))
     }
@@ -72,7 +72,7 @@ export default (hostApi) => {
     apply: (ctx) => {
       // @ts-expect-error deliberately malformed filter for error-path test
       ctx.getMutableEntityBy(null)
-        .map(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
+        .forEach(ee => ee.text_map.get(string.of("flag")).ifPresent(v => {
           v.map(string.of("marked"));
         }))
     }

@@ -22,7 +22,7 @@ export default (hostApi) => {
       apply: (context) => {
         context.getMutableEntityBy({
           filters: [(e) => e.id.isContainingExactly(string.of("entity_id"))]
-        }).map(el => {
+        }).forEach(el => {
           el.text_map.put("label", () => hostApi.runtime.maybe.of(
             el.number_map.get("value").orElse(number.of(0)).toStringExpression()
           ));

@@ -54,7 +54,7 @@ export default (hostApi) => {
     apply: (context) => {
       context.getMutableContainersBy({
         filters: [(c) => c.id.isContainingExactly(string.of("inventory"))],
-      }).map((container) => {
+      }).forEach((container) => {
         container.addEntity(sword);
       });
     },
@@ -65,7 +65,7 @@ export default (hostApi) => {
     apply: (context) => {
       context.getMutableContainersBy({
         filters: [(c) => c.id.isContainingExactly(string.of("inventory"))],
-      }).map((container) => {
+      }).forEach((container) => {
         container.addEntity(shield);
       });
     },

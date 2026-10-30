@@ -53,7 +53,7 @@ export default (hostApi) => {
 
       ctx.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(string.of("game"))],
-      }).map((game) => {
+      }).forEach((game) => {
         game.number_map.put("one", () => hostApi.runtime.maybe.of(one));
         game.number_map.put("zero", () => hostApi.runtime.maybe.of(zero));
         game.number_map.put("multi", () => hostApi.runtime.maybe.of(multi));

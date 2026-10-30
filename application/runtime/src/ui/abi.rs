@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use super::UiNode as DomainNode;
 use super::UiDeltaOp as DomainDeltaOp;
 
-pub const UI_ABI_VERSION: u32 = 7;
+pub const UI_ABI_VERSION: u32 = 8;
 /// Sentinel string offset: "no string" (absent value/src/optional option).
 pub const NO_STR: u32 = u32::MAX;
 
@@ -139,24 +139,22 @@ pub struct UiLayout {
 /// nine-slice whose source center is transparent).
 #[repr(C)]
 pub struct UiPaintSpec {
-    pub tile_width: u8,
-    pub tile_height: u8,
-    pub keep_aspect: u8,
-    pub fit_width: u8,
-    pub fit_height: u8,
+    pub flags: u32,
     pub slice_width: u32,
     pub slice_height: u32,
 }
+
+pub const PAINT_TILE_WIDTH: u32 = 1 << 0;
+pub const PAINT_TILE_HEIGHT: u32 = 1 << 1;
+pub const PAINT_KEEP_ASPECT: u32 = 1 << 2;
+pub const PAINT_FIT_WIDTH: u32 = 1 << 3;
+pub const PAINT_FIT_HEIGHT: u32 = 1 << 4;
 
 impl UiPaintSpec {
     /// Plain independent-axis stretch (no tile, no aspect, no fit, no slice).
     fn stretch() -> Self {
         UiPaintSpec {
-            tile_width: 0,
-            tile_height: 0,
-            keep_aspect: 0,
-            fit_width: 0,
-            fit_height: 0,
+            flags: 0,
             slice_width: 0,
             slice_height: 0,
         }
@@ -165,7 +163,7 @@ impl UiPaintSpec {
     /// Full-rect cover: uniform scale, centered, overflow clipped.
     fn cover() -> Self {
         let mut s = Self::stretch();
-        s.keep_aspect = 1;
+        s.flags |= PAINT_KEEP_ASPECT;
         s
     }
 
@@ -181,8 +179,12 @@ impl UiPaintSpec {
     /// Tile along one axis, stretch the other (progress bars).
     fn tile_axis(tile_width: bool, tile_height: bool) -> Self {
         let mut s = Self::stretch();
-        s.tile_width = tile_width as u8;
-        s.tile_height = tile_height as u8;
+        if tile_width {
+            s.flags |= PAINT_TILE_WIDTH;
+        }
+        if tile_height {
+            s.flags |= PAINT_TILE_HEIGHT;
+        }
         s
     }
 }
@@ -266,6 +268,11 @@ pub struct UiNodeOptions {
     pub font_size: f32,
     pub font_color: u32,
     pub font_style: u32,
+    /// 1 when this node is a container view (top-level `container` option, as
+    /// opposed to a board panel whose container lives in the layout spec): a
+    /// division stretched over its host window, which the renderer must treat
+    /// as one for mouse input (pass-through at the host resize zones).
+    pub container_view: u8,
 }
 
 #[repr(C)]
@@ -774,6 +781,7 @@ fn empty_options() -> UiNodeOptions {
         font_size: 0.0,
         font_color: 0,
         font_style: 0,
+        container_view: 0,
     }
 }
 
@@ -930,11 +938,23 @@ fn apply_fill(b: &mut UiBackground, fill: &Value) {
     let axis = |key: &str| -> (&str) {
         m.get(key).and_then(|v| v.as_str()).unwrap_or("stretch")
     };
-    b.paint.tile_width = (axis("width") == "tile") as u8;
-    b.paint.tile_height = (axis("height") == "tile") as u8;
-    b.paint.fit_width = (axis("width") == "fit") as u8;
-    b.paint.fit_height = (axis("height") == "fit") as u8;
-    b.paint.keep_aspect = m.get("keepAspectRatio").and_then(|v| v.as_bool()).unwrap_or(false) as u8;
+    let mut flags: u32 = 0;
+    if axis("width") == "tile" {
+        flags |= PAINT_TILE_WIDTH;
+    }
+    if axis("height") == "tile" {
+        flags |= PAINT_TILE_HEIGHT;
+    }
+    if axis("width") == "fit" {
+        flags |= PAINT_FIT_WIDTH;
+    }
+    if axis("height") == "fit" {
+        flags |= PAINT_FIT_HEIGHT;
+    }
+    if m.get("keepAspectRatio").and_then(|v| v.as_bool()).unwrap_or(false) {
+        flags |= PAINT_KEEP_ASPECT;
+    }
+    b.paint.flags = flags;
 }
 
 /// Resolves an optional wire `nineSlice` object `{ width, height }` into the
@@ -1379,19 +1399,28 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     // spec (panel.layout.container); for a container-view it is the top-level
     // `container` (the grid being viewed). Prefer the layout container (board
     // pattern), else the top-level container (container-view).
-    o.container = panel
+    let layout_container = panel
         .get("layout")
         .and_then(|l| l.as_object())
         .and_then(|l| l.get("container"))
         .and_then(|c| c.as_str())
-        .filter(|s| !s.is_empty())
-        .or_else(|| {
-            opts.get("container")
-                .and_then(|c| c.as_str())
-                .filter(|s| !s.is_empty())
-        })
+        .filter(|s| !s.is_empty());
+    let top_container = opts
+        .get("container")
+        .and_then(|c| c.as_str())
+        .filter(|s| !s.is_empty());
+    o.container = layout_container
+        .or(top_container)
         .map(|s| slab.intern(s))
         .unwrap_or(NO_STR);
+    // A container view (top-level container, no layout container) is a
+    // division stretched over its host window; the renderer must treat it as
+    // one for mouse input (pass-through at the host resize zones).
+    o.container_view = if layout_container.is_none() && top_container.is_some() {
+        1
+    } else {
+        0
+    };
     // resizable: a bare boolean, or an object { keepAspectRatio }. Both enable
     // resize; the object form additionally locks the aspect ratio.
     match panel.get("resizable") {
@@ -1755,12 +1784,12 @@ mod tests {
         assert_eq!(s.size_background, 48);
         assert_eq!(s.size_paint_spec, 12);
         assert_eq!(s.size_on_hover, 44);
-        assert_eq!(s.size_options, 384);
-        assert_eq!(s.size_node, 432);
+        assert_eq!(s.size_options, 392);
+        assert_eq!(s.size_node, 440);
         assert_eq!(s.size_animation, 24);
         assert_eq!(s.size_snapshot, 40);
         assert_eq!(s.size_delta, 32);
-        assert_eq!(s.size_delta_op, 440);
+        assert_eq!(s.size_delta_op, 448);
         // Pointer offsets land on 8-byte boundaries.
         for off in [
             s.off_node_children,

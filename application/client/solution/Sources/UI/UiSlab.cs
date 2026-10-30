@@ -143,6 +143,8 @@ public static class UiSlab
         var hover = SerializeOnHover(o.OnHover, arena);
         if (hover != null) Add("onHover", hover);
         AddStr("container", o.Container);
+        if (o.ContainerView != 0)
+            Add("containerView", "true");
         if (o.Resizable != 0)
         {
             if (o.ResizableKeepAspect != 0)
@@ -262,11 +264,11 @@ public static class UiSlab
     static string SerializePaint(UiAbi.UiPaintSpec p)
     {
         var sb = new StringBuilder("{");
-        sb.Append("\"tileWidth\":").Append(p.TileWidth != 0 ? "true" : "false");
-        sb.Append(",\"tileHeight\":").Append(p.TileHeight != 0 ? "true" : "false");
-        sb.Append(",\"keepAspect\":").Append(p.KeepAspect != 0 ? "true" : "false");
-        sb.Append(",\"fitWidth\":").Append(p.FitWidth != 0 ? "true" : "false");
-        sb.Append(",\"fitHeight\":").Append(p.FitHeight != 0 ? "true" : "false");
+        sb.Append("\"tileWidth\":").Append((p.Flags & UiAbi.UiPaintSpec.PaintTileWidth) != 0 ? "true" : "false");
+        sb.Append(",\"tileHeight\":").Append((p.Flags & UiAbi.UiPaintSpec.PaintTileHeight) != 0 ? "true" : "false");
+        sb.Append(",\"keepAspect\":").Append((p.Flags & UiAbi.UiPaintSpec.PaintKeepAspect) != 0 ? "true" : "false");
+        sb.Append(",\"fitWidth\":").Append((p.Flags & UiAbi.UiPaintSpec.PaintFitWidth) != 0 ? "true" : "false");
+        sb.Append(",\"fitHeight\":").Append((p.Flags & UiAbi.UiPaintSpec.PaintFitHeight) != 0 ? "true" : "false");
         sb.Append(",\"sliceWidth\":").Append(p.SliceWidth);
         sb.Append(",\"sliceHeight\":").Append(p.SliceHeight);
         sb.Append('}');

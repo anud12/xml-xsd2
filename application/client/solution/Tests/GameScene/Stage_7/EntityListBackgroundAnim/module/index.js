@@ -57,7 +57,7 @@ export default (hostApi) => {
     apply: (context) => {
       context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(string.of("game"))],
-      }).map((g) => {
+      }).forEach((g) => {
         const count = g.number_map.get("landCount").orElse(number.of(0));
         const next = count.sum(number.of(1));
         const item = hostApi.runtime.setEntity({
@@ -68,7 +68,7 @@ export default (hostApi) => {
         context.createEntity(item);
         context.getMutableContainersBy({
           filters: [(c) => c.id.isContainingExactly(string.of("inventory"))],
-        }).map((container) => {
+        }).forEach((container) => {
           container.addEntity(item);
         });
         g.number_map.put("landCount", () => hostApi.runtime.maybe.of(next));

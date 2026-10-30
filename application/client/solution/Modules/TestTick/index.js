@@ -16,7 +16,7 @@ const entry = (hostApi) => {
         numberMap: {
             ...interest.entityNumberMap,
             ...value.entityNumberMap,
-            landCount: hostApi.runtime.number.of(0),
+            [land.genKey]: hostApi.runtime.number.of(0),
         },
     });
     interest.initialize();

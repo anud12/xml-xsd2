@@ -19,30 +19,47 @@ public partial class RootNode
             if (childNode.Kind != UiNodeKind.Text && childNode.Kind != UiNodeKind.Field) continue;
             if (!_windows.TryGetValue(node.Id, out var win)) continue;
             if (!byId.TryGetValue(childNode.Id, out _)) continue;
-            if (win.GetNodeOrNull<Label>("text") != null) continue;
 
-            if (_windows.TryGetValue(childNode.Id, out var childWin))
+            // A folded field is re-materialized in Pass 1 every frame and would
+            // persist as a duplicate "text" label showing stale value over the
+            // host's live label; free it each frame so only the host label
+            // remains. Text children are static (their re-materialized window
+            // renders identically to the host label) and keep the legacy
+            // frame-1-only free below.
+            if (childNode.Kind == UiNodeKind.Field
+                && _windows.TryGetValue(childNode.Id, out var fieldWin))
             {
-                childWin.QueueFree();
+                fieldWin.QueueFree();
                 _windows.Remove(childNode.Id);
-                _hoverStates.Remove(childWin);
-                _flattenedFields.Remove(childNode.Id);
+                _hoverStates.Remove(fieldWin);
             }
-            var label = new Label
+
+            var label = win.GetNodeOrNull<Label>("text");
+            if (label == null)
             {
-                Name = "text",
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            label.SetAnchorsPreset(LayoutPreset.FullRect);
-            ApplyLabelAlignment(label, ParseOptions(node), ParseOptions(childNode));
-            win.AddChild(label);
-            label.Text = childNode.Value;
-            if (childNode.Font != null)
-                win.ApplyFont(label, childNode.Font);
-            _flattened.Add(childNode.Id);
-            if (childNode.Kind == UiNodeKind.Field)
-                _flattenedFields[childNode.Id] = (win, childNode.Id);
+                if (_windows.TryGetValue(childNode.Id, out var childWin))
+                {
+                    childWin.QueueFree();
+                    _windows.Remove(childNode.Id);
+                    _hoverStates.Remove(childWin);
+                }
+                _flattenedFields.Remove(childNode.Id);
+                label = new Label
+                {
+                    Name = "text",
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                label.SetAnchorsPreset(LayoutPreset.FullRect);
+                ApplyLabelAlignment(label, ParseOptions(node), ParseOptions(childNode));
+                label.Text = childNode.Value;
+                win.AddChild(label);
+                if (childNode.Font != null)
+                    win.ApplyFont(label, childNode.Font);
+                _flattened.Add(childNode.Id);
+                if (childNode.Kind == UiNodeKind.Field)
+                    _flattenedFields[childNode.Id] = (win, childNode.Id);
+            }
         }
     }
 

@@ -47,8 +47,8 @@ export type ListReadOnlyExpression<T extends Expression> = PrimitiveReadOnlyExpr
   /** Iterate elements and invoke cb(elementValue:any, index?:number) for side-effects. Callback invoked at evaluation time. Returns void. */
   forEach: (cb: (element: T, index?: number) => void) => void;
 
-  /** Lazily transform each element. Callback receives the element expression (not evaluated value) and returns an expression or literal. Returns a new ListReadOnlyExpression. */
-  map: (cb: (elementExpr: T, index?: number) => any) => ListReadOnlyExpression<T>;
+  /** Lazily transform each element. The callback receives the element expression (not the evaluated value) and returns an expression or literal. Always returns a new `ListReadOnlyExpression<U>` of the mapped elements. */
+  map: <U extends Expression>(cb: (elementExpr: T, index?: number) => U) => ListReadOnlyExpression<U>;
 
   /** Existential membership test returning a ConditionReadOnlyExpression */
   isContaining: (element: T) => ConditionReadOnlyExpression<T>;

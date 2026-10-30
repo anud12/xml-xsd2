@@ -45,3 +45,5 @@ logs/
 
 *.
 
+state.db-*
+/diff/

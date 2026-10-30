@@ -20,7 +20,7 @@ export default (hostApi) => {
       apply: (context) => {
         context.getMutableEntityBy({
           filters: [(e) => e.id.isContainingExactly(string.of("entity_id"))]
-        }).map(el => {
+        }).forEach(el => {
           const roll = number.random(number.of(5), number.of(5));
           el.text_map.put("result", () => hostApi.runtime.maybe.of(
             roll.toStringExpression()

@@ -4,10 +4,13 @@ import {memoize} from "../../util/memoize";
 
 export const getLandModule = memoize((hostApi: HostApi) => {
 
-  const countKey = "landCount";
   const costKey = "cost";
+  // Monotonic id source for unique land ids (createEntity does not dedupe).
+  const genKey = "landGen";
 
   const maxCount = hostApi.runtime.number.of(4);
+  const one = hostApi.runtime.number.of(1);
+  const zero = hostApi.runtime.number.of(0);
 
   const landNumberMap: EntityCreationArguments["numberMap"] = {
     [costKey]: hostApi.runtime.number.of(10),
@@ -18,49 +21,51 @@ export const getLandModule = memoize((hostApi: HostApi) => {
     entities: [],
   });
 
+  // Keep the land pool topped up to exactly `maxCount`. Each tick, read the
+  // live size of the "lands" container directly and, if it has fewer than
+  // `maxCount` lands (e.g. one was bought away), create a fresh one to refill
+  // it. The pool never exceeds the cap.
   const tick = hostApi.runtime.setEffect({
     name: hostApi.runtime.string.of("land-tick"),
-    reoccurAfterMs: (context) => {
-      let atLimit = hostApi.runtime.condition.of(false);
-      context.getEntityBy({
-        filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
-      }).map((game) => {
-        atLimit = game.number_map.get(countKey)
-          .map((v) => v.isGreaterOrEqualTo(maxCount))
-          .orElse(hostApi.runtime.condition.of(false));
-      });
-      let interval = hostApi.runtime.maybe.of(hostApi.runtime.number.of(10));
-      atLimit.ifTrue(() => {
-        interval = hostApi.runtime.maybe.none();
-        return hostApi.runtime.number.of(0);
-      });
-      return interval;
+    reoccurAfterMs: () => {
+      return hostApi.runtime.maybe.of(hostApi.runtime.number.of(10));
     },
     apply: (context) => {
-      context.getMutableEntityBy({
-        filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
-      }).map((game) => {
-        const count = game.number_map.get(countKey).orElse(hostApi.runtime.number.of(0));
-        const next = count.sum(hostApi.runtime.number.of(1));
+      // Read the pool's live size straight from the container's members.
 
-        const land = hostApi.runtime.setEntity({
-          id: next.toStringExpression(),
-          textMap: {
-            name: hostApi.runtime.string.of("Land"),
-          },
-          numberMap: landNumberMap,
+      let poolCount = context.getMutableContainersBy({
+        filters: [(c) => c.id.isContainingExactly(hostApi.runtime.string.of("lands"))],
+      }).map((container) =>  container.entities.length())
+        .exactlyOne()
+        .orElse(hostApi.runtime.number.of(0));
+
+      poolCount.isLessThan(maxCount).ifTrue((count) => {
+        context.getMutableEntityBy({
+          filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
+        }).forEach((game) => {
+          const gen = game.number_map.get(genKey).orElse(zero);
+          const next = gen.sum(one);
+
+          const land = hostApi.runtime.setEntity({
+            id: next.toStringExpression(),
+            textMap: {
+              name: hostApi.runtime.string.of("Land"),
+            },
+            numberMap: landNumberMap,
+          });
+
+          context.createEntity(land);
+
+          context.getMutableContainersBy({
+            filters: [(c) => c.id.isContainingExactly(hostApi.runtime.string.of("lands"))],
+          }).forEach((container) => {
+            container.addEntity(land);
+          });
+
+          game.number_map.put(genKey, () => hostApi.runtime.maybe.of(next));
         });
-
-        context.createEntity(land);
-
-        context.getMutableContainersBy({
-          filters: [(c) => c.id.isContainingExactly(hostApi.runtime.string.of("lands"))],
-        }).map((container) => {
-          container.addEntity(land);
-        });
-
-        game.number_map.put(countKey, () => hostApi.runtime.maybe.of(next));
-      });
+        return hostApi.runtime.condition.of(true);
+      }).or(() => hostApi.runtime.condition.of(false));
     },
   });
 
@@ -70,7 +75,7 @@ export const getLandModule = memoize((hostApi: HostApi) => {
 
   return {
     container: landContainer,
-    countKey: countKey,
+    genKey: genKey,
     maxCount: maxCount,
     effect: tick,
     initialize,

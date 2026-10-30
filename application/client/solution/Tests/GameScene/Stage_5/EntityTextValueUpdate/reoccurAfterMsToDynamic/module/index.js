@@ -19,7 +19,7 @@ export default (hostApi) => {
     name: string.of("repeat"),
     reoccurAfterMs: (context, executionCount, input, output) => {
       let low = hostApi.runtime.condition.of(false);
-      context.getEntityBy(filter).map(elementExpr => {
+      context.getEntityBy(filter).forEach(elementExpr => {
         low = elementExpr.number_map.get(key)
           .map(v => v.isLessThan(number.of(3)))
           .orElse(hostApi.runtime.condition.of(false));
@@ -33,7 +33,7 @@ export default (hostApi) => {
     },
     apply: (context, output) => {
       context.getMutableEntityBy(filter)
-        .map(elementExpr => {
+        .forEach(elementExpr => {
           elementExpr.number_map.put(key, (current) => current.map(v => v.sum(number.of(1))));
         })
     }

@@ -40,6 +40,15 @@ public partial class UiWindow
     {
         if (opts.ValueKind == JsonValueKind.Undefined) return;
 
+        // A container view fills its host window. It must behave like a
+        // division for mouse input: pass through so the host's edge/corner
+        // resize drags reach the host, and suppress its own onClick over those
+        // zones (see OnGuiInput). The flag distinguishes it from a board panel
+        // (whose container lives in the layout spec and keeps Stop filtering).
+        if (opts.TryGetProperty("containerView", out var cvFlag)
+            && cvFlag.ValueKind == JsonValueKind.True)
+            _isDivision = true;
+
         if (opts.TryGetProperty("onClick", out var onClick))
         {
             // A division (panel) inside a host window passes mouse input through

@@ -10,7 +10,7 @@ export const inventoryUi = (hostApi: HostApi) => {
   const module = getInventoryModule(hostApi);
 
   const track = hostApi.runtime.setAnimation(hostApi.runtime.string.of("inventory-track"), {
-    frames: [{ sprite: hostApi.ui.getSpritePNG("black_pixel.png") }],
+    frames: [{ sprite: hostApi.ui.getSpritePNG("assets/black_pixel.png") }],
     duration: hostApi.runtime.number.of(1),
   });
 

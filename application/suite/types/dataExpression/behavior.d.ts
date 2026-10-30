@@ -1,0 +1,141 @@
+import { NumberReadOnlyExpression } from "../primitives/numberExpression";
+import { StringReadOnlyExpression } from "../primitives/stringExpression";
+import { ConditionReadOnlyExpression } from "../primitives/conditionExpression";
+import { Expression } from "../Expression";
+import { Entity } from "./Entity";
+import { ActionReadOnlyExpression } from "./action/no-input-action";
+
+/**
+ * A single atomic step within a behavior rule's execution script.
+ *
+ * The script is a pure declaration of what happens: the executor runs
+ * the steps in order, with `wait` steps suspending across ticks.
+ *
+ * Algorithm: linear step machine. `action` steps dispatch to a
+ * registered action (which may invoke effects internally and hold its
+ * own executor state, e.g. an in-flight move); `wait` steps suspend
+ * the script for the given duration in game time units.
+ */
+export type BehaviorStep =
+  | {
+      /** The action to execute (an {@link ActionReadOnlyExpression} reference). */
+      action: ActionReadOnlyExpression;
+      /** Arbitrary payload passed to the action at emit time. */
+      payload?: Record<string, any>;
+    }
+  | {
+      /** Suspend the script for a duration (in game time units). */
+      wait: NumberReadOnlyExpression;
+    };
+
+/**
+ * The restricted context handed to a rule's `do` lambda.
+ *
+ * It can only declare steps (actions and waits) — all world access
+ * (queries, state, rng) is deliberately out of reach.
+ */
+export type DoContext = {
+  /** Declare a step that executes the action (an {@link ActionReadOnlyExpression} reference). */
+  action: (action: ActionReadOnlyExpression, payload?: Record<string, any>) => BehaviorStep;
+  /** Declare a step that waits for the given duration. */
+  wait: (duration: NumberReadOnlyExpression) => BehaviorStep;
+};
+
+/**
+ * A rule inside a `utility` select: scored against the entity, best score wins.
+ */
+export type UtilityRule = {
+  /** Human-readable name for the debug trace; required. */
+  label: string;
+  /**
+   * Score, evaluated against the entity only (read-only).
+   * Re-evaluated only when an entity key the score reads is written.
+   */
+  score: (entity: Entity) => NumberReadOnlyExpression;
+  /** Builds the execution script for this rule. */
+  do: (ctx: DoContext) => BehaviorStep[];
+};
+
+/**
+ * A branch of a `priority` select: the first branch whose condition
+ * is true is selected; its `utility` array then resolves the action.
+ * Lower branches are not evaluated (short-circuit).
+ */
+export type PriorityRule = {
+  /** Human-readable name for the debug trace; required. */
+  label: string;
+  /** Enable gate, evaluated against the entity only (read-only). */
+  condition: (entity: Entity) => ConditionReadOnlyExpression<Expression>;
+  /** The fuzzy decision made within this branch. */
+  utility: UtilityRule[];
+};
+
+/**
+ * A node in the behavior graph.
+ *
+ * - `priority`: ordered branches; first true `condition` wins, then its
+ *   `utility` resolves. Rule-based conflict resolution (short-circuit).
+ * - `utility`: all rules scored, best score wins (argmax; ties broken
+ *   by array order). Utility AI.
+ */
+export type BehaviorNode =
+  | { priority: PriorityRule[] }
+  | { utility: UtilityRule[] };
+
+/**
+ * A read-only reference to a registered behavior, returned by
+ * `hostApi.runtime.setBehavior`. Attach to entities via the `behavior`
+ * field in `setEntity` arguments.
+ */
+export type BehaviorReadOnlyExpression = Expression & {
+  /** The behavior's name. */
+  readonly name: string;
+};
+
+/**
+ * API for creating behavior graphs and attaching them to entities.
+ *
+  * Exposed as `hostApi.runtime.setBehavior` inside module scripts.
+ * Attach to entities via the `behavior` field in `setEntity` arguments.
+ */
+export type BehaviorApi = {
+  /**
+   * Create and register a behavior from a declarative definition.
+   *
+   * Behavior — per-entity decision making.
+   *
+   * Paradigm: a **blackboard system** (entity = shared blackboard:
+   * numberMap/textMap) whose control shell is a **dataflow rule graph**:
+   *
+   * - Rules are gated by conditions / scores and connected by explicit
+   *   data dependencies on entity keys. Execution order follows data
+   *   dependencies (Kahn-process-network style), which makes the result
+   *   deterministic and independent of evaluation order.
+   * - **`priority`** is classic **rule-based conflict resolution**:
+   *   first matching rule wins, evaluated top-down with short-circuit
+   *   (lower branches are never evaluated). For "laws" — hard gates the
+   *   author knows outrank everything else.
+   * - **`utility`** is **utility AI**: every rule's `score` is evaluated
+   *   and the maximum wins (argmax; ties broken by array order). Scores
+   *   are re-evaluated only when an entity key they read was written
+   *   (dependency-driven invalidation), so idle agents cost ~zero.
+   *   For "taste" — continuous trade-offs and per-instance personality.
+   * - The selected rule's `do` builds a **step script** (actions and
+   *   waits) — a pure declaration. A small built-in **executor** (low
+   *   level state machine) performs the script across ticks; the graph
+   *   itself is stateless per tick.
+   *
+   * The definition is pure data plus the rule lambdas; JS runs at load
+   * time only. The runtime never re-interprets the graph.
+   *
+   * Validation (throws on failure):
+   * - `name` is present and globally unique
+   * - the node is well-formed (priority/utility shapes)
+   * - `label` is present on every rule
+   *
+   * @param definition - Declarative behavior definition: a name plus
+   *   the behavior graph root (`priority` or `utility`).
+   * @returns BehaviorReadOnlyExpression for the `behavior` field in `setEntity`.
+   */
+    setBehavior: (definition: { name: StringReadOnlyExpression } & BehaviorNode) => BehaviorReadOnlyExpression;
+};

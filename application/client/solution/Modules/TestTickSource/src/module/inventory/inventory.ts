@@ -24,12 +24,13 @@ export const getInventoryModule = memoize((hostApi: HostApi) => {
       const cost = context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of(idStr))],
       })
+        
         .exactlyOne()
         .map((land) => land.number_map.get("cost").orElse(hostApi.runtime.number.of(0)))
         .orElse(hostApi.runtime.number.of(0));
       context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
-      }).map((game) => {
+      }).forEach((game) => {
         game.number_map.put("value", (current) =>
           current.map((v) => v.subtract(cost))
         );
@@ -38,13 +39,13 @@ export const getInventoryModule = memoize((hostApi: HostApi) => {
       // Move the land from the "lands" container into the inventory container.
       context.getMutableContainersBy({
         filters: [(c) => c.id.isContainingExactly(hostApi.runtime.string.of("lands"))],
-      }).map((landsContainer) => {
+      }).forEach((landsContainer) => {
         landsContainer.removeEntity(hostApi.runtime.string.of(idStr));
       });
       const landRef = hostApi.runtime.setEntity({ id: hostApi.runtime.string.of(idStr) });
       context.getMutableContainersBy({
         filters: [(c) => c.id.isContainingExactly(hostApi.runtime.string.of("inventory"))],
-      }).map((invContainer) => {
+      }).forEach((invContainer) => {
         invContainer.addEntity(landRef);
       });
     },

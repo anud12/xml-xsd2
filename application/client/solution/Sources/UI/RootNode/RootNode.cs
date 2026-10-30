@@ -50,6 +50,16 @@ public partial class RootNode : Godot.Panel
         {
             if (!_windows.TryGetValue(node.Id, out var win))
             {
+                // Folded field children render as their host's "text" Label,
+                // not as separate windows. Skip re-materializing them each
+                // frame: a re-created field window's own "text" label would
+                // sit in the tree for the whole frame (QueueFree only frees at
+                // end-of-frame) and show a stale value over the host's live
+                // label. Text children keep the legacy re-materialize path
+                // (their re-created label renders identically to the host).
+                if (node.Id == "add-label")
+                    GD.Print($"DBG pass1 add-label inFlattenedFields={_flattenedFields.ContainsKey("add-label")} inWindows={_windows.ContainsKey("add-label")}");
+                if (_flattenedFields.ContainsKey(node.Id)) continue;
                 win = CreateWindow(node);
                 // The screen is a global overlay: host it on the UI layer
                 // root so it renders below the app buttons and windows. It

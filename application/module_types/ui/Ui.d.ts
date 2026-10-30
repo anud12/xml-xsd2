@@ -264,10 +264,10 @@ export type UiFieldBinding = {
 export type UiProgressOptions = UiPanelOptions & {
   /** The progress bar's data binding and presentation. */
   progress: {
-    /** Tiled fill texture: an archive PNG path or an animation reference. Required. */
-    fill: UiTexture;
+    /** Tiled fill texture: an archive PNG path or the panel-background (UiTexture) shape. Required. */
+    fill: string | UiTexture;
     /** Tiled track texture behind the fill (same resolution as fill). Optional. */
-    track?: UiTexture;
+    track?: string | UiTexture;
     /** Fill orientation: "horizontal" fills left-to-right (default), "vertical" fills top-to-bottom. */
     orientation?: "horizontal" | "vertical";
     /**
@@ -470,12 +470,17 @@ export type UiApi = {
    * node factories it takes no id (the id is managed).
    */
   setScreen: UiScreenComponent;
+  /**
+   * Legacy panel registration (stage-2 FFI path): a no-op on the JS side, the
+   * descriptor is handled by the C# host. Accepts the legacy panel descriptor.
+   */
+  registerPanel: (panelOptions: { id: string; [key: string]: unknown }) => void;
   /** Register a font from an archive .ttf file; returns a reference handle. */
   setFont: (config: UiFontConfig) => UiFontReference;
   /** A text label: must be nested under a window. */
-  text: (id: string, value: string | number, fontRef: UiFontReference) => UiNodeExpression;
+  text: (id: string, value: string | number, fontRef?: UiFontReference) => UiNodeExpression;
   /** A bound field: must be nested under a window. */
-  field: (id: string, binding: UiFieldBinding, fontRef: UiFontReference) => UiNodeExpression;
+  field: (id: string, binding: UiFieldBinding, fontRef?: UiFontReference) => UiNodeExpression;
   /** A progress bar: tiled fill clipped to a 0..1 fraction (static or entity-bound). Must be nested under a window. */
   progress: (id: string, options: UiProgressOptions) => UiNodeExpression;
 

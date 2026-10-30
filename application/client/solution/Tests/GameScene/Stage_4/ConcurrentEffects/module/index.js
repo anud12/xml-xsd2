@@ -19,7 +19,7 @@ export default (hostApi) => {
       aCount++;
       context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(string.of("game"))],
-      }).map((entity) => {
+      }).forEach((entity) => {
         entity.number_map.put("counter", (current) =>
           current.map(v => v.sum(number.of(1)))
         );
@@ -39,7 +39,7 @@ export default (hostApi) => {
       bCount++;
       context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(string.of("game"))],
-      }).map((entity) => {
+      }).forEach((entity) => {
         entity.number_map.put("counter", (current) =>
           current.map(v => v.sum(number.of(10)))
         );

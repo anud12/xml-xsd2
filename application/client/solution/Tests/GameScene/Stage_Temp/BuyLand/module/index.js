@@ -37,14 +37,14 @@ export default (hostApi) => {
       let cost = number.of(0);
       context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(string.of(idStr))],
-      }).map((entity) => {
+      }).forEach((entity) => {
         cost = entity.number_map.get("cost").orElse(number.of(0));
       });
 
       // Deduct the cost from the game's value.
       context.getMutableEntityBy({
         filters: [(e) => e.id.isContainingExactly(string.of("game"))],
-      }).map((game) => {
+      }).forEach((game) => {
         game.number_map.put("value", (current) =>
           current.map((v) => v.subtract(cost)));
       });
@@ -52,12 +52,12 @@ export default (hostApi) => {
       // Move the land from "lands" into "inventory".
       context.getMutableContainersBy({
         filters: [(c) => c.id.isContainingExactly(string.of("lands"))],
-      }).map((landsContainer) => {
+      }).forEach((landsContainer) => {
         landsContainer.removeEntity(string.of(idStr));
       });
       context.getMutableContainersBy({
         filters: [(c) => c.id.isContainingExactly(string.of("inventory"))],
-      }).map((invContainer) => {
+      }).forEach((invContainer) => {
         invContainer.addEntity(land);
       });
     },

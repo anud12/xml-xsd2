@@ -13,7 +13,7 @@ export const getInterestModule = memoize((hostApi) => {
         apply: (context) => {
             context.getMutableEntityBy({
                 filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
-            }).map((entity) => {
+            }).forEach((entity) => {
                 entity.number_map.put(key, (current) => current.map(v => v.isGreaterThan(hostApi.runtime.number.of(0))
                     .ifTrue(v => v.sum(hostApi.runtime.number.random(hostApi.runtime.number.of(-10), hostApi.runtime.number.of(-1))))
                     .or(() => hostApi.runtime.number.of(0))));

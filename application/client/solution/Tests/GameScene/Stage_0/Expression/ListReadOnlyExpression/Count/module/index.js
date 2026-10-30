@@ -22,11 +22,11 @@ export default (hostApi) => {
       apply: (context) => {
         // Record the current list size; reflects items added on earlier ticks.
         const cnt = context.getMutableEntityBy(itemFilter).count();
-        context.getMutableEntityBy(gameFilter).map((g) => {
+        context.getMutableEntityBy(gameFilter).forEach((g) => {
           g.number_map.put("count", () => hostApi.runtime.maybe.of(cnt));
         });
         // Grow the list so the next tick observes a different count.
-        context.getMutableEntityBy(gameFilter).map((g) => {
+        context.getMutableEntityBy(gameFilter).forEach((g) => {
           const n = g.number_map.get("itemCount").orElse(number.of(0));
           const item = hostApi.runtime.setEntity({
             id: string.of("item").concat(n.toStringExpression()),

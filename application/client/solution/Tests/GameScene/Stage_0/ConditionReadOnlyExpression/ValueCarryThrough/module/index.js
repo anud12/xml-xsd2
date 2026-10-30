@@ -19,7 +19,7 @@ export default (hostApi) => {
       name: string.of("drain"),
       reoccurAfterMs: () => hostApi.runtime.maybe.none(),
       apply: (context) => {
-        context.getMutableEntityBy(filter).map(el => {
+        context.getMutableEntityBy(filter).forEach(el => {
           el.number_map.put(key, (current) => {
             return current.map(v => {
               return v.isGreaterThan(number.of(0))
