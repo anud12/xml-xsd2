@@ -1,0 +1,6 @@
+{
+  "id": "entity-list-layout-test",
+  "version": "1.0.0",
+  "name": "EntityListLayout Test Module",
+  "entry": "index.js"
+}

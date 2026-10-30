@@ -1063,10 +1063,16 @@ function (root) {
                 throw new Error('ui: entityList render must be a function(entity) => nodeIds');
             }
             containerRenders[name] = render;
+            // The list's flow direction. `vertical` (default true) maps to the
+            // `panel.layout` the renderer actually consumes: true -> column
+            // (top to bottom), false -> row (left to right).
+            var listVertical = (args.vertical === undefined) ? true : args.vertical;
+            var listPanel = {};
+            listPanel.layout = listVertical ? "column" : "row";
             return parentHandle(register({
                 id: name,
                 kind: 'division',
-                options: { container: entityListContainer },
+                options: { container: entityListContainer, panel: listPanel },
                 children: [containerMarker(name)]
             }));
         },
