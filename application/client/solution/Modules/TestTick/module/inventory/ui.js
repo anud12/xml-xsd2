@@ -20,6 +20,10 @@ export const inventoryUi = (hostApi) => {
             height: 100,
             title: "Inventory",
             layout: "row",
+            overflow: {
+                width: "scroll",
+                height: "show",
+            },
             background: {
                 animation: track,
                 fill: { width: "stretch", height: "stretch" },
@@ -32,10 +36,6 @@ export const inventoryUi = (hostApi) => {
             panel: {
                 width: 300,
                 height: 100,
-                overflow: {
-                    width: "scroll",
-                    height: "show",
-                },
             }
         }, (entity) => [
             hostApi.ui.window(entity.id, {

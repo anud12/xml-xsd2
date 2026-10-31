@@ -29,6 +29,10 @@ export const inventoryUi = (hostApi: HostApi) => {
       height: 100,
       title: "Inventory",
       layout: "row",
+      overflow: {
+        width: "scroll",
+        height: "show",
+      },
       background: {
         animation: track,
         fill: {width: "stretch", height: "stretch" as const},
@@ -42,10 +46,6 @@ export const inventoryUi = (hostApi: HostApi) => {
 
           width: 300,
           height: 100,
-          overflow: {
-            width: "scroll",
-            height: "show",
-          },
         }
       },
       (entity: Entity) => [
