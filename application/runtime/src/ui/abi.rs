@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use super::UiNode as DomainNode;
 use super::UiDeltaOp as DomainDeltaOp;
 
-pub const UI_ABI_VERSION: u32 = 8;
+pub const UI_ABI_VERSION: u32 = 9;
 /// Sentinel string offset: "no string" (absent value/src/optional option).
 pub const NO_STR: u32 = u32::MAX;
 
@@ -273,7 +273,16 @@ pub struct UiNodeOptions {
     /// division stretched over its host window, which the renderer must treat
     /// as one for mouse input (pass-through at the host resize zones).
     pub container_view: u8,
+    /// Per-axis overflow handling for the flow content. Bit `OVERFLOW_H_SCROLL`
+    /// (1) means the width axis scrolls; bit `OVERFLOW_V_SCROLL` (2) means the
+    /// height axis scrolls. All-zero is the default "show" (no scrolling).
+    pub overflow: u8,
 }
+
+/// `UiNodeOptions::overflow` flags (per-axis overflow handling).
+pub const OVERFLOW_H_SCROLL: u8 = 1;
+/// `UiNodeOptions::overflow` flags (per-axis overflow handling).
+pub const OVERFLOW_V_SCROLL: u8 = 2;
 
 #[repr(C)]
 pub struct UiNode {
@@ -782,6 +791,7 @@ fn empty_options() -> UiNodeOptions {
         font_color: 0,
         font_style: 0,
         container_view: 0,
+        overflow: 0,
     }
 }
 
@@ -795,6 +805,44 @@ fn opt_num(opts: &Map<String, Value>, key: &str) -> Option<f32> {
 
 fn opt_bool(opts: &Map<String, Value>, key: &str) -> bool {
     opts.get(key).and_then(|v| v.as_bool()).unwrap_or(false)
+}
+
+/// Reads the per-axis `overflow` option into the `UiNodeOptions::overflow`
+/// flags. A bare string `"scroll"` sets both axes; an object `{ width?, height?
+/// }` sets each axis independently; anything else (including `"show"` or
+/// absent) leaves the axis at the default "show" (no scroll).
+fn parse_overflow(opts: &Map<String, Value>) -> u8 {
+    let mut flags = 0;
+    let Some(ov) = opts.get("overflow") else {
+        return flags;
+    };
+    match ov {
+        Value::String(s) => {
+            if s.as_str() == "scroll" {
+                flags = OVERFLOW_H_SCROLL | OVERFLOW_V_SCROLL;
+            }
+        }
+        Value::Object(m) => {
+            if m
+                .get("width")
+                .and_then(|v| v.as_str())
+                .map(|s| s == "scroll")
+                .unwrap_or(false)
+            {
+                flags |= OVERFLOW_H_SCROLL;
+            }
+            if m
+                .get("height")
+                .and_then(|v| v.as_str())
+                .map(|s| s == "scroll")
+                .unwrap_or(false)
+            {
+                flags |= OVERFLOW_V_SCROLL;
+            }
+        }
+        _ => {}
+    }
+    flags
 }
 
 fn opt_str(opts: &Map<String, Value>, key: &str, slab: &mut Slab) -> u32 {
@@ -1437,6 +1485,7 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     o.portal_arrow = opt_bool(opts, "portalArrow") as u8;
     o.unlinked = opt_bool(opts, "unlinked") as u8;
     o.portal_line = opt_bool(opts, "portalLine") as u8;
+    o.overflow = parse_overflow(panel);
     // areaOutline: { polygons: [ { points: [[x, y], ...],
     //   color?: [r,g,b,a], bodyColor?: [r,g,b,a], thickness?: number }, ... ] }
     // points are view-local logical units (the same space as x/y/width/height).

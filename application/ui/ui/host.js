@@ -1069,6 +1069,15 @@ function (root) {
             var listVertical = (args.vertical === undefined) ? true : args.vertical;
             var listPanel = {};
             listPanel.layout = listVertical ? "column" : "row";
+            // The list's panel presentation (per-axis overflow + an optional
+            // viewport size) lives under `panel`, like every other panel node.
+            // The list division is the node whose content scrolls, so these
+            // options must live on its own panel (not the host window).
+            if (args.panel != null && typeof args.panel === 'object') {
+                for (var pk in args.panel) {
+                    if (Object.prototype.hasOwnProperty.call(args.panel, pk)) listPanel[pk] = args.panel[pk];
+                }
+            }
             return parentHandle(register({
                 id: name,
                 kind: 'division',

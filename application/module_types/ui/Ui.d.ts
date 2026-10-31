@@ -188,6 +188,14 @@ export type UiPanelOptions = {
     onClick?: (ctx: UiClickContext) => void;
     layout?: UiLayout;
     /**
+     * Per-axis overflow handling for the panel's flow content. Each axis is
+     * `"show"` (default: content overflows the panel bounds, no scrolling) or
+     * `"scroll"` (the content becomes scrollable along that axis when it
+     * overflows). A bare string applies to both axes; an object sets each axis
+     * independently.
+     */
+    overflow?: "show" | "scroll" | { width?: "show" | "scroll"; height?: "show" | "scroll" };
+    /**
      * Enables user edge/corner drag-resize. A bare `true` allows free resizing
      * on all four edges and corners. An object form accepts options:
      * `keepAspectRatio` locks the width:height ratio to the declared size, so
@@ -385,6 +393,21 @@ export type UiSectorGridItem = {
 export type UiEntityListOptions = {
   container: ContainerReadOnlyExpression;
   vertical?: boolean;
+  /**
+   * The list's panel presentation. `width`/`height` bound the scroll region:
+   * when present the list is a fixed viewport of that size and any content
+   * larger than it overflows into it; when omitted the list sizes to its
+   * content. `overflow` sets per-axis overflow handling for the list's flow
+   * content: each axis is `"show"` (default: content overflows the list
+   * bounds, no scrolling) or `"scroll"` (the content becomes scrollable along
+   * that axis when it overflows). A bare string applies to both axes; an
+   * object sets each axis independently.
+   */
+  panel?: {
+    width?: number;
+    height?: number;
+    overflow?: "show" | "scroll" | { width?: "show" | "scroll"; height?: "show" | "scroll" };
+  };
 };
 
 /**

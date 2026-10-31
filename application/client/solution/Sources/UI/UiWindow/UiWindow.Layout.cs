@@ -16,8 +16,14 @@ public partial class UiWindow
     /// this node has none yet.
     public Node FlowContainer()
     {
+        // The flow container is a direct child, or nested inside the overflow
+        // scroll wrapper when one axis scrolls (the wrapper hosts the box/grid).
         return (Node)GetNodeOrNull<BoxContainer>("box")
-            ?? (Node)GetNodeOrNull<UiGrid>("grid");
+            ?? (Node)GetNodeOrNull<UiGrid>("grid")
+            ?? (Node)(GetNodeOrNull<ScrollContainer>("scroll")?
+                .GetNodeOrNull<BoxContainer>("box"))
+            ?? (Node)(GetNodeOrNull<ScrollContainer>("scroll")?
+                .GetNodeOrNull<UiGrid>("grid"));
     }
 
     /// True when this window is a flow child with an explicit size and should
@@ -52,16 +58,31 @@ public partial class UiWindow
         var opts = ParseOptions(node);
         _layoutSpec = UiGrid.UiGridLayoutSpec.Parse(opts);
         EnsureFlowContainer();
+        ApplyOverflow(opts, FlowContainer());
         // Cache the declared extent so container-view cell resolution
         // (ResolveCursorCell) resolves clicks against the declared view size —
         // frozen for the module's lifetime and matching the runtime's marker
-        // layout — rather than the live stretched size. Deliberately no
-        // FixedFlowSize side effect: the division still stretches to fill its
-        // host window.
+        // layout — rather than the live stretched size.
         TryNum(opts, "width", out var dw);
         TryNum(opts, "height", out var dh);
         if (dw != 0 || dh != 0)
+        {
             _windowExplicitSize = new Vector2(dw, dh);
+            // A division with an explicit size is a bounded viewport (e.g. an
+            // overflow scroll list): a fixed-size flow child, not one that
+            // stretches to fill its host. Without this the host's flow
+            // container hands it zero cross-axis space and the FullRect scroll
+            // wrapper collapses, so its content can never overflow.
+            FixedFlowSize = true;
+            CustomMinimumSize = new Vector2(dw, dh);
+        }
+        else
+        {
+            _windowExplicitSize = Vector2.Zero;
+            // No explicit size: the division stretches to fill its host window.
+            FixedFlowSize = false;
+            CustomMinimumSize = Vector2.Zero;
+        }
         ApplyBackground(opts);
         ApplyBorder(opts);
     }
@@ -135,14 +156,107 @@ public partial class UiWindow
         if (g != null) g.QueueFree();
         var bc2 = GetNodeOrNull<BoxContainer>("box");
         if (bc2 == null)
-        {
-            bc2 = new BoxContainer { Name = "box", Vertical = !isRow };
-            bc2.SetAnchorsPreset(LayoutPreset.FullRect);
-            bc2.AddThemeConstantOverride("separation", 0);
-            AddChild(bc2);
-        }
+            bc2 = CreateBox(!isRow);
         bc2.Vertical = !isRow;
         MoveChildrenToContainer(bc2);
+    }
+
+    /// options.overflow: per-axis overflow handling for the flow content. Each
+    /// axis is "show" (default: content overflows the panel bounds, no
+    /// scrolling) or "scroll" (a ScrollContainer wraps the flow container for
+    /// that axis, so overflowing content is scrollable). Only scroll axes are
+    /// wrapped; a node whose overflow is all-"show" has no wrapper.
+    void ApplyOverflow(JsonElement opts, Node flow)
+    {
+        var current = GetNodeOrNull<ScrollContainer>("scroll");
+        bool scrollH = ParseOverflowAxis(opts, "width") == "scroll";
+        bool scrollV = ParseOverflowAxis(opts, "height") == "scroll";
+
+        if (!scrollH && !scrollV)
+        {
+            if (current != null)
+            {
+                AttachFlowDirect(flow);
+                current.QueueFree();
+            }
+            return;
+        }
+
+        if (current == null)
+        {
+            current = new ScrollContainer { Name = "scroll" };
+            current.SetAnchorsPreset(LayoutPreset.FullRect);
+            AddChild(current);
+        }
+        current.HorizontalScrollMode = scrollH ? ScrollContainer.ScrollMode.Auto : ScrollContainer.ScrollMode.Disabled;
+        current.VerticalScrollMode = scrollV ? ScrollContainer.ScrollMode.Auto : ScrollContainer.ScrollMode.Disabled;
+        // A scroll axis must not stretch the flow content to fill the panel
+        // (that would remove any overflow); fit content to its natural size so
+        // it overflows and scrolls. A non-scroll axis keeps the stretch-fill.
+        AttachFlowInScroll(current, scrollH, scrollV, flow);
+    }
+
+    /// Reads a single axis of the overflow option. A string value applies to
+    /// both axes; an object `{ width?, height? }` sets each axis independently.
+    static string ParseOverflowAxis(JsonElement opts, string axisKey)
+    {
+        if (opts.ValueKind != JsonValueKind.Object
+            || !opts.TryGetProperty("overflow", out var ov))
+            return "show";
+        if (ov.ValueKind == JsonValueKind.String)
+            return ov.GetString() == "scroll" ? "scroll" : "show";
+        if (ov.ValueKind == JsonValueKind.Object
+            && ov.TryGetProperty(axisKey, out var v)
+            && v.ValueKind == JsonValueKind.String
+            && v.GetString() == "scroll")
+            return "scroll";
+        return "show";
+    }
+
+    BoxContainer CreateBox(bool vertical)
+    {
+        var box = new BoxContainer { Name = "box", Vertical = vertical };
+        box.AddThemeConstantOverride("separation", 0);
+        AddChild(box);
+        return box;
+    }
+
+    void AttachFlowDirect(Node flow)
+    {
+        if (flow is BoxContainer box)
+            box.SetAnchorsPreset(LayoutPreset.FullRect);
+        else if (flow is UiGrid grid)
+            grid.SetAnchorsPreset(LayoutPreset.FullRect);
+        if (flow.GetParent() != this)
+        {
+            if (flow.GetParent() != null) flow.GetParent().RemoveChild(flow);
+            AddChild(flow);
+        }
+    }
+
+    void AttachFlowInScroll(ScrollContainer scroll, bool scrollH, bool scrollV, Node flow)
+    {
+        // Fill only the non-scrolling axis so the content hugs the panel there
+        // while keeping its natural size on the scroll axis (so it can
+        // overflow and scroll); Expand is off so the content never grows past
+        // its own minimum to fake filling.
+        SizeFlags h = scrollH ? SizeFlags.ShrinkBegin : (SizeFlags.ShrinkBegin | SizeFlags.Fill);
+        SizeFlags v = scrollV ? SizeFlags.ShrinkBegin : (SizeFlags.ShrinkBegin | SizeFlags.Fill);
+        if (flow is BoxContainer box)
+        {
+            box.SizeFlagsHorizontal = h;
+            box.SizeFlagsVertical = v;
+        }
+        else if (flow is UiGrid grid)
+        {
+            grid.SizeFlagsHorizontal = h;
+            grid.SizeFlagsVertical = v;
+        }
+        if (flow.GetParent() != scroll)
+        {
+            if (flow.GetParent() != null) flow.GetParent().RemoveChild(flow);
+            scroll.AddChild(flow);
+        }
     }
 
     /// Move existing flow children into the given container.

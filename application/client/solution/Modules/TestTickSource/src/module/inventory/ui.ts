@@ -5,38 +5,49 @@ import {getLandSprites} from "../land/sprites";
 
 export const inventoryUi = (hostApi: HostApi) => {
 
-  const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 14, color: "#FFFFFF" });
+  const font = hostApi.ui.setFont({file: "fonts/Ubuntu-Regular.ttf", size: 14, color: "#FFFFFF"});
 
   const module = getInventoryModule(hostApi);
 
   const track = hostApi.runtime.setAnimation(hostApi.runtime.string.of("inventory-track"), {
-    frames: [{ sprite: hostApi.ui.getSpritePNG("assets/black_pixel.png") }],
+    frames: [{sprite: hostApi.ui.getSpritePNG("assets/black_pixel.png")}],
     duration: hostApi.runtime.number.of(1),
   });
 
   const portrait = hostApi.runtime.setAnimation(hostApi.runtime.string.of("inventory-portrait"), {
-    frames: getLandSprites(hostApi).map(value => ({ sprite: value })),
+    frames: getLandSprites(hostApi).map(value => ({sprite: value})),
     duration: hostApi.runtime.number.of(1),
     loop: true,
   });
-
 
 
   hostApi.ui.window("inventory-list", {
     panel: {
       x: 50,
       y: 100,
-      width: 600,
-      height: 120,
+      width: 300,
+      height: 100,
       title: "Inventory",
       layout: "row",
       background: {
         animation: track,
-        fill: { width: "stretch", height: "stretch" as const },
+        fill: {width: "stretch", height: "stretch" as const},
       },
     },
   }, [
-    hostApi.ui.entityList("inventory-items", { container: module.container, vertical: false },
+    hostApi.ui.entityList("inventory-items", {
+        container: module.container,
+        vertical: false,
+        panel: {
+
+          width: 300,
+          height: 100,
+          overflow: {
+            width: "scroll",
+            height: "show",
+          },
+        }
+      },
       (entity: Entity) => [
         hostApi.ui.window(entity.id, {
           panel: {

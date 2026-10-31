@@ -195,6 +195,58 @@ public partial class Steps {
         }
 
         /// <summary>
+        /// Asserts the panel's per-axis overflow handling. The panel has a
+        /// scroll wrapper (a "scroll" ScrollContainer hosting the flow
+        /// container) exactly when at least one axis is "scroll". When a
+        /// wrapper is present each axis's scrollbar mode is checked: a "scroll"
+        /// axis scrolls (mode Auto) and a "show" axis does not (mode Disabled).
+        /// Pass <c>null</c> for an axis to skip checking it.
+        /// </summary>
+        public AssertPanel HasOverflow(string? width = null, string? height = null) {
+            var scroll = window?.GetNodeOrNull<ScrollContainer>("scroll");
+            if (width is null && height is null) return this;
+
+            bool wantH = width == "scroll";
+            bool wantV = height == "scroll";
+            bool expectScroll = wantH || wantV;
+
+            if (expectScroll)
+            {
+                if (scroll is null)
+                {
+                    Assertions.AssertThat(true)
+                        .OverrideFailureMessage($"Panel at \"{path}\" has no scroll wrapper but overflow was declared")
+                        .IsFalse();
+                    return this;
+                }
+            }
+            else if (scroll != null)
+            {
+                Assertions.AssertThat(true)
+                    .OverrideFailureMessage($"Panel at \"{path}\" has a scroll wrapper but no overflow axis is \"scroll\"")
+                    .IsFalse();
+                return this;
+            }
+            else
+                return this;
+
+            if (width is not null)
+                CheckScrollAxis(scroll, scroll.HorizontalScrollMode, wantH, "width", path);
+            if (height is not null)
+                CheckScrollAxis(scroll, scroll.VerticalScrollMode, wantV, "height", path);
+            return this;
+        }
+
+        static void CheckScrollAxis(ScrollContainer scroll, ScrollContainer.ScrollMode mode, bool wantScroll, string axis, string path)
+        {
+            bool actual = mode == ScrollContainer.ScrollMode.Auto;
+            Assertions.AssertBool(actual == wantScroll)
+                .OverrideFailureMessage(
+                    $"Panel at \"{path}\" overflow.{axis} expected {(wantScroll ? "scroll" : "show")} but is {(actual ? "scroll" : "show")}")
+                .IsTrue();
+        }
+
+        /// <summary>
         /// Asserts that the panel's flow container has the expected number of children.
         /// </summary>
         public AssertPanel HasLength(int expected) {

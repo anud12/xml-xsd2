@@ -16,8 +16,8 @@ export const inventoryUi = (hostApi) => {
         panel: {
             x: 50,
             y: 100,
-            width: 600,
-            height: 120,
+            width: 300,
+            height: 100,
             title: "Inventory",
             layout: "row",
             background: {
@@ -26,7 +26,18 @@ export const inventoryUi = (hostApi) => {
             },
         },
     }, [
-        hostApi.ui.entityList("inventory-items", { container: module.container, vertical: false }, (entity) => [
+        hostApi.ui.entityList("inventory-items", {
+            container: module.container,
+            vertical: false,
+            panel: {
+                width: 300,
+                height: 100,
+                overflow: {
+                    width: "scroll",
+                    height: "show",
+                },
+            }
+        }, (entity) => [
             hostApi.ui.window(entity.id, {
                 panel: {
                     width: 120,

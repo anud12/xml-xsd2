@@ -12,7 +12,7 @@ namespace NewGameProject.UI;
 /// offset into that arena; `NoStr` means "no string".
 public static class UiAbi
 {
-    public const uint AbiVersion = 8;
+    public const uint AbiVersion = 9;
     public const uint NoStr = uint.MaxValue;
 
     public const uint KindDivision = 0;
@@ -202,7 +202,11 @@ public static class UiAbi
         public uint FontColor;
         public uint FontStyle;
         public byte ContainerView;
+        public byte Overflow;
     }
+
+    public const byte OverflowHScroll = 1;
+    public const byte OverflowVScroll = 2;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct UiNode

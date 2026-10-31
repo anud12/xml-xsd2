@@ -160,6 +160,8 @@ public static class UiSlab
             Add("portalLine", "true");
         var area = SerializeAreaOutline(o, arena);
         if (area != null) Add("areaOutline", area);
+        if (o.Overflow != 0)
+            Add("overflow", SerializeOverflow(o.Overflow));
         var fillJson = SerializeBackground(o.ProgressFill, arena);
         if (fillJson != null)
         {
@@ -179,6 +181,16 @@ public static class UiSlab
         }
         if (first) return "{}";
         return "{" + sb + "}";
+    }
+
+    static string SerializeOverflow(byte overflow)
+    {
+        bool h = (overflow & UiAbi.OverflowHScroll) != 0;
+        bool v = (overflow & UiAbi.OverflowVScroll) != 0;
+        if (h && v) return "\"scroll\"";
+        if (h) return "{\"width\":\"scroll\"}";
+        if (v) return "{\"height\":\"scroll\"}";
+        return null;
     }
 
     static string SerializeAreaOutline(UiAbi.UiNodeOptions o, IntPtr arena)

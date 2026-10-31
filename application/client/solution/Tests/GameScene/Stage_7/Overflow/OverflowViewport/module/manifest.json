@@ -1,0 +1,6 @@
+{
+  "id": "overflow-viewport-test",
+  "version": "1.0.0",
+  "name": "Overflow Viewport Test Module",
+  "entry": "index.js"
+}
