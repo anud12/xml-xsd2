@@ -42,11 +42,6 @@ export const inventoryUi = (hostApi: HostApi) => {
     hostApi.ui.entityList("inventory-items", {
         container: module.container,
         vertical: false,
-        panel: {
-
-          width: 300,
-          height: 100,
-        }
       },
       (entity: Entity) => [
         hostApi.ui.window(entity.id, {

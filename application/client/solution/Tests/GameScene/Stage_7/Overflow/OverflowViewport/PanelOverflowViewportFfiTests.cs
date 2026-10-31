@@ -101,6 +101,57 @@ public partial class PanelOverflowViewportFfiTests : Steps {
         }
     }
 
+    [TestCategory("Stage_7")]
+    [TestCase(Timeout = 10_000)]
+    [RequireGodotRuntime]
+    public async Task Given_window_overflow_when_pass_through_entity_list_overflows_it_should_show_a_horizontal_scrollbar() {
+        try {
+            AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/manifest.json", "manifest.json")
+                .AddFileToArchive("item_red.png", "item_red.png")
+                .AddFileToArchive("item_green.png", "item_green.png")
+                .AddFileToArchive("item_blue.png", "item_blue.png")
+                .AddFileToArchive("panel_bg.png", "panel_bg.png")
+                .EnsureDllAccessible()
+                .ProcessArchive();
+
+            var scene = await AttachUiScene();
+            await runner.SimulateFrames(5);
+
+            // The window (not the entityList) carries the overflow: a pass-
+            // through entityList must still drive the window's scroll, so the
+            // window shows a horizontal scrollbar for the overflowing content.
+            var host = scene.Window("win-scroll-host");
+            var scroll = host.GetNodeOrNull<ScrollContainer>("scroll");
+            Assertions.AssertThat(scroll != null)
+                .OverrideFailureMessage("window with overflow must have a scroll wrapper")
+                .IsTrue();
+            Assertions.AssertThat(scroll!.HorizontalScrollMode == ScrollContainer.ScrollMode.Auto)
+                .OverrideFailureMessage("window width overflow must enable horizontal auto scroll")
+                .IsTrue();
+
+            // The pass-through entityList must propagate its content width so
+            // the window's scroll content is wider than the scroll viewport; that
+            // overflow is exactly what makes the ScrollContainer show its
+            // horizontal scrollbar (a plain Control reports (0,0) and would not).
+            var box = scroll.GetNode<BoxContainer>("box");
+            var contentWidth = (float)box.GetCombinedMinimumSize().X;
+            var scrollWidth = (float)scroll.Size.X;
+            Assertions.AssertThat(contentWidth > scrollWidth)
+                .OverrideFailureMessage(
+                    $"window scroll content must overflow the viewport: content={contentWidth} scroll={scrollWidth}")
+                .IsTrue();
+
+            scene.AssertPanelThat("win-scroll-host").ViewportMatches("expected-window-overflow.png");
+            ClearSimulatedMouse();
+        }
+        catch (Exception e) {
+            Assertions.AssertThat(true)
+                .OverrideFailureMessage($"Error: {e.Message}\n{e.StackTrace}")
+                .IsFalse();
+        }
+    }
+
     /// Presses the vertical scrollbar of the given ScrollContainer (at the top
     /// of its track, where the grabber sits at scroll offset 0) and drags it
     /// to the bottom, pushing synthetic mouse events the same way the title-

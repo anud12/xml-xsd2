@@ -51,4 +51,29 @@ export default (hostApi) => {
       hostApi.ui.window(entity.id + "-b", {panel: {width: 40, height: 40}}),
     ]),
   ]);
+
+  // Window-level overflow: the window (not the entityList) declares the scroll
+  // region; the entityList is a content-sized pass-through (no size/overflow of
+  // its own) so the items overflow the window and scroll within it.
+  hostApi.ui.window("win-overflow-host", {
+    panel: {x: 20, y: 400, width: 120, height: 60, layout: "row", overflow: {width: "scroll"}},
+  }, [
+    hostApi.ui.entityList("win-overflow-list", {container: inv, vertical: false}, (entity) => [
+      hostApi.ui.window(entity.id + "-w", {panel: {width: 40, height: 40}}),
+    ]),
+  ]);
+
+  // Plain panel (a division) with overflow: the same scroll behavior applies to
+  // any flow-hosting component that carries a panel, not just window/entityList.
+  hostApi.ui.window("panel-overflow-host", {
+    panel: {x: 20, y: 480, width: 120, height: 60},
+  }, [
+    hostApi.ui.panel("panel-overflow", {
+      panel: {width: 120, height: 60, layout: "row", overflow: {width: "scroll"}},
+    }, [
+      hostApi.ui.window("panel-overflow-item-a", {panel: {width: 40, height: 40}}),
+      hostApi.ui.window("panel-overflow-item-b", {panel: {width: 40, height: 40}}),
+      hostApi.ui.window("panel-overflow-item-c", {panel: {width: 40, height: 40}}),
+    ]),
+  ]);
 };

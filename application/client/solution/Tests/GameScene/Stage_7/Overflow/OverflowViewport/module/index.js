@@ -47,6 +47,27 @@ export default (hostApi) => {
     }),];
   }),]);
 
+  // Window-level scroll: the window itself carries overflow {width: scroll};
+  // the entityList is a pass-through (no size, no overflow). The 5 x 40px
+  // items (200px) overflow the 140px-wide window, so the window's own scroll
+  // wrapper must show a horizontal scrollbar.
+  hostApi.ui.window("win-scroll-host", {
+    panel: {
+      x: 600, y: 450, width: 140, height: 70, layout: "row",
+      overflow: {width: "scroll"},
+      background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
+    },
+  }, [hostApi.ui.entityList("win-scroll-list", {
+    container: inv, vertical: false
+  }, (entity) => {
+    const tex = entity.id.endsWith("-a") ? red : entity.id.endsWith("-b") ? green : blue;
+    return [hostApi.ui.window(entity.id + "-w", {
+      panel: {
+        width: 40, height: 40, background: {animation: tex, fill: {width: "stretch", height: "stretch"}}
+      }
+    }),];
+  }),]);
+
   // Vertical scroll list: 5 x 40px items = 200px tall inside a 120px-tall
   // panel, so the bottom items are clipped until the user scrolls down.
   hostApi.ui.window("vscroll-host", {

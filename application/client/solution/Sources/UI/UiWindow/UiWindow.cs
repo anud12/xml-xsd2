@@ -109,9 +109,8 @@ public partial class UiWindow : Control
 
     public void SetChildren(List<string> childIds)
     {
-        var box = GetNodeOrNull<BoxContainer>("box");
-        var grid = GetNodeOrNull<UiGrid>("grid");
-        if (box == null && grid == null) return;
+        var flow = FlowContainer();
+        if (flow == null) return;
 
         var wanted = new List<string>(childIds);
 
@@ -129,25 +128,17 @@ public partial class UiWindow : Control
         {
             var id = wanted[i];
             if (_children.TryGetValue(id, out var child)
-                && box != null
-                && child.GetParent() == box
+                && child.GetParent() == flow
                 && child.GetIndex() != i)
             {
-                box.MoveChild(child, i);
+                flow.MoveChild(child, i);
             }
         }
     }
 
     void RemoveFlowChild(UiWindow child)
     {
-        var box = GetNodeOrNull<BoxContainer>("box");
-        if (box != null) box.RemoveChild(child);
-        else
-        {
-            var grid = GetNodeOrNull<UiGrid>("grid");
-            if (grid != null) grid.RemoveChild(child);
-            else RemoveChild(child);
-        }
+        child.GetParent()?.RemoveChild(child);
     }
 
     static JsonElement ParseOptions(UiNodeData node)

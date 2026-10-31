@@ -26,6 +26,15 @@ public partial class UiWindow
                 .GetNodeOrNull<UiGrid>("grid"));
     }
 
+    /// The flow content's combined minimum size (zero when there is no flow
+    /// container yet). Used to size a pass-through division to its content so a
+    /// parent's flow container / overflow scroll can see the overflow.
+    Vector2 FlowContentMinimumSize()
+    {
+        var flow = FlowContainer();
+        return flow is Control fc ? fc.GetCombinedMinimumSize() : Vector2.Zero;
+    }
+
     /// True when this window is a flow child with an explicit size and should
     /// be sized exactly to it (not stretched to fill the container cross-axis).
     public bool FixedFlowSize;
@@ -81,7 +90,15 @@ public partial class UiWindow
             _windowExplicitSize = Vector2.Zero;
             // No explicit size: the division stretches to fill its host window.
             FixedFlowSize = false;
-            CustomMinimumSize = Vector2.Zero;
+            // A scroll region fills the host (its own ScrollContainer handles
+            // overflow), so its minimum stays zero. A pass-through division has
+            // no such wrapper, so it reports its flow content's minimum size: a
+            // plain Control otherwise reports (0,0), and a parent flow container
+            // (and a parent's overflow scroll) can never size to the content or
+            // reveal a scrollbar.
+            CustomMinimumSize = GetNodeOrNull<ScrollContainer>("scroll") != null
+                ? Vector2.Zero
+                : FlowContentMinimumSize();
         }
         ApplyBackground(opts);
         ApplyBorder(opts);

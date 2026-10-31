@@ -148,6 +148,8 @@
     <Content Include="Tests\GameScene\Stage_14\EntityFilter\EmptyArrays\module\manifest.json" />
     <Content Include="Tests\GameScene\Stage_14\EntityFilter\Malformed\module\index.js" />
     <Content Include="Tests\GameScene\Stage_14\EntityFilter\Malformed\module\manifest.json" />
+    <Content Include="Tests\GameScene\Stage_7\Overflow\OverflowViewport\expected-window-overflow.png" />
+    <Content Include="Tests\GameScene\Stage_7\Overflow\OverflowViewport\expected-window-overflow.png.import" />
     <Content Include="Tests\GameScene\Step_2\ConstantTextContent\center\module\index.js" />
     <Content Include="Tests\GameScene\Step_2\ConstantTextContent\center\module\manifest.json" />
     <Content Include="Tests\GameScene\Step_2\ConstantTextContent\center\module\texture.png" />

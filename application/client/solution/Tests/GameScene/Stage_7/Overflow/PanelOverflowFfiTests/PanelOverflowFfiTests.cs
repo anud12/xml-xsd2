@@ -36,5 +36,20 @@ public partial class PanelOverflowFfiTests : Steps {
         scene.AssertPanelThat("both-list")
             .HasOverflow(width: "scroll", height: "scroll")
             .HasLength(5);
+
+        // Window-level overflow: the window declares the scroll region, the
+        // entityList is a content-sized pass-through (no scroll of its own).
+        scene.AssertPanelThat("win-overflow-host")
+            .HasOverflow(width: "scroll", height: "show")
+            .HasLength(1);
+        scene.AssertPanelThat("win-overflow-list")
+            .HasOverflow(width: "show", height: "show")
+            .HasLength(5);
+
+        // Plain panel (division) with overflow: the scroll behavior is uniform
+        // across every flow-hosting component that carries a panel.
+        scene.AssertPanelThat("panel-overflow")
+            .HasOverflow(width: "scroll", height: "show")
+            .HasLength(3);
     }
 }

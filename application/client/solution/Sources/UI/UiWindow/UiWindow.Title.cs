@@ -58,6 +58,15 @@ public partial class UiWindow
     /// container when the layout mode changes, so the inset must re-assert.
     void ApplyTitleInset(float top)
     {
+        var scroll = GetNodeOrNull<ScrollContainer>("scroll");
+        if (scroll != null)
+        {
+            // The scroll wrapper is the window's direct child and carries the
+            // title inset; the flow container inside it sits at its origin.
+            scroll.OffsetTop = top;
+            if (FlowContainer() is Control inner) inner.OffsetTop = 0;
+            return;
+        }
         var box = GetNodeOrNull<BoxContainer>("box");
         if (box != null) box.OffsetTop = top;
         var grid = GetNodeOrNull<UiGrid>("grid");

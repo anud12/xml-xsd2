@@ -62,7 +62,7 @@ public partial class UiWindow
 
     Vector2 SizeToContent()
     {
-        var box = GetNodeOrNull<BoxContainer>("box");
+        var box = FlowContainer();
         if (box == null) return Vector2.Zero;
         var min = new Vector2();
         for (int i = 0; i < box.GetChildCount(); i++)
@@ -109,6 +109,7 @@ public partial class UiWindow
 
         _layoutSpec = UiGrid.UiGridLayoutSpec.Parse(opts);
         EnsureFlowContainer();
+        ApplyOverflow(opts, FlowContainer());
         ApplyTitle(opts);
 
         ApplyBackground(opts);

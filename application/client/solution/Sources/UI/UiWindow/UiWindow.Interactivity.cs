@@ -444,7 +444,8 @@ public partial class UiWindow
                 return (col, row);
             }
         }
-        var grid = GetNodeOrNull<UiGrid>("grid");
+        var grid = GetNodeOrNull<UiGrid>("grid")
+            ?? GetNodeOrNull<ScrollContainer>("scroll")?.GetNodeOrNull<UiGrid>("grid");
         if (grid == null)
             return (0, 0);
         return grid.CellAt(localPos);
