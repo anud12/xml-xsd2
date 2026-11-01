@@ -25,7 +25,7 @@ export const inventoryUi = (hostApi) => {
                 height: "show",
                 barSize: 16,
                 texture: {
-                    track: { animation: track, fill: { width: "stretch", height: "stretch" } },
+                    track: { animation: portrait, fill: { width: "stretch", height: "stretch" } },
                     grabber: { animation: portrait, fill: { width: "stretch", height: "stretch" } },
                 },
             },

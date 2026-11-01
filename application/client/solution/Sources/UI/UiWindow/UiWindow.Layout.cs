@@ -226,6 +226,7 @@ public partial class UiWindow
     /// options.scrollbarGrabber, a `UiTexture`) as the bar's theme style-boxes.
     void ApplyBarSize(ScrollContainer scroll, bool scrollH, bool scrollV, JsonElement opts)
     {
+        _sbAnims.Clear();
         float size = TryNum(opts, "barSize", out var b) && b > 0f ? b : DefaultBarSize;
         StyleBoxTexture? track = ResolveScrollbarBox(opts, "scrollbarTrack");
         StyleBoxTexture? grabber = ResolveScrollbarBox(opts, "scrollbarGrabber");
@@ -253,6 +254,22 @@ public partial class UiWindow
     /// track and grabber slots of this window.
     readonly Dictionary<string, Texture2D> _scrollbarTextures = new();
 
+    /// Animated scrollbar slots: multi-frame animations whose texture advances
+    /// per runtime elapsed time unit (same scheme as background animations).
+    readonly List<SbAnimState> _sbAnims = new();
+
+    class SbAnimState
+    {
+        public List<string> Frames = new();
+        public int DurationTicks = 1;
+        public bool Loop;
+        public long StartTime;
+        public long LastElapsed = -1;
+        public string? CurrentFramePath;
+        public StyleBoxTexture Box = null!;
+        public ScrollBar? Bar;
+    }
+
     /// Resolves a scrollbar track/grabber texture slot (`{ animation, paint }`)
     /// into a `StyleBoxTexture`. `animation` is a static archive path (a string)
     /// or a named animation ref (its first frame); `paint.sliceWidth/Height` map
@@ -264,11 +281,47 @@ public partial class UiWindow
             || !el.TryGetProperty("animation", out var anim))
             return null;
         string? path = null;
+        SbAnimState? sbAnim = null;
         if (anim.ValueKind == JsonValueKind.String)
             path = anim.GetString();
         else if (anim.ValueKind == JsonValueKind.Object
             && anim.TryGetProperty("name", out var nm) && nm.ValueKind == JsonValueKind.String)
-            path = FirstAnimationFrame(nm.GetString());
+        {
+            var animName = nm.GetString();
+            path = FirstAnimationFrame(animName);
+            var def = UiState.GetAnimation(animName);
+            if (def.HasValue && def.Value.TryGetProperty("frames", out var frames)
+                && frames.ValueKind == JsonValueKind.Array)
+            {
+                var framePaths = new List<string>();
+                foreach (var f in frames.EnumerateArray())
+                {
+                    var sprite = f.ValueKind == JsonValueKind.Object
+                        && f.TryGetProperty("sprite", out var s) ? s : default;
+                    string? fp = null;
+                    if (sprite.ValueKind == JsonValueKind.String)
+                        fp = sprite.GetString();
+                    else if (sprite.ValueKind == JsonValueKind.Object
+                        && sprite.TryGetProperty("name", out var snm) && snm.ValueKind == JsonValueKind.String)
+                        fp = snm.GetString();
+                    if (!string.IsNullOrEmpty(fp)) framePaths.Add(fp);
+                }
+                if (framePaths.Count > 1)
+                {
+                    int durationTicks = 1;
+                    if (def.Value.TryGetProperty("duration", out var dd) && dd.ValueKind == JsonValueKind.Number)
+                        durationTicks = Math.Max(1, (int)dd.GetDouble());
+                    bool loop = def.Value.TryGetProperty("loop", out var ll) && ll.ValueKind == JsonValueKind.True;
+                    path = framePaths[0];
+                    sbAnim = new SbAnimState {
+                        Frames = framePaths,
+                        DurationTicks = durationTicks,
+                        Loop = loop,
+                        StartTime = UiState.GetOrSetAnimStartTime(_nodeId + ":" + prop),
+                    };
+                }
+            }
+        }
         if (string.IsNullOrEmpty(path))
             return null;
         var tex = LoadScrollbarTexture(path);
@@ -283,6 +336,11 @@ public partial class UiWindow
                 ? (int)shEl.GetDouble() : 0;
             if (sw > 0) { box.TextureMarginLeft = sw; box.TextureMarginRight = sw; }
             if (sh > 0) { box.TextureMarginTop = sh; box.TextureMarginBottom = sh; }
+        }
+        if (sbAnim != null)
+        {
+            sbAnim.Box = box;
+            _sbAnims.Add(sbAnim);
         }
         return box;
     }
@@ -329,7 +387,7 @@ public partial class UiWindow
     /// Paints the scrollbar's track and grabber with custom textures via the bar's
     /// theme style-boxes: the track fills the scroll area, the grabber fills the
     /// draggable thumb. A null box leaves that part at the engine default.
-    static void ApplyScrollbarStyle(ScrollBar bar, StyleBoxTexture? track, StyleBoxTexture? grabber)
+    void ApplyScrollbarStyle(ScrollBar bar, StyleBoxTexture? track, StyleBoxTexture? grabber)
     {
         if (track != null)
         {
@@ -342,6 +400,8 @@ public partial class UiWindow
             bar.AddThemeStyleboxOverride("grabber_highlight", grabber);
             bar.AddThemeStyleboxOverride("grabber_pressed", grabber);
         }
+        foreach (var sb in _sbAnims)
+            sb.Bar = bar;
     }
 
     /// Reads a single axis of the overflow option. A string value applies to
@@ -432,5 +492,36 @@ public partial class UiWindow
             cur = cur.GetParent();
         }
         return false;
+    }
+
+    /// Advances every animated scrollbar slot to the frame matching the
+    /// current runtime elapsed time (same ticks-per-frame scheme as background
+    /// animations). A null or unchanged frame is a no-op.
+    void AdvanceScrollbarAnims()
+    {
+        if (_sbAnims.Count == 0) return;
+        var elapsed = RuntimeInterop.GetElapsedTimeUnits();
+        foreach (var sb in _sbAnims)
+        {
+            if (elapsed <= sb.LastElapsed) continue;
+            sb.LastElapsed = elapsed;
+            var localElapsed = elapsed - sb.StartTime;
+            var ticksPerFrame = Math.Max(
+                (int)Math.Round(sb.DurationTicks / (double)sb.Frames.Count), 1);
+            var rawIndex = (int)((localElapsed - 1) / ticksPerFrame);
+            if (rawIndex < 0) rawIndex = 0;
+            var frameIndex = sb.Loop
+                ? rawIndex % sb.Frames.Count
+                : Math.Min(rawIndex, sb.Frames.Count - 1);
+            var path = sb.Frames[frameIndex];
+            if (path == sb.CurrentFramePath) continue;
+            sb.CurrentFramePath = path;
+            var tex = LoadScrollbarTexture(path);
+            if (tex != null)
+            {
+                sb.Box.Texture = tex;
+                sb.Bar?.QueueRedraw();
+            }
+        }
     }
 }

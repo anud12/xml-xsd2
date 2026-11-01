@@ -1,0 +1,6 @@
+{
+  "id": "scrollbar-anim-test",
+  "version": "1.0.0",
+  "name": "Scrollbar Animation Test Module",
+  "entry": "index.js"
+}
