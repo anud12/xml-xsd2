@@ -53,13 +53,13 @@ public partial class PanelOverflowViewportFfiTests : Steps {
 
             var scene = await AttachUiScene();
 
-            var hScroll = scene.Window("hscroll-list").GetNodeOrNull<ScrollContainer>("scroll");
+            var hScroll = scene.Window("hscroll-host").GetNodeOrNull<ScrollContainer>("scroll");
             Assertions.AssertThat(hScroll != null)
-                .OverrideFailureMessage("horizontal overflow list must have a scroll wrapper")
+                .OverrideFailureMessage("horizontal overflow window must have a scroll wrapper")
                 .IsTrue();
-            var vScroll = scene.Window("vscroll-list").GetNodeOrNull<ScrollContainer>("scroll");
+            var vScroll = scene.Window("vscroll-host").GetNodeOrNull<ScrollContainer>("scroll");
             Assertions.AssertThat(vScroll != null)
-                .OverrideFailureMessage("vertical overflow list must have a scroll wrapper")
+                .OverrideFailureMessage("vertical overflow window must have a scroll wrapper")
                 .IsTrue();
 
             // Baseline: before any interaction each viewport shows the first

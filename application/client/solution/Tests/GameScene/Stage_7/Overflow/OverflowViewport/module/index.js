@@ -34,10 +34,12 @@ export default (hostApi) => {
       y: 450,
       width: 120,
       height: 60,
+      layout: "row",
+      overflow: {width: "scroll", height: "show", barSize: 8},
       background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("hscroll-list", {
-    container: inv, vertical: false, panel: {overflow: {width: "scroll", height: "show", barSize: 8}, width: 100, height: 30}
+    container: inv, vertical: false
   }, (entity) => {
     const tex = entity.id.endsWith("-a") ? red : entity.id.endsWith("-b") ? green : blue;
     return [hostApi.ui.window(entity.id + "-h", {
@@ -76,10 +78,11 @@ export default (hostApi) => {
       y: 560,
       width: 60,
       height: 120,
+      overflow: {width: "show", height: "scroll", barSize: 8},
       background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("vscroll-list", {
-    container: inv, panel: {overflow: {width: "show", height: "scroll", barSize: 8}, width: 40, height: 100}
+    container: inv
   }, (entity) => {
     const tex = entity.id.endsWith("-a") ? red : entity.id.endsWith("-b") ? green : blue;
     return [hostApi.ui.window(entity.id + "-v", {

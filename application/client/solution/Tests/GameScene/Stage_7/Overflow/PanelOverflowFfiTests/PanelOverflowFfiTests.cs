@@ -22,19 +22,29 @@ public partial class PanelOverflowFfiTests : Steps {
             .HasOverflow(width: "show", height: "show")
             .HasLength(5);
 
-        // Horizontal scroll only.
-        scene.AssertPanelThat("hscroll-list")
+        // Horizontal scroll only: the host window declares the scroll region;
+        // the entityList is a pass-through (no scroll of its own).
+        scene.AssertPanelThat("hscroll-host")
             .HasOverflow(width: "scroll", height: "show")
+            .HasLength(1);
+        scene.AssertPanelThat("hscroll-list")
+            .HasOverflow(width: "show", height: "show")
             .HasLength(5);
 
         // Vertical scroll only.
-        scene.AssertPanelThat("vscroll-list")
+        scene.AssertPanelThat("vscroll-host")
             .HasOverflow(width: "show", height: "scroll")
+            .HasLength(1);
+        scene.AssertPanelThat("vscroll-list")
+            .HasOverflow(width: "show", height: "show")
             .HasLength(5);
 
-        // Bare "scroll": both axes scroll.
-        scene.AssertPanelThat("both-list")
+        // Both axes scroll.
+        scene.AssertPanelThat("both-host")
             .HasOverflow(width: "scroll", height: "scroll")
+            .HasLength(1);
+        scene.AssertPanelThat("both-list")
+            .HasOverflow(width: "show", height: "show")
             .HasLength(5);
 
         // Window-level overflow: the window declares the scroll region, the

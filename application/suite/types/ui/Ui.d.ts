@@ -405,25 +405,16 @@ export type UiSectorGridItem = {
 
 /**
  * Arguments for ui.entityList: a flow list that materializes one child (from
- * the render lambda) per entity in the named container.
+ * the render lambda) per entity in the named container. The list only emits
+ * and arranges its children (`vertical` picks the flow direction); it carries
+ * no panel of its own. Any sizing/overflow (the scroll region) belongs on the
+ * parent that consumes the list — a window or panel with its own
+ * {@link UiPanelOptions} (`width`/`height`/`overflow`), which clips and
+ * scrolls the list's content.
  */
 export type UiEntityListOptions = {
   container: ContainerReadOnlyExpression;
   vertical?: boolean;
-  /**
-    * The list's panel presentation. `width`/`height` bound the scroll region:
-    * when present the list is a fixed viewport of that size and any content
-    * larger than it overflows into it; when omitted the list sizes to its
-     * content. `overflow` sets per-axis overflow handling for the list's flow
-     * content (see {@link UiOverflow}); when present it requires `width`,
-     * `height`, and `barSize`.
-     */
-    panel?: {
-     width?: number;
-     height?: number;
-     /** Per-axis overflow handling (see {@link UiOverflow}). */
-     overflow?: UiOverflow;
-    };
 };
 
 /**

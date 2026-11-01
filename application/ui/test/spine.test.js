@@ -23,7 +23,7 @@ test('ui.text registers a text node with its id and value', () => {
   registered = [];
   host.clear();
   const id = host.text('spine-text', 'spine');
-  assert.strictEqual(id, 'spine-text');
+  assert.strictEqual(String(id), 'spine-text');
   assert.strictEqual(registered.length, 1);
   assert.deepStrictEqual(registered[0], {
     id: 'spine-text', kind: 'text', value: 'spine', children: [],
@@ -35,7 +35,7 @@ test('ui.div registers a division node with children ids', () => {
   host.clear();
   const t = host.text('spine-text', 'spine');
   const d = host.div('spine-div', {}, [t]);
-  assert.strictEqual(d, 'spine-div');
+  assert.strictEqual(String(d), 'spine-div');
   const snap = host.snapshot();
   assert.strictEqual(snap.length, 2);
   const div = snap.find((n) => n.id === 'spine-div');
@@ -66,7 +66,7 @@ test('ui.field registers a field node with its binding', () => {
   const id = host.field('hp-field', {
     entity: 'ent-a', map: 'number', name: 'hp', fallback: 'n/a',
   });
-  assert.strictEqual(id, 'hp-field');
+  assert.strictEqual(String(id), 'hp-field');
   assert.strictEqual(registered.length, 1);
   assert.deepStrictEqual(registered[0], {
     id: 'hp-field',
@@ -81,7 +81,7 @@ test('ui.image registers an image node with its src', () => {
   registered = [];
   host.clear();
   const id = host.image('spine-img', 'art/hover.png');
-  assert.strictEqual(id, 'spine-img');
+  assert.strictEqual(String(id), 'spine-img');
   assert.strictEqual(registered.length, 1);
   assert.deepStrictEqual(registered[0], {
     id: 'spine-img', kind: 'image', src: 'art/hover.png', children: [],
@@ -107,14 +107,14 @@ test('ui.progress registers a bound progress node and carries steps in the optio
       steps: 50,
     },
   });
-  assert.strictEqual(id, 'spine-prog');
+  assert.strictEqual(String(id), 'spine-prog');
   assert.strictEqual(registered.length, 1);
   assert.deepStrictEqual(registered[0], {
     id: 'spine-prog',
     kind: 'progress',
     value: 0,
     binding: { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 },
-    options: { fill: 'art/fill.png', track: 'art/track.png', orientation: 'vertical', steps: 50 },
+    options: { panel: {}, fill: 'art/fill.png', track: 'art/track.png', orientation: 'vertical', steps: 50 },
     children: [],
   });
 });
@@ -129,13 +129,13 @@ test('ui.progress defaults steps to 100 and captures the orElse defaults as raw-
       max: (e) => e.number_map.get('max').orElse(100),
     },
   });
-  assert.strictEqual(id, 'hp-bar');
+  assert.strictEqual(String(id), 'hp-bar');
   assert.deepStrictEqual(registered[0], {
     id: 'hp-bar',
     kind: 'progress',
     value: 0,
     binding: { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 },
-    options: { fill: 'art/fill.png', orientation: 'horizontal', steps: 100 },
+    options: { panel: {}, fill: 'art/fill.png', orientation: 'horizontal', steps: 100 },
     children: [],
   });
 });
@@ -151,7 +151,7 @@ test('ui.progress resolves a value lambda via the entity number_map api', () => 
       max: (e) => e.number_map.get('max').orElse(100),
     },
   });
-  assert.strictEqual(id, 'hp-lambda');
+  assert.strictEqual(String(id), 'hp-lambda');
   assert.strictEqual(sawEntity, 'ent-a');
   assert.deepStrictEqual(registered[0].binding, { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 });
 });
@@ -166,10 +166,10 @@ test('ui.progress captures the value orElse default as the raw-value fallback', 
       max: (e) => e.number_map.get('max').orElse(100),
     },
   });
-  assert.strictEqual(id, 'hp-orElse');
+  assert.strictEqual(String(id), 'hp-orElse');
   assert.strictEqual(registered[0].binding.name, 'hp');
   assert.strictEqual(registered[0].binding.fallback, 0.5);
-  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: () => 42, max: (e) => e.number_map.get('m').orElse(1) } }), /options.progress.value lambda/);
+  assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: () => 'oops', max: (e) => e.number_map.get('m').orElse(1) } }), /options.progress.value lambda/);
   assert.throws(() => host.progress('p', { progress: { fill: 'a.png', entity: 'e', value: () => { throw new Error('boom'); }, max: (e) => e.number_map.get('m').orElse(1) } }), /lambda threw/);
 });
 
@@ -184,7 +184,7 @@ test('ui.progress resolves min/max lambdas into binding keys and captures their 
       max: (e) => e.number_map.get('hi').orElse(10),
     },
   });
-  assert.strictEqual(id, 'range-lambda');
+  assert.strictEqual(String(id), 'range-lambda');
   assert.deepStrictEqual(registered[0].binding, {
     entity: 'ent-a', map: 'number', name: 'hp', fallback: 0,
     maxName: 'hi', maxFallback: 10, minName: 'lo', minFallback: 2,
@@ -216,13 +216,14 @@ test('ui.progress passes an animation reference through for fill and track', () 
       max: (e) => e.number_map.get('max').orElse(100),
     },
   });
-  assert.strictEqual(id, 'anim-prog');
+  assert.strictEqual(String(id), 'anim-prog');
   assert.deepStrictEqual(registered[0], {
     id: 'anim-prog',
     kind: 'progress',
     value: 0,
     binding: { entity: 'ent-a', map: 'number', name: 'hp', fallback: 0, maxName: 'max', maxFallback: 100, minFallback: 0 },
     options: {
+      panel: {},
       fill: { name: 'fill-anim', duration: 2, loop: true },
       track: 'art/track.png',
       orientation: 'horizontal',
@@ -255,7 +256,7 @@ test('ui.entityList registers a division node with a container marker child', ()
     host.field(entity.id + ':value', { entity: entity.id, map: 'number', name: 'value', fallback: '0' }),
   ])];
   const id = host.entityList('items', { container: 'items' }, render);
-  assert.strictEqual(id, 'items');
+  assert.strictEqual(String(id), 'items');
   const list = host.snapshot().find((n) => n.id === 'items');
   assert.strictEqual(list.kind, 'division');
   assert.strictEqual(list.options.container, 'items');
@@ -301,16 +302,16 @@ test('ui.entityList with unknown container renders zero items', () => {
 
 test('ui.containerView registers a window node with view options and a view marker', () => {
   host.clear();
-  const id = host.containerView('world', { container: 'grid-1', width: 700, height: 500, x: 10, y: 80 },
+  const id = host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500, x: 10, y: 80 } },
     (entity) => host.window(entity.id, { background: 'tex' }, []));
-  assert.strictEqual(id, 'world');
+  assert.strictEqual(String(id), 'world');
   const view = host.snapshot().find((n) => n.id === 'world');
   assert.strictEqual(view.kind, 'window');
   assert.strictEqual(view.options.container, 'grid-1');
   assert.strictEqual(view.options.viewWidth, 700);
   assert.strictEqual(view.options.viewHeight, 500);
-  assert.strictEqual(view.options.x, 10);
-  assert.strictEqual(view.options.y, 80);
+  assert.strictEqual(view.options.panel.x, 10);
+  assert.strictEqual(view.options.panel.y, 80);
   assert.deepStrictEqual(view.children, ['$$containerView:world']);
 });
 
@@ -319,15 +320,15 @@ test('ui.containerView rejects bad name, args, or render', () => {
   assert.throws(() => host.containerView('', { container: 'c', width: 10, height: 10 }, () => 'x'), /mandatory name/);
   assert.throws(() => host.containerView('v', null, () => 'x'), /args must be an object/);
   assert.throws(() => host.containerView('v', { container: '', width: 10, height: 10 }, () => 'x'), /args.container/);
-  assert.throws(() => host.containerView('v', { container: 'c', width: 0, height: 10 }, () => 'x'), /args.width/);
-  assert.throws(() => host.containerView('v', { container: 'c', width: 10, height: 0 }, () => 'x'), /args.height/);
-  assert.throws(() => host.containerView('v', { container: 'c', width: 10, height: 10 }, null), /render must be a function/);
+  assert.throws(() => host.containerView('v', { container: 'c', panel: { width: 0, height: 10 } }, () => 'x'), /panel.width/);
+  assert.throws(() => host.containerView('v', { container: 'c', panel: { width: 10, height: 0 } }, () => 'x'), /panel.height/);
+  assert.throws(() => host.containerView('v', { container: 'c', panel: { width: 10, height: 10 } }, null), /render must be a function/);
 });
 
 test('ui.containerView expands one item per entity and stamps options.entity', () => {
   host.clear();
   const render = (entity) => host.window(entity.id, { background: 'tex' }, []);
-  host.containerView('world', { container: 'grid-1', width: 700, height: 500 }, render);
+  host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } }, render);
   host.expandContainerViews((cid) => {
     assert.strictEqual(cid, 'grid-1');
     return ['a', 'b'];
@@ -343,7 +344,7 @@ test('ui.containerView expands one item per entity and stamps options.entity', (
 
 test('ui.containerView with unknown container renders zero items', () => {
   host.clear();
-  host.containerView('world', { container: 'grid-1', width: 700, height: 500 },
+  host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } },
     (entity) => host.window(entity.id, {}, []));
   host.expandContainerViews(() => []);
   const view = host.snapshot().find((n) => n.id === 'world');
@@ -352,7 +353,7 @@ test('ui.containerView with unknown container renders zero items', () => {
 
 test('ui.containerView reset restores the view marker', () => {
   host.clear();
-  host.containerView('world', { container: 'grid-1', width: 700, height: 500 },
+  host.containerView('world', { container: 'grid-1', panel: { width: 700, height: 500 } },
     (entity) => host.window(entity.id, {}, []));
   host.expandContainerViews(() => ['a']);
   let view = host.snapshot().find((n) => n.id === 'world');

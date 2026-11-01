@@ -23,12 +23,11 @@ export default (hostApi) => {
 
   // Horizontal scroll only: width scrolls, height stays "show".
   hostApi.ui.window("hscroll-host", {
-    panel: {x: 20, y: 100, width: 120, height: 60},
+    panel: {x: 20, y: 100, width: 120, height: 60, layout: "row", overflow: {width: "scroll", height: "show", barSize: 8}},
   }, [
     hostApi.ui.entityList("hscroll-list", {
       container: inv,
-      vertical: false,
-      panel: {overflow: {width: "scroll", height: "show", barSize: 8}}
+      vertical: false
     }, (entity) => [
       hostApi.ui.window(entity.id + "-h", {panel: {width: 40, height: 40}}),
     ]),
@@ -36,18 +35,18 @@ export default (hostApi) => {
 
   // Vertical scroll only: height scrolls, width stays "show".
   hostApi.ui.window("vscroll-host", {
-    panel: {x: 20, y: 180, width: 60, height: 100},
+    panel: {x: 20, y: 180, width: 60, height: 100, overflow: {width: "show", height: "scroll", barSize: 8}},
   }, [
-    hostApi.ui.entityList("vscroll-list", {container: inv, panel: {overflow: {width: "show", height: "scroll", barSize: 8}}}, (entity) => [
+    hostApi.ui.entityList("vscroll-list", {container: inv}, (entity) => [
       hostApi.ui.window(entity.id + "-v", {panel: {width: 40, height: 40}}),
     ]),
   ]);
 
   // Bare string: "scroll" applies to both axes.
   hostApi.ui.window("both-host", {
-    panel: {x: 20, y: 300, width: 120, height: 100},
+    panel: {x: 20, y: 300, width: 120, height: 100, layout: "row", overflow: {width: "scroll", height: "scroll", barSize: 8}},
   }, [
-    hostApi.ui.entityList("both-list", {container: inv, vertical: false, panel: {overflow: {width: "scroll", height: "scroll", barSize: 8}}}, (entity) => [
+    hostApi.ui.entityList("both-list", {container: inv, vertical: false}, (entity) => [
       hostApi.ui.window(entity.id + "-b", {panel: {width: 40, height: 40}}),
     ]),
   ]);
