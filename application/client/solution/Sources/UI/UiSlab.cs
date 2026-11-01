@@ -164,6 +164,10 @@ public static class UiSlab
             Add("overflow", SerializeOverflow(o.Overflow));
         if (o.BarSize != 0f)
             Add("barSize", Num(o.BarSize));
+        var scrollTrack = SerializeScrollbarTexture(o.ScrollbarTrack, arena);
+        if (scrollTrack != null) Add("scrollbarTrack", scrollTrack);
+        var scrollGrabber = SerializeScrollbarTexture(o.ScrollbarGrabber, arena);
+        if (scrollGrabber != null) Add("scrollbarGrabber", scrollGrabber);
         var fillJson = SerializeBackground(o.ProgressFill, arena);
         if (fillJson != null)
         {
@@ -193,6 +197,20 @@ public static class UiSlab
         if (h) return "{\"width\":\"scroll\"}";
         if (v) return "{\"height\":\"scroll\"}";
         return null;
+    }
+
+    /// Serializes a scrollbar track/grabber texture slot to the flat reader
+    /// shape `{ animation, paint }` (`animation` is a `SerializeBackground`
+    /// result: a static path string, an animation ref, or a sprite map). Null
+    /// when the slot is `UI_BG_NONE` (absent): the renderer keeps the default.
+    static string SerializeScrollbarTexture(UiAbi.UiBackground b, IntPtr arena)
+    {
+        var anim = SerializeBackground(b, arena);
+        if (anim == null) return null;
+        var sb = new StringBuilder("{\"animation\":").Append(anim);
+        sb.Append(",\"paint\":").Append(SerializePaint(b.Paint));
+        sb.Append('}');
+        return sb.ToString();
     }
 
     static string SerializeAreaOutline(UiAbi.UiNodeOptions o, IntPtr arena)

@@ -8,6 +8,14 @@ export default (hostApi) => {
   const red = hostApi.runtime.setAnimation(string.of("red"), {
     frames: [{sprite: hostApi.ui.getSpritePNG("item_red.png")}], duration: number.of(1),
   });
+  // Scrollbar track / grabber: dedicated specific solid colors (blue track, red
+  // grabber) so the textured bar is visually unambiguous in the references.
+  const scrollTrack = hostApi.runtime.setAnimation(string.of("scrollTrack"), {
+    frames: [{sprite: hostApi.ui.getSpritePNG("scroll_track.png")}], duration: number.of(1),
+  });
+  const scrollGrabber = hostApi.runtime.setAnimation(string.of("scrollGrabber"), {
+    frames: [{sprite: hostApi.ui.getSpritePNG("scroll_grabber.png")}], duration: number.of(1),
+  });
 
   const child = (id) => hostApi.ui.window(id, {
     panel: {
@@ -22,7 +30,7 @@ export default (hostApi) => {
   hostApi.ui.window("bar-custom", {
     panel: {
       x: 400, y: 450, width: 120, height: 80, layout: "row",
-      overflow: {width: "scroll", height: "show", barSize: 20},
+      overflow: {width: "scroll", height: "show", barSize: 20, texture: {track: {animation: scrollTrack, fill: {width: "stretch", height: "stretch"}}, grabber: {animation: scrollGrabber, fill: {width: "stretch", height: "stretch"}}}},
       background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [child("bar-custom-1"), child("bar-custom-2"), child("bar-custom-3")]);
@@ -32,7 +40,7 @@ export default (hostApi) => {
   hostApi.ui.window("bar-default", {
     panel: {
       x: 560, y: 450, width: 120, height: 80, layout: "row",
-      overflow: {width: "scroll", height: "show", barSize: 8},
+      overflow: {width: "scroll", height: "show", barSize: 8, texture: {track: {animation: scrollTrack, fill: {width: "stretch", height: "stretch"}}, grabber: {animation: scrollGrabber, fill: {width: "stretch", height: "stretch"}}}},
       background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [child("bar-default-1"), child("bar-default-2"), child("bar-default-3")]);

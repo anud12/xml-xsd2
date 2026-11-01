@@ -282,6 +282,13 @@ pub struct UiNodeOptions {
     /// declared size = viewport + bar on that axis. 0.0 means "absent": the
     /// renderer falls back to its default (8 px).
     pub bar_size: f32,
+    /// Scrollbar track texture: a `UiTexture` `{ animation, fill, nineSlice? }`
+    /// (shape like `progress_track`; `UI_BG_NONE` when absent). The renderer
+    /// paints it as the bar's track style-box; absent keeps the default track.
+    pub scrollbar_track: UiBackground,
+    /// Scrollbar grabber texture (same shape as `scrollbar_track`): painted as
+    /// the draggable thumb's style-box; absent keeps the default grabber.
+    pub scrollbar_grabber: UiBackground,
 }
 
 /// `UiNodeOptions::overflow` flags (per-axis overflow handling).
@@ -798,6 +805,28 @@ fn empty_options() -> UiNodeOptions {
         container_view: 0,
         overflow: 0,
         bar_size: 0.0,
+        scrollbar_track: UiBackground {
+            kind: UI_BG_NONE,
+            loop_: 0,
+            duration: 0.0,
+            path: NO_STR,
+            name: NO_STR,
+            map: NO_STR,
+            layer_count: 0,
+            layers: ptr::null(),
+            paint: UiPaintSpec::stretch(),
+        },
+        scrollbar_grabber: UiBackground {
+            kind: UI_BG_NONE,
+            loop_: 0,
+            duration: 0.0,
+            path: NO_STR,
+            name: NO_STR,
+            map: NO_STR,
+            layer_count: 0,
+            layers: ptr::null(),
+            paint: UiPaintSpec::stretch(),
+        },
     }
 }
 
@@ -862,6 +891,42 @@ fn parse_bar_size(opts: &Map<String, Value>) -> f32 {
         .and_then(|v| v.as_f64())
         .map(|f| f as f32)
         .unwrap_or(0.0)
+}
+
+/// Reads `panel.overflow.texture.<part>` (a `UiTexture` `{ animation, fill,
+/// nineSlice? }`) into a `UiBackground` for the scrollbar track or grabber. The
+/// default paint stretches both axes (a scrollbar style-box); the explicit
+/// `fill`/`nineSlice` override it. `UI_BG_NONE` when absent: the renderer keeps
+/// its default scrollbars.
+fn parse_scrollbar_tex(opts: &Map<String, Value>, part: &str, slab: &mut Slab) -> UiBackground {
+    let mut b = empty_options().background;
+    b.paint = UiPaintSpec::stretch();
+    let Some(v) = opts
+        .get("overflow")
+        .and_then(|v| v.as_object())
+        .and_then(|m| m.get("texture"))
+        .and_then(|v| v.as_object())
+        .and_then(|m| m.get(part))
+    else {
+        return b;
+    };
+    match v {
+        Value::String(s) if !s.is_empty() => {
+            b.kind = UI_BG_STATIC;
+            b.path = slab.intern(s);
+        }
+        Value::Object(m) => {
+            if let Some(anim) = m.get("animation") {
+                parse_background_ref(anim, &mut b, slab, ptr::null_mut());
+            }
+            if let Some(fill) = m.get("fill") {
+                apply_fill(&mut b, fill);
+            }
+            apply_nine_slice(&mut b, m.get("nineSlice"));
+        }
+        _ => {}
+    }
+    b
 }
 
 fn opt_str(opts: &Map<String, Value>, key: &str, slab: &mut Slab) -> u32 {
@@ -1508,6 +1573,10 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     // barSize: the scrollbar thickness, read from within the overflow object
     // (0.0 when absent; the renderer defaults it to 8).
     o.bar_size = parse_bar_size(panel);
+    // Scrollbar textures: read from within the overflow object's `texture`
+    // (`UI_BG_NONE` when absent; the renderer keeps its default track/grabber).
+    o.scrollbar_track = parse_scrollbar_tex(panel, "track", slab);
+    o.scrollbar_grabber = parse_scrollbar_tex(panel, "grabber", slab);
     // areaOutline: { polygons: [ { points: [[x, y], ...],
     //   color?: [r,g,b,a], bodyColor?: [r,g,b,a], thickness?: number }, ... ] }
     // points are view-local logical units (the same space as x/y/width/height).

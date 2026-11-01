@@ -18,6 +18,8 @@ public partial class PanelOverflowViewportFfiTests : Steps {
                 .AddFileToArchive("item_green.png", "item_green.png")
                 .AddFileToArchive("item_blue.png", "item_blue.png")
                 .AddFileToArchive("panel_bg.png", "panel_bg.png")
+                .AddFileToArchive("scroll_track.png", "scroll_track.png")
+                .AddFileToArchive("scroll_grabber.png", "scroll_grabber.png")
                 .EnsureDllAccessible()
                 .ProcessArchive();
 
@@ -48,6 +50,8 @@ public partial class PanelOverflowViewportFfiTests : Steps {
                 .AddFileToArchive("item_green.png", "item_green.png")
                 .AddFileToArchive("item_blue.png", "item_blue.png")
                 .AddFileToArchive("panel_bg.png", "panel_bg.png")
+                .AddFileToArchive("scroll_track.png", "scroll_track.png")
+                .AddFileToArchive("scroll_grabber.png", "scroll_grabber.png")
                 .EnsureDllAccessible()
                 .ProcessArchive();
 
@@ -112,6 +116,8 @@ public partial class PanelOverflowViewportFfiTests : Steps {
                 .AddFileToArchive("item_green.png", "item_green.png")
                 .AddFileToArchive("item_blue.png", "item_blue.png")
                 .AddFileToArchive("panel_bg.png", "panel_bg.png")
+                .AddFileToArchive("scroll_track.png", "scroll_track.png")
+                .AddFileToArchive("scroll_grabber.png", "scroll_grabber.png")
                 .EnsureDllAccessible()
                 .ProcessArchive();
 

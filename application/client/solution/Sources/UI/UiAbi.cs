@@ -204,6 +204,8 @@ public static class UiAbi
         public byte ContainerView;
         public byte Overflow;
         public float BarSize;
+        public UiBackground ScrollbarTrack;
+        public UiBackground ScrollbarGrabber;
     }
 
     public const byte OverflowHScroll = 1;

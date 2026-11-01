@@ -173,16 +173,26 @@ export type UiLayout = {
  */
 export type UiOverflowAxis = "show" | "scroll";
 /**
- * The overflow option: per-axis handling plus the scrollbar thickness. Each
- * axis is `"show"` (content overflows the panel/list bounds, no scrolling) or
- * `"scroll"` (the content becomes scrollable along that axis when it overflows).
- * `barSize` is the scrollbar thickness in logical px; the content viewport is
- * reduced by it on each scrolling axis, so declared size = viewport + bar.
- */
+ * The overflow option: per-axis handling, the scrollbar thickness, and the
+ * scrollbar appearance. Each axis is `"show"` (content overflows the panel/list
+ * bounds, no scrolling) or `"scroll"` (the content becomes scrollable along that
+ * axis when it overflows). `barSize` is the scrollbar thickness in logical px;
+ * the content viewport is reduced by it on each scrolling axis, so declared
+  * size = viewport + bar. `texture` is required: the two textures that paint
+  * the scrollbar — `track` (the bar the grabber slides on) and `grabber` (the
+  * draggable part), each a {@link UiTexture}.
+  */
 export type UiOverflow = {
   width: UiOverflowAxis;
   height: UiOverflowAxis;
   barSize: number;
+  /** Custom textures for the scrollbar. */
+  texture: {
+    /** Texture of the track (the bar the grabber slides on). */
+    track: UiTexture;
+    /** Texture of the grabber (the draggable part). */
+    grabber: UiTexture;
+  };
 };
 
 /**
@@ -209,7 +219,8 @@ export type UiPanelOptions = {
     layout?: UiLayout;
     /**
      * Per-axis overflow handling for the flow content (see {@link UiOverflow}).
-     * Requires `width`, `height`, and `barSize` (the scrollbar thickness).
+     * Requires `width`, `height`, `barSize` (the scrollbar thickness), and
+     * `texture` (the scrollbar track/grabber textures).
      */
     overflow?: UiOverflow;
     /**

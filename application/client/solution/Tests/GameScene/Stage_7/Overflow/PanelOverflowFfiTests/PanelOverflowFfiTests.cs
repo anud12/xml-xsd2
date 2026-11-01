@@ -13,6 +13,10 @@ public partial class PanelOverflowFfiTests : Steps {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
             .AddFileToArchive("module/manifest.json", "manifest.json")
+            .AddFileToArchive("..\\OverflowViewport\\panel_bg.png", "panel_bg.png")
+            .AddFileToArchive("..\\OverflowViewport\\item_red.png", "item_red.png")
+            .AddFileToArchive("..\\OverflowViewport\\scroll_track.png", "scroll_track.png")
+            .AddFileToArchive("..\\OverflowViewport\\scroll_grabber.png", "scroll_grabber.png")
             .ProcessArchive();
 
         var scene = await AttachUiScene();

@@ -23,6 +23,14 @@ export default (hostApi) => {
   const panelBg = hostApi.runtime.setAnimation(string.of("panelBg"), {
     frames: [{sprite: hostApi.ui.getSpritePNG("panel_bg.png")}], duration: number.of(1),
   });
+  // Scrollbar track / grabber: dedicated specific solid colors (distinct from the
+  // item colors) so the textured bar is visually unambiguous in the references.
+  const scrollTrack = hostApi.runtime.setAnimation(string.of("scrollTrack"), {
+    frames: [{sprite: hostApi.ui.getSpritePNG("scroll_track.png")}], duration: number.of(1),
+  });
+  const scrollGrabber = hostApi.runtime.setAnimation(string.of("scrollGrabber"), {
+    frames: [{sprite: hostApi.ui.getSpritePNG("scroll_grabber.png")}], duration: number.of(1),
+  });
 
   // Horizontal scroll list: 5 x 40px items = 200px wide inside a 120px-wide
   // panel, so the right-hand items are clipped until the user scrolls right.
@@ -30,13 +38,12 @@ export default (hostApi) => {
   // settings/actions/reload buttons or the actions window.
   hostApi.ui.window("hscroll-host", {
     panel: {
-      x: 400,
-      y: 450,
-      width: 120,
-      height: 60,
-      layout: "row",
-      overflow: {width: "scroll", height: "show", barSize: 8},
-      background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
+      x: 400, y: 450, width: 120, height: 60, layout: "row", overflow: {
+        width: "scroll", height: "show", barSize: 8, texture: {
+          track: {animation: scrollTrack, fill: {width: "stretch", height: "stretch"}},
+          grabber: {animation: scrollGrabber, fill: {width: "stretch", height: "stretch"}}
+        }
+      }, background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("hscroll-list", {
     container: inv, vertical: false
@@ -55,9 +62,12 @@ export default (hostApi) => {
   // wrapper must show a horizontal scrollbar.
   hostApi.ui.window("win-scroll-host", {
     panel: {
-      x: 600, y: 450, width: 140, height: 70, layout: "row",
-      overflow: {width: "scroll", height: "show", barSize: 8},
-      background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
+      x: 600, y: 450, width: 140, height: 70, layout: "row", overflow: {
+        width: "scroll", height: "show", barSize: 8, texture: {
+          track: {animation: scrollTrack, fill: {width: "stretch", height: "stretch"}},
+          grabber: {animation: scrollGrabber, fill: {width: "stretch", height: "stretch"}}
+        }
+      }, background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("win-scroll-list", {
     container: inv, vertical: false
@@ -74,12 +84,12 @@ export default (hostApi) => {
   // panel, so the bottom items are clipped until the user scrolls down.
   hostApi.ui.window("vscroll-host", {
     panel: {
-      x: 400,
-      y: 560,
-      width: 60,
-      height: 120,
-      overflow: {width: "show", height: "scroll", barSize: 8},
-      background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
+      x: 400, y: 560, width: 60, height: 120, overflow: {
+        width: "show", height: "scroll", barSize: 8, texture: {
+          track: {animation: scrollTrack, fill: {width: "stretch", height: "stretch"}},
+          grabber: {animation: scrollGrabber, fill: {width: "stretch", height: "stretch"}}
+        }
+      }, background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("vscroll-list", {
     container: inv

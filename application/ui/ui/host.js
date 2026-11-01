@@ -378,6 +378,42 @@ function (root) {
         return copy;
     }
 
+    // An overflow scrollbar's texture slots (`overflow.texture.track/grabber`)
+    // carry the same animation-ref shape as a background, so resolve their
+    // animation handles to named references. Without this a setAnimation handle
+    // survives to JSON.stringify (its toJSON yields the bare name), and the
+    // engine's parse_background_ref ignores a bare string, so the texture is
+    // dropped and the renderer keeps its default scrollbars.
+    function normalizeOverflowOptions(options) {
+        if (!options || typeof options !== 'object') return options;
+        var ov = options.overflow;
+        if (!ov || typeof ov !== 'object') return options;
+        var tex = ov.texture;
+        if (!tex || typeof tex !== 'object') return options;
+        var track = tex.track;
+        var grabber = tex.grabber;
+        var needTrack = track != null && typeof track === 'object';
+        var needGrabber = grabber != null && typeof grabber === 'object';
+        if (!needTrack && !needGrabber) return options;
+        var copy = {};
+        for (var k in options) {
+            if (Object.prototype.hasOwnProperty.call(options, k)) copy[k] = options[k];
+        }
+        var newOv = {};
+        for (var ok in ov) {
+            if (Object.prototype.hasOwnProperty.call(ov, ok)) newOv[ok] = ov[ok];
+        }
+        var newTex = {};
+        for (var tk in tex) {
+            if (Object.prototype.hasOwnProperty.call(tex, tk)) newTex[tk] = tex[tk];
+        }
+        if (needTrack) newTex.track = backgroundRef(track);
+        if (needGrabber) newTex.grabber = backgroundRef(grabber);
+        newOv.texture = newTex;
+        copy.overflow = newOv;
+        return copy;
+    }
+
     /// Marks the children slot of a container list with `name`: the engine
     /// replaces this marker with the ids the render lambda declares, one item
     /// per entity of the container.
@@ -984,7 +1020,7 @@ function (root) {
             return parentHandle(register({
                 id: id,
                 kind: 'division',
-                options: { panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))) },
+                options: { panel: normalizeOverflowOptions(resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel)))) },
                 children: childIds(children)
             }));
         },
@@ -993,7 +1029,7 @@ function (root) {
             return parentHandle(register({
                 id: id,
                 kind: 'window',
-                options: { panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))) },
+                options: { panel: normalizeOverflowOptions(resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel)))) },
                 children: childIds(children)
             }));
         },
@@ -1015,7 +1051,7 @@ function (root) {
             for (var k in options) {
                 if (Object.prototype.hasOwnProperty.call(options, k)) opts[k] = options[k];
             }
-            opts.screen = resolveBorderOptions(resolveHoverOptions(normalizeOptions(screen)));
+            opts.screen = normalizeOverflowOptions(resolveBorderOptions(resolveHoverOptions(normalizeOptions(screen))));
             var id = '__ui-screen-' + (++screenCounter);
             currentScreen = id;
             return parentHandle(register({
@@ -1108,7 +1144,7 @@ function (root) {
                 viewHeight: panel.height
             };
             if (args.area != null) opts.area = args.area;
-            opts.panel = resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel)));
+            opts.panel = normalizeOverflowOptions(resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))));
             return parentHandle(register({
                 id: name,
                 kind: 'window',
@@ -1140,7 +1176,7 @@ function (root) {
             var panel = (args.panel && typeof args.panel === 'object') ? args.panel : {};
             var opts = {
                 grid: sectorGridId,
-                panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel)))
+                panel: normalizeOverflowOptions(resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))))
             };
             opts.cellSize = (typeof args.cellSize === 'number' && args.cellSize > 0) ? args.cellSize : 32;
             if (args.cellGap != null) opts.cellGap = args.cellGap;
@@ -1262,7 +1298,7 @@ function (root) {
             // steps) stays top-level for the renderer.
             var panel = (options.panel && typeof options.panel === 'object') ? options.panel : {};
             var opts = {
-                panel: resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))),
+                panel: normalizeOverflowOptions(resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel)))),
                 fill: fill,
                 orientation: orientation,
                 steps: steps

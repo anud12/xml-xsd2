@@ -16,6 +16,8 @@ public partial class BarSizeFfiTests : Steps {
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .AddFileToArchive("..\\OverflowViewport\\item_red.png", "item_red.png")
                 .AddFileToArchive("..\\OverflowViewport\\panel_bg.png", "panel_bg.png")
+                .AddFileToArchive("..\\OverflowViewport\\scroll_track.png", "scroll_track.png")
+                .AddFileToArchive("..\\OverflowViewport\\scroll_grabber.png", "scroll_grabber.png")
                 .EnsureDllAccessible()
                 .ProcessArchive();
 

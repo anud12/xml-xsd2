@@ -221,19 +221,126 @@ public partial class UiWindow
     /// content viewport is reduced by this on each scrolling axis, so the
     /// declared size equals viewport + bar on that axis (e.g. a 100px-tall
     /// window with barSize 10 leaves a 90px viewport for the bar's 10px).
-    /// Absent/zero falls back to the default thickness.
+    /// Absent/zero falls back to the default thickness. Also applies the
+    /// optional textured track/grabber (options.scrollbarTrack /
+    /// options.scrollbarGrabber, a `UiTexture`) as the bar's theme style-boxes.
     void ApplyBarSize(ScrollContainer scroll, bool scrollH, bool scrollV, JsonElement opts)
     {
         float size = TryNum(opts, "barSize", out var b) && b > 0f ? b : DefaultBarSize;
+        StyleBoxTexture? track = ResolveScrollbarBox(opts, "scrollbarTrack");
+        StyleBoxTexture? grabber = ResolveScrollbarBox(opts, "scrollbarGrabber");
         if (scrollH)
         {
             var h = scroll.GetHScrollBar();
-            if (h != null) h.CustomMinimumSize = new Vector2(0f, size);
+            if (h != null)
+            {
+                h.CustomMinimumSize = new Vector2(0f, size);
+                ApplyScrollbarStyle(h, track, grabber);
+            }
         }
         if (scrollV)
         {
             var v = scroll.GetVScrollBar();
-            if (v != null) v.CustomMinimumSize = new Vector2(size, 0f);
+            if (v != null)
+            {
+                v.CustomMinimumSize = new Vector2(size, 0f);
+                ApplyScrollbarStyle(v, track, grabber);
+            }
+        }
+    }
+
+    /// Scrollbar texture cache: archive path → resolved Texture2D, shared by the
+    /// track and grabber slots of this window.
+    readonly Dictionary<string, Texture2D> _scrollbarTextures = new();
+
+    /// Resolves a scrollbar track/grabber texture slot (`{ animation, paint }`)
+    /// into a `StyleBoxTexture`. `animation` is a static archive path (a string)
+    /// or a named animation ref (its first frame); `paint.sliceWidth/Height` map
+    /// to the style-box's 9-slice margins. Null when absent or unresolvable: the
+    /// bar keeps its engine-default style-box for that part.
+    StyleBoxTexture? ResolveScrollbarBox(JsonElement opts, string prop)
+    {
+        if (!opts.TryGetProperty(prop, out var el) || el.ValueKind != JsonValueKind.Object
+            || !el.TryGetProperty("animation", out var anim))
+            return null;
+        string? path = null;
+        if (anim.ValueKind == JsonValueKind.String)
+            path = anim.GetString();
+        else if (anim.ValueKind == JsonValueKind.Object
+            && anim.TryGetProperty("name", out var nm) && nm.ValueKind == JsonValueKind.String)
+            path = FirstAnimationFrame(nm.GetString());
+        if (string.IsNullOrEmpty(path))
+            return null;
+        var tex = LoadScrollbarTexture(path);
+        if (tex == null)
+            return null;
+        var box = new StyleBoxTexture { Texture = tex };
+        if (el.TryGetProperty("paint", out var p) && p.ValueKind == JsonValueKind.Object)
+        {
+            int sw = p.TryGetProperty("sliceWidth", out var swEl) && swEl.ValueKind == JsonValueKind.Number
+                ? (int)swEl.GetDouble() : 0;
+            int sh = p.TryGetProperty("sliceHeight", out var shEl) && shEl.ValueKind == JsonValueKind.Number
+                ? (int)shEl.GetDouble() : 0;
+            if (sw > 0) { box.TextureMarginLeft = sw; box.TextureMarginRight = sw; }
+            if (sh > 0) { box.TextureMarginTop = sh; box.TextureMarginBottom = sh; }
+        }
+        return box;
+    }
+
+    /// The first frame's sprite path of a named animation registration (the frame
+    /// shown in test mode, where elapsed time never advances). Null when the
+    /// animation or its first frame is missing.
+    static string? FirstAnimationFrame(string name)
+    {
+        var def = UiState.GetAnimation(name);
+        if (!def.HasValue
+            || !def.Value.TryGetProperty("frames", out var frames)
+            || frames.ValueKind != JsonValueKind.Array)
+            return null;
+        foreach (var f in frames.EnumerateArray())
+        {
+            var sprite = f.ValueKind == JsonValueKind.Object
+                && f.TryGetProperty("sprite", out var s) ? s : default;
+            if (sprite.ValueKind == JsonValueKind.String)
+                return sprite.GetString();
+            if (sprite.ValueKind == JsonValueKind.Object
+                && sprite.TryGetProperty("name", out var nm) && nm.ValueKind == JsonValueKind.String)
+                return nm.GetString();
+        }
+        return null;
+    }
+
+    /// Loads a scrollbar PNG from the archive into a cached Texture2D.
+    Texture2D? LoadScrollbarTexture(string path)
+    {
+        if (_scrollbarTextures.TryGetValue(path, out var cached)) return cached;
+        if (!RuntimeInterop.GetFileFromArchive().TryGetValue(path, out var data))
+        {
+            RuntimeInterop.Log($"ui: scrollbar texture not found in archive: {path}");
+            return null;
+        }
+        var img = new Image();
+        img.LoadPngFromBuffer(data);
+        var tex = ImageTexture.CreateFromImage(img);
+        _scrollbarTextures[path] = tex;
+        return tex;
+    }
+
+    /// Paints the scrollbar's track and grabber with custom textures via the bar's
+    /// theme style-boxes: the track fills the scroll area, the grabber fills the
+    /// draggable thumb. A null box leaves that part at the engine default.
+    static void ApplyScrollbarStyle(ScrollBar bar, StyleBoxTexture? track, StyleBoxTexture? grabber)
+    {
+        if (track != null)
+        {
+            bar.AddThemeStyleboxOverride("scroll", track);
+            bar.AddThemeStyleboxOverride("scroll_focus", track);
+        }
+        if (grabber != null)
+        {
+            bar.AddThemeStyleboxOverride("grabber", grabber);
+            bar.AddThemeStyleboxOverride("grabber_highlight", grabber);
+            bar.AddThemeStyleboxOverride("grabber_pressed", grabber);
         }
     }
 
