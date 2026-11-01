@@ -167,12 +167,32 @@ export type UiLayout = {
 } | "column" | "row";
 
 /**
+ * Per-axis overflow handling value: `"show"` (content overflows the panel/list
+ * bounds, no scrolling) or `"scroll"` (the content becomes scrollable along
+ * that axis when it overflows).
+ */
+export type UiOverflowAxis = "show" | "scroll";
+/**
+ * The overflow option: per-axis handling plus the scrollbar thickness. Each
+ * axis is `"show"` (content overflows the panel/list bounds, no scrolling) or
+ * `"scroll"` (the content becomes scrollable along that axis when it overflows).
+ * `barSize` is the scrollbar thickness in logical px; the content viewport is
+ * reduced by it on each scrolling axis, so declared size = viewport + bar.
+ */
+export type UiOverflow = {
+  width: UiOverflowAxis;
+  height: UiOverflowAxis;
+  barSize: number;
+};
+
+/**
  * Options for the positioned/decorated ui panel surface (window or division).
- * The panel configuration is nested under a required `panel` key; all of its
- * fields are optional. The positioning/size fields (x/y/width/height/anchor)
- * only take effect on window nodes — divisions are flow containers placed by
- * their parent's layout. The host passes it through as the node's
- * `options.panel` (the renderer reads `panel.*`).
+ * The panel configuration is nested under a required `panel` key. The
+ * positioning/size fields (x/y/width/height/anchor) only take effect on window
+ * nodes — divisions are flow containers placed by their parent's layout. The
+ * host passes it through as the node's `options.panel` (the renderer reads
+ * `panel.*`). A `panel.overflow`, when present, requires `width`, `height`,
+ * and `barSize`.
  */
 export type UiPanelOptions = {
   panel: {
@@ -188,13 +208,10 @@ export type UiPanelOptions = {
     onClick?: (ctx: UiClickContext) => void;
     layout?: UiLayout;
     /**
-     * Per-axis overflow handling for the panel's flow content. Each axis is
-     * `"show"` (default: content overflows the panel bounds, no scrolling) or
-     * `"scroll"` (the content becomes scrollable along that axis when it
-     * overflows). A bare string applies to both axes; an object sets each axis
-     * independently.
+     * Per-axis overflow handling for the flow content (see {@link UiOverflow}).
+     * Requires `width`, `height`, and `barSize` (the scrollbar thickness).
      */
-    overflow?: "show" | "scroll" | { width?: "show" | "scroll"; height?: "show" | "scroll" };
+    overflow?: UiOverflow;
     /**
      * Enables user edge/corner drag-resize. A bare `true` allows free resizing
      * on all four edges and corners. An object form accepts options:
@@ -394,20 +411,19 @@ export type UiEntityListOptions = {
   container: ContainerReadOnlyExpression;
   vertical?: boolean;
   /**
-   * The list's panel presentation. `width`/`height` bound the scroll region:
-   * when present the list is a fixed viewport of that size and any content
-   * larger than it overflows into it; when omitted the list sizes to its
-   * content. `overflow` sets per-axis overflow handling for the list's flow
-   * content: each axis is `"show"` (default: content overflows the list
-   * bounds, no scrolling) or `"scroll"` (the content becomes scrollable along
-   * that axis when it overflows). A bare string applies to both axes; an
-   * object sets each axis independently.
-   */
-  panel?: {
-    width?: number;
-    height?: number;
-    overflow?: "show" | "scroll" | { width?: "show" | "scroll"; height?: "show" | "scroll" };
-  };
+    * The list's panel presentation. `width`/`height` bound the scroll region:
+    * when present the list is a fixed viewport of that size and any content
+    * larger than it overflows into it; when omitted the list sizes to its
+     * content. `overflow` sets per-axis overflow handling for the list's flow
+     * content (see {@link UiOverflow}); when present it requires `width`,
+     * `height`, and `barSize`.
+     */
+    panel?: {
+     width?: number;
+     height?: number;
+     /** Per-axis overflow handling (see {@link UiOverflow}). */
+     overflow?: UiOverflow;
+    };
 };
 
 /**

@@ -207,10 +207,34 @@ public partial class UiWindow
         }
         current.HorizontalScrollMode = scrollH ? ScrollContainer.ScrollMode.Auto : ScrollContainer.ScrollMode.Disabled;
         current.VerticalScrollMode = scrollV ? ScrollContainer.ScrollMode.Auto : ScrollContainer.ScrollMode.Disabled;
+        ApplyBarSize(current, scrollH, scrollV, opts);
         // A scroll axis must not stretch the flow content to fill the panel
         // (that would remove any overflow); fit content to its natural size so
         // it overflows and scrolls. A non-scroll axis keeps the stretch-fill.
         AttachFlowInScroll(current, scrollH, scrollV, flow);
+    }
+
+    /// Default scrollbar thickness (px): Godot's built-in H/V scrollbar size.
+    const float DefaultBarSize = 8f;
+
+    /// options.barSize: the thickness of this node's overflow scrollbars. The
+    /// content viewport is reduced by this on each scrolling axis, so the
+    /// declared size equals viewport + bar on that axis (e.g. a 100px-tall
+    /// window with barSize 10 leaves a 90px viewport for the bar's 10px).
+    /// Absent/zero falls back to the default thickness.
+    void ApplyBarSize(ScrollContainer scroll, bool scrollH, bool scrollV, JsonElement opts)
+    {
+        float size = TryNum(opts, "barSize", out var b) && b > 0f ? b : DefaultBarSize;
+        if (scrollH)
+        {
+            var h = scroll.GetHScrollBar();
+            if (h != null) h.CustomMinimumSize = new Vector2(0f, size);
+        }
+        if (scrollV)
+        {
+            var v = scroll.GetVScrollBar();
+            if (v != null) v.CustomMinimumSize = new Vector2(size, 0f);
+        }
     }
 
     /// Reads a single axis of the overflow option. A string value applies to
@@ -234,6 +258,7 @@ public partial class UiWindow
     {
         var box = new BoxContainer { Name = "box", Vertical = vertical };
         box.AddThemeConstantOverride("separation", 0);
+        box.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(box);
         return box;
     }

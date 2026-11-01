@@ -23,6 +23,7 @@ export const inventoryUi = (hostApi) => {
             overflow: {
                 width: "scroll",
                 height: "show",
+                barSize: 16,
             },
             background: {
                 animation: track,

@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use super::UiNode as DomainNode;
 use super::UiDeltaOp as DomainDeltaOp;
 
-pub const UI_ABI_VERSION: u32 = 9;
+pub const UI_ABI_VERSION: u32 = 10;
 /// Sentinel string offset: "no string" (absent value/src/optional option).
 pub const NO_STR: u32 = u32::MAX;
 
@@ -277,6 +277,11 @@ pub struct UiNodeOptions {
     /// (1) means the width axis scrolls; bit `OVERFLOW_V_SCROLL` (2) means the
     /// height axis scrolls. All-zero is the default "show" (no scrolling).
     pub overflow: u8,
+    /// Scrollbar thickness (logical px) for this node's overflow scrollbars.
+    /// The content viewport is reduced by this on each scrolling axis, so the
+    /// declared size = viewport + bar on that axis. 0.0 means "absent": the
+    /// renderer falls back to its default (8 px).
+    pub bar_size: f32,
 }
 
 /// `UiNodeOptions::overflow` flags (per-axis overflow handling).
@@ -792,6 +797,7 @@ fn empty_options() -> UiNodeOptions {
         font_style: 0,
         container_view: 0,
         overflow: 0,
+        bar_size: 0.0,
     }
 }
 
@@ -843,6 +849,19 @@ fn parse_overflow(opts: &Map<String, Value>) -> u8 {
         _ => {}
     }
     flags
+}
+
+/// Reads `barSize` from within the `overflow` option object (the scrollbar
+/// thickness in logical px). Only present when `overflow` is an object; a
+/// bare-string overflow carries no custom thickness (0.0 → renderer default 8).
+fn parse_bar_size(opts: &Map<String, Value>) -> f32 {
+    opts
+        .get("overflow")
+        .and_then(|v| v.as_object())
+        .and_then(|m| m.get("barSize"))
+        .and_then(|v| v.as_f64())
+        .map(|f| f as f32)
+        .unwrap_or(0.0)
 }
 
 fn opt_str(opts: &Map<String, Value>, key: &str, slab: &mut Slab) -> u32 {
@@ -1486,6 +1505,9 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     o.unlinked = opt_bool(opts, "unlinked") as u8;
     o.portal_line = opt_bool(opts, "portalLine") as u8;
     o.overflow = parse_overflow(panel);
+    // barSize: the scrollbar thickness, read from within the overflow object
+    // (0.0 when absent; the renderer defaults it to 8).
+    o.bar_size = parse_bar_size(panel);
     // areaOutline: { polygons: [ { points: [[x, y], ...],
     //   color?: [r,g,b,a], bodyColor?: [r,g,b,a], thickness?: number }, ... ] }
     // points are view-local logical units (the same space as x/y/width/height).

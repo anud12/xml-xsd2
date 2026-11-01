@@ -162,6 +162,8 @@ public static class UiSlab
         if (area != null) Add("areaOutline", area);
         if (o.Overflow != 0)
             Add("overflow", SerializeOverflow(o.Overflow));
+        if (o.BarSize != 0f)
+            Add("barSize", Num(o.BarSize));
         var fillJson = SerializeBackground(o.ProgressFill, arena);
         if (fillJson != null)
         {

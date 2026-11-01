@@ -28,7 +28,7 @@ export default (hostApi) => {
     hostApi.ui.entityList("hscroll-list", {
       container: inv,
       vertical: false,
-      panel: {overflow: {width: "scroll"}}
+      panel: {overflow: {width: "scroll", height: "show", barSize: 8}}
     }, (entity) => [
       hostApi.ui.window(entity.id + "-h", {panel: {width: 40, height: 40}}),
     ]),
@@ -38,7 +38,7 @@ export default (hostApi) => {
   hostApi.ui.window("vscroll-host", {
     panel: {x: 20, y: 180, width: 60, height: 100},
   }, [
-    hostApi.ui.entityList("vscroll-list", {container: inv, panel: {overflow: {height: "scroll"}}}, (entity) => [
+    hostApi.ui.entityList("vscroll-list", {container: inv, panel: {overflow: {width: "show", height: "scroll", barSize: 8}}}, (entity) => [
       hostApi.ui.window(entity.id + "-v", {panel: {width: 40, height: 40}}),
     ]),
   ]);
@@ -47,7 +47,7 @@ export default (hostApi) => {
   hostApi.ui.window("both-host", {
     panel: {x: 20, y: 300, width: 120, height: 100},
   }, [
-    hostApi.ui.entityList("both-list", {container: inv, vertical: false, panel: {overflow: "scroll"}}, (entity) => [
+    hostApi.ui.entityList("both-list", {container: inv, vertical: false, panel: {overflow: {width: "scroll", height: "scroll", barSize: 8}}}, (entity) => [
       hostApi.ui.window(entity.id + "-b", {panel: {width: 40, height: 40}}),
     ]),
   ]);
@@ -56,7 +56,7 @@ export default (hostApi) => {
   // region; the entityList is a content-sized pass-through (no size/overflow of
   // its own) so the items overflow the window and scroll within it.
   hostApi.ui.window("win-overflow-host", {
-    panel: {x: 20, y: 400, width: 120, height: 60, layout: "row", overflow: {width: "scroll"}},
+    panel: {x: 20, y: 400, width: 120, height: 60, layout: "row", overflow: {width: "scroll", height: "show", barSize: 8}},
   }, [
     hostApi.ui.entityList("win-overflow-list", {container: inv, vertical: false}, (entity) => [
       hostApi.ui.window(entity.id + "-w", {panel: {width: 40, height: 40}}),
@@ -69,7 +69,7 @@ export default (hostApi) => {
     panel: {x: 20, y: 480, width: 120, height: 60},
   }, [
     hostApi.ui.panel("panel-overflow", {
-      panel: {width: 120, height: 60, layout: "row", overflow: {width: "scroll"}},
+      panel: {width: 120, height: 60, layout: "row", overflow: {width: "scroll", height: "show", barSize: 8}},
     }, [
       hostApi.ui.window("panel-overflow-item-a", {panel: {width: 40, height: 40}}),
       hostApi.ui.window("panel-overflow-item-b", {panel: {width: 40, height: 40}}),

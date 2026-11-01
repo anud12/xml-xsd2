@@ -37,7 +37,7 @@ export default (hostApi) => {
       background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("hscroll-list", {
-    container: inv, vertical: false, panel: {overflow: {width: "scroll"}, width: 100, height: 30}
+    container: inv, vertical: false, panel: {overflow: {width: "scroll", height: "show", barSize: 8}, width: 100, height: 30}
   }, (entity) => {
     const tex = entity.id.endsWith("-a") ? red : entity.id.endsWith("-b") ? green : blue;
     return [hostApi.ui.window(entity.id + "-h", {
@@ -54,7 +54,7 @@ export default (hostApi) => {
   hostApi.ui.window("win-scroll-host", {
     panel: {
       x: 600, y: 450, width: 140, height: 70, layout: "row",
-      overflow: {width: "scroll"},
+      overflow: {width: "scroll", height: "show", barSize: 8},
       background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("win-scroll-list", {
@@ -79,7 +79,7 @@ export default (hostApi) => {
       background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("vscroll-list", {
-    container: inv, panel: {overflow: {height: "scroll"}, width: 40, height: 100}
+    container: inv, panel: {overflow: {width: "show", height: "scroll", barSize: 8}, width: 40, height: 100}
   }, (entity) => {
     const tex = entity.id.endsWith("-a") ? red : entity.id.endsWith("-b") ? green : blue;
     return [hostApi.ui.window(entity.id + "-v", {

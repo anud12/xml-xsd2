@@ -20,12 +20,12 @@ public partial class UiWindow
         }
         var hash = string.Join("", System.Security.Cryptography.MD5.HashData(data)
             .Take(8).Select(b => b.ToString("x2")));
+        var virtualPath = "user://fonts/f_" + hash + ".ttf";
         var userFonts = ProjectSettings.GlobalizePath("user://fonts");
         System.IO.Directory.CreateDirectory(userFonts);
         var ttfPath = System.IO.Path.Combine(userFonts, "f_" + hash + ".ttf");
         System.IO.File.WriteAllBytes(ttfPath, data);
-        var globPath = ProjectSettings.GlobalizePath("user://fonts/f_" + hash + ".ttf");
-        var font = ResourceLoader.Load<FontFile>(globPath);
+        var font = ResourceLoader.Load<FontFile>(virtualPath);
         _fontCache[path] = font;
         return font;
     }

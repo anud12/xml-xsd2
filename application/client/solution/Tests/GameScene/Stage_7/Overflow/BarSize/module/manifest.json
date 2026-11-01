@@ -1,0 +1,6 @@
+{
+  "id": "bar-size-test",
+  "version": "1.0.0",
+  "name": "Bar Size Test Module",
+  "entry": "index.js"
+}
