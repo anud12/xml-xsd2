@@ -18,14 +18,13 @@ public partial class UiWindow
             GD.PushWarning($"ui: font file not found in archive: {path}");
             return null!;
         }
-        var hash = string.Join("", System.Security.Cryptography.MD5.HashData(data)
-            .Take(8).Select(b => b.ToString("x2")));
-        var virtualPath = "user://fonts/f_" + hash + ".ttf";
-        var userFonts = ProjectSettings.GlobalizePath("user://fonts");
-        System.IO.Directory.CreateDirectory(userFonts);
-        var ttfPath = System.IO.Path.Combine(userFonts, "f_" + hash + ".ttf");
-        System.IO.File.WriteAllBytes(ttfPath, data);
-        var font = ResourceLoader.Load<FontFile>(virtualPath);
+        // Load the TTF straight from its bytes via FontFile.SetData. Writing it
+        // to user:// and using ResourceLoader is unreliable here: Godot's
+        // resource cache does not see files written to user:// at runtime, so
+        // ResourceLoader reports them as "not found". SetData parses the font in
+        // memory, so there is no disk round-trip or resource-cache dependency.
+        var font = new FontFile();
+        font.SetData(data);
         _fontCache[path] = font;
         return font;
     }

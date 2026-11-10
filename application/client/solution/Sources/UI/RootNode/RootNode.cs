@@ -4,14 +4,21 @@ using NewGameProject.UI;
 namespace GdUnit4.Examples.Basics.Setup.Sources.UI;
 
 /// <summary>
-/// The root UI node for the <c>.ui</c> layer. Paints the runtime's UI tree
-/// (<see cref="UiState.FetchState"/>) as <see cref="UiWindow"/> nodes: top-level
-/// windows are positioned against the viewport rect, flow children are nested
-/// in the parent's flow container, and x/y-positioned child windows are nested
-/// directly in the parent window and positioned against the parent's rect.
-/// Deltas from <see cref="UiState.FetchDelta"/> are applied per frame so live
-/// field values and structural changes reconcile without a full repaint.
+/// The root UI node for the <c>.ui</c> layer. Paints the runtime's UI tree as
+/// <see cref="UiWindow"/> nodes: top-level windows are positioned against the
+/// viewport rect, flow children are nested in the parent's flow container, and
+/// x/y-positioned child windows are nested directly in the parent window and
+/// positioned against the parent's rect.
 /// </summary>
+/// <remarks>
+/// Repaint is reactive. The Rust runtime already reports changes as an id-keyed
+/// delta (an <c>add</c>/<c>update</c>/<c>remove</c> per node whose state —
+/// including a re-resolved field/progress value — actually changed this tick).
+/// The first frame pulls the full state and builds every window; every later
+/// frame consumes only the pending delta, re-applying the affected windows and
+/// re-running the structural passes. A clean frame (no node changed) does no
+/// repaint work at all.
+/// </remarks>
 public partial class RootNode : Godot.Panel
 {
     readonly Dictionary<string, UiWindow> _windows = new();
@@ -20,6 +27,16 @@ public partial class RootNode : Godot.Panel
     // "text" Label and the child's node id (so the label value can be
     // re-resolved from the entity store each frame).
     readonly Dictionary<string, (UiWindow host, string childId)> _flattenedFields = new();
+    // Last-applied font signature per flattened field, so a font change
+    // (size/color/style) arriving via the delta re-applies to the host label
+    // only when it actually changed.
+    readonly Dictionary<string, string> _flattenedFontSig = new();
+    // The current UI tree as fetched from the runtime; the authoritative
+    // structure for the reparent/position passes. Kept in sync from the delta
+    // so steady-state frames never need a full state pull.
+    List<UiNodeData> _nodes = new();
+    // True once the first full build has run; later frames are delta-driven.
+    bool _painted;
 
     public RootNode()
     {
@@ -33,42 +50,98 @@ public partial class RootNode : Godot.Panel
 
     readonly Dictionary<UiWindow, bool> _hoverStates = new();
 
-    /// <summary>
-    /// Paints the current UI state (idempotent: re-uses existing windows),
-    /// re-parents children under their declared parents, and applies any
-    /// pending delta.
-    /// </summary>
+    public override void _Process(double delta)
+    {
+        Pump();
+        base._Process(delta);
+    }
 
+    /// Drives one frame of painting + hover tracking (used by tests to pump
+    /// the node without relying on the engine process callback).
+    public void Pump()
+    {
+        Paint();
+        UpdateHoverTracking();
+    }
+
+    /// Per-frame paint: a full build on the first frame, then the runtime's
+    /// change delta plus the cheap structural passes. The expensive parts — the
+    /// full-slab pull (<see cref="UiState.FetchState"/>) and per-node re-apply
+    /// (JSON re-parse + archive/texture re-resolution) — run only for nodes the
+    /// runtime reports as changed; a clean frame does neither. The structural
+    /// passes (reparent/position/flatten) run every frame from the cached
+    /// <see cref="_nodes"/> so client-side interactions (window resize, title
+    /// drag, scrollbar) that emit no runtime delta stay reconciled.
     public void Paint()
+    {
+        if (!_painted)
+        {
+            FullPaint();
+            _painted = true;
+            return;
+        }
+        var delta = UiState.FetchDelta();
+        if (delta != null && delta.Ops.Count > 0)
+            ApplyDelta(delta);
+        LayoutPasses();
+    }
+
+    /// Force a full rebuild (module hot reload): free every window and repaint
+    /// from a fresh full state pull.
+    public void ForceFullPaint()
+    {
+        foreach (var win in _windows.Values)
+            win.QueueFree();
+        _windows.Clear();
+        _hoverStates.Clear();
+        _flattened.Clear();
+        _flattenedFields.Clear();
+        _flattenedFontSig.Clear();
+        _nodes.Clear();
+        _painted = false;
+        Paint();
+    }
+
+    /// Builds the whole tree from one full state pull (first frame / hot
+    /// reload). Creates and applies every window, then runs the structural
+    /// passes over the full tree.
+    void FullPaint()
     {
         var nodes = UiState.FetchState();
         if (nodes.Count == 0) return;
+        _nodes = nodes;
         var byId = nodes.ToDictionary(n => n.Id);
+        CreateOrUpdateAll();
+        FlattenTextChildren(nodes, byId);
+        RefreshFlattenedFieldValues(byId);
+        ReparentAll(byId);
+        PositionAll(byId);
+        // The full pull ran a tick that queued the just-applied adds as a
+        // pending delta; drain it so the next frame starts clean.
+        UiState.FetchDelta();
+    }
 
-        // Pass 1: create/apply all nodes (so flow containers exist).
-        foreach (var node in nodes)
+    /// Creates any missing windows and applies every node (idempotent). Used by
+    /// the full build; the steady-state delta path only touches changed nodes.
+    void CreateOrUpdateAll()
+    {
+        foreach (var node in _nodes)
         {
             if (!_windows.TryGetValue(node.Id, out var win))
             {
                 // Folded field children render as their host's "text" Label,
-                // not as separate windows. Skip re-materializing them each
-                // frame: a re-created field window's own "text" label would
-                // sit in the tree for the whole frame (QueueFree only frees at
-                // end-of-frame) and show a stale value over the host's live
-                // label. Text children keep the legacy re-materialize path
-                // (their re-created label renders identically to the host).
-                if (node.Id == "add-label")
-                    GD.Print($"DBG pass1 add-label inFlattenedFields={_flattenedFields.ContainsKey("add-label")} inWindows={_windows.ContainsKey("add-label")}");
+                // not as separate windows. Skip re-materializing them: a
+                // re-created field window's own "text" label would sit in the
+                // tree for the whole frame and show a stale value over the
+                // host's live label.
                 if (_flattenedFields.ContainsKey(node.Id)) continue;
                 win = CreateWindow(node);
-                // The screen is a global overlay: host it on the UI layer
-                // root so it renders below the app buttons and windows. It
-                // must be the FIRST child there: Godot dispatches GUI input
-                // by reverse child index (z_index only affects rendering),
-                // so child order is bottom-up click priority — screen <
-                // coreUI (app buttons) < moduleUI (module windows).
                 if (node.Kind == UiNodeKind.Screen)
                 {
+                    // The screen is a global overlay: host it on the UI layer
+                    // root so it renders below the app buttons and windows. It
+                    // must be the FIRST child there (Godot dispatches GUI input
+                    // by reverse child index): screen < coreUI < moduleUI.
                     ScreenHost.AddChild(win);
                     ScreenHost.MoveChild(win, 0);
                 }
@@ -81,6 +154,7 @@ public partial class RootNode : Godot.Panel
         }
 
         // Remove windows no longer declared.
+        var byId = _nodes.ToDictionary(n => n.Id);
         foreach (var id in _windows.Keys.ToArray())
         {
             if (!byId.ContainsKey(id) && !_flattened.Contains(id))
@@ -92,37 +166,111 @@ public partial class RootNode : Godot.Panel
                 UiState.RemoveAnimStartTime(id);
             }
         }
+    }
 
-        // A window with exactly one text/field child renders that text
-        // directly as a "text" Label (the child window is folded away), so
-        // content assertions target the host window.
-        FlattenTextChildren(nodes, byId);
+    /// Structural passes over the current tree. Runs only when a delta arrived
+    /// (a clean frame skips all of it).
+    void LayoutPasses()
+    {
+        var byId = _nodes.ToDictionary(n => n.Id);
+        FlattenTextChildren(_nodes, byId);
         RefreshFlattenedFieldValues(byId);
+        ReparentAll(byId);
+        // Flow content lands in its container during ReparentAll, after the
+        // first Apply — so re-assert the content-driven minimum sizes here
+        // (cheap) instead of relying on a per-frame re-apply.
+        foreach (var win in _windows.Values)
+            win.RefreshFlowMinimumSize();
+        PositionAll(byId);
+    }
 
-        var delta = UiState.FetchDelta();
-        if (delta != null)
-            ApplyDelta(delta);
+    /// Applies a change delta (add/update/remove) to the affected windows and
+    /// keeps <see cref="_nodes"/> in sync. Ops are idempotent, so a stale or
+    /// redundant op is a harmless no-op.
+    void ApplyDelta(UiDelta delta)
+    {
+        foreach (var op in delta.Ops)
+        {
+            switch (op.Op)
+            {
+                case "add":
+                case "update":
+                    // Always keep the structure current: a flattened field has
+                    // no window, but its host "text" Label is refreshed from
+                    // _nodes in LayoutPasses, so the node must be upserted even
+                    // when no window exists.
+                    UpsertNode(op.Node);
+                    if (_flattenedFields.ContainsKey(op.Node.Id)) break;
+                    if (!_windows.TryGetValue(op.Node.Id, out var win))
+                    {
+                        win = CreateWindow(op.Node);
+                        if (op.Node.Kind == UiNodeKind.Screen)
+                        {
+                            ScreenHost.AddChild(win);
+                            ScreenHost.MoveChild(win, 0);
+                        }
+                        else
+                            AddChild(win);
+                        _windows[op.Node.Id] = win;
+                    }
+                    if (!IsDead(win))
+                    {
+                        win.Apply(op.Node);
+                        win.SetChildren(op.Node.Children);
+                    }
+                    break;
+                case "remove":
+                    if (_windows.TryGetValue(op.Id, out var rem))
+                    {
+                        if (!IsDead(rem)) rem.QueueFree();
+                        _hoverStates.Remove(rem);
+                        UiState.RemoveAnimStartTime(op.Id);
+                        _windows.Remove(op.Id);
+                    }
+                    RemoveNode(op.Id);
+                    break;
+            }
+        }
+    }
 
-        // Pass 2: re-parent each node under its declared parent.
-        foreach (var node in nodes)
+    void UpsertNode(UiNodeData node)
+    {
+        var i = _nodes.FindIndex(n => n.Id == node.Id);
+        if (i >= 0) _nodes[i] = node;
+        else _nodes.Add(node);
+    }
+
+    void RemoveNode(string id)
+    {
+        var i = _nodes.FindIndex(n => n.Id == id);
+        if (i >= 0) _nodes.RemoveAt(i);
+    }
+
+    /// Re-parents every window under its declared parent. The child→parent map
+    /// is built once (O(n)) rather than scanning all nodes per child.
+    void ReparentAll(Dictionary<string, UiNodeData> byId)
+    {
+        var parentOf = new Dictionary<string, string>();
+        foreach (var other in _nodes)
+            foreach (var c in other.Children)
+                parentOf[c] = other.Id;
+
+        foreach (var node in _nodes)
         {
             // The screen itself stays on the screen host; its children are
             // reparented under it as usual.
             if (node.Kind == UiNodeKind.Screen) continue;
             if (!_windows.TryGetValue(node.Id, out var win)) continue;
             UiWindow? parent = null;
-            foreach (var other in nodes)
-            {
-                if (other.Children.Contains(node.Id))
-                {
-                    _windows.TryGetValue(other.Id, out parent);
-                    break;
-                }
-            }
+            if (parentOf.TryGetValue(node.Id, out var pid))
+                _windows.TryGetValue(pid, out parent);
             Reparent(win, parent, byId[node.Id]);
         }
+    }
 
-        // Pass 3: position each window against its parent's rect.
+    /// Positions every window against its parent's rect.
+    void PositionAll(Dictionary<string, UiNodeData> byId)
+    {
         foreach (var kv in _windows)
         {
             var win = kv.Value;
@@ -174,55 +322,10 @@ public partial class RootNode : Godot.Panel
     /// layer hierarchy is not present.
     Node ScreenHost => GetParent()?.GetParent() ?? this;
 
-    void ApplyDelta(UiDelta delta)
-    {
-        foreach (var op in delta.Ops)
-        {
-            switch (op.Op)
-            {
-                case "add":
-                case "update":
-                    // The full state already covered the tree this frame; an
-                    // update for a window the state no longer declares is a
-                    // stale race and must not touch a freed node.
-                    if (_windows.TryGetValue(op.Node.Id, out var win)
-                        && !IsDead(win))
-                    {
-                        win.Apply(op.Node);
-                        win.SetChildren(op.Node.Children);
-                    }
-                    break;
-                case "remove":
-                    if (_windows.TryGetValue(op.Id, out var rem))
-                    {
-                        rem.QueueFree();
-                        _windows.Remove(op.Id);
-                        _hoverStates.Remove(rem);
-                        UiState.RemoveAnimStartTime(op.Id);
-                    }
-                    break;
-            }
-        }
-    }
-
     /// True when the window has been queued for deletion (and is therefore
     /// unsafe to touch through the Godot API once the frame frees it).
     static bool IsDead(UiWindow win)
     {
         return win == null || win.IsQueuedForDeletion();
-    }
-
-    public override void _Process(double delta)
-    {
-        Pump();
-        base._Process(delta);
-    }
-
-    /// Drives one frame of painting + hover tracking (used by tests to pump
-    /// the node without relying on the engine process callback).
-    public void Pump()
-    {
-        Paint();
-        UpdateHoverTracking();
     }
 }

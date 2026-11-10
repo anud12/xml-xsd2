@@ -56,6 +56,7 @@ public partial class RootNode
                 win.AddChild(label);
                 if (childNode.Font != null)
                     win.ApplyFont(label, childNode.Font);
+                _flattenedFontSig[childNode.Id] = FontKey(childNode);
                 _flattened.Add(childNode.Id);
                 if (childNode.Kind == UiNodeKind.Field)
                     _flattenedFields[childNode.Id] = (win, childNode.Id);
@@ -75,6 +76,7 @@ public partial class RootNode
             if (host == null || host.IsQueuedForDeletion())
             {
                 _flattenedFields.Remove(kv.Key);
+                _flattenedFontSig.Remove(kv.Key);
                 continue;
             }
             if (!byId.TryGetValue(childId, out var childNode)) continue;
@@ -82,7 +84,25 @@ public partial class RootNode
             if (label == null) continue;
             if (label.Text != childNode.Value)
                 label.Text = childNode.Value;
+            // A font change (size/color/style) arrives as an update op for the
+            // field; re-apply it to the host label only when it changed.
+            var sig = FontKey(childNode);
+            if (!_flattenedFontSig.TryGetValue(childId, out var prevSig) || prevSig != sig)
+            {
+                if (childNode.Font != null)
+                    host.ApplyFont(label, childNode.Font);
+                _flattenedFontSig[childId] = sig;
+            }
         }
+    }
+
+    /// A comparable signature of a node's font config (empty when none).
+    static string FontKey(UiNodeData n)
+    {
+        var f = n.Font;
+        return f == null
+            ? ""
+            : $"{f.File}\u0001{f.Size:0.0####}\u0001{f.Color:X8}\u0001{f.Style:X8}";
     }
 
     static JsonElement ParseOptions(UiNodeData node)

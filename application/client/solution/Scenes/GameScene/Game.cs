@@ -136,7 +136,7 @@ public partial class Game : Node {
         }
         GD.Print($"Hot reload complete: {db}");
         GetNode<Control>("uiLayers/moduleUI")
-            .GetChildren().OfType<RootNode>().FirstOrDefault()?.Paint();
+            .GetChildren().OfType<RootNode>().FirstOrDefault()?.ForceFullPaint();
         RuntimeInterop.emitAction("increment");
     }
 

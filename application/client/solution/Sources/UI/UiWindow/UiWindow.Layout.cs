@@ -35,6 +35,21 @@ public partial class UiWindow
         return flow is Control fc ? fc.GetCombinedMinimumSize() : Vector2.Zero;
     }
 
+    /// Re-asserts the content-driven minimum size for a node without an
+    /// explicit size (a pass-through division): its minimum tracks its flow
+    /// content, which only grows once children are reparented into its flow
+    /// container. Called every frame (cheap: a single combined-minimum query)
+    /// because the content is not populated until after the first
+    /// <see cref="Apply"/>. A node with an explicit size, or one with its own
+    /// scroll wrapper, keeps the value <see cref="ApplyLayout"/> set.
+    public void RefreshFlowMinimumSize()
+    {
+        if (_windowExplicitSize != Vector2.Zero) return;
+        CustomMinimumSize = GetNodeOrNull<ScrollContainer>("scroll") != null
+            ? Vector2.Zero
+            : FlowContentMinimumSize();
+    }
+
     /// True when this window is a flow child with an explicit size and should
     /// be sized exactly to it (not stretched to fill the container cross-axis).
     public bool FixedFlowSize;
