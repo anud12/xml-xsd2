@@ -6,7 +6,7 @@ import {getInventoryModule} from "../inventory/inventory";
 
 export const landUi = (hostApi: HostApi) => {
 
-  const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 14, color: "#FFFFFF" });
+  const font = hostApi.ui.setFont({ file: "fonts/Allura-Regular.ttf", size: 14, color: "#FFFFFF" });
 
   const module = getLandModule(hostApi);
   const inventory = getInventoryModule(hostApi);
@@ -26,7 +26,7 @@ export const landUi = (hostApi: HostApi) => {
     panel: {
       x: 50,
       y: 250,
-      width: 200,
+      width: 190,
       height: 400,
       title: "Lands",
       layout: "column",
@@ -40,14 +40,14 @@ export const landUi = (hostApi: HostApi) => {
       (entity: Entity) => [
         hostApi.ui.window(entity.id, {
           panel: {
-            width: 180,
+            width: 190,
             height: 60,
             layout: "row",
           },
         }, [
           hostApi.ui.panel(entity.id + ":portrait", {
             panel: {
-              width: 100,
+              width: 60,
               height: 60,
               background: {
                 animation: portrait,

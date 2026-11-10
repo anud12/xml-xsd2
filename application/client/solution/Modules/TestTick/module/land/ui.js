@@ -18,7 +18,7 @@ export const landUi = (hostApi) => {
         panel: {
             x: 50,
             y: 250,
-            width: 200,
+            width: 190,
             height: 400,
             title: "Lands",
             layout: "column",
@@ -31,14 +31,14 @@ export const landUi = (hostApi) => {
         hostApi.ui.entityList("land-items", { container: module.container }, (entity) => [
             hostApi.ui.window(entity.id, {
                 panel: {
-                    width: 180,
+                    width: 190,
                     height: 60,
                     layout: "row",
                 },
             }, [
                 hostApi.ui.panel(entity.id + ":portrait", {
                     panel: {
-                        width: 100,
+                        width: 60,
                         height: 60,
                         background: {
                             animation: portrait,
