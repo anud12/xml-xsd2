@@ -48,6 +48,14 @@ offset_right = 296.0
 offset_bottom = 44.0
 text = "Reload"
 
+[node name="PauseResumeButton" type="Button" parent="uiLayers/coreUI" unique_id=2351928447]
+layout_mode = 1
+offset_left = 310.0
+offset_top = 8.0
+offset_right = 410.0
+offset_bottom = 44.0
+text = "Pause"
+
 [node name="moduleUI" type="Control" parent="uiLayers" unique_id=1563903417]
 z_index = 2
 layout_mode = 1

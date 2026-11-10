@@ -456,8 +456,22 @@ public static class RuntimeInterop
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern long runtime_get_elapsed_time_units();
 
+    private static volatile bool _paused = false;
+
+    /// True while the runtime loop is paused. While paused, {@link RunIteration}
+    /// is a no-op (elapsed time does not advance), regardless of which caller
+    /// drives it (the game scene's background loop thread or a direct call).
+    public static bool Paused => _paused;
+
+    public static void Pause() => _paused = true;
+
+    public static void Resume() => _paused = false;
+
+    public static void TogglePause() => _paused = !_paused;
+
     public static long RunIteration(long elapsedUnits = 0)
     {
+        if (_paused) return GetElapsedTimeUnits();
         var elapsed = runtime_get_elapsed_time_units() + elapsedUnits;
         NewGameProject.Module.BehaviorStore.Process(elapsed);
         return runtime_run_iteration(elapsedUnits);

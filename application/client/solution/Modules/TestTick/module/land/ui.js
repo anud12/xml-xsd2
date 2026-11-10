@@ -2,7 +2,7 @@ import { getLandModule } from "./land";
 import { getLandSprites } from "./sprites";
 import { getInventoryModule } from "../inventory/inventory";
 export const landUi = (hostApi) => {
-    const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 14, color: "#FFFFFF" });
+    const font = hostApi.ui.setFont({ file: "fonts/Allura-Regular.ttf", size: 14, color: "#FFFFFF" });
     const module = getLandModule(hostApi);
     const inventory = getInventoryModule(hostApi);
     const track = hostApi.runtime.setAnimation(hostApi.runtime.string.of("land-track"), {

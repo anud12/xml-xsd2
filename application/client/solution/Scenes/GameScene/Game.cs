@@ -68,6 +68,7 @@ public partial class Game : Node {
         GetNode<Button>("uiLayers/coreUI/SettingsButton").Pressed += OnSettingsButton;
         GetNode<Button>("uiLayers/coreUI/ActionsButton").Pressed += ToggleActionsWindow;
         GetNode<Button>("uiLayers/coreUI/ReloadButton").Pressed += DoHotReload;
+        GetNode<Button>("uiLayers/coreUI/PauseResumeButton").Pressed += TogglePauseResume;
 
         if (AUTO_HOT_RELOAD && !TEST_MODE) {
             _moduleWatcher = new ModuleWatcher(MODULE_DIR,
@@ -141,6 +142,15 @@ public partial class Game : Node {
 
     void OnSettingsButton() {
         GetTree().ChangeSceneToFile("res://Scenes/Settings/Settings.tscn");
+    }
+
+    /// Toggles the runtime loop between running and paused and relabels the
+    /// button to reflect the next action it will perform.
+    void TogglePauseResume() {
+        var button = GetNode<Button>("uiLayers/coreUI/PauseResumeButton");
+        RuntimeInterop.TogglePause();
+        button.Text = RuntimeInterop.Paused ? "Resume" : "Pause";
+        GD.Print(RuntimeInterop.Paused ? "Runtime paused" : "Runtime resumed");
     }
 
     void ToggleActionsWindow() {
