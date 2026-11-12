@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Godot;
 using NewGameProject.UI;
 
@@ -38,6 +39,42 @@ public partial class RootNode : Godot.Panel
     // True once the first full build has run; later frames are delta-driven.
     bool _painted;
 
+    // Per-phase paint timing (diagnostic): the native delta fetch, the delta
+    // apply, and the structural layout passes, plus the real frame time (the
+    // Godot per-frame delta), logged as a throttled summary.
+    readonly Stopwatch _paintSw = new();
+    long _fetchAccumTicks, _fetchMaxTicks;
+    long _applyAccumTicks, _applyMaxTicks;
+    long _layoutAccumTicks, _layoutMaxTicks;
+    double _lastFrameMs, _frameAccumMs, _frameMaxMs;
+    int _paintFrames;
+
+    // Per-sub-phase layout timing (diagnostic): the five structural passes,
+    // logged on any frame whose total layout time crosses the spike threshold.
+    long _lFlattenTicks, _lFlattenMax;
+    long _lRefreshTicks, _lRefreshMax;
+    long _lReparentTicks, _lReparentMax;
+    long _lFlowTicks, _lFlowMax;
+    long _lPositionTicks, _lPositionMax;
+
+    // Cached structure maps, rebuilt only when _nodes changes (a delta / full
+    // paint) instead of every frame. LayoutPasses runs every frame, so building
+    // the O(n) byId and parentOf dictionaries each frame was needless
+    // allocation churn (a source of GC hitches in the layout phase).
+    Dictionary<string, UiNodeData> _byIdCache = new();
+    Dictionary<string, string> _parentOfCache = new();
+    bool _structureDirty = true;
+
+    // When set (production app), the paint timing is logged every 120 frames.
+    // Off in tests, which read GetPaintTimingMs directly.
+    public static bool EnablePaintTimingLog;
+    public static Action<string> DiagnosticLogger = s => GD.Print(s);
+
+    // Largest layout spike seen (and its per-sub-pass breakdown), captured for
+    // tests/console. Set by LogLayoutSpike on any frame over the threshold.
+    public static double LastLayoutSpikeTotal;
+    public static string LastLayoutSpikeDetail = "";
+
     public RootNode()
     {
         SetAnchorsPreset(LayoutPreset.FullRect);
@@ -52,6 +89,7 @@ public partial class RootNode : Godot.Panel
 
     public override void _Process(double delta)
     {
+        _lastFrameMs = delta * 1000.0;
         Pump();
         base._Process(delta);
     }
@@ -80,11 +118,71 @@ public partial class RootNode : Godot.Panel
             _painted = true;
             return;
         }
-        var delta = UiState.FetchDelta();
+        _paintSw.Restart();
+        // Fetch only when a tick has produced work: the tick runs at 8 Hz, so on
+        // the other ~11 of 12 frames there is no delta and the native fetch call
+        // is pure overhead. DeltaPending is latched by RunIteration (the only
+        // producer), so this never skips a real delta.
+        UiDelta? delta = null;
+        if (NewGameProject.Runtime.RuntimeInterop.DeltaPending)
+        {
+            NewGameProject.Runtime.RuntimeInterop.DeltaPending = false;
+            delta = UiState.FetchDelta();
+        }
+        long fetchTicks = _paintSw.ElapsedTicks;
+        _paintSw.Restart();
         if (delta != null && delta.Ops.Count > 0)
             ApplyDelta(delta);
+        long applyTicks = _paintSw.ElapsedTicks;
+        _paintSw.Restart();
         LayoutPasses();
+        long layoutTicks = _paintSw.ElapsedTicks;
+        AccumulatePaintTiming(fetchTicks, applyTicks, layoutTicks, _lastFrameMs);
     }
+
+    void AccumulatePaintTiming(long fetchTicks, long applyTicks, long layoutTicks, double frameMs)
+    {
+        _fetchAccumTicks += fetchTicks; _fetchMaxTicks = Math.Max(_fetchMaxTicks, fetchTicks);
+        _applyAccumTicks += applyTicks; _applyMaxTicks = Math.Max(_applyMaxTicks, applyTicks);
+        _layoutAccumTicks += layoutTicks; _layoutMaxTicks = Math.Max(_layoutMaxTicks, layoutTicks);
+        _frameAccumMs += frameMs; _frameMaxMs = Math.Max(_frameMaxMs, frameMs);
+        if (++_paintFrames < 120) return;
+        if (!EnablePaintTimingLog) return;
+        int frames = _paintFrames;
+        DiagnosticLogger($"[paint] frame avg={_frameAccumMs / frames:0.00} max={_frameMaxMs:0.00} | " +
+                         $"fetch avg={Ms(_fetchAccumTicks) / frames:0.00} max={Ms(_fetchMaxTicks):0.00} | " +
+                         $"apply avg={Ms(_applyAccumTicks) / frames:0.00} max={Ms(_applyMaxTicks):0.00} | " +
+                         $"layout avg={Ms(_layoutAccumTicks) / frames:0.00} max={Ms(_layoutMaxTicks):0.00} (ms)");
+        _fetchAccumTicks = _fetchMaxTicks = 0;
+        _applyAccumTicks = _applyMaxTicks = 0;
+        _layoutAccumTicks = _layoutMaxTicks = 0;
+        _frameAccumMs = 0; _frameMaxMs = 0;
+        _paintFrames = 0;
+    }
+
+    /// Per-phase paint timing since the last <see cref="ResetPaintTiming"/>
+    /// (diagnostic): average and max, in milliseconds.
+    public (double fetchAvg, double fetchMax, double applyAvg, double applyMax,
+            double layoutAvg, double layoutMax) GetPaintTimingMs()
+    {
+        int frames = Math.Max(1, _paintFrames);
+        return (Ms(_fetchAccumTicks) / frames, Ms(_fetchMaxTicks),
+                Ms(_applyAccumTicks) / frames, Ms(_applyMaxTicks),
+                Ms(_layoutAccumTicks) / frames, Ms(_layoutMaxTicks));
+    }
+
+    public void ResetPaintTiming()
+    {
+        _fetchAccumTicks = _fetchMaxTicks = 0;
+        _applyAccumTicks = _applyMaxTicks = 0;
+        _layoutAccumTicks = _layoutMaxTicks = 0;
+        _frameAccumMs = 0; _frameMaxMs = 0;
+        _paintFrames = 0;
+    }
+
+    public int PaintFrames => _paintFrames;
+
+    static double Ms(long ticks) => (double)ticks / Stopwatch.Frequency * 1000.0;
 
     /// Force a full rebuild (module hot reload): free every window and repaint
     /// from a fresh full state pull.
@@ -110,7 +208,9 @@ public partial class RootNode : Godot.Panel
         var nodes = UiState.FetchState();
         if (nodes.Count == 0) return;
         _nodes = nodes;
-        var byId = nodes.ToDictionary(n => n.Id);
+        _structureDirty = true;
+        EnsureStructureCaches();
+        var byId = _byIdCache;
         CreateOrUpdateAll();
         FlattenTextChildren(nodes, byId);
         RefreshFlattenedFieldValues(byId);
@@ -172,16 +272,63 @@ public partial class RootNode : Godot.Panel
     /// (a clean frame skips all of it).
     void LayoutPasses()
     {
-        var byId = _nodes.ToDictionary(n => n.Id);
+        EnsureStructureCaches();
+        var byId = _byIdCache;
+        _paintSw.Restart();
         FlattenTextChildren(_nodes, byId);
+        long flattenTicks = _paintSw.ElapsedTicks;
+        _paintSw.Restart();
         RefreshFlattenedFieldValues(byId);
+        long refreshTicks = _paintSw.ElapsedTicks;
+        _paintSw.Restart();
         ReparentAll(byId);
+        long reparentTicks = _paintSw.ElapsedTicks;
+        _paintSw.Restart();
         // Flow content lands in its container during ReparentAll, after the
         // first Apply — so re-assert the content-driven minimum sizes here
         // (cheap) instead of relying on a per-frame re-apply.
         foreach (var win in _windows.Values)
             win.RefreshFlowMinimumSize();
+        long flowTicks = _paintSw.ElapsedTicks;
+        _paintSw.Restart();
         PositionAll(byId);
+        long positionTicks = _paintSw.ElapsedTicks;
+        LogLayoutSpike(flattenTicks, refreshTicks, reparentTicks, flowTicks, positionTicks);
+    }
+
+    /// Diagnostic: on any frame whose total layout time crosses the spike
+    /// threshold, log the per-sub-pass breakdown so the culprit (flatten,
+    /// refresh, reparent, flow-minimum, or position) is visible.
+    void LogLayoutSpike(long flatten, long refresh, long reparent, long flow, long position)
+    {
+        if (!EnablePaintTimingLog) return;
+        double totalMs = Ms(flatten + refresh + reparent + flow + position);
+        if (totalMs < 10.0) return;
+        var detail = $"flatten={Ms(flatten):0.00} refresh={Ms(refresh):0.00} " +
+                     $"reparent={Ms(reparent):0.00} flow={Ms(flow):0.00} " +
+                     $"position={Ms(position):0.00}";
+        if (totalMs > LastLayoutSpikeTotal)
+        {
+            LastLayoutSpikeTotal = totalMs;
+            LastLayoutSpikeDetail = detail;
+        }
+        DiagnosticLogger($"[layout-spike] total={totalMs:0.00} | {detail} (ms)");
+    }
+
+    /// Rebuilds the id→node and child→parent maps from <see cref="_nodes"/>
+    /// when they are stale. Called before any pass that reads the maps, so a
+    /// clean frame (no node change) reuses the cached maps and skips the O(n)
+    /// rebuild. <see cref="_structureDirty"/> is latched by every mutation of
+    /// <see cref="_nodes"/> (full paint, upsert, remove).
+    void EnsureStructureCaches()
+    {
+        if (!_structureDirty) return;
+        _byIdCache = _nodes.ToDictionary(n => n.Id);
+        _parentOfCache.Clear();
+        foreach (var other in _nodes)
+            foreach (var c in other.Children)
+                _parentOfCache[c] = other.Id;
+        _structureDirty = false;
     }
 
     /// Applies a change delta (add/update/remove) to the affected windows and
@@ -238,22 +385,23 @@ public partial class RootNode : Godot.Panel
         var i = _nodes.FindIndex(n => n.Id == node.Id);
         if (i >= 0) _nodes[i] = node;
         else _nodes.Add(node);
+        _structureDirty = true;
     }
 
     void RemoveNode(string id)
     {
         var i = _nodes.FindIndex(n => n.Id == id);
         if (i >= 0) _nodes.RemoveAt(i);
+        _structureDirty = true;
     }
 
     /// Re-parents every window under its declared parent. The child→parent map
-    /// is built once (O(n)) rather than scanning all nodes per child.
+    /// is the cached <see cref="_parentOfCache"/> (rebuilt in
+    /// <see cref="LayoutPasses"/> only when the node set changes) rather than
+    /// rebuilt every frame.
     void ReparentAll(Dictionary<string, UiNodeData> byId)
     {
-        var parentOf = new Dictionary<string, string>();
-        foreach (var other in _nodes)
-            foreach (var c in other.Children)
-                parentOf[c] = other.Id;
+        var parentOf = _parentOfCache;
 
         foreach (var node in _nodes)
         {

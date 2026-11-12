@@ -129,9 +129,7 @@ public partial class UiWindow
             RuntimeInterop.Log($"ui: progress texture not found in archive: {path}");
             return null;
         }
-        var img = new Image();
-        img.LoadPngFromBuffer(data);
-        var tex = ImageTexture.CreateFromImage(img);
+        var tex = CreateTextureTimed(data);
         _progressTextures[path] = tex;
         return tex;
     }

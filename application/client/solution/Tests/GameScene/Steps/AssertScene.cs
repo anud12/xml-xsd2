@@ -23,6 +23,12 @@ public class AssertScene {
     }
 
     /// <summary>
+    /// The underlying <see cref="RootNode"/> (for tests that need the node
+    /// itself, e.g. diagnostic paint timing).
+    /// </summary>
+    public RootNode Root => _root;
+
+    /// <summary>
     /// Returns the fluent assertion wrapper for the window with the given id.
     /// The lookup is recursive, so nested windows are found by id alone.
     /// Throws when no such window exists.

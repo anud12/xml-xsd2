@@ -12,6 +12,13 @@ public static class RuntimeInterop
 
     public static string ZipPath => ZIP_PATH;
 
+    // Cache of the module archive's files. GetFileFromArchive is hot (every
+    // textured apply and frame advance calls it) and used to decompress the
+    // whole ZIP on each call; read it once and reuse, dropping it when the
+    // archive is (re)processed. Accessed only on the main (Godot) thread.
+    static Dictionary<string, byte[]>? _archiveCache;
+    static string _archiveCachePath = "";
+
     public static string[] GetPanelIds()
     {
         var ptr = runtime_fetch_panel_ids();
@@ -90,8 +97,10 @@ public static class RuntimeInterop
     public static string ProcessArchive(string zipPath)
     {
         ZIP_PATH = zipPath;
+        _archiveCache = null;
         IntPtr ptr = runtime_process_archive(zipPath);
         if (ptr == IntPtr.Zero) return null;
+        DeltaPending = true;
         try
         {
             return Marshal.PtrToStringAnsi(ptr);
@@ -112,8 +121,10 @@ public static class RuntimeInterop
     public static string ReloadArchive(string zipPath)
     {
         ZIP_PATH = zipPath;
+        _archiveCache = null;
         IntPtr ptr = runtime_reload_archive(zipPath);
         if (ptr == IntPtr.Zero) return null;
+        DeltaPending = true;
         try
         {
             return Marshal.PtrToStringAnsi(ptr);
@@ -126,6 +137,10 @@ public static class RuntimeInterop
 
     public static Dictionary<string, byte[]> GetFileFromArchive()
     {
+        var cached = _archiveCache;
+        if (cached != null && _archiveCachePath == ZIP_PATH)
+            return cached;
+
         var fileData = new Dictionary<string, byte[]>();
         if (!string.IsNullOrEmpty(ZIP_PATH))
         {
@@ -144,6 +159,8 @@ public static class RuntimeInterop
                 }
             }
         }
+        _archiveCache = fileData;
+        _archiveCachePath = ZIP_PATH;
         return fileData;
     }
 
@@ -267,6 +284,7 @@ public static class RuntimeInterop
         if (pairs.Count == 0)
         {
             runtime_emit_action(action);
+            DeltaPending = true;
             return;
         }
 
@@ -298,6 +316,7 @@ public static class RuntimeInterop
                 keyArr.Free();
                 valArr.Free();
             }
+            DeltaPending = true;
         }
         finally
         {
@@ -353,6 +372,7 @@ public static class RuntimeInterop
         {
             var zero = 0;
             runtime_publish_action_args_and_queue_effect(action, effect, ref zero, IntPtr.Zero, IntPtr.Zero);
+            DeltaPending = true;
             return;
         }
 
@@ -380,6 +400,7 @@ public static class RuntimeInterop
                 keyArr.Free();
                 valArr.Free();
             }
+            DeltaPending = true;
         }
         finally
         {
@@ -399,6 +420,7 @@ public static class RuntimeInterop
     public static void emitActionFor(string action, string actor)
     {
         runtime_emit_action_for(action, actor);
+        DeltaPending = true;
     }
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
@@ -411,6 +433,7 @@ public static class RuntimeInterop
     public static void UiJsClick(string id, int col, int row)
     {
         runtime_ui_js_click(id, col, row);
+        DeltaPending = true;
     }
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
@@ -458,6 +481,13 @@ public static class RuntimeInterop
 
     private static volatile bool _paused = false;
 
+    // Latched by RunIteration after a tick that may have produced a UI delta.
+    // The main-thread paint fetches the delta only while this is set: the tick
+    // runs at 8 Hz, so fetching at 60 Hz would pay the native call on empty
+    // frames. Deltas are only ever produced by RunIteration (actions queue and
+    // fire on the next tick), so gating on this never drops a delta.
+    public static volatile bool DeltaPending = false;
+
     /// True while the runtime loop is paused. While paused, {@link RunIteration}
     /// is a no-op (elapsed time does not advance), regardless of which caller
     /// drives it (the game scene's background loop thread or a direct call).
@@ -474,7 +504,9 @@ public static class RuntimeInterop
         if (_paused) return GetElapsedTimeUnits();
         var elapsed = runtime_get_elapsed_time_units() + elapsedUnits;
         NewGameProject.Module.BehaviorStore.Process(elapsed);
-        return runtime_run_iteration(elapsedUnits);
+        var result = runtime_run_iteration(elapsedUnits);
+        DeltaPending = true;
+        return result;
     }
 
     public static long GetElapsedTimeUnits() => runtime_get_elapsed_time_units();

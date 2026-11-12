@@ -44,9 +44,7 @@ public partial class UiWindow
             if (string.IsNullOrEmpty(path)) return;
             if (RuntimeInterop.GetFileFromArchive().TryGetValue(path, out var data))
             {
-                var img = new Image();
-                img.LoadPngFromBuffer(data);
-                var tex = ImageTexture.CreateFromImage(img);
+                var tex = CreateTextureTimed(data);
                 _baseBackgroundTexture = tex;
                 SetBackground(tex);
             }
@@ -422,9 +420,7 @@ public partial class UiWindow
             RuntimeInterop.Log($"ui: animation frame not found in archive: {path}");
             return;
         }
-        var img = new Image();
-        img.LoadPngFromBuffer(data);
-        _animTexture = ImageTexture.CreateFromImage(img);
+        _animTexture = CreateTextureTimed(data);
         SetBackground(_animTexture);
     }
 

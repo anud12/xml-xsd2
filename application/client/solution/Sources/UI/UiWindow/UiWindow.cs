@@ -72,6 +72,25 @@ public partial class UiWindow : Control
     long _animStartTime;
     Texture2D? _animTexture;
 
+    // Diagnostic: total time (ticks) spent decompressing PNGs and creating
+    // ImageTextures across all windows. Used to find the per-frame texture cost.
+    internal static long TextureCreateTicks;
+    internal static void ResetTextureCreate() => TextureCreateTicks = 0;
+    internal static double TextureCreateMs()
+        => (double)TextureCreateTicks / System.Diagnostics.Stopwatch.Frequency / 1000.0;
+
+    /// Decompresses a PNG buffer into a fresh ImageTexture, timing the work into
+    /// <see cref="TextureCreateTicks"/> (diagnostic).
+    static Texture2D CreateTextureTimed(byte[] data)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var img = new Image();
+        img.LoadPngFromBuffer(data);
+        var tex = ImageTexture.CreateFromImage(img);
+        TextureCreateTicks += sw.ElapsedTicks;
+        return tex;
+    }
+
     /// True when the window declares explicit x/y position options.
     public bool HasWindowXY => _windowHasXY;
 

@@ -76,9 +76,7 @@ public partial class UiWindow
         if (string.IsNullOrEmpty(node.Src)) return;
         if (RuntimeInterop.GetFileFromArchive().TryGetValue(node.Src, out var data))
         {
-            var img = new Image();
-            img.LoadPngFromBuffer(data);
-            tr.Texture = ImageTexture.CreateFromImage(img);
+            tr.Texture = CreateTextureTimed(data);
         }
         else
         {

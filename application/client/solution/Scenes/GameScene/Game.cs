@@ -6,11 +6,10 @@ using NewGameProject.Module;
 using NewGameProject.Runtime;
 
 public partial class Game : Node {
-    // The runtime loop runs on a background thread, but Godot's GD.Print is only
-    // safe from the main thread; printing from the worker thread interleaves and
-    // misaligns console output. Runtime logs are buffered here (thread-safe) and
-    // flushed on the main thread in _Process instead.
     static readonly ConcurrentQueue<string> _pendingLogs = new();
+    static StreamWriter? _logWriter;
+    static Thread? _logWriterThread;
+    static volatile bool _logWriterRunning;
     public static string? ARCHIVE_DIR;
     public static string? MODULE_DIR;
     public static bool RUN_RUNTIME_LOOP = true;
@@ -25,8 +24,9 @@ public partial class Game : Node {
     bool _hotReloadPending = false;
 
     public override void _Ready() {
-        // Buffer runtime logs; flushed on the main thread in _Process (see above).
         RuntimeInterop.RegisterLogger(_pendingLogs.Enqueue);
+        RootNode.DiagnosticLogger = _pendingLogs.Enqueue;
+        StartLogWriter();
         // The module picker (SelectModule) sets this before loading the game
         // scene; fall back to the first module when the game is launched
         // directly.
@@ -44,6 +44,12 @@ public partial class Game : Node {
         }
 
         _ready = true;
+
+        // Diagnostic: log per-phase paint + real frame time every ~2s so the
+        // windowed run shows where hitching time goes (fetch/apply/layout/render).
+        // Off in tests (they read GetPaintTimingMs directly; a log reset would
+        // truncate their window).
+        if (!TEST_MODE) RootNode.EnablePaintTimingLog = true;
 
         // UI layers: coreUI (hardcoded UI: settings, actions buttons) is the
         // base layer; moduleUI (the JS-module UI painted by RootNode) sits on
@@ -101,21 +107,47 @@ public partial class Game : Node {
     }
 
     public override void _Process(double delta) {
-        // Flush runtime logs on the main thread so GD.Print output stays aligned.
-        while (_pendingLogs.TryDequeue(out string line)) {
-            GD.Print(line);
-        }
-        // Hot reloads raised by the file watcher arrive on a non-main thread;
-        // the actual reload and UI repaint happen here on the main thread.
         if (_hotReloadPending) {
             _hotReloadPending = false;
             DoHotReload();
         }
     }
 
+    void StartLogWriter() {
+        string path = ProjectSettings.GlobalizePath("user://runtime.log");
+        _logWriter = new StreamWriter(path, append: true, new System.Text.UTF8Encoding(false), bufferSize: 65536);
+        _logWriterRunning = true;
+        _logWriterThread = new Thread(() => {
+            var buf = new System.Text.StringBuilder(4096);
+            while (_logWriterRunning || _pendingLogs.Count > 0) {
+                bool gotAny = false;
+                while (_pendingLogs.TryDequeue(out string line)) {
+                    buf.AppendLine(line);
+                    gotAny = true;
+                }
+                if (gotAny) {
+                    _logWriter.Write(buf.ToString());
+                    buf.Clear();
+                } else {
+                    Thread.Sleep(2);
+                }
+            }
+            while (_pendingLogs.TryDequeue(out string line))
+                buf.AppendLine(line);
+            if (buf.Length > 0) _logWriter.Write(buf.ToString());
+            _logWriter.Flush();
+            _logWriter.Dispose();
+            _logWriter = null;
+        }) { IsBackground = true };
+        _logWriterThread.Start();
+    }
+
     public override void _ExitTree() {
         _moduleWatcher?.Dispose();
         _moduleWatcher = null;
+        _logWriterRunning = false;
+        _logWriterThread?.Join(2000);
+        _logWriterThread = null;
     }
 
     /// Re-ships the module directory as an archive and hot-reloads it against
