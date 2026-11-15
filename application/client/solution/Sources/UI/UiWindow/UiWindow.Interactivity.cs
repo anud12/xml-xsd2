@@ -153,11 +153,15 @@ public partial class UiWindow
             {
                 var (col, row) = ResolveCursorCell(mb.Position);
                 RuntimeInterop.UiJsClick(_nodeId, col, row);
+                UiTraceability.RecordClick(_nodeId, mb.GlobalPosition);
             }
             else if (_onClickAction != null)
+            {
                 RuntimeInterop.emitAction(_onClickAction);
+                UiTraceability.RecordClick(_nodeId, mb.GlobalPosition);
+            }
             else
-                ExecuteClickPlan(mb.Position);
+                ExecuteClickPlan(mb.Position, mb.GlobalPosition);
             GetViewport().SetInputAsHandled();
         }
     }
@@ -371,7 +375,7 @@ public partial class UiWindow
     /// cursor symbol in a step's args is replaced by the local grid cell
     /// (col, row) of the click; non-grid panels resolve to (0, 0). The
     /// concrete action + args are then emitted on the C# side.
-    void ExecuteClickPlan(Godot.Vector2 localPos)
+    void ExecuteClickPlan(Godot.Vector2 localPos, Godot.Vector2 pointer)
     {
         try
         {
@@ -406,6 +410,7 @@ public partial class UiWindow
                     argsJson = sb.ToString();
                 }
                 RuntimeInterop.emitAction(action, argsJson);
+                UiTraceability.RecordClick(_nodeId, pointer);
             }
         }
         catch (Exception ex)

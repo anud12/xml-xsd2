@@ -75,6 +75,11 @@ public partial class RootNode : Godot.Panel
     public static double LastLayoutSpikeTotal;
     public static string LastLayoutSpikeDetail = "";
 
+    // The UI's own frame counter: incremented once per pumped frame. This is the
+    // UI-tracked, deterministic 'when' for interactions — independent of the Rust
+    // runtime's elapsed-time-units clock, which ticks at a different rate.
+    public static long CurrentFrame;
+
     public RootNode()
     {
         SetAnchorsPreset(LayoutPreset.FullRect);
@@ -98,6 +103,7 @@ public partial class RootNode : Godot.Panel
     /// the node without relying on the engine process callback).
     public void Pump()
     {
+        CurrentFrame++;
         Paint();
         UpdateHoverTracking();
     }

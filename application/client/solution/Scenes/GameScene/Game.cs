@@ -10,6 +10,7 @@ public partial class Game : Node {
     static StreamWriter? _logWriter;
     static Thread? _logWriterThread;
     static volatile bool _logWriterRunning;
+    static bool _logWriterStarted;
     public static string? ARCHIVE_DIR;
     public static string? MODULE_DIR;
     public static bool RUN_RUNTIME_LOOP = true;
@@ -113,41 +114,50 @@ public partial class Game : Node {
         }
     }
 
+    /// Starts the "Logging" thread (once per process). It shares the file-logging
+    /// workload: runtime log lines go to <c>user://runtime.log</c> and UI
+    /// traceability events (recorded by <see cref="UiTraceability"/>) go to the
+    /// configured <c>.replay</c> file. All file I/O happens here, off the main
+    /// thread, so a slow sink (e.g. a minimized IDE console) can never hitch a
+    /// frame.
     void StartLogWriter() {
+        if (_logWriterStarted) return;
+        _logWriterStarted = true;
         string path = ProjectSettings.GlobalizePath("user://runtime.log");
         _logWriter = new StreamWriter(path, append: true, new System.Text.UTF8Encoding(false), bufferSize: 65536);
         _logWriterRunning = true;
-        _logWriterThread = new Thread(() => {
-            var buf = new System.Text.StringBuilder(4096);
-            while (_logWriterRunning || _pendingLogs.Count > 0) {
-                bool gotAny = false;
-                while (_pendingLogs.TryDequeue(out string line)) {
-                    buf.AppendLine(line);
-                    gotAny = true;
-                }
-                if (gotAny) {
-                    _logWriter.Write(buf.ToString());
-                    buf.Clear();
-                } else {
-                    Thread.Sleep(2);
-                }
-            }
-            while (_pendingLogs.TryDequeue(out string line))
-                buf.AppendLine(line);
-            if (buf.Length > 0) _logWriter.Write(buf.ToString());
-            _logWriter.Flush();
-            _logWriter.Dispose();
-            _logWriter = null;
-        }) { IsBackground = true };
+        _logWriterThread = new Thread(LogWriterLoop) { IsBackground = true, Name = "Logging" };
         _logWriterThread.Start();
+    }
+
+    void LogWriterLoop() {
+        var buf = new System.Text.StringBuilder(4096);
+        while (_logWriterRunning || _pendingLogs.Count > 0 || UiTraceability.PendingCount > 0) {
+            bool busy = false;
+            while (_pendingLogs.TryDequeue(out string line)) {
+                buf.AppendLine(line);
+                busy = true;
+            }
+            if (buf.Length > 0) {
+                _logWriter.Write(buf.ToString());
+                _logWriter.Flush();
+                buf.Clear();
+            }
+            if (UiTraceability.DrainAndWrite() > 0) busy = true;
+            if (!busy) Thread.Sleep(2);
+        }
+        while (_pendingLogs.TryDequeue(out string line))
+            buf.AppendLine(line);
+        if (buf.Length > 0) _logWriter.Write(buf.ToString());
+        _logWriter.Flush();
+        UiTraceability.Stop();
+        _logWriter.Dispose();
+        _logWriter = null;
     }
 
     public override void _ExitTree() {
         _moduleWatcher?.Dispose();
         _moduleWatcher = null;
-        _logWriterRunning = false;
-        _logWriterThread?.Join(2000);
-        _logWriterThread = null;
     }
 
     /// Re-ships the module directory as an archive and hot-reloads it against

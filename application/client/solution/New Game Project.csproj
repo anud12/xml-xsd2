@@ -13,8 +13,14 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="gdUnit4.api" Version="5.1.0-rc3" />
     <PackageReference Include="gdUnit4.test.adapter" Version="3.0.0" />
+    <PackageReference Include="NJsonSchema" Version="11.6.2" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Sources\UI\UiTraceability\replay.schema.json">
+      <LogicalName>UiReplayEvent.schema.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>

@@ -225,3 +225,14 @@ Structured entity filtering: predicates, composition, edge cases.
 | `FiltersLeaf` | Single-leaf filter predicate evaluation |
 | `Malformed` | Malformed filter structures (graceful rejection) |
 | `NoMatch` | Filters that match no entities (empty result, no fallback) |
+
+## Stage_15 — UI traceability and replay
+
+Clicks are recorded (what node + when) to a `.replay` file by the Logging
+thread; the file is self-contained and can be re-driven to reproduce the
+interaction.
+
+| Folder | Scope |
+|--------|-------|
+| `window_OnClick` | Replay a committed replay file and assert the recorded actions re-fire; click the window and validate the resulting replay file (node + ordered `timestamp` + pointer + schema); reject malformed replay lines |
+| `Panel_OnClick` | Same traceability tests, but the `onClick` lives on a panel nested under a window: the recorded node is the nested panel's id (not the host's) |
