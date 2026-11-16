@@ -991,6 +991,33 @@ function (root) {
     }
 
     var api = {
+        // Register a drag type by name; returns a handle that carries the
+        // name on .name/.value and serializes (toJSON) to the plain name
+        // string, so it can flow into a panel's `draggable.type` or a
+        // drop-off's `droppable.accepts`. Idempotent: the same name always
+        // yields the same handle object (stored in globalThis.__uiDragTypes).
+        defineDragType: function (args) {
+            if (!args || typeof args !== 'object') {
+                throw new Error('ui: defineDragType args must be an object with name');
+            }
+            if (typeof args.name !== 'string' || args.name.length === 0) {
+                throw new Error('ui: defineDragType args.name must be a non-empty string');
+            }
+            var name = args.name;
+            if (globalThis.__uiDragTypes && globalThis.__uiDragTypes[name]) {
+                return globalThis.__uiDragTypes[name];
+            }
+            if (!globalThis.__uiDragTypes) globalThis.__uiDragTypes = {};
+            var handle = {
+                __dragType: name,
+                name: name,
+                value: name,
+                toString: function () { return name; },
+                toJSON: function () { return name; }
+            };
+            globalThis.__uiDragTypes[name] = handle;
+            return handle;
+        },
         // Register a font file from the archive; returns a reference handle
         // that text/field nodes accept as their fontRef. The handle
         // stringifies back to its name, so the name string also works.

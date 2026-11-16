@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use super::UiNode as DomainNode;
 use super::UiDeltaOp as DomainDeltaOp;
 
-pub const UI_ABI_VERSION: u32 = 10;
+pub const UI_ABI_VERSION: u32 = 11;
 /// Sentinel string offset: "no string" (absent value/src/optional option).
 pub const NO_STR: u32 = u32::MAX;
 
@@ -289,6 +289,17 @@ pub struct UiNodeOptions {
     /// Scrollbar grabber texture (same shape as `scrollbar_track`): painted as
     /// the draggable thumb's style-box; absent keeps the default grabber.
     pub scrollbar_grabber: UiBackground,
+    /// `draggable` (drag source): an interned raw-JSON string of the full
+    /// `panel.draggable` object (`{type, payload, ghost, onDragStart?, onDragEnd?}`;
+    /// function fields are the `"__jsHandler"` marker stashed by `__prepDragDrop`).
+    /// NO_STR when the node is not a drag source. The renderer re-parses this
+    /// object; the JS callbacks are invoked back through the FFI drag-start/end
+    /// dispatchers.
+    pub draggable: u32,
+    /// `droppable` (drop target): an interned raw-JSON string of the full
+    /// `panel.droppable` object (`{accepts, feedback, onDrop?}`; `onDrop` is the
+    /// `"__jsHandler"` marker). NO_STR when the node is not a drop target.
+    pub droppable: u32,
 }
 
 /// `UiNodeOptions::overflow` flags (per-axis overflow handling).
@@ -827,6 +838,8 @@ fn empty_options() -> UiNodeOptions {
             layers: ptr::null(),
             paint: UiPaintSpec::stretch(),
         },
+        draggable: NO_STR,
+        droppable: NO_STR,
     }
 }
 
@@ -1577,6 +1590,16 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     // (`UI_BG_NONE` when absent; the renderer keeps its default track/grabber).
     o.scrollbar_track = parse_scrollbar_tex(panel, "track", slab);
     o.scrollbar_grabber = parse_scrollbar_tex(panel, "grabber", slab);
+    // draggable / droppable: carry the full object through as a raw-JSON string
+    // (the fixed ABI has no per-field representation for the nested shape; the
+    // renderer re-parses it). Function fields are the "__jsHandler" marker,
+    // stashed by __prepDragDrop and dispatched back over the FFI.
+    if let Some(v) = panel.get("draggable").and_then(|v| v.as_object()) {
+        o.draggable = slab.intern(&Value::Object(v.clone()).to_string());
+    }
+    if let Some(v) = panel.get("droppable").and_then(|v| v.as_object()) {
+        o.droppable = slab.intern(&Value::Object(v.clone()).to_string());
+    }
     // areaOutline: { polygons: [ { points: [[x, y], ...],
     //   color?: [r,g,b,a], bodyColor?: [r,g,b,a], thickness?: number }, ... ] }
     // points are view-local logical units (the same space as x/y/width/height).

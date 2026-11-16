@@ -185,6 +185,13 @@ public static class UiSlab
             p.Append('}');
             Add("progress", p.ToString());
         }
+        // draggable / droppable: raw JSON objects carried verbatim from the
+        // Rust slab (the nested shape has no per-field ABI representation).
+        // `Add` emits the stored text as a raw JSON value.
+        if (o.Draggable != UiAbi.NoStr)
+            Add("draggable", Str(arena, o.Draggable));
+        if (o.Droppable != UiAbi.NoStr)
+            Add("droppable", Str(arena, o.Droppable));
         if (first) return "{}";
         return "{" + sb + "}";
     }

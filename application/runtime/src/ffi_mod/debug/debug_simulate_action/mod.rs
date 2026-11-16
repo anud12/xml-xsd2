@@ -85,7 +85,7 @@ fn dispatch_in_sim_or_fallback(
 /// the args are carried for handler `ctx.args` lookups.
 pub fn runtime_debug_simulate_action_args(
     action_name: *const c_char,
-    args: &[(String, f64)],
+    args: &[(String, serde_json::Value)],
 ) {
     publish_action_args(args);
     let _ = runtime_debug_simulate_action(action_name);
@@ -96,7 +96,7 @@ pub fn runtime_debug_simulate_action_args(
 /// resulting plan keys on it for busy/interruptible state.
 pub fn runtime_debug_simulate_action_args_for(
     action_name: *const c_char,
-    args: &[(String, f64)],
+    args: &[(String, serde_json::Value)],
     actor: &str,
 ) {
     publish_action_args(args);
@@ -118,17 +118,16 @@ pub fn runtime_debug_simulate_action_args_for(
     dispatch_in_sim_or_fallback(name, actor, &files, &current);
 }
 
-fn publish_action_args(args: &[(String, f64)]) {
+fn publish_action_args(args: &[(String, serde_json::Value)]) {
     // Publish the click/cursor args into the persistent sim context so the
     // action's `ctx.args` sees them (the dispatch reads `__actionArgs`).
+    // Values are serialized as JSON (strings stay strings, numbers stay
+    // numbers) so the action / effect see the exact types the UI handler
+    // emitted — a string entityId must not be coerced to a number.
     if let Some(ctx) = crate::js_executor::sim_ctx::ctx() {
-        let mut obj = String::from("{");
-        for (i, (k, v)) in args.iter().enumerate() {
-            if i > 0 { obj.push(','); }
-            let key = serde_json::to_string(k).unwrap_or_else(|_| "\"\"".to_string());
-            obj.push_str(&format!("{}:{}", key, v));
-        }
-        obj.push('}');
+        let map = serde_json::Map::from_iter(args.iter().map(|(k, v)| (k.clone(), v.clone())));
+        let obj = serde_json::to_string(&serde_json::Value::Object(map))
+            .unwrap_or_else(|_| "{}".to_string());
         let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(format!(
             "globalThis.__actionArgs = {};", obj
         )));

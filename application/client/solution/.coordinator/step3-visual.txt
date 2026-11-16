@@ -1,0 +1,466 @@
+Build started 16/11/2026 01:28:05.
+     1>Project "E:\workspace\xml-xsd2\application\client\solution\New Game Project.sln" on node 1 (VSTest target(s)).
+     1>ValidateSolutionConfiguration:
+         Building solution configuration "Debug|Any CPU".
+Test run for E:\workspace\xml-xsd2\application\client\solution\.godot\mono\temp\bin\Debug\New Game Project.dll (.NETCoreApp,Version=v9.0)
+A total of 1 test files matched the specified pattern.
+Running on GdUnit4 test engine version: 5.1.0.0
+Discover tests from assembly: E:\workspace\xml-xsd2\application\client\solution\.godot\mono\temp\bin\Debug\New Game Project.dll
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.GdUnitTest with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Menu.Settings.TestClass with 4 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Menu.SelectModule.SelectModuleSceneTests with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Menu.MainMenu.TestClass with 4 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Menu.GameScene.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Menu.GameScenePause.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_temp.LandPool.LandPoolFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_temp.LabelGlyphUpdate.LabelGlyphUpdateFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_temp.FullTestTick.FullTestTickFfiTests with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_temp.DumpTree.DumpTreeFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_temp.DragDropVisual.DragDropVisualTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_temp.DragDropBuy.DragDropBuyTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_temp.BuyLand.BuyLandFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_temp.AddBtnLabel.AddBtnLabelFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_9.RenderMovement.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_9.PanelClickTeleport.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_9.PanelClickMoveTo.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_9.MoveTo.TestClass with 8 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_9.Interrupt.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_9.ContainerViewResizableClick.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_9.ContainerViewClickMoveTo.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_9.ContainerTeleport.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_8.Behavior.Wait.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_8.Behavior.CallAction.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_8.Behavior.ActionExists.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_8.ActionPlan.BusyReject.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_7.ScrollBarAnim.ScrollBarAnimFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_7.Overflow.PanelOverflowFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_7.OverflowViewport.PanelOverflowViewportFfiTests with 3 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_7.BarSize.BarSizeFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_7.MutableAddEntity.ContainerMutableAddEntityFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_7.EntityListLayout.ContainerEntityListLayoutFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_7.EntityListBackgroundAnim.ContainerEntityListBackgroundAnimFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_7.DynamicEntityList.ContainerDynamicEntityListFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_7.ContainerViewAlignment.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_7.ContainerListView.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_6.EmitChildEvents.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_5.EntityTextValueUpdate.reoccurAfterMsToValue.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_5.EntityTextValueUpdate.reoccurAfterMsToNone.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_5.EntityTextValueUpdate.isReoccuranceApplicableSetDynamically.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_5.ElapsedTimeUnits.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_4.EntityTextValueUpdate.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_4.EntityNumberValueUpdate.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_4.EffectInputOutputFlow.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_4.ConcurrentEffects.ConcurrentEffectsTests with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_3.TitleDrag.TestClass with 3 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_3.Resizable.TestClass with 3 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_3.ResizableAspect.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_3.EmitActionAndTriggerOnClick.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_3.AddChild.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.SpriteMap.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.SpriteMap.Validation.MissingFile.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.SpriteMap.Transparency.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.SpriteMap.Rotated.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.SpriteMap.MultiLayerOverlap.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Progress.TestClass with 4 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Progress.ValueChange.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Progress.RecurringDeplete.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Progress.MinRange.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Progress.ConstantRange.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Progress.Animation.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Hover.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Hover.Propagate.TestClass with 4 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.EmitActionOnClick.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Content.EntityStringValueContent.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Content.EntityNumberValueContent.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Content.ConstantTextContent.Top.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Content.ConstantTextContent.TopRight.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Content.ConstantTextContent.TopLeft.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Content.ConstantTextContent.Center.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Content.ConstantTextContent.CenterRight.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Content.ConstantTextContent.CenterLeft.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Content.ConstantTextContent.Bottom.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Content.ConstantTextContent.BottomRight.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Content.ConstantTextContent.BottomLeft.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Children.Children with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Animation.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Animation.Loop.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.Animation.GetAnimation.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_2.ActionMutatesEntity.ActionMutatesEntityTests with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_1.Size.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_1.Offset.Offset with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_1.Anchor.Anchor with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_15.window_OnClick.WindowOnClick with 3 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_15.Panel_OnClick.PanelOnClick with 3 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_14.EntityFilter.NoMatch.NoMatchTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_14.EntityFilter.Malformed.MalformedTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_14.EntityFilter.FiltersLeaf.FiltersLeafTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_14.EntityFilter.EmptyArrays.EmptyArraysTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_14.EntityFilter.ByIdMatch.ByIdMatchTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_14.EntityFilter.AndOrNot.AndOrNotTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_13.StringGenerator.StringGeneratorTests with 4 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_12.Screen.TestClass with 4 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_11.Area.NoPresence.AreaNoPresenceTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_11.Area.FindEntitiesInside.AreaFindEntitiesInsideTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_11.AreaVisual.StampedOutline.AreaVisualStampedOutlineTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_11.AreaVisual.RenderedOutline.AreaVisualRenderedOutlineTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_11.AreaVisual.MultipleAreas.AreaVisualMultipleAreasTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_11.AreaVisual.BlendWithTexture.AreaVisualBlendWithTextureTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.SectorGridVisual.SectorGridVisualTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.SectorGridUnlinked.SectorGridUnlinkedTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.SectorGridOneWayLink.SectorGridOneWayLinkTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.SectorGridLinkOpening.SectorGridLinkOpeningTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.SectorGridDynamic.SectorGridDynamicTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.SectorGridDiagonalLink.SectorGridDiagonalLinkTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.SectorGridBoxCorner.SectorGridBoxCornerTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.PortalLinks.SectorPortalLinksTests with 4 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.MultiFootprint.SectorMultiFootprintTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.GridCreate.SectorGridCreateTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_10.Sector.AddContainer.SectorAddContainerTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.ViewportSize.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Typescript.ModuleImport.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.ScreenRegion.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Positioning.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.PanelSurface.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.OnClick.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.OnClickCursor.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Font.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Font.SizeChange.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Font.ColorChange.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Expression.NumberReadOnlyExpression.ToStringExpression.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Expression.NumberReadOnlyExpression.Random.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Expression.ListReadOnlyExpression.Map.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Expression.ListReadOnlyExpression.ExactlyOne.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Expression.ListReadOnlyExpression.Count.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Expression.ContainerReadOnlyExpression.Entities.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Existence.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.EsModule.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.DivLayout.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.ContentText.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Condition.ValueCarryThrough.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.ChildPanels.TestClass with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Border.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Border.Default.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Background.TestClass with 3 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Background.PaintMode.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Background.NestedLayout.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Stage_0.Background.Fit.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Ui.UiAbiParityTests with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Ui.UiSlabSmokeTests with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Sector.Transport.SectorTransportFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Panel.Size.SizeFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Panel.Offset.OffsetFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Panel.Hover.HoverFfiTests with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Panel.Content.TestClass with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Panel.Anchor.AnchorFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Module.HotReload.HotReloadFfiTests with 3 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Module.HotReload.ModuleArchiveTests with 3 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Module.CrossModule.CrossModuleFfiTests with 3 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Entity.Mutation.EntityMutationFfiTests with 3 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Container.TextNumberMap.ContainerTextNumberMapFfiTests with 2 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Container.Size.ContainerSizeFfiTests with 3 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Container.PositionSpan.ContainerPositionSpanFfiTests with 4 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Container.Id.ContainerIdFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Container.Ids.ContainerIdsFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Container.Entities.ContainerEntitiesFfiTests with 1 TestCases found.
+Discover:  TestSuite GdUnit4.Examples.Basics.Setup.Test.Ffi.Actor.ActiveAction.ActiveActionFfiTests with 5 TestCases found.
+Discover tests done, 157 TestSuites and total 242 Tests found.
+Running on GdUnit4 test engine version: 5.1.0.0
+Set test session timeout to: 00:30:00
+Detected IDE DotNet
+Starting tests for assembly: E:\workspace\xml-xsd2\application\client\solution\.godot\mono\temp\bin\Debug\New Game Project.dll
+Search '.csproj' at E:\workspace\xml-xsd2\application\client\solution\.godot\mono\temp\bin\Debug\New Game Project.dll
+Set current working directory to: E:\workspace\xml-xsd2\application\client\solution
+Working dir E:\workspace\xml-xsd2\application\client\solution
+Rebuild Godot Project ... E:\workspace\xml-xsd2\application\client\Godot_v4.6.3-stable_mono_win64\Godot_v4.6.3-stable_mono_win64.exe --path . -e --headless --quit-after 100 --verbose
+:stdout: WorkerThreadPool: 16 threads, 12 max low-priority.
+:stdout: Godot Engine v4.6.3.stable.mono.official.7d41c59c4 - https://godotengine.org
+:stdout: TextServer: Added interface "Dummy"
+:stdout: TextServer: Added interface "ICU / HarfBuzz / Graphite (Built-in)"
+:stdout: Unrecognized output string "misc2" in mapping:
+:stdout: 030000008a2e0000dd10000000000000,Hand Held Legend GC Ultimate,a:b0,b:b2,back:b17,dpdown:b5,dpleft:b6,dpright:b7,dpup:b4,guide:b18,leftshoulder:b10,leftstick:b8,lefttrigger:a3,leftx:a0,lefty:a1,misc1:b19,misc2:b24,paddle1:b13,paddle2:b12,rightshoulder:b11,rightstick:b9,righttrigger:a4,rightx:a2,righty:a5,start:b16,x:b1,y:b3,platform:Windows,
+:stdout: Unrecognized output string "misc2" in mapping:
+:stdout: 030000000d0f00000202000000000000,Horipad O Nintendo Switch 2 Controller,a:b1,b:b0,back:b8,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b12,leftshoulder:b4,leftstick:b10,lefttrigger:b6,leftx:a0,lefty:a1,misc1:b13,misc2:b14,rightshoulder:b5,rightstick:b11,righttrigger:b7,rightx:a2,righty:a3,start:b9,x:b3,y:b2,platform:Windows,
+:stdout: Unrecognized output string "misc2" in mapping:
+:stdout: 030000000d0f00009601000000000000,Horipad Steam,a:b0,b:b1,back:b10,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b12,leftshoulder:b6,leftstick:b13,lefttrigger:b8,leftx:a0,lefty:a1,misc2:b2,paddle1:b5,paddle2:b15,paddle3:b18,paddle4:b19,rightshoulder:b7,rightstick:b14,righttrigger:b9,rightx:a3,righty:a4,start:b11,x:b3,y:b4,platform:Windows,
+:stdout: Unrecognized output string "misc2" in mapping:
+:stdout: 030000007e0500006920000000000000,Nintendo Switch 2 Pro Controller,a:b0,b:b1,back:b14,dpdown:b8,dpleft:b10,dpright:b9,dpup:b11,guide:b16,leftshoulder:b12,leftstick:b15,lefttrigger:b13,leftx:a0,lefty:a1~,misc1:b17,misc2:b20,paddle1:b18,paddle2:b19,rightshoulder:b4,rightstick:b7,righttrigger:b5,rightx:a2,righty:a3~,start:b6,x:b2,y:b3,platform:Windows,
+:stdout: Using "default" pen tablet driver...
+:stdout: TextServer: Primary interface set to: "ICU / HarfBuzz / Graphite (Built-in)".
+:stdout: .NET: Initializing module...
+:stdout: Found hostfxr: C:\Program Files\dotnet/host/fxr/9.0.4/hostfxr.dll
+:stdout: .NET: hostfxr initialized
+:stdout: .NET: GodotPlugins initialized
+:stdout: CORE API HASH: 3177001854
+:stdout: EDITOR API HASH: 3251481983
+:stdout: SceneTreeFTI: traversal method DEFAULT
+:stdout: Loading resource: C:/Users/acriha/AppData/Roaming/Godot/editor_settings-4.6.tres
+:stdout: EditorSettings: Load OK!
+:stdout: EditorTheme: Generating new theme for the config '3810048042'.
+:stdout: EditorTheme: Generating new icons.
+:stdout: EditorTheme: Generating new fonts.
+:stdout: EditorTheme: Generating new styles.
+:stdout: Found .NET Sdk version '9.0.203': C:\Program Files\dotnet\sdk\9.0.203
+:stdout: Loading resource: C:/Users/acriha/AppData/Local/Godot/editor_doc_cache-4.6.res
+:stdout: Loaded system CA certificates
+:stdout: [   0% ] [90m[1mfirst_scan_filesystem[22m | Started Project initialization (5 steps)[39m[0m
+:stdout: [   0% ] [90m[1mfirst_scan_filesystem[22m | Scanning file structure...[39m[0m
+:stdout: [  16% ] [90m[1mfirst_scan_filesystem[22m | Loading global class names...[39m[0m
+:stdout: [  33% ] [90m[1mfirst_scan_filesystem[22m | Verifying GDExtensions...[39m[0m
+:stdout: [  50% ] [90m[1mfirst_scan_filesystem[22m | Creating autoload scripts...[39m[0m
+:stdout: [  66% ] [90m[1mfirst_scan_filesystem[22m | Initializing plugins...[39m[0m
+:stdout: [  83% ] [90m[1mfirst_scan_filesystem[22m | Starting file scan...[39m[0m
+:stdout: [92m[ DONE ][39m [1mfirst_scan_filesystem[22m
+:stdout: [0m
+:stdout: Accept client...
+:stdout: Connection open with Ide Client
+:stdout: Peer connection started
+:stderr: WARNING: UID duplicate detected between res://node_modules/suite/target/test-classes/features/stage1/action/first/action.csv and res://node_modules/suite/src/test/resources/features/stage1/action/first/action.csv.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://node_modules/suite/target/test-classes/features/stage1/action/second/action.csv and res://node_modules/suite/src/test/resources/features/stage1/action/second/action.csv.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://node_modules/suite/target/test-classes/features/stage2/panel_initialization/offset/action.csv and res://node_modules/suite/src/test/resources/features/stage2/panel_initialization/offset/action.csv.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://node_modules/suite/target/test-classes/features/stage2/panel_initialization/offset/panel.csv and res://node_modules/suite/src/test/resources/features/stage2/panel_initialization/offset/panel.csv.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_0/Expression/ListReadOnlyExpression/Count/module/fonts/Ubuntu-Regular.ttf and res://Tests/GameScene/Stage_0/ConditionReadOnlyExpression/ValueCarryThrough/module/fonts/Ubuntu-Regular.ttf.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_0/Expression/ListReadOnlyExpression/Count/module/texture.png and res://Tests/GameScene/Stage_0/ConditionReadOnlyExpression/ValueCarryThrough/module/texture.png.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_0/Expression/NumberReadOnlyExpression/Random/module/fonts/Ubuntu-Regular.ttf and res://Tests/GameScene/Stage_0/Expression/ListReadOnlyExpression/Count/module/fonts/Ubuntu-Regular.ttf.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_0/Expression/NumberReadOnlyExpression/Random/module/texture.png and res://Tests/GameScene/Stage_0/Expression/ListReadOnlyExpression/Count/module/texture.png.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_0/Expression/NumberReadOnlyExpression/ToStringExpression/module/fonts/Ubuntu-Regular.ttf and res://Tests/GameScene/Stage_0/Expression/NumberReadOnlyExpression/Random/module/fonts/Ubuntu-Regular.ttf.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_0/Expression/NumberReadOnlyExpression/ToStringExpression/module/texture.png and res://Tests/GameScene/Stage_0/Expression/NumberReadOnlyExpression/Random/module/texture.png.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Children/TestClass.cs and res://Tests/GameScene/Stage_1/Anchor/TestClass.cs.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Content/ConstantTextContent/bottom-left/TestClass.cs and res://Tests/GameScene/Stage_2/Content/ConstantTextContent/bottom/TestClass.cs.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Content/ConstantTextContent/bottom-right/TestClass.cs and res://Tests/GameScene/Stage_2/Content/ConstantTextContent/bottom-left/TestClass.cs.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Content/ConstantTextContent/center/TestClass.cs and res://Tests/GameScene/Stage_2/Content/ConstantTextContent/bottom-right/TestClass.cs.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Content/ConstantTextContent/center-left/TestClass.cs and res://Tests/GameScene/Stage_2/Content/ConstantTextContent/center/TestClass.cs.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Content/ConstantTextContent/center-right/TestClass.cs and res://Tests/GameScene/Stage_2/Content/ConstantTextContent/center-left/TestClass.cs.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Content/ConstantTextContent/top/TestClass.cs and res://Tests/GameScene/Stage_2/Content/ConstantTextContent/center-right/TestClass.cs.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Content/ConstantTextContent/top-left/TestClass.cs and res://Tests/GameScene/Stage_2/Content/ConstantTextContent/top/TestClass.cs.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Content/ConstantTextContent/top-right/TestClass.cs and res://Tests/GameScene/Stage_2/Content/ConstantTextContent/top-left/TestClass.cs.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Content/EntityTextValueContent/TestClass.cs and res://Tests/GameScene/Stage_2/Content/ConstantTextContent/top-right/TestClass.cs.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Progress/ValueChange/module/fill.png and res://Tests/GameScene/Stage_2/Progress/MinRange/module/fill.png.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/Progress/ValueChange/module/track.png and res://Tests/GameScene/Stage_2/Progress/MinRange/module/track.png.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/SpriteMap/SingleLayer/module/texture/texture.png and res://Tests/GameScene/Stage_2/SpriteMap/MultiLayerOverlap/module/texture/texture.png.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_2/SpriteMap/Transparency/expected.png and res://Tests/GameScene/Stage_2/SpriteMap/Transparency/module/texture/texture.png.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_3/ResizableAspect/module/texture.png and res://Tests/GameScene/Stage_3/Resizable/module/texture.png.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_7/ContainerListView/module/texture_2.png and res://Tests/GameScene/Stage_2/Children/module/texture_2.png.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stderr: WARNING: UID duplicate detected between res://Tests/GameScene/Stage_12/Screen/module/texture.png and res://Tests/GameScene/Stage_2/Content/ConstantTextContent/center/module/texture.png.
+:stderr: at: _process_file_system (editor/file_system/editor_file_system.cpp:1388)
+:stdout: [   0% ] [90m[1m_update_scan_actions[22m | Started Scanning actions... (9 steps)[39m[0m
+:stdout: [   0% ] [90m[1m_update_scan_actions[22m | action.csv[39m[0m
+:stdout: [  10% ] [90m[1m_update_scan_actions[22m | action.csv[39m[0m
+:stdout: [  20% ] [90m[1m_update_scan_actions[22m | panel.csv[39m[0m
+:stdout: [  30% ] [90m[1m_update_scan_actions[22m | action.csv[39m[0m
+:stdout: [  40% ] [90m[1m_update_scan_actions[22m | action.csv[39m[0m
+:stdout: [  50% ] [90m[1m_update_scan_actions[22m | panel.csv[39m[0m
+:stdout: [  60% ] [90m[1m_update_scan_actions[22m | texture.png[39m[0m
+:stdout: [  70% ] [90m[1m_update_scan_actions[22m | border.png[39m[0m
+:stdout: [  80% ] [90m[1m_update_scan_actions[22m | texture.png[39m[0m
+:stdout: [92m[ DONE ][39m [1m_update_scan_actions[22m
+:stdout: [0m
+:stdout: [   0% ] [90m[1mloading_editor_layout[22m | Started Loading editor (5 steps)[39m[0m
+:stdout: [   0% ] [90m[1mloading_editor_layout[22m | Loading editor layout...[39m[0m
+:stdout: [  16% ] [90m[1mloading_editor_layout[22m | Loading docks...[39m[0m
+:stdout: [  33% ] [90m[1mloading_editor_layout[22m | Reopening scenes...[39m[0m
+:stdout: Loading resource: res://Scenes/GameScene/Game.tscn
+:stdout: Loading resource: res://Scenes/GameScene/Game.cs
+:stdout: [  50% ] [90m[1mloading_editor_layout[22m | Loading central editor layout...[39m[0m
+:stdout: [  66% ] [90m[1mloading_editor_layout[22m | Loading plugin window layout...[39m[0m
+:stdout: [  83% ] [90m[1mloading_editor_layout[22m | Editor layout ready.[39m[0m
+:stdout: [92m[ DONE ][39m [1mloading_editor_layout[22m
+:stdout: [0m
+:stdout: Script docs haven't been properly loaded or regenerated, so don't save them to disk.
+:stdout: EditorSettings: Save OK!
+:stdout: Unloading: Disposing tracked instances...
+:stdout: Unloading: Finished disposing tracked instances.
+:stdout: XR: Clearing primary interface
+:stdout: XR: Removed interface "Native mobile"
+:stdout: XR: Removed interface "OpenXR"
+:stdout: Orphan StringName: Node (static: 3, total: 4)
+:stdout: StringName: 1 unclaimed string names at exit.
+Rebuild Godot Project ends with exit code: 0
+
+======== Running GdUnit4 Godot Runtime Test Runner ========
+Starting GodotRuntimeExecutor
+:stdout: WorkerThreadPool: 16 threads, 4 max low-priority.
+:stdout: Godot Engine v4.6.3.stable.mono.official.7d41c59c4 - https://godotengine.org
+:stdout: TextServer: Added interface "Dummy"
+:stdout: TextServer: Added interface "ICU / HarfBuzz / Graphite (Built-in)"
+:stdout: Unrecognized output string "misc2" in mapping:
+:stdout: 030000008a2e0000dd10000000000000,Hand Held Legend GC Ultimate,a:b0,b:b2,back:b17,dpdown:b5,dpleft:b6,dpright:b7,dpup:b4,guide:b18,leftshoulder:b10,leftstick:b8,lefttrigger:a3,leftx:a0,lefty:a1,misc1:b19,misc2:b24,paddle1:b13,paddle2:b12,rightshoulder:b11,rightstick:b9,righttrigger:a4,rightx:a2,righty:a5,start:b16,x:b1,y:b3,platform:Windows,
+:stdout: Unrecognized output string "misc2" in mapping:
+:stdout: 030000000d0f00000202000000000000,Horipad O Nintendo Switch 2 Controller,a:b1,b:b0,back:b8,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b12,leftshoulder:b4,leftstick:b10,lefttrigger:b6,leftx:a0,lefty:a1,misc1:b13,misc2:b14,rightshoulder:b5,rightstick:b11,righttrigger:b7,rightx:a2,righty:a3,start:b9,x:b3,y:b2,platform:Windows,
+:stdout: Unrecognized output string "misc2" in mapping:
+:stdout: 030000000d0f00009601000000000000,Horipad Steam,a:b0,b:b1,back:b10,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b12,leftshoulder:b6,leftstick:b13,lefttrigger:b8,leftx:a0,lefty:a1,misc2:b2,paddle1:b5,paddle2:b15,paddle3:b18,paddle4:b19,rightshoulder:b7,rightstick:b14,righttrigger:b9,rightx:a3,righty:a4,start:b11,x:b3,y:b4,platform:Windows,
+:stdout: Unrecognized output string "misc2" in mapping:
+:stdout: 030000007e0500006920000000000000,Nintendo Switch 2 Pro Controller,a:b0,b:b1,back:b14,dpdown:b8,dpleft:b10,dpright:b9,dpup:b11,guide:b16,leftshoulder:b12,leftstick:b15,lefttrigger:b13,leftx:a0,lefty:a1~,misc1:b17,misc2:b20,paddle1:b18,paddle2:b19,rightshoulder:b4,rightstick:b7,righttrigger:b5,rightx:a2,righty:a3~,start:b6,x:b2,y:b3,platform:Windows,
+:stdout: Native OpenGL API detected: 3.3: NVIDIA - NVIDIA GeForce RTX 4080
+:stdout: NVAPI: Init OK!
+:stdout: NVAPI: Application not found in profile, creating...
+:stdout: NVAPI: Error creating application: NVAPI_EXECUTABLE_ALREADY_IN_USE(code -167)
+:stdout: Accessibility: window 0 adapter created.
+:stdout: SDL: Init OK!
+:stdout: Using "winink" pen tablet driver...
+:stdout: Shader 'CanvasSdfShaderGLES3' SHA256: 0d151d1a5fcee4576e7f13e201af5e340e609f4eb5ecac3be271e81116373a28
+:stdout: Shader 'SkeletonShaderGLES3' SHA256: 1adaab28a966fc0a5a358c491329d7a7cb83b8d14973028a9c0728b86bc634ca
+:stdout: Shader 'ParticlesShaderGLES3' SHA256: d0f5a0dd900ad26cd7a5efe2e0347ea0b003cdeb835d48e98ef248c66b310172
+:stdout: Shader 'ParticlesCopyShaderGLES3' SHA256: dd35291784a9d2854aab940131b8634367cecfdd3ac62a0c1d22ae10c00264ac
+:stdout: Shader 'CopyShaderGLES3' SHA256: c4c38da867a7b68d90d20b01140377919fd7b06669882e20e94ac26580109465
+:stdout: Shader 'CubemapFilterShaderGLES3' SHA256: 5122fe844b93478ec44d778f821a326f0eddd48775a340ef32ff70af1a02d892
+:stdout: Shader 'GlowShaderGLES3' SHA256: 082b1b2637a61655237a395b193fd14015fbdaf13ecba55e26d45537571f2a8d
+:stdout: Shader 'PostShaderGLES3' SHA256: ea65da1c766a869cdb07621426876dd4def14d4caf596791eed0b5b6cb7a137a
+:stdout: Shader 'FeedShaderGLES3' SHA256: f8552e8542aaff90099762af99a7c5d2c1157a6b813167d0bd302b5f7a1740f4
+:stdout: Shader 'CanvasShaderGLES3' SHA256: 5997d1c51853ff4b4bba0c92aefdbb3eced4f2e2cb428e3ce2bc263f2163bdf3
+:stdout: Shader 'CanvasOcclusionShaderGLES3' SHA256: b02fdb0a54d9fa1d8430b33d6253180be36a7994868132f8bafd70d39b44233b
+:stdout: Shader 'SceneShaderGLES3' SHA256: 4b4a6803d97eb6ff96d30f546917c4caed883b11c2a8f4050e4d6bbef4519ea7
+:stdout: Shader 'SkyShaderGLES3' SHA256: ddb94deff557034e87b9b15300acedb0e37d92909696710266048adc4810dd65
+:stdout: OpenGL API 3.3.0 NVIDIA 621.01 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 4080
+:stdout: WASAPI: Activated output_device using IAudioClient3 interface
+:stdout: WASAPI: wFormatTag = 65534
+:stdout: WASAPI: nChannels = 2
+:stdout: WASAPI: nSamplesPerSec = 48000
+:stdout: WASAPI: nAvgBytesPerSec = 384000
+:stdout: WASAPI: nBlockAlign = 8
+:stdout: WASAPI: wBitsPerSample = 32
+:stdout: WASAPI: cbSize = 22
+:stdout: WASAPI: mix_rate = 48000
+:stdout: WASAPI: fundamental_period_frames = 480
+:stdout: WASAPI: min_period_frames = 480
+:stdout: WASAPI: max_period_frames = 480
+:stdout: WASAPI: selected a period frame size of 480
+:stdout: WASAPI: detected 2 channels
+:stdout: WASAPI: audio buffer frames: 480 calculated latency: 10ms
+:stdout: TextServer: Primary interface set to: "ICU / HarfBuzz / Graphite (Built-in)".
+:stdout: .NET: Initializing module...
+:stdout: Found hostfxr: C:\Program Files\dotnet/host/fxr/9.0.4/hostfxr.dll
+:stdout: .NET: hostfxr initialized
+:stdout: .NET: GodotPlugins initialized
+:stdout: CORE API HASH: 3177001854
+:stdout: EDITOR API HASH: 3251481983
+:stdout: Loading resource: res://gdunit4_testadapter_v5/GdUnit4TestRunnerScene.cs
+:stdout: SceneTreeFTI: traversal method DEFAULT
+:stdout: Loaded system CA certificates
+:stdout: GodotGdUnit4RestApi:: Waiting for client connecting.
+:stdout: GodotGdUnit4RestApi:: Client connected. User:acriha
+:stderr: process_module: files (3 entries):
+:stderr: - manifest.json
+:stderr: - index.js
+:stderr: - drop_highlight.png
+:stderr: process_module: found 1 manifest(s)
+:stderr: DEBUG: apply_declarations, pending_effects empty!
+:stderr: process_archive: panels after process_module = []
+:stdout: DEBUG AddFileToArchive: callerPath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs
+:stdout: DEBUG AddFileToArchive: argFilePathToBeAdded=module/index.js
+:stdout: DEBUG AddFileToArchive: sourcePath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\module\index.js
+:stdout: DEBUG AddFileToArchive: File.Exists=True
+:stdout: DEBUG AddFileToArchive: callerPath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs
+:stdout: DEBUG AddFileToArchive: argFilePathToBeAdded=module/manifest.json
+:stdout: DEBUG AddFileToArchive: sourcePath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\module\manifest.json
+:stdout: DEBUG AddFileToArchive: File.Exists=True
+:stdout: DEBUG AddFileToArchive: callerPath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs
+:stdout: DEBUG AddFileToArchive: argFilePathToBeAdded=module/drop_highlight.png
+:stdout: DEBUG AddFileToArchive: sourcePath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\module\drop_highlight.png
+:stdout: DEBUG AddFileToArchive: File.Exists=True
+:stdout: Loading resource: res://Scenes/GameScene/Game.tscn
+:stdout: Loading resource: res://Scenes/GameScene/Game.cs
+:stdout: Loading resource: res://Sources/UI/RootNode/RootNode.cs
+:stdout: Loading resource: res://Sources/UI/UiWindow/UiWindow.cs
+    DEBUG AddFileToArchive: callerPath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs
+    DEBUG AddFileToArchive: argFilePathToBeAdded=module/index.js
+    DEBUG AddFileToArchive: sourcePath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\module\index.js
+    DEBUG AddFileToArchive: File.Exists=True
+    DEBUG AddFileToArchive: callerPath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs
+    DEBUG AddFileToArchive: argFilePathToBeAdded=module/manifest.json
+    DEBUG AddFileToArchive: sourcePath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\module\manifest.json
+    DEBUG AddFileToArchive: File.Exists=True
+    DEBUG AddFileToArchive: callerPath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs
+    DEBUG AddFileToArchive: argFilePathToBeAdded=module/drop_highlight.png
+    DEBUG AddFileToArchive: sourcePath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\module\drop_highlight.png
+    DEBUG AddFileToArchive: File.Exists=True
+    Loading resource: res://Scenes/GameScene/Game.tscn
+    Loading resource: res://Scenes/GameScene/Game.cs
+    Loading resource: res://Sources/UI/RootNode/RootNode.cs
+    Loading resource: res://Sources/UI/UiWindow/UiWindow.cs
+Error: shop should report IsDragging while the drag is in progress
+   at GdUnit4.Examples.Basics.Setup.Test.Stage_temp.DragDropVisual.DragDropVisualTests.it_should_show_ghost_and_drop_feedback_and_complete_the_drop() in E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs:line 75
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull) in /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/SignalAwaiter.cs:line 65
+Stop GodotRuntimeExecutor
+:stdout: Terminating Godot instance.
+:stdout: Unloading: Disposing tracked instances...
+:stdout: Unloading: Finished disposing tracked instances.
+:stdout: XR: Clearing primary interface
+:stdout: XR: Removed interface "Native mobile"
+:stdout: XR: Removed interface "OpenXR"
+:stdout: Accessibility: window 0 adapter destroyed.
+GdUnit4 Godot Runtime Test Runner ends with exit code: 0
+
+Completed tests for assembly: E:\workspace\xml-xsd2\application\client\solution\.godot\mono\temp\bin\Debug\New Game Project.dll
+Test execution stopped.
+  Failed GdUnit4.Examples.Basics.Setup.Test.Stage_temp.DragDropVisual.DragDropVisualTests.it_should_show_ghost_and_drop_feedback_and_complete_the_drop [176 ms]
+  Error Message:
+   Error: shop should report IsDragging while the drag is in progress
+   at GdUnit4.Examples.Basics.Setup.Test.Stage_temp.DragDropVisual.DragDropVisualTests.it_should_show_ghost_and_drop_feedback_and_complete_the_drop() in E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs:line 75
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull) in /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/SignalAwaiter.cs:line 65
+  Stack Trace:
+     at GdUnit4.Examples.Basics.Setup.Test.Stage_temp.DragDropVisual.DragDropVisualTests.it_should_show_ghost_and_drop_feedback_and_complete_the_drop() in E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs:line 75
+   at Godot.SignalAwaiter.SignalCallback(IntPtr awaiterGCHandlePtr, godot_variant** args, Int32 argCount, godot_bool* outAwaiterIsNull) in /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/SignalAwaiter.cs:line 65
+
+  Standard Output Messages:
+ DEBUG AddFileToArchive: callerPath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs
+DEBUG AddFileToArchive: argFilePathToBeAdded=module/index.js
+DEBUG AddFileToArchive: sourcePath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\module\index.js
+DEBUG AddFileToArchive: File.Exists=True
+DEBUG AddFileToArchive: callerPath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs
+DEBUG AddFileToArchive: argFilePathToBeAdded=module/manifest.json
+DEBUG AddFileToArchive: sourcePath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\module\manifest.json
+DEBUG AddFileToArchive: File.Exists=True
+DEBUG AddFileToArchive: callerPath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\DragDropVisualTests.cs
+DEBUG AddFileToArchive: argFilePathToBeAdded=module/drop_highlight.png
+DEBUG AddFileToArchive: sourcePath=E:\workspace\xml-xsd2\application\client\solution\Tests\GameScene\Stage_Temp\DragDropVisual\module\drop_highlight.png
+DEBUG AddFileToArchive: File.Exists=True
+Loading resource: res://Scenes/GameScene/Game.tscn
+Loading resource: res://Scenes/GameScene/Game.cs
+Loading resource: res://Sources/UI/RootNode/RootNode.cs
+Loading resource: res://Sources/UI/UiWindow/UiWindow.cs
+
+Html Logger Error : '', hexadecimal value 0x1B, is an invalid character.
+WARNING: Overwriting results file: E:\workspace\xml-xsd2\application\client\solution\TestResults\test-result.trx
+Results File: E:\workspace\xml-xsd2\application\client\solution\TestResults\test-result.trx
+
+Test Run Failed.
+Total tests: 1
+     Failed: 1
+ Total time: 5.6586 Seconds
+     1>Project "E:\workspace\xml-xsd2\application\client\solution\New Game Project.sln" (1) is building "E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj" (2) on node 1 (VSTest target(s)).
+     2>_VSTestConsole:
+         MSB4181: The "VSTestTask" task returned false but did not log an error.
+     2>Done Building Project "E:\workspace\xml-xsd2\application\client\solution\New Game Project.csproj" (VSTest target(s)) -- FAILED.
+     1>Done Building Project "E:\workspace\xml-xsd2\application\client\solution\New Game Project.sln" (VSTest target(s)) -- FAILED.
+
+Build FAILED.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:06.40

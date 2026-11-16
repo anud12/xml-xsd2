@@ -39,3 +39,7 @@ pub use set_entity_text_map_value::runtime_set_entity_text_map_value;
 pub use set_entity_number_map_value::runtime_set_entity_number_map_value;
 pub use run_iteration::runtime_run_iteration;
 pub use run_iteration::runtime_get_elapsed_time_units;
+pub use ui_state::runtime_ui_js_click;
+pub use ui_state::runtime_ui_js_drop;
+pub use ui_state::runtime_ui_js_drag_start;
+pub use ui_state::runtime_ui_js_drag_end;

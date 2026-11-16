@@ -8,7 +8,7 @@ using NewGameProject.Runtime;
 namespace NewGameProject.Tests.XUnit;
 
 public partial class Steps {
-    List<string>? LogLines;
+    public List<string>? LogLines { get; private set; }
     public Steps ProcessArchive()
     {
         LogLines = new List<string>();

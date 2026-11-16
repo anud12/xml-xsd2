@@ -39,7 +39,13 @@ pub extern "C" fn runtime_process_archive(path: *const c_char) -> *mut c_char {
     // registries, container render lambdas and action closures stay live so
     // iterations and UI ticks run against the same context.
     if let Err(e) = crate::js_executor::sim_ctx::install(&files) {
+        // Surface via the C# logger (eprintln alone is swallowed by the FFI
+        // host and invisible to the test's LogLines).
+        runtime_log!("process_archive: sim_ctx install failed: {}", e);
         eprintln!("process_archive: sim_ctx install failed: {:?}", e);
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("C:\\temp\\rust_debug.log") {
+            let _ = writeln!(f, "[{}] process_archive: sim_ctx install failed: {:?}", std::process::id(), e);
+        }
     }
     let mut entity_rows: Vec<Vec<String>> = Vec::new();
     crate::module::process_module(&files, &mut entity_rows);

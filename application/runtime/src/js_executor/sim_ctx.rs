@@ -48,7 +48,65 @@ if (__uih && globalThis.host) {
   // them in a side table keyed by node id and publish a marker string so the
   // C# side wires input and routes clicks back through runtime_ui_js_click.
   globalThis.__uiClickHandlers = globalThis.__uiClickHandlers || {};
+  // Drag/drop handlers are functions too: stashed the same way so the C# side
+  // can route drag-start / drag-end / drop events back through
+  // runtime_ui_js_drag_start / _drag_end / _js_drop.
+  globalThis.__uiDragHandlers = globalThis.__uiDragHandlers || {};
+  globalThis.__uiDropHandlers = globalThis.__uiDropHandlers || {};
   var __uWin0 = __uih.window, __uDiv0 = __uih.div, __uCV0 = __uih.containerView, __uSG0 = __uih.sectorGrid;
+  function __prepDragDrop(id, opts, children, inner) {
+    var panel = opts.panel || null;
+    if (!panel) return inner(id, opts, children);
+    var needsCopy = false;
+    var pcopy = panel;
+    function ensurePcopy() {
+      if (needsCopy) return pcopy;
+      needsCopy = true;
+      var c = {};
+      for (var k in panel) {
+        if (Object.prototype.hasOwnProperty.call(panel, k)) c[k] = panel[k];
+      }
+      pcopy = c;
+      return c;
+    }
+    if (panel.droppable && typeof panel.droppable === 'object'
+        && typeof panel.droppable.onDrop === 'function') {
+      globalThis.__uiDropHandlers[id] = panel.droppable.onDrop;
+      var d = ensurePcopy();
+      var dcopy = {};
+      for (var dk in panel.droppable) {
+        if (Object.prototype.hasOwnProperty.call(panel.droppable, dk)) dcopy[dk] = panel.droppable[dk];
+      }
+      dcopy.onDrop = '__jsHandler';
+      d.droppable = dcopy;
+    }
+    if (panel.draggable && typeof panel.draggable === 'object') {
+      var src = panel.draggable;
+      var hasStart = typeof src.onDragStart === 'function';
+      var hasEnd = typeof src.onDragEnd === 'function';
+      if (hasStart || hasEnd) {
+        var stashed = {};
+        if (hasStart) stashed.onDragStart = src.onDragStart;
+        if (hasEnd) stashed.onDragEnd = src.onDragEnd;
+        globalThis.__uiDragHandlers[id] = stashed;
+        var dr = ensurePcopy();
+        var drcopy = {};
+        for (var drk in src) {
+          if (Object.prototype.hasOwnProperty.call(src, drk)) drcopy[drk] = src[drk];
+        }
+        if (hasStart) drcopy.onDragStart = '__jsHandler';
+        if (hasEnd) drcopy.onDragEnd = '__jsHandler';
+        dr.draggable = drcopy;
+      }
+    }
+    if (!needsCopy) return inner(id, opts, children);
+    var ocopy = {};
+    for (var k2 in opts) {
+      if (Object.prototype.hasOwnProperty.call(opts, k2)) ocopy[k2] = opts[k2];
+    }
+    ocopy.panel = pcopy;
+    return inner(id, ocopy, children);
+  }
   function __prepClick(id, options, children, inner) {
     var opts = options || {};
     var panel = opts.panel || null;
@@ -68,17 +126,26 @@ if (__uih && globalThis.host) {
     }
     return inner(id, opts, children);
   }
+  // The drag/drop prep runs first so its copies (if any) are the ones
+  // __prepClick then reads from; either order works because each only
+  // rewrites its own key, but keeping drag/drop first avoids __prepClick
+  // rebuilding a fresh panel copy on top of an already-prepared one.
+  function __prepBoth(id, options, children, inner) {
+    return __prepDragDrop(id, options || {}, children, function (i, o, c) {
+      return __prepClick(i, o, c, inner);
+    });
+  }
   __uih.window = function (id, options, children) {
-    return __prepClick(id, options, children, __uWin0);
+    return __prepBoth(id, options, children, __uWin0);
   };
   __uih.div = function (id, options, children) {
-    return __prepClick(id, options, children, __uDiv0);
+    return __prepBoth(id, options, children, __uDiv0);
   };
   __uih.containerView = function (name, args, render) {
-    return __prepClick(name, args, render, __uCV0);
+    return __prepBoth(name, args, render, __uCV0);
   };
   __uih.sectorGrid = function (name, args, render) {
-    return __prepClick(name, args, render, __uSG0);
+    return __prepBoth(name, args, render, __uSG0);
   };
   __u.div = __uih.div;
   __u.text = __uih.text;

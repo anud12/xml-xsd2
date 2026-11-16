@@ -5,6 +5,7 @@ import {SpriteResource} from "../texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "../texture/SpriteMap";
 import {ContainerReadOnlyExpression, GridReadOnlyExpression} from "../dataExpression/Contaier";
 import {ActionReadOnlyExpression} from "../dataExpression/action/no-input-action";
+import { DraggableOptions, DroppableOptions, DefineDragTypeFunction } from "./dragdrop";
 
 /**
  * A raw node id string.
@@ -261,6 +262,10 @@ export type UiPanelOptions = {
         thickness?: number;
       }[];
     };
+    /** Marks this panel as a drag source. See {@link DraggableOptions}. */
+    draggable?: DraggableOptions;
+    /** Marks this panel as a drop target. See {@link DroppableOptions}. */
+    droppable?: DroppableOptions;
     [key: string]: unknown;
   }
 };
@@ -534,4 +539,6 @@ export type UiApi = {
   spriteMapTIFF: (mapPath: string, layers: MapLayerBinding[]) => SpriteMap;
   getSpritePNG: (path: string) => SpriteResource;
   getAnimation: GetAnimationFunction;
+  /** Register (or retrieve) a drag type by name. Returns a `DragTypeReference` handle. */
+  defineDragType: DefineDragTypeFunction;
 };

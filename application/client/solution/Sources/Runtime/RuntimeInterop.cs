@@ -437,6 +437,86 @@ public static class RuntimeInterop
     }
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_ui_js_drop(
+        [MarshalAs(UnmanagedType.LPStr)] string id,
+        [MarshalAs(UnmanagedType.LPStr)] string dropType,
+        [MarshalAs(UnmanagedType.LPStr)] string entityId,
+        [MarshalAs(UnmanagedType.LPStr)] string sourceContainerId,
+        int hasCursor,
+        int cursorX,
+        int cursorY,
+        int cellX,
+        int cellY,
+        [MarshalAs(UnmanagedType.LPStr)] string dataJson);
+
+    /// Routes a drop to a node whose `droppable.onDrop` handler is a JS
+    /// function (the sim context keeps the handler in `__uiDropHandlers`).
+    /// `entityId`/`sourceContainerId` pass empty string when absent (Rust
+    /// treats null/empty as omit). `dataJson` is the `DroppedItem.data` JSON
+    /// object (pass `"{}"` when there is no extra data).
+    public static void UiJsDrop(
+        string nodeId, string dropType, string entityId, string sourceContainerId,
+        bool hasCursor, int cursorX, int cursorY, int cellX, int cellY,
+        string dataJson)
+    {
+        runtime_ui_js_drop(
+            nodeId, dropType,
+            entityId ?? string.Empty, sourceContainerId ?? string.Empty,
+            hasCursor ? 1 : 0, cursorX, cursorY, cellX, cellY,
+            dataJson ?? string.Empty);
+        DeltaPending = true;
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_ui_js_drag_start(
+        [MarshalAs(UnmanagedType.LPStr)] string id,
+        [MarshalAs(UnmanagedType.LPStr)] string dragType,
+        [MarshalAs(UnmanagedType.LPStr)] string payloadJson,
+        int hasCursor,
+        int cursorX,
+        int cursorY);
+
+    /// Routes a drag-start to a node whose `draggable.onDragStart` handler is a
+    /// JS function (the sim context keeps the handler in
+    /// `__uiDragHandlers[id].onDragStart`). `payloadJson` is the
+    /// `DraggablePayload` JSON object (pass `"{}"` when there is no payload).
+    public static void UiJsDragStart(
+        string nodeId, string dragType, string payloadJson,
+        bool hasCursor, int cursorX, int cursorY)
+    {
+        runtime_ui_js_drag_start(
+            nodeId, dragType, payloadJson ?? string.Empty,
+            hasCursor ? 1 : 0, cursorX, cursorY);
+        DeltaPending = true;
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_ui_js_drag_end(
+        [MarshalAs(UnmanagedType.LPStr)] string id,
+        [MarshalAs(UnmanagedType.LPStr)] string dragType,
+        int dropped,
+        [MarshalAs(UnmanagedType.LPStr)] string targetId,
+        [MarshalAs(UnmanagedType.LPStr)] string payloadJson,
+        int hasCursor,
+        int cursorX,
+        int cursorY);
+
+    /// Routes a drag-end to a node whose `draggable.onDragEnd` handler is a JS
+    /// function (the sim context keeps the handler in
+    /// `__uiDragHandlers[id].onDragEnd`). `targetId` is the drop-off node id
+    /// when dropped, or empty string when cancelled.
+    public static void UiJsDragEnd(
+        string nodeId, string dragType, bool dropped, string targetId,
+        string payloadJson, bool hasCursor, int cursorX, int cursorY)
+    {
+        runtime_ui_js_drag_end(
+            nodeId, dragType, dropped ? 1 : 0,
+            targetId ?? string.Empty, payloadJson ?? string.Empty,
+            hasCursor ? 1 : 0, cursorX, cursorY);
+        DeltaPending = true;
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern bool runtime_is_actor_interruptible(
         [MarshalAs(UnmanagedType.LPStr)] string actorId);
 

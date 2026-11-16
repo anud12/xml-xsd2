@@ -36,7 +36,7 @@ pub extern "C" fn runtime_emit_action_for(
     {
         return;
     }
-    let _args: Vec<(String, f64)> = Vec::new();
+    let _args: Vec<(String, serde_json::Value)> = Vec::new();
     runtime_debug_simulate_action_args_for(action_name, &_args, &actor_str);
 }
 
@@ -59,7 +59,7 @@ pub extern "C" fn runtime_emit_action_args(
         runtime_emit_action(action_name);
         return;
     }
-    let mut pairs: Vec<(String, f64)> = Vec::with_capacity(n as usize);
+    let mut pairs: Vec<(String, serde_json::Value)> = Vec::with_capacity(n as usize);
     for i in 0..n {
         let idx = (i as usize).try_into().unwrap();
         let kptr = unsafe { std::ptr::read(keys.add(idx)) };
@@ -69,7 +69,9 @@ pub extern "C" fn runtime_emit_action_args(
             unsafe { CStr::from_ptr(kptr) }.to_string_lossy().into_owned()
         };
         let val = unsafe { std::ptr::read(values.add(idx)) };
-        pairs.push((key, val));
+        // The FFI boundary is f64 (C# marshals double[]); wrap as a JSON
+        // number so the internal transport carries a typed Value.
+        pairs.push((key, serde_json::Value::from(val)));
     }
     runtime_debug_simulate_action_args(action_name, &pairs);
 }
@@ -93,7 +95,7 @@ pub extern "C" fn runtime_publish_action_args_and_queue_effect(
     if n <= 0 || keys.is_null() || values.is_null() {
         return;
     }
-    let mut pairs: Vec<(String, f64)> = Vec::with_capacity(n as usize);
+    let mut pairs: Vec<(String, serde_json::Value)> = Vec::with_capacity(n as usize);
     for i in 0..n {
         let idx = (i as usize).try_into().unwrap();
         let kptr = unsafe { std::ptr::read(keys.add(idx)) };
@@ -103,7 +105,9 @@ pub extern "C" fn runtime_publish_action_args_and_queue_effect(
             unsafe { CStr::from_ptr(kptr) }.to_string_lossy().into_owned()
         };
         let val = unsafe { std::ptr::read(values.add(idx)) };
-        pairs.push((key, val));
+        // The FFI boundary is f64 (C# marshals double[]); wrap as a JSON
+        // number so the internal transport carries a typed Value.
+        pairs.push((key, serde_json::Value::from(val)));
     }
     // Publish `__actionArgs` into the persistent sim context (no-op if no
     // module is installed), then queue the effect by name. The action paths
@@ -122,7 +126,7 @@ pub extern "C" fn runtime_publish_action_args_and_queue_effect(
                 .push(trimmed.to_string());
             let mut map = serde_json::Map::new();
             for (k, v) in pairs.iter() {
-                map.insert(k.clone(), serde_json::Value::from(*v));
+                map.insert(k.clone(), v.clone());
             }
             crate::js_executor::sim_ctx::stash_effect_input(
                 trimmed,

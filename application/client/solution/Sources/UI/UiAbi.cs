@@ -12,7 +12,7 @@ namespace NewGameProject.UI;
 /// offset into that arena; `NoStr` means "no string".
 public static class UiAbi
 {
-    public const uint AbiVersion = 10;
+    public const uint AbiVersion = 11;
     public const uint NoStr = uint.MaxValue;
 
     public const uint KindDivision = 0;
@@ -206,6 +206,13 @@ public static class UiAbi
         public float BarSize;
         public UiBackground ScrollbarTrack;
         public UiBackground ScrollbarGrabber;
+        // panel.draggable raw JSON (NoStr when absent): the full drag-source
+        // object {type, payload, ghost, onDragStart?, onDragEnd?} with the
+        // "__jsHandler" marker for JS callbacks. Re-parsed by WireDragDrop.
+        public uint Draggable;
+        // panel.droppable raw JSON (NoStr when absent): the full drop-target
+        // object {accepts, feedback, onDrop?}. Re-parsed by WireDragDrop.
+        public uint Droppable;
     }
 
     public const byte OverflowHScroll = 1;

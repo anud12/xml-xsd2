@@ -436,6 +436,10 @@ public partial class UiWindow
             AdvanceProgressTex(_progressFill, false);
             AdvanceProgressTex(_progressTrack, false);
         }
+        // Per-frame drag state-machine update: keeps the ghost position and
+        // drop-target hit-test in sync even when the pointer has left this
+        // window's rect (Control.GuiInput stops firing outside the rect).
+        DragFrameUpdate();
         base._Process(delta);
     }
 
