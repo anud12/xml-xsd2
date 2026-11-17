@@ -31,6 +31,7 @@ public class DragDropVisualTests : Steps {
             AddFileToArchive("module/index.js", "index.js")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
                 .AddFileToArchive("module/drop_highlight.png", "drop_highlight.png")
+                .AddFileToArchive("module/drag_ghost.png", "drag_ghost.png")
                 .AddFileToArchive("module/panel_bg.png", "panel_bg.png")
                 .EnsureDllAccessible()
                 .ProcessArchive();
@@ -104,17 +105,24 @@ public class DragDropVisualTests : Steps {
             Assertions.AssertThat(GetGhost() is { Visible: true })
                 .OverrideFailureMessage("the drag ghost should be visible once the drag has started")
                 .IsTrue();
+            // New "available zones" affordance: once the drag is in flight, every
+            // compatible drop target shows its ambient `animation` indicator even
+            // though the pointer is still over the source. So the inventory is in
+            // the Available feedback state (not hovered, not hidden).
+            Assertions.AssertThat(inventory.FeedbackState)
+                .OverrideFailureMessage("the inventory should be in the Available feedback state while still over the source")
+                .IsEqual(DropFeedbackState.Available);
             Assertions.AssertThat(inventory.IsDropFeedbackVisible)
-                .OverrideFailureMessage("no drop feedback should be shown while still over the source")
-                .IsFalse();
+                .OverrideFailureMessage("the inventory's ambient 'available' indicator should be visible while still over the source")
+                .IsTrue();
             Assertions.AssertThat(shop.DragHoverTarget != inventory)
                 .OverrideFailureMessage("the hover target should not be the inventory while still over the source")
                 .IsTrue();
             // Viewport (pixel) verification: the 24x24 translucent drag ghost now
-            // renders over the shop, centered on the pointer. The inventory is
-            // untouched (no feedback yet) so it still matches the initial ref.
+            // renders over the shop, centered on the pointer. The inventory now
+            // shows its ambient 'available' indicator (not the initial empty panel).
             AssertPanelThat(shop).ViewportMatches("dragging-shop.png");
-            AssertPanelThat(inventory).ViewportMatches("initial-inventory.png");
+            AssertPanelThat(inventory).ViewportMatches("available-inventory.png");
 
             // Move the pointer across to the inventory's center: it is now over
             // the drop target. The drag is already active (StartDrag ran on the
@@ -138,6 +146,15 @@ public class DragDropVisualTests : Steps {
             Assertions.AssertThat(inventory.IsDropFeedbackVisible)
                 .OverrideFailureMessage("the inventory's drop-feedback overlay should be visible while the pointer is over it")
                 .IsTrue();
+            // The specific STATE of the hover phase: the pointer is over the
+            // destination, so the ambient `onDrag` (Available) indicator is
+            // promoted to the `onHover` (Hovered) "release to drop" highlight.
+            // IsDropFeedbackVisible is true for BOTH Available and Hovered, so
+            // only this pins the phase to "hovered" (symmetric with ASSERT 2's
+            // explicit `Available` assertion).
+            Assertions.AssertThat(inventory.FeedbackState)
+                .OverrideFailureMessage("the inventory should be in the Hovered feedback state while the pointer is over it")
+                .IsEqual(DropFeedbackState.Hovered);
             Assertions.AssertThat(GetGhost() is { Visible: true })
                 .OverrideFailureMessage("the drag ghost should still be visible while over the destination")
                 .IsTrue();
@@ -145,6 +162,12 @@ public class DragDropVisualTests : Steps {
             // (drop_highlight, stretched to fill the window) now renders over the
             // inventory, with the ghost centered on the pointer on top.
             AssertPanelThat(inventory).ViewportMatches("over-inventory.png");
+            // The drag SOURCE, meanwhile, has reverted to its idle look: the
+            // 24x24 ghost is the only drag visual and it now tracks the pointer
+            // over the destination (off the source), and the source panel is
+            // otherwise untouched. Reusing the ASSERT 1 baseline proves the
+            // source is not left in a stuck "dragging" visual state.
+            AssertPanelThat(shop).ViewportMatches("initial-shop.png");
 
             // Release LMB over the inventory → resolves the drop.
             viewport.PushInput(new InputEventMouseButton {

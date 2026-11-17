@@ -69,16 +69,44 @@ if (__uih && globalThis.host) {
       pcopy = c;
       return c;
     }
-    if (panel.droppable && typeof panel.droppable === 'object'
-        && typeof panel.droppable.onDrop === 'function') {
-      globalThis.__uiDropHandlers[id] = panel.droppable.onDrop;
-      var d = ensurePcopy();
-      var dcopy = {};
-      for (var dk in panel.droppable) {
-        if (Object.prototype.hasOwnProperty.call(panel.droppable, dk)) dcopy[dk] = panel.droppable[dk];
+    if (panel.droppable && typeof panel.droppable === 'object') {
+      // Resolve the effective drop semantics. An inline droppable.onDrop/feedback
+      // is a per-target override and wins; otherwise inherit from an accepted
+      // drag type (the onDrop/feedback declared on dragAndDrop). The accepted
+      // type resolves to its registry handle (globalThis.__uiDragTypes), which
+      // carries both. Stash the resolved onDrop behind the "__jsHandler" marker
+      // (so the C# fires the drop FFI) and forward the resolved feedback to the
+      // renderer.
+      var dro = panel.droppable;
+      var effOnDrop = (typeof dro.onDrop === 'function') ? dro.onDrop : null;
+      var effFeedback = (dro.feedback != null) ? dro.feedback : null;
+      var accepts = dro.accepts;
+      var typeRefs = Array.isArray(accepts) ? accepts : (accepts != null ? [accepts] : null);
+      if (typeRefs) {
+        for (var ri = 0; ri < typeRefs.length; ri++) {
+          var ref = typeRefs[ri];
+          var tname = (ref != null && typeof ref === 'object')
+            ? (ref.name != null ? ref.name : ref.value) : ref;
+          var def = (typeof tname === 'string' && globalThis.__uiDragTypes)
+            ? globalThis.__uiDragTypes[tname] : null;
+          if (!def) continue;
+          if (effOnDrop == null && typeof def.onDrop === 'function') effOnDrop = def.onDrop;
+          if (effFeedback == null && def.feedback != null) effFeedback = def.feedback;
+        }
       }
-      dcopy.onDrop = '__jsHandler';
-      d.droppable = dcopy;
+      if (effOnDrop != null || effFeedback != null) {
+        var d = ensurePcopy();
+        var dcopy = {};
+        for (var dk in dro) {
+          if (Object.prototype.hasOwnProperty.call(dro, dk)) dcopy[dk] = dro[dk];
+        }
+        if (typeof effOnDrop === 'function') {
+          globalThis.__uiDropHandlers[id] = effOnDrop;
+          dcopy.onDrop = '__jsHandler';
+        }
+        if (effFeedback != null) dcopy.feedback = effFeedback;
+        d.droppable = dcopy;
+      }
     }
     if (panel.draggable && typeof panel.draggable === 'object') {
       var src = panel.draggable;

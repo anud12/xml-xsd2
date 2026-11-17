@@ -7,6 +7,19 @@ using RuntimeInterop = NewGameProject.Runtime.RuntimeInterop;
 
 namespace GdUnit4.Examples.Basics.Setup.Sources.UI;
 
+/// The feedback state of a drop target while a compatible drag is in flight.
+///  - {@link None}      — no drag affecting this target (overlay hidden).
+///  - {@link Available} — a compatible drag is in flight but the pointer is not
+///    on this target; the ambient "you can drop here" indicator is shown.
+///  - {@link Hovered}   — the pointer is on this target; the "release to drop"
+///    highlight is shown.
+public enum DropFeedbackState
+{
+    None,
+    Available,
+    Hovered
+}
+
 /// Drag source + drop target interaction: ghost texture that follows the
 /// pointer during a drag, drop-target feedback overlays, and FFI routing of
 /// onDragStart / onDrop / onDragEnd back into the sim context.
@@ -27,8 +40,14 @@ public partial class UiWindow
     bool _dropTarget;
     string[] _dropAccepts = Array.Empty<string>(); // empty = accept any
     bool _dropOnDropJs;
-    Texture2D? _dropFeedbackTexture;
-    UiPaintSpec _dropFeedbackPaint = UiPaintSpec.Cover;
+    // Two feedback textures per drop target (from feedback.onDrag / onHover):
+    // the ambient "available" indicator (all compatible zones, while dragging)
+    // and the "hover" highlight (the specific zone under the pointer).
+    Texture2D? _dropAvailableTexture;
+    UiPaintSpec _dropAvailablePaint = UiPaintSpec.Cover;
+    Texture2D? _dropHoverTexture;
+    UiPaintSpec _dropHoverPaint = UiPaintSpec.Cover;
+    DropFeedbackState _dropFeedbackState = DropFeedbackState.None;
     UiTextureSurface? _feedbackOverlay;
 
     // ─── Drag interaction state ─────────────────────────────────────────────
@@ -51,8 +70,12 @@ public partial class UiWindow
     public bool IsDragging => _dragging;
     /// The drop-target window the pointer is currently over (null if none).
     public UiWindow? DragHoverTarget => _dragHoverTarget;
-    /// True while the drop-feedback overlay is visible on this window.
+    /// True while the drop-feedback overlay is visible on this window
+    /// (either the ambient "available" indicator or the "hover" highlight).
     public bool IsDropFeedbackVisible => _feedbackOverlay != null && _feedbackOverlay.Visible;
+    /// The feedback state of this drop target while a compatible drag is in
+    /// flight (None / Available / Hovered).
+    public DropFeedbackState FeedbackState => _dropFeedbackState;
 
     // ─── Global drag registry ───────────────────────────────────────────────
     /// All active drop-target windows. Maintained by WireDragDrop (add) and
@@ -140,16 +163,29 @@ public partial class UiWindow
             // onDrop: "__jsHandler" marker
             _dropOnDropJs = IsJsHandlerMarker(droppable, "onDrop");
 
-            // feedback: UiTexture JSON
+            // feedback: { onDrag: UiTexture, onHover: UiTexture }
+            //   onDrag    — ambient "available drop zone" indicator (all
+            //               compatible zones, while a compatible drag is in flight).
+            //   onHover   — "release to drop" highlight (the zone under the pointer).
+            _dropAvailableTexture = null;
+            _dropHoverTexture = null;
+            _dropAvailablePaint = UiPaintSpec.Cover;
+            _dropHoverPaint = UiPaintSpec.Cover;
             if (droppable.TryGetProperty("feedback", out var fb)
                 && fb.ValueKind == JsonValueKind.Object)
             {
-                _dropFeedbackTexture = ResolveUiTexture(fb);
-                _dropFeedbackPaint = ResolveUiTexturePaint(fb);
-            }
-            else
-            {
-                _dropFeedbackTexture = null;
+                if (fb.TryGetProperty("onDrag", out var onDrag)
+                    && onDrag.ValueKind == JsonValueKind.Object)
+                {
+                    _dropAvailableTexture = ResolveUiTexture(onDrag);
+                    _dropAvailablePaint = ResolveUiTexturePaint(onDrag);
+                }
+                if (fb.TryGetProperty("onHover", out var hov)
+                    && hov.ValueKind == JsonValueKind.Object)
+                {
+                    _dropHoverTexture = ResolveUiTexture(hov);
+                    _dropHoverPaint = ResolveUiTexturePaint(hov);
+                }
             }
 
             // Register as a drop target for hit-testing by drag sources.
@@ -171,7 +207,9 @@ public partial class UiWindow
             _dropTarget = false;
             _dropAccepts = Array.Empty<string>();
             _dropOnDropJs = false;
-            _dropFeedbackTexture = null;
+            _dropAvailableTexture = null;
+            _dropHoverTexture = null;
+            _dropFeedbackState = DropFeedbackState.None;
             // Deregister if we were previously a target.
             if (_dropTargetRegistry.Remove(this))
                 _registryPurged.Add(this);
@@ -341,6 +379,14 @@ public partial class UiWindow
         _dragLastGlobalMouse = globalMouse;
         _dragLastMouseValid = true;
 
+        // "Available zones" affordance: now that the drag is in flight, light up
+        // EVERY compatible drop target with its ambient `animation` indicator,
+        // so the user can see all the places they can drop. Then resolve the
+        // initial hover (the pointer is usually still over the source, so this
+        // is normally a no-op that leaves every compatible target in Available).
+        ShowAvailableFeedbackOnAllCompatible();
+        UpdateDragMotion(globalMouse);
+
         GetViewport().SetInputAsHandled();
     }
 
@@ -382,12 +428,14 @@ public partial class UiWindow
         var newTarget = FindDropTargetAt(globalMouse);
         if (newTarget != _dragHoverTarget)
         {
-            // Hide the previous target's feedback.
+            // The previously-hovered target reverts to its ambient "available"
+            // indicator (the drag is still in flight) rather than being hidden.
             if (_dragHoverTarget != null)
-                _dragHoverTarget.HideDropFeedback();
-            // Show the new target's feedback.
+                _dragHoverTarget.ShowAvailableFeedback();
+            // The newly-hovered target switches to its "release to drop"
+            // highlight (feedback.onHover).
             if (newTarget != null)
-                newTarget.ShowDropFeedback();
+                newTarget.ShowHoverFeedback();
             _dragHoverTarget = newTarget;
         }
     }
@@ -432,9 +480,10 @@ public partial class UiWindow
             RuntimeInterop.emitAction(_dragCancelAction);
         }
 
-        // Clean up.
-        if (target != null)
-            target.HideDropFeedback();
+        // Clean up: hide the feedback on EVERY compatible drop target (they all
+        // showed the ambient "available" indicator while the drag was in flight),
+        // not just the one that was hovered.
+        HideFeedbackOnAllCompatible();
         _dragHoverTarget = null;
         HideGhost();
         _dragging = false;
@@ -445,10 +494,9 @@ public partial class UiWindow
 
     // ─── Drop target feedback overlay ───────────────────────────────────────
 
-    /// Shows the feedback texture overlay (called by the drag source's hit-test).
-    void ShowDropFeedback()
+    /// Ensures the shared feedback overlay node exists (created lazily).
+    void EnsureFeedbackOverlay()
     {
-        if (!_dropTarget || _dropFeedbackTexture == null) return;
         if (_feedbackOverlay == null)
         {
             _feedbackOverlay = new UiTextureSurface
@@ -460,12 +508,52 @@ public partial class UiWindow
             _feedbackOverlay.SetAnchorsPreset(LayoutPreset.FullRect, true);
             AddChild(_feedbackOverlay);
         }
-        _feedbackOverlay.Update(_dropFeedbackPaint, _dropFeedbackTexture);
+    }
+
+    /// Shows the ambient "available drop zone" indicator (feedback.onDrag).
+    /// Called on every compatible target when a drag starts, and again on a
+    /// target that is no longer hovered while a drag is still active. The
+    /// state is recorded even if there is no texture (so probes still read
+    /// {@link DropFeedbackState.Available}); only the overlay is hidden in that
+    /// case.
+    void ShowAvailableFeedback()
+    {
+        if (!_dropTarget) return;
+        _dropFeedbackState = DropFeedbackState.Available;
+        if (_dropAvailableTexture == null)
+        {
+            HideFeedbackOverlay();
+            return;
+        }
+        EnsureFeedbackOverlay();
+        _feedbackOverlay.Update(_dropAvailablePaint, _dropAvailableTexture);
         _feedbackOverlay.Visible = true;
     }
 
-    /// Hides the feedback texture overlay.
+    /// Shows the "release to drop" highlight (feedback.onHover). Called on the
+    /// specific target the pointer moves onto while dragging.
+    void ShowHoverFeedback()
+    {
+        if (!_dropTarget) return;
+        _dropFeedbackState = DropFeedbackState.Hovered;
+        if (_dropHoverTexture == null)
+        {
+            HideFeedbackOverlay();
+            return;
+        }
+        EnsureFeedbackOverlay();
+        _feedbackOverlay.Update(_dropHoverPaint, _dropHoverTexture);
+        _feedbackOverlay.Visible = true;
+    }
+
+    /// Hides the feedback overlay and resets the state to {@link None}.
     void HideDropFeedback()
+    {
+        _dropFeedbackState = DropFeedbackState.None;
+        HideFeedbackOverlay();
+    }
+
+    void HideFeedbackOverlay()
     {
         if (_feedbackOverlay != null)
         {
@@ -626,6 +714,35 @@ public partial class UiWindow
                 _dropTargetRegistry.RemoveAt(i);
                 _registryPurged.Remove(t);
             }
+        }
+    }
+
+    /// Shows the ambient "available drop zone" indicator on every registered,
+    /// visible, compatible drop target (called at drag start, on THIS drag
+    /// source). Incompatible targets are left untouched (state stays None) —
+    /// this is what isolates independent drag channels.
+    void ShowAvailableFeedbackOnAllCompatible()
+    {
+        PurgeStaleTargets();
+        foreach (var target in _dropTargetRegistry)
+        {
+            if (target == null || !IsInstanceValid(target)) continue;
+            if (!target.Visible) continue;
+            if (!IsTypeCompatible(target)) continue;
+            target.ShowAvailableFeedback();
+        }
+    }
+
+    /// Hides the feedback on every registered, compatible drop target (called
+    /// at drag end, on THIS drag source).
+    void HideFeedbackOnAllCompatible()
+    {
+        PurgeStaleTargets();
+        foreach (var target in _dropTargetRegistry)
+        {
+            if (target == null || !IsInstanceValid(target)) continue;
+            if (!IsTypeCompatible(target)) continue;
+            target.HideDropFeedback();
         }
     }
 
@@ -827,6 +944,7 @@ public partial class UiWindow
             _feedbackOverlay.QueueFree();
             _feedbackOverlay = null;
         }
+        _dropFeedbackState = DropFeedbackState.None;
         // Clean up ghost if we own it (it's on the root, freed when the tree exits).
         if (_ghost != null && IsInstanceValid(_ghost))
         {

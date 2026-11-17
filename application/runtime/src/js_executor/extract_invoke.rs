@@ -123,12 +123,12 @@ if (globalThis.__stringGeneratorFactory) {
   if(!u.getSpritePNG)u.getSpritePNG=function(p){return p;};
   if(!u.getAnimation)u.getAnimation=function(){return null;};
   if(!u.setFont)u.setFont=function(){return {name:'',value:'',toString:function(){return ''},toJSON:function(){return ''}};};
-  // defineDragType: extraction only needs the module to run to completion so
+  // dragAndDrop: extraction only needs the module to run to completion so
   // its runtime declarations (containers/entities/actions) are baked. The
   // returned handle carries .name and serializes (toJSON) to the name string,
   // so it flows through draggable/droppable options unchanged. Idempotent by
   // name so repeated calls yield the same handle (mirrors the sim path).
-  if(!u.defineDragType)u.defineDragType=function(args){
+  if(!u.dragAndDrop)u.dragAndDrop=function(args){
     var name=(args&&typeof args.name==='string')?args.name:'';
     globalThis.__uiDragTypes=globalThis.__uiDragTypes||{};
     if(globalThis.__uiDragTypes[name])return globalThis.__uiDragTypes[name];

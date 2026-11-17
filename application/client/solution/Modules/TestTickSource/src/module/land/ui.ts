@@ -2,6 +2,7 @@ import {HostApi} from "module_types/HostApi";
 import {Entity} from "module_types/dataExpression/Entity";
 import {getLandModule} from "./land";
 import {getLandSprites} from "./sprites";
+import {getLandDragType} from "./drag";
 import {getInventoryModule} from "../inventory/inventory";
 
 export const landUi = (hostApi: HostApi) => {
@@ -10,6 +11,7 @@ export const landUi = (hostApi: HostApi) => {
 
   const module = getLandModule(hostApi);
   const inventory = getInventoryModule(hostApi);
+  const landDrag = getLandDragType(hostApi);
 
   const track = hostApi.runtime.setAnimation(hostApi.runtime.string.of("land-track"), {
     frames: [{ sprite: hostApi.ui.getSpritePNG("assets/black_pixel.png") }],
@@ -45,6 +47,10 @@ export const landUi = (hostApi: HostApi) => {
             layout: "row",
           },
         }, [
+          // Drag source: the land's portrait (a child-less panel, so a press on
+          // it reaches the drag handler rather than being consumed by a sibling).
+          // Dragging it onto the inventory buys the land (the "land" drag type's
+          // onDrop fires the inventory's buy action).
           hostApi.ui.panel(entity.id + ":portrait", {
             panel: {
               width: 60,
@@ -56,7 +62,11 @@ export const landUi = (hostApi: HostApi) => {
                   height: "stretch",
                   keepAspectRatio: true,
                 }
-              }
+              },
+              draggable: landDrag.draggable({
+                entityId: Number(entity.id),
+                sourceContainerId: "lands",
+              }),
             }
           }),
           hostApi.ui.panel(entity.id + ":stats", {

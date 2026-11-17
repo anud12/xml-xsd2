@@ -2,12 +2,14 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  // 1. Register the drag type. The handle carries `.name === "land"` and
-  //    serializes (toJSON) to the plain string, so it flows through the
-  //    panel options resolution chain unchanged and arrives at the C#
-  //    snapshot as `"land"`.
-  const LAND = hostApi.ui.defineDragType({ name: "land", description: "A purchasable land parcel" });
-  hostApi.runtime.log("___dragdrop defineDragType name=" + LAND.name + "___");
+  // Drop-target feedback: the hover overlay shown over the inventory while a
+  // "land" drag hovers it. Now REQUIRED on the drag type. This is a headless
+  // FFI test that never renders, and `getSpritePNG` is a lazy passthrough, so
+  // the sprite path need not exist in this module's archive.
+  const highlight = hostApi.runtime.setAnimation(string.of("drop-highlight"), {
+    frames: [{ sprite: hostApi.ui.getSpritePNG("drop_highlight.png") }],
+    duration: number.of(1),
+  });
 
   // 2. The game holds value that is spent to buy land.
   hostApi.runtime.setEntity({
@@ -73,9 +75,9 @@ export default (hostApi) => {
   });
 
   // 6. Buy action (same as BuyLand). Defined once at module setup time so the
-  //    onDrop callback can capture it in a closure — setAction must NOT be
-  //    called inside the callback (the callback is stashed by __prepDragDrop
-  //    and invoked later via the runtime_ui_js_drop FFI).
+  //    drag type's onDrop callback can capture it in a closure — setAction
+  //    must NOT be called inside the callback (the callback is stashed by
+  //    __prepDragDrop and invoked later via the runtime_ui_js_drop FFI).
   const buyAction = hostApi.runtime.setAction({
     name: string.of("inventory-buy"),
     apply: (ctx) => {
@@ -83,37 +85,48 @@ export default (hostApi) => {
     },
   });
 
-  // 7. Drag source: a window whose panel is `draggable`. The `type`
-  //    (DragTypeReference) and `payload` pass through the options resolution
-  //    chain unchanged — __prepDragDrop only rewrites onDragStart/onDragEnd
-  //    (absent here), so the panel is forwarded to the original factory as-is.
+  // 1. Register the drag type — the single home for the "land" drop semantics.
+  //    The handle carries `.name === "land"` and serializes (toJSON) to the
+  //    plain string, so it flows through the panel options resolution chain
+  //    unchanged and arrives at the C# snapshot as `"land"`. The onDrop
+  //    callback is declared HERE (on the type, not the droppable): __prepDragDrop
+  //    stashes it into globalThis.__uiDropHandlers["inventory"] behind the
+  //    "__jsHandler" marker for every target that accepts LAND.
+  const LAND = hostApi.ui.dragAndDrop({
+    name: "land",
+    description: "A purchasable land parcel",
+    onDrop: (ctx) => {
+      hostApi.runtime.log("___From module dragdrop onDrop fired line___");
+      ctx.emitAction(buyAction, { entityId: ctx.item.entityId });
+    },
+    feedback: {
+      onDrag: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
+      onHover: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
+    },
+  });
+  hostApi.runtime.log("___dragdrop dragAndDrop name=" + LAND.name + "___");
+
+  // 7. Drag source: a window whose panel is `draggable`. `LAND.draggable(payload)`
+  //    produces the draggable config — it emits this type and tags the per-source
+  //    identity (which land + source container).
   hostApi.ui.window("shop", {
     panel: {
       x: 20, y: 20, width: 300, height: 100,
-      draggable: {
-        type: LAND,
-        payload: { entityId: 1, sourceContainerId: "lands" },
-      },
+      draggable: LAND.draggable({ entityId: 1, sourceContainerId: "lands" }),
     },
   }, []);
 
-  // 8. Drop target: a window whose panel is `droppable`. The onDrop callback
-  //    is stashed by __prepDragDrop into globalThis.__uiDropHandlers["inventory"]
-  //    (replaced by the "__jsHandler" marker in the serialized options). When
-  //    the C# renderer calls RuntimeInterop.UiJsDrop, the FFI builds a
-  //    UiDropContext and invokes the stashed callback; ctx.emitAction pushes
-  //    to __uiClickEmissions, which the FFI dispatches via
+  // 8. Drop target: a window whose panel is `droppable`, accepting LAND.
+  //    `LAND.droppable()` produces the droppable config — the onDrop callback
+  //    lives on the drag type (step 1), so no per-target options are needed.
+  //    When the C# renderer calls RuntimeInterop.UiJsDrop, the FFI builds a
+  //    UiDropContext and invokes the stashed callback; ctx.emitAction pushes to
+  //    __uiClickEmissions, which the FFI dispatches via
   //    runtime_debug_simulate_action_args — the same path as clicks.
   hostApi.ui.window("inventory", {
     panel: {
       x: 340, y: 20, width: 300, height: 100,
-      droppable: {
-        accepts: [LAND],
-        onDrop: (ctx) => {
-          hostApi.runtime.log("___From module dragdrop onDrop fired line___");
-          ctx.emitAction(buyAction, { entityId: ctx.item.entityId });
-        },
-      },
+      droppable: LAND.droppable(),
     },
   }, []);
 }

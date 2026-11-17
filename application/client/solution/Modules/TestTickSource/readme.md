@@ -27,6 +27,9 @@ Each ending has a different scoring rules.
 - Initial condition is interest, It starts at X and it must not breach 0
 - At at specific times (time/ combination of tags that are in play) would trigger other advancements/actions
 
+## Theme
+Dieselpunk 
+
 
 ## Initial Flow
 Start with just an inventory.
