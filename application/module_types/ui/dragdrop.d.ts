@@ -5,7 +5,7 @@
 
 import { Expression } from "../Expression";
 import { ActionReadOnlyExpression } from "../dataExpression/action/no-input-action";
-import { UiTexture } from "./Ui";
+import { UiTexture, UiFontReference } from "./Ui";
 
 // ---------------------------------------------------------------------------
 // 1. Drag type identity — registered handle
@@ -66,12 +66,30 @@ export type DragTypeReference<P = DraggablePayload> = Expression & {
  *
  * Both are {@link UiTexture} (animation + fill). A per-target
  * `droppable.feedback` may override either field.
+ *
+ * The required {@link DragFeedback.text} label is rendered over the overlay
+ * (centered) using the given font, and is visible ONLY while the feedback is
+ * active — i.e. in the `onDrag` (Available) or `onHover` (Hovered) state, which
+ * is exactly while a compatible drag is in flight over this target.
  */
 export type DragFeedback = {
   /** Ambient "available drop zone" indicator (all compatible zones, while dragging). */
   onDrag: UiTexture;
   /** "You're over me" highlight (the specific zone under the pointer). */
   onHover: UiTexture;
+  /**
+   * REQUIRED centered text label drawn over the feedback overlay. Shown only
+   * while the feedback is active (the `onDrag` Available indicator or the
+   * `onHover` highlight). `font` is a {@link UiFontReference} from
+   * `ui.setFont` (the same font mechanism `ui.text` / `ui.field` use). Every
+   * drop-target feedback must carry a label.
+   */
+  text: {
+    /** The label text (a non-empty string). */
+    value: string;
+    /** The font to draw the label with (from `ui.setFont`). */
+    font: UiFontReference;
+  };
 };
 
 /**

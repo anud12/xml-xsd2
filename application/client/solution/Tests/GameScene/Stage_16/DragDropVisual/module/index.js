@@ -29,6 +29,11 @@ export default (hostApi) => {
     duration: number.of(1),
   });
 
+  // Font for the drop-feedback text label (the same setFont mechanism used by
+  // ui.text / ui.field). The label is drawn centered over the feedback overlay
+  // and is visible only while the onDrag/onHover feedback is active.
+  const feedbackFont = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 22, color: "#FFFFFF" });
+
   // 3. The game holds value that is spent to buy land.
   hostApi.runtime.setEntity({
     id: string.of("game"),
@@ -108,6 +113,7 @@ export default (hostApi) => {
     feedback: {
       onDrag: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
       onHover: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
+      text: { value: "BUY", font: feedbackFont },
     },
   });
   hostApi.runtime.log("___dragdrop visual dragAndDrop name=" + LAND.name + "___");

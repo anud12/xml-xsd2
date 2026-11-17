@@ -1008,6 +1008,24 @@ function (root) {
                 return globalThis.__uiDragTypes[name];
             }
             if (!globalThis.__uiDragTypes) globalThis.__uiDragTypes = {};
+            // `feedback` is required on the drag type, and its `text` label is
+            // required on the feedback (every drop-target feedback carries a
+            // centered label). Fail fast at registration so a malformed module
+            // reports a clear error instead of a blank overlay later.
+            var feedback = (args.feedback != null) ? args.feedback : null;
+            if (feedback == null || typeof feedback !== 'object') {
+                throw new Error('ui: dragAndDrop("' + name + '") requires a feedback { onDrag, onHover, text }');
+            }
+            var feedbackText = feedback.text;
+            if (feedbackText == null || typeof feedbackText !== 'object') {
+                throw new Error('ui: dragAndDrop("' + name + '").feedback.text is required ({ value, font })');
+            }
+            if (typeof feedbackText.value !== 'string' || feedbackText.value.length === 0) {
+                throw new Error('ui: dragAndDrop("' + name + '").feedback.text.value must be a non-empty string');
+            }
+            if (feedbackText.font == null || typeof feedbackText.font !== 'object') {
+                throw new Error('ui: dragAndDrop("' + name + '").feedback.text.font is required (a ui.setFont reference)');
+            }
             var handle = {
                 __dragType: name,
                 name: name,
@@ -1020,7 +1038,7 @@ function (root) {
                 // They live on the handle object only (toJSON returns the bare
                 // name), so they never leak into the serialized panel options.
                 onDrop: (typeof args.onDrop === 'function') ? args.onDrop : null,
-                feedback: (args.feedback != null) ? args.feedback : null,
+                feedback: feedback,
                 // Ready-made config factories that pass straight to the panel.
                 //
                 // draggable(payload?, options?) -> { type: <handle>, payload?, ...options }

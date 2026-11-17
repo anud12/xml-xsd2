@@ -11,6 +11,12 @@ export default (hostApi) => {
     duration: number.of(1),
   });
 
+  // Font for the drop-feedback text label. This module's test is headless (it
+  // fires the drop FFI directly and never renders the overlay), so the TTF need
+  // not exist in the archive — setFont only stores the config, and the font is
+  // loaded lazily only if the overlay is ever actually drawn.
+  const feedbackFont = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 22, color: "#FFFFFF" });
+
   // 2. The game holds value that is spent to buy land.
   hostApi.runtime.setEntity({
     id: string.of("game"),
@@ -102,6 +108,7 @@ export default (hostApi) => {
     feedback: {
       onDrag: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
       onHover: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
+      text: { value: "BUY", font: feedbackFont },
     },
   });
   hostApi.runtime.log("___dragdrop dragAndDrop name=" + LAND.name + "___");

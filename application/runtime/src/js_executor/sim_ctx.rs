@@ -54,6 +54,25 @@ if (__uih && globalThis.host) {
   globalThis.__uiDragHandlers = globalThis.__uiDragHandlers || {};
   globalThis.__uiDropHandlers = globalThis.__uiDropHandlers || {};
   var __uWin0 = __uih.window, __uDiv0 = __uih.div, __uCV0 = __uih.containerView, __uSG0 = __uih.sectorGrid;
+  // A feedback's `text.font` is a setFont handle (it carries the resolved
+  // config on `.__font`). Handles stringify to their bare name in the JSON
+  // snapshot, so the renderer would only ever see the name, not the config.
+  // Resolve it to the plain config { file, size, color } before forwarding so
+  // the C# renderer can load the font. Returns the feedback unchanged (shared,
+  // not copied) when there is no font to resolve.
+  function resolveFeedbackFont(fb) {
+    if (!fb || typeof fb !== 'object') return fb;
+    var t = fb.text;
+    if (!(t && typeof t === 'object' && t.font && typeof t.font === 'object' && t.font.__font)) {
+      return fb;
+    }
+    var c = {};
+    for (var k in fb) {
+      if (Object.prototype.hasOwnProperty.call(fb, k)) c[k] = fb[k];
+    }
+    c.text = { value: t.value, font: t.font.__font };
+    return c;
+  }
   function __prepDragDrop(id, opts, children, inner) {
     var panel = opts.panel || null;
     if (!panel) return inner(id, opts, children);
@@ -104,7 +123,7 @@ if (__uih && globalThis.host) {
           globalThis.__uiDropHandlers[id] = effOnDrop;
           dcopy.onDrop = '__jsHandler';
         }
-        if (effFeedback != null) dcopy.feedback = effFeedback;
+        if (effFeedback != null) dcopy.feedback = resolveFeedbackFont(effFeedback);
         d.droppable = dcopy;
       }
     }

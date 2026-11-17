@@ -37,6 +37,7 @@ public class ContainerDragTests : Steps {
                 .AddFileToArchive("module/drop_highlight.png", "drop_highlight.png")
                 .AddFileToArchive("module/panel_bg.png", "panel_bg.png")
                 .AddFileToArchive("module/item_bg.png", "item_bg.png")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .EnsureDllAccessible()
                 .ProcessArchive();
 

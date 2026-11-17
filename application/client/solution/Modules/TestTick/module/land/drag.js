@@ -30,6 +30,10 @@ export const getLandDragType = memoize((hostApi) => {
     // drag is in flight); `onHover` is the "release to drop" highlight (the
     // specific zone under the pointer). Both reuse the same highlight sprite.
     const fill = { width: "stretch", height: "stretch" };
+    // Font for the drop-feedback text label (the same setFont mechanism the
+    // land/inventory UIs use). Required on the feedback; rendered centered over
+    // the overlay, visible only while the onDrag/onHover feedback is active.
+    const feedbackFont = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 22, color: "#FFFFFF" });
     return hostApi.ui.dragAndDrop({
         name: "land",
         description: "A land parcel; drop it on the inventory to buy it",
@@ -39,6 +43,7 @@ export const getLandDragType = memoize((hostApi) => {
         feedback: {
             onDrag: { animation: feedbackOnDrag, fill },
             onHover: { animation: feedback, fill },
+            text: { value: "BUY", font: feedbackFont },
         },
     });
 });

@@ -40,6 +40,10 @@ export default (hostApi) => {
   // literals stay the narrow "stretch" type in this checked .js module.
   /** @type {{ width: "stretch" | "tile" | "fit", height: "stretch" | "tile" | "fit" }} */
   const fill = { width: "stretch", height: "stretch" };
+  // Font for the drop-feedback text label — the same setFont mechanism used by
+  // ui.text / ui.field. The label is drawn centered over the feedback overlay
+  // and is visible ONLY while the onDrag/onHover feedback is active.
+  const feedbackFont = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 22, color: "#FFFFFF" });
 
   // Entities + containers. item-a starts in tray-a, item-b in tray-b; the bins
   // start empty. A drop moves the entity from its tray into its channel's bin.
@@ -104,6 +108,7 @@ export default (hostApi) => {
     feedback: {
       onDrag: { animation: dragZone, fill },
       onHover: { animation: hoverZone, fill },
+      text: { value: "DROP", font: feedbackFont },
     },
   });
   const channelB = hostApi.ui.dragAndDrop({
@@ -120,6 +125,7 @@ export default (hostApi) => {
     feedback: {
       onDrag: { animation: dragZone, fill },
       onHover: { animation: hoverZone, fill },
+      text: { value: "DROP", font: feedbackFont },
     },
   });
 

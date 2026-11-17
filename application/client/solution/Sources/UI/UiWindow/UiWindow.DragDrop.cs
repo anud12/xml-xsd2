@@ -49,6 +49,12 @@ public partial class UiWindow
     UiPaintSpec _dropHoverPaint = UiPaintSpec.Cover;
     DropFeedbackState _dropFeedbackState = DropFeedbackState.None;
     UiTextureSurface? _feedbackOverlay;
+    // Optional feedback text label (from feedback.text): the label content and
+    // the font to draw it with. Rendered as a child of the feedback overlay so
+    // it shows/hides together with the overlay (only while the feedback is
+    // active — the Available or Hovered state).
+    string _dropFeedbackText = "";
+    UiFontData? _dropFeedbackFont;
 
     // ─── Drag interaction state ─────────────────────────────────────────────
     const float DragStartThreshold = 4f; // px moved before drag begins
@@ -171,6 +177,8 @@ public partial class UiWindow
             _dropHoverTexture = null;
             _dropAvailablePaint = UiPaintSpec.Cover;
             _dropHoverPaint = UiPaintSpec.Cover;
+            _dropFeedbackText = "";
+            _dropFeedbackFont = null;
             if (droppable.TryGetProperty("feedback", out var fb)
                 && fb.ValueKind == JsonValueKind.Object)
             {
@@ -185,6 +193,19 @@ public partial class UiWindow
                 {
                     _dropHoverTexture = ResolveUiTexture(hov);
                     _dropHoverPaint = ResolveUiTexturePaint(hov);
+                }
+                // feedback.text: { value: string, font: { file, size, color } }
+                // The font arrives as a plain config (the host resolves the
+                // setFont handle to its config before serializing).
+                if (fb.TryGetProperty("text", out var fbt)
+                    && fbt.ValueKind == JsonValueKind.Object)
+                {
+                    if (fbt.TryGetProperty("value", out var fbtValue)
+                        && fbtValue.ValueKind == JsonValueKind.String)
+                        _dropFeedbackText = fbtValue.GetString() ?? "";
+                    if (fbt.TryGetProperty("font", out var fbtFont)
+                        && fbtFont.ValueKind == JsonValueKind.Object)
+                        _dropFeedbackFont = ParseFeedbackFont(fbtFont);
                 }
             }
 
@@ -209,6 +230,8 @@ public partial class UiWindow
             _dropOnDropJs = false;
             _dropAvailableTexture = null;
             _dropHoverTexture = null;
+            _dropFeedbackText = "";
+            _dropFeedbackFont = null;
             _dropFeedbackState = DropFeedbackState.None;
             // Deregister if we were previously a target.
             if (_dropTargetRegistry.Remove(this))
@@ -507,6 +530,26 @@ public partial class UiWindow
             };
             _feedbackOverlay.SetAnchorsPreset(LayoutPreset.FullRect, true);
             AddChild(_feedbackOverlay);
+
+            // Optional feedback text: a Label child of the overlay, so it is
+            // clipped to the window and shown/hidden together with the overlay
+            // (visible only while the feedback is active). Created here — after
+            // WireDragDrop has set _dropFeedbackText/_dropFeedbackFont.
+            if (_dropFeedbackText.Length > 0)
+            {
+                var lbl = new Label
+                {
+                    Name = "__dropFeedbackText",
+                    MouseFilter = MouseFilterEnum.Ignore,
+                    Text = _dropFeedbackText,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                lbl.SetAnchorsPreset(LayoutPreset.FullRect, true);
+                if (_dropFeedbackFont != null)
+                    ApplyFont(lbl, _dropFeedbackFont);
+                _feedbackOverlay.AddChild(lbl);
+            }
         }
     }
 
@@ -560,6 +603,37 @@ public partial class UiWindow
             _feedbackOverlay.Visible = false;
             _feedbackOverlay.MouseFilter = MouseFilterEnum.Ignore;
         }
+    }
+
+    /// Parses a feedback text font config ({ file, size, color }) into a
+    /// {@link UiFontData}. `color` is a CSS hex string ("#RRGGBB" or
+    /// "#RRGGBBAA") converted to an ARGB uint, matching the node-font path.
+    static UiFontData ParseFeedbackFont(JsonElement ff)
+    {
+        var font = new UiFontData { Color = 0xFFFFFFFF };
+        if (ff.TryGetProperty("file", out var f) && f.ValueKind == JsonValueKind.String)
+            font.File = f.GetString() ?? "";
+        if (ff.TryGetProperty("size", out var s) && s.ValueKind == JsonValueKind.Number)
+            font.Size = s.GetSingle();
+        if (ff.TryGetProperty("color", out var c) && c.ValueKind == JsonValueKind.String)
+            font.Color = ParseHexArgb(c.GetString() ?? "#FFFFFF");
+        return font;
+    }
+
+    /// "#RRGGBB" or "#RRGGBBAA" (alpha is the LAST pair) -> ARGB uint.
+    /// Mirrors the Rust renderer's parse_hex_color so feedback text and node
+    /// text render identically.
+    static uint ParseHexArgb(string hex)
+    {
+        var s = (hex ?? "").TrimStart('#');
+        byte ByteAt(int idx) =>
+            s.Length >= idx + 2
+            && byte.TryParse(s.AsSpan(idx, 2), System.Globalization.NumberStyles.HexNumber, null, out var v)
+                ? v
+                : (byte)255;
+        byte r = ByteAt(0), g = ByteAt(2), b = ByteAt(4);
+        byte a = s.Length >= 8 ? ByteAt(6) : (byte)255;
+        return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | b;
     }
 
     /// Resolves the grid cell (cellX, cellY) for a drop position in global

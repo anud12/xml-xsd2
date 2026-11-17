@@ -40,6 +40,11 @@ export default (hostApi) => {
     duration: number.of(1),
   });
 
+  // Font for the drop-feedback text label (the same setFont mechanism used by
+  // ui.text / ui.field). The label is drawn centered over the feedback overlay
+  // and is visible only while the onDrag/onHover feedback is active.
+  const feedbackFont = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 22, color: "#FFFFFF" });
+
   // Two entities that start in container_1; container_2 starts empty.
   const item1 = hostApi.runtime.setEntity({ id: string.of("item-1") });
   const item2 = hostApi.runtime.setEntity({ id: string.of("item-2") });
@@ -104,6 +109,7 @@ export default (hostApi) => {
     feedback: {
       onDrag: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
       onHover: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
+      text: { value: "DROP", font: feedbackFont },
     },
   });
 

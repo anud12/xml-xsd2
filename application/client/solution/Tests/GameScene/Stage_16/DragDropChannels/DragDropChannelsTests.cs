@@ -26,9 +26,10 @@ namespace GdUnit4.Examples.Basics.Setup.Test.Stage_16.DragDropChannels;
 /// Channel isolation is a *state* property (which targets light up), so it is
 /// asserted directly via the {@link UiWindow.FeedbackState} probe. The two drop
 /// feedback states use DIFFERENT colors (a cool `onDrag` "available" indicator
-/// vs a warm `onHover` "release to drop" highlight) and are captured with
-/// pixel-level <c>ViewportMatches</c> references so that color distinction is
-/// itself evidenced.
+/// vs a warm `onHover` "release to drop" highlight) and each also renders a
+/// centered "DROP" text label (the feedback `text` + a <c>ui.setFont</c> font).
+/// They are captured with pixel-level <c>ViewportMatches</c> references so both
+/// the color distinction and the text label are evidenced.
 ///
 /// Requires the Godot runtime (`GODOT_BIN`); without it this test is skipped.
 [TestSuite]
@@ -43,6 +44,7 @@ public class DragDropChannelsTests : Steps {
                 .AddFileToArchive("module/drag_zone.png", "drag_zone.png")
                 .AddFileToArchive("module/hover_zone.png", "hover_zone.png")
                 .AddFileToArchive("module/panel_bg.png", "panel_bg.png")
+                .AddFileToArchive("module/fonts/Ubuntu-Regular.ttf", "fonts/Ubuntu-Regular.ttf")
                 .EnsureDllAccessible()
                 .ProcessArchive();
 
@@ -85,7 +87,8 @@ public class DragDropChannelsTests : Steps {
                 .IsEqual(DropFeedbackState.None);
             // Pixel evidence of the "available" (onDrag) state: target-a renders
             // its COOL onDrag indicator (distinct from the onHover color asserted
-            // later). Captured as a reference image beside this file.
+            // later) plus the centered "DROP" feedback text label. Captured as a
+            // reference image beside this file.
             AssertPanelThat(targetA).ViewportMatches("available-target-a.png");
 
             // Move onto target-a → it becomes Hovered; target-b still None.
@@ -104,8 +107,8 @@ public class DragDropChannelsTests : Steps {
                 .IsEqual(DropFeedbackState.None);
             // Pixel evidence of the "hovered" (onHover) state: target-a now
             // renders its WARM onHover indicator — a different color from the
-            // cool onDrag "available" image captured above, so the two drop
-            // states are visibly distinguishable.
+            // cool onDrag "available" image captured above (both still carry the
+            // "DROP" label), so the two drop states are visibly distinguishable.
             AssertPanelThat(targetA).ViewportMatches("hover-target-a.png");
 
             // Release over target-a → the channel-a onDrop fires (item-a → bin-a).
