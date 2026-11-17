@@ -2,11 +2,25 @@
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
-  // 1. Register the drag type.
-  const LAND = hostApi.ui.defineDragType({ name: "land", description: "A purchasable land parcel" });
-  hostApi.runtime.log("___dragdrop visual defineDragType name=" + LAND.name + "___");
+  // 1. Feedback highlight texture: a tiny solid-color PNG loaded from the
+  //    archive; stretched to fill the inventory window while the pointer hovers
+  //    over it during a drag (the drop-target feedback overlay). Declared up
+  //    front because the "land" drag type's `feedback` references it.
+  const highlight = hostApi.runtime.setAnimation(string.of("drop-highlight"), {
+    frames: [{ sprite: hostApi.ui.getSpritePNG("drop_highlight.png") }],
+    duration: number.of(1),
+  });
 
-  // 2. The game holds value that is spent to buy land.
+  // 2. Shared panel background: a solid OPAQUE texture so each window is a real
+  //    surface. Without it the panels are transparent and the coreUI buttons
+  //    (which sit at the top of the viewport, y 8-44) bleed through the window
+  //    crops in headless test runs.
+  const panelBg = hostApi.runtime.setAnimation(string.of("panel-bg"), {
+    frames: [{ sprite: hostApi.ui.getSpritePNG("panel_bg.png") }],
+    duration: number.of(1),
+  });
+
+  // 3. The game holds value that is spent to buy land.
   hostApi.runtime.setEntity({
     id: string.of("game"),
     numberMap: {
@@ -15,18 +29,18 @@ export default (hostApi) => {
     },
   });
 
-  // 3. A single land for sale, id "1", costing 10.
+  // 4. A single land for sale, id "1", costing 10.
   const land = hostApi.runtime.setEntity({
     id: string.of("1"),
     textMap: { name: string.of("Land") },
     numberMap: { cost: number.of(10) },
   });
 
-  // 4. Containers.
+  // 5. Containers.
   hostApi.runtime.setContainer({ id: string.of("lands"), entities: [land] });
   hostApi.runtime.setContainer({ id: string.of("inventory"), entities: [] });
 
-  // 5. Purchase effect (same as DragDropBuy): deduct the cost from the game's
+  // 6. Purchase effect (same as DragDropBuy): deduct the cost from the game's
   //    value and move the land from "lands" into "inventory".
   const purchaseEffect = hostApi.runtime.setEffect({
     name: string.of("inventory-purchase"),
@@ -62,8 +76,8 @@ export default (hostApi) => {
     },
   });
 
-  // 6. Buy action (same as DragDropBuy). Defined at module setup time so the
-  //    onDrop callback can capture it in a closure.
+  // 7. Buy action (same as DragDropBuy). Defined before the drag type so the
+  //    drag type's onDrop can capture it in a closure.
   const buyAction = hostApi.runtime.setAction({
     name: string.of("inventory-buy"),
     apply: (ctx) => {
@@ -71,56 +85,44 @@ export default (hostApi) => {
     },
   });
 
-  // 7. Feedback highlight texture. A tiny solid-color PNG loaded from the
-  //    archive; stretched to fill the inventory window while the pointer hovers
-  //    over it during a drag (the drop-target feedback overlay).
-  const highlight = hostApi.runtime.setAnimation(string.of("drop-highlight"), {
-    frames: [{ sprite: hostApi.ui.getSpritePNG("drop_highlight.png") }],
-    duration: number.of(1),
+  // 8. Register the drag type — the single home for the "land" drop semantics:
+  //    the onDrop callback (fires the buy action) and the hover feedback
+  //    texture. Any droppable that accepts LAND inherits both, so the drop
+  //    target below only needs to declare `accepts`.
+  const LAND = hostApi.ui.dragAndDrop({
+    name: "land",
+    description: "A purchasable land parcel",
+    onDrop: (ctx) => {
+      hostApi.runtime.log("___From module dragdrop visual onDrop fired line___");
+      ctx.emitAction(buyAction, { entityId: ctx.item.entityId });
+    },
+    feedback: {
+      animation: highlight,
+      fill: { width: "stretch", height: "stretch" },
+    },
   });
+  hostApi.runtime.log("___dragdrop visual dragAndDrop name=" + LAND.name + "___");
 
-  // 7b. Shared panel background: a solid OPAQUE texture so each window is a real
-  //     surface. Without it the panels are transparent and the coreUI buttons
-  //     (which sit at the top of the viewport, y 8-44) bleed through the window
-  //     crops in headless test runs.
-  const panelBg = hostApi.runtime.setAnimation(string.of("panel-bg"), {
-    frames: [{ sprite: hostApi.ui.getSpritePNG("panel_bg.png") }],
-    duration: number.of(1),
-  });
-
-  // 8. Drag source: a window whose panel is `draggable` (same as DragDropBuy).
-  //    Positioned at y=150 — below the coreUI button row (y 8-44) — so the
-  //    buttons are out of the captured window frame entirely.
+  // 9. Drag source: a window whose panel is `draggable`. `LAND.draggable(payload)`
+  //    produces the draggable config — it emits this type and tags the per-source
+  //    identity (which land + source container). Positioned at y=150 — below the
+  //    coreUI button row (y 8-44) — so the buttons are out of the captured frame.
   hostApi.ui.window("shop", {
     panel: {
       x: 20, y: 150, width: 300, height: 100,
       background: { animation: panelBg, fill: { width: "stretch", height: "stretch" } },
-      draggable: {
-        type: LAND,
-        payload: { entityId: 1, sourceContainerId: "lands" },
-      },
+      draggable: LAND.draggable({ entityId: 1, sourceContainerId: "lands" }),
     },
   }, []);
 
-  // 9. Drop target: a window whose panel is `droppable` WITH a `feedback`
-  //    texture, so the drop-feedback overlay can be asserted visually. Uses a
-  //    distinct onDrop marker so it doesn't cross-contaminate the DragDropBuy
-  //    test.
+  // 10. Drop target: a window whose panel is `droppable`, accepting LAND.
+  //     `LAND.droppable()` produces the droppable config — the onDrop + feedback
+  //     live on the drag type (step 8), so no per-target options are needed.
   hostApi.ui.window("inventory", {
     panel: {
       x: 340, y: 150, width: 300, height: 100,
       background: { animation: panelBg, fill: { width: "stretch", height: "stretch" } },
-      droppable: {
-        accepts: [LAND],
-        onDrop: (ctx) => {
-          hostApi.runtime.log("___From module dragdrop visual onDrop fired line___");
-          ctx.emitAction(buyAction, { entityId: ctx.item.entityId });
-        },
-        feedback: {
-          animation: highlight,
-          fill: { width: "stretch", height: "stretch" },
-        },
-      },
+      droppable: LAND.droppable(),
     },
   }, []);
 }

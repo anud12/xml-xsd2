@@ -39,7 +39,7 @@ if (globalThis.__uiHost && globalThis.hostApi) {
   if (globalThis.__uiHost.entityList) hostApi.ui.entityList = globalThis.__uiHost.entityList;
   if (globalThis.__uiHost.setActor) hostApi.ui.setActor = globalThis.__uiHost.setActor;
   if (globalThis.__uiHost.setFont) hostApi.ui.setFont = globalThis.__uiHost.setFont;
-  if (globalThis.__uiHost.defineDragType) hostApi.ui.defineDragType = globalThis.__uiHost.defineDragType;
+  if (globalThis.__uiHost.dragAndDrop) hostApi.ui.dragAndDrop = globalThis.__uiHost.dragAndDrop;
 }
 if (globalThis.hostApi) {
   globalThis.hostApi.ui.spriteMapTIFF = function (mapPath, layers) {

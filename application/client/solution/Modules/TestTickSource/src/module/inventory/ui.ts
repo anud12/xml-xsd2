@@ -2,12 +2,14 @@ import {HostApi} from "module_types/HostApi";
 import {Entity} from "module_types/dataExpression/Entity";
 import {getInventoryModule} from "./inventory";
 import {getLandSprites} from "../land/sprites";
+import {getLandDragType} from "../land/drag";
 
 export const inventoryUi = (hostApi: HostApi) => {
 
   const font = hostApi.ui.setFont({file: "fonts/Ubuntu-Regular.ttf", size: 14, color: "#FFFFFF"});
 
   const module = getInventoryModule(hostApi);
+  const landDrag = getLandDragType(hostApi);
 
   const track = hostApi.runtime.setAnimation(hostApi.runtime.string.of("inventory-track"), {
     frames: [{sprite: hostApi.ui.getSpritePNG("assets/black_pixel.png")}],
@@ -42,6 +44,9 @@ export const inventoryUi = (hostApi: HostApi) => {
         animation: track,
         fill: {width: "stretch", height: "stretch" as const},
       },
+      // Drop target: accepting the "land" drag type purchases the dropped land
+      // (the drag type's onDrop fires the inventory's buy action).
+      droppable: landDrag.droppable(),
     },
   }, [
     hostApi.ui.entityList("inventory-items", {

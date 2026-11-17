@@ -996,12 +996,12 @@ function (root) {
         // string, so it can flow into a panel's `draggable.type` or a
         // drop-off's `droppable.accepts`. Idempotent: the same name always
         // yields the same handle object (stored in globalThis.__uiDragTypes).
-        defineDragType: function (args) {
+        dragAndDrop: function (args) {
             if (!args || typeof args !== 'object') {
-                throw new Error('ui: defineDragType args must be an object with name');
+                throw new Error('ui: dragAndDrop args must be an object with name');
             }
             if (typeof args.name !== 'string' || args.name.length === 0) {
-                throw new Error('ui: defineDragType args.name must be a non-empty string');
+                throw new Error('ui: dragAndDrop args.name must be a non-empty string');
             }
             var name = args.name;
             if (globalThis.__uiDragTypes && globalThis.__uiDragTypes[name]) {
@@ -1012,6 +1012,48 @@ function (root) {
                 __dragType: name,
                 name: name,
                 value: name,
+                // Drop semantics owned by the drag type: the onDrop callback
+                // (fired when an item of this type is dropped on a compatible
+                // target) and the hover feedback texture. __prepDragDrop
+                // resolves these per-target — stashing onDrop behind the
+                // "__jsHandler" marker and forwarding feedback to the renderer.
+                // They live on the handle object only (toJSON returns the bare
+                // name), so they never leak into the serialized panel options.
+                onDrop: (typeof args.onDrop === 'function') ? args.onDrop : null,
+                feedback: (args.feedback != null) ? args.feedback : null,
+                // Ready-made config factories that pass straight to the panel.
+                //
+                // draggable(payload?, options?) -> { type: <handle>, payload?, ...options }
+                //   A drag SOURCE of this type. `payload` tags the per-source
+                //   identity (which entity is being dragged); `options` carries
+                //   per-source extras (ghost, requireHold, onDragStart, onDragEnd,
+                //   onCancel). `type` is set after spreading options so it always
+                //   wins; it serializes (toJSON) to the bare name for the renderer.
+                draggable: function (payload, options) {
+                    var cfg = {};
+                    if (options != null) {
+                        for (var k in options) {
+                            if (Object.prototype.hasOwnProperty.call(options, k)) cfg[k] = options[k];
+                        }
+                    }
+                    cfg.type = handle;
+                    if (payload != null) cfg.payload = payload;
+                    return cfg;
+                },
+                // droppable(options?) -> { accepts: [<handle>], ...options }
+                //   A drop TARGET accepting this type. `options` carries
+                //   per-target overrides (onDrop, feedback) — the type's
+                //   onDrop/feedback are the defaults. __prepDragDrop resolves
+                //   the effective onDrop/feedback from this handle.
+                droppable: function (options) {
+                    var cfg = { accepts: [handle] };
+                    if (options != null) {
+                        for (var k in options) {
+                            if (Object.prototype.hasOwnProperty.call(options, k)) cfg[k] = options[k];
+                        }
+                    }
+                    return cfg;
+                },
                 toString: function () { return name; },
                 toJSON: function () { return name; }
             };

@@ -5,7 +5,7 @@ import {SpriteResource} from "../texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "../texture/SpriteMap";
 import {ContainerReadOnlyExpression, GridReadOnlyExpression} from "../dataExpression/Contaier";
 import {ActionReadOnlyExpression} from "../dataExpression/action/no-input-action";
-import { DraggableOptions, DroppableOptions, DefineDragTypeFunction } from "./dragdrop";
+import { DraggableOptions, DroppableOptions, DragAndDropFunction } from "./dragdrop";
 
 /**
  * A raw node id string.
@@ -540,5 +540,5 @@ export type UiApi = {
   getSpritePNG: (path: string) => SpriteResource;
   getAnimation: GetAnimationFunction;
   /** Register (or retrieve) a drag type by name. Returns a `DragTypeReference` handle. */
-  defineDragType: DefineDragTypeFunction;
+  dragAndDrop: DragAndDropFunction;
 };

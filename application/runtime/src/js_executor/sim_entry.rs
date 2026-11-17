@@ -162,7 +162,7 @@ if (globalThis.__stringGeneratorFactory) {
     if(H.sectorGrid)u.sectorGrid=H.sectorGrid;
     if(H.setActor)u.setActor=H.setActor;
     if(H.setFont)u.setFont=H.setFont;
-    if(H.defineDragType)u.defineDragType=H.defineDragType;
+    if(H.dragAndDrop)u.dragAndDrop=H.dragAndDrop;
   }
   // panel is a plain flow container (a division): only ui.window creates a
   // window and ui.setScreen the screen (the top-level surfaces). A standalone

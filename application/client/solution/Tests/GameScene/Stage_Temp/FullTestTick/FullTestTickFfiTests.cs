@@ -4,6 +4,7 @@ using GdUnit4.Examples.Basics.Setup.Sources.UI;
 using Godot;
 using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
+using Vector2 = Godot.Vector2;
 
 namespace GdUnit4.Examples.Basics.Setup.Test.Stage_temp.FullTestTick;
 
@@ -81,5 +82,161 @@ public partial class FullTestTickFfiTests : Steps {
         Assertions.AssertThat(labelClean)
             .OverrideFailureMessage($"add-btn label '{labelText}' != current property '{property}' after clicks (text is not cleared / is accumulating)")
             .IsTrue();
+    }
+
+    /// Drives a live mouse drag of a land (a draggable child window in the land
+    /// list) onto the inventory window (a droppable). The "land" drag type's
+    /// onDrop fires the inventory's buy action, so the land is purchased: it
+    /// leaves the "lands" container and enters "inventory". Mirrors the live-drag
+    /// mechanics of Stage_16/ContainerDrag, but against the full compiled module.
+    [TestCategory("Stage_temp")]
+    [TestCase(Timeout = 30_000)]
+    [RequireGodotRuntime]
+    public async Task Given_full_module_when_a_land_is_dragged_to_the_inventory_it_is_bought() {
+        try {
+            CleanupArchive();
+            foreach (var file in Directory.GetFiles(ModuleRoot, "*.*", SearchOption.AllDirectories)) {
+                var rel = Path.GetRelativePath(ModuleRoot, file).Replace('\\', '/');
+                AddFileToArchive("../../../../Modules/TestTick/" + rel, rel);
+            }
+            ProcessArchive();
+
+            var scene = await AttachUiScene();
+
+            // Advance the runtime so the land-tick (10ms) tops the "lands" pool
+            // up to its cap (4) and the entityLists expand into per-land child
+            // windows, then pump frames so those windows are real Godot nodes.
+            for (int i = 0; i < 10; i++) {
+                RuntimeInterop.RunIteration(10);
+                await runner.SimulateFrames(1);
+            }
+            await runner.SimulateFrames(2);
+
+            var lands = ContainerInterop.GetContainerById("lands");
+            Assertions.AssertThat(lands.Entities.Length).IsGreater(0);
+            var landId = lands.Entities[0];
+            // The drag handle is the land's portrait (a child-less panel), not
+            // the whole card — the card's stats/buy panels consume a press
+            // before the drag handler would see it.
+            var card = scene.GetWindowOrNull(landId);
+            var cardDescendants = card != null ? CollectDescendantNames(card, 1) : "(card not found)";
+            Assertions.AssertThat(card != null)
+                .OverrideFailureMessage($"land card '{landId}' should exist (descendants: {cardDescendants})")
+                .IsTrue();
+            var source = FindDescendantWindow(card!, "portrait");
+            Assertions.AssertThat(source != null)
+                .OverrideFailureMessage($"land '{landId}' portrait drag handle should exist under the card (descendants: {cardDescendants})")
+                .IsTrue();
+            var target = scene.GetWindowOrNull("inventory-list");
+            Assertions.AssertThat(target != null)
+                .OverrideFailureMessage("inventory-list window should exist (the drop target)")
+                .IsTrue();
+
+            var sourceNode = source!;
+            var targetNode = target!;
+
+            // Live mouse drag: press on the portrait, cross the 4-px drag
+            // threshold, move over the inventory window, release.
+            var pressGlobal = sourceNode.GlobalPosition + sourceNode.Size / 2f;
+            var releaseGlobal = targetNode.GlobalPosition + targetNode.Size / 2f;
+            var viewport = runner.Scene().GetViewport();
+
+            // Initial: nothing is dragging before any input.
+            Assertions.AssertThat(sourceNode.IsDragging).IsFalse();
+
+            viewport.PushInput(new InputEventMouseButton {
+                Position = pressGlobal,
+                GlobalPosition = pressGlobal,
+                ButtonIndex = MouseButton.Left,
+                Pressed = true,
+                ButtonMask = MouseButtonMask.Left
+            });
+            var midGlobal = pressGlobal + new Vector2(20, 0); // >4px, still over the land
+            viewport.PushInput(new InputEventMouseMotion {
+                Position = midGlobal,
+                GlobalPosition = midGlobal,
+                Relative = midGlobal - pressGlobal
+            });
+            await runner.SimulateFrames(2);
+
+            Assertions.AssertThat(sourceNode.IsDragging)
+                .OverrideFailureMessage("the land portrait should report IsDragging once the drag has started")
+                .IsTrue();
+
+            viewport.PushInput(new InputEventMouseMotion {
+                Position = releaseGlobal,
+                GlobalPosition = releaseGlobal,
+                Relative = releaseGlobal - midGlobal
+            });
+            await runner.SimulateFrames(2);
+
+            Assertions.AssertThat(sourceNode.DragHoverTarget == targetNode)
+                .OverrideFailureMessage("the drag hover target should be the inventory while the pointer is over it")
+                .IsTrue();
+
+            viewport.PushInput(new InputEventMouseButton {
+                Position = releaseGlobal,
+                GlobalPosition = releaseGlobal,
+                ButtonIndex = MouseButton.Left,
+                Pressed = false,
+                ButtonMask = 0
+            });
+            await runner.SimulateFrames(2);
+
+            // The release resolves the drop: the "land" drag type's onDrop emits
+            // the inventory's buy action (a queued plan). Advance the runtime once
+            // so the plan is applied (deduct cost + move the land from "lands" to
+            // "inventory"), then pump frames so the entityLists re-render.
+            RuntimeInterop.RunIteration();
+            await runner.SimulateFrames(2);
+
+            // END-TO-END: the dragged land was purchased — it left "lands" and
+            // entered "inventory".
+            var landsAfter = ContainerInterop.GetContainerById("lands");
+            var invAfter = ContainerInterop.GetContainerById("inventory");
+            Assertions.AssertThat(landsAfter.Entities.Contains(landId))
+                .OverrideFailureMessage($"land '{landId}' should no longer be in 'lands' after the drag-buy")
+                .IsFalse();
+            Assertions.AssertThat(invAfter.Entities.Contains(landId))
+                .OverrideFailureMessage($"land '{landId}' should be in 'inventory' after the drag-buy")
+                .IsTrue();
+
+            ClearSimulatedMouse();
+        }
+        catch (Exception e) {
+            Assertions.AssertThat(true)
+                .OverrideFailureMessage($"Error: {e.Message}\n{e.StackTrace}")
+                .IsFalse();
+        }
+    }
+
+    /// Returns the deepest descendant <see cref="UiWindow"/> whose node name
+    /// contains the given substring (used to locate the portrait drag handle,
+    /// whose declared id may be normalized in the Godot node name).
+    static UiWindow? FindDescendantWindow(Node root, string nameSubstring) {
+        foreach (var child in root.GetChildren()) {
+            if (child is UiWindow win) {
+                if (win.Name.ToString().Contains(nameSubstring)) return win;
+                var nested = FindDescendantWindow(win, nameSubstring);
+                if (nested != null) return nested;
+            }
+            else {
+                var nested = FindDescendantWindow(child, nameSubstring);
+                if (nested != null) return nested;
+            }
+        }
+        return null;
+    }
+
+    /// Collects the descendant node names (indented by depth) for diagnostics.
+    static string CollectDescendantNames(Node root, int depth) {
+        var sb = new System.Text.StringBuilder();
+        foreach (var child in root.GetChildren()) {
+            sb.Append(new string(' ', 2 * depth)).Append(child.Name.ToString());
+            if (child is UiWindow) sb.Append(" [UiWindow]");
+            sb.Append('\n');
+            sb.Append(CollectDescendantNames(child, depth + 1));
+        }
+        return sb.ToString();
     }
 }
