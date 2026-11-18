@@ -54,23 +54,38 @@ if (__uih && globalThis.host) {
   globalThis.__uiDragHandlers = globalThis.__uiDragHandlers || {};
   globalThis.__uiDropHandlers = globalThis.__uiDropHandlers || {};
   var __uWin0 = __uih.window, __uDiv0 = __uih.div, __uCV0 = __uih.containerView, __uSG0 = __uih.sectorGrid;
-  // A feedback's `text.font` is a setFont handle (it carries the resolved
-  // config on `.__font`). Handles stringify to their bare name in the JSON
-  // snapshot, so the renderer would only ever see the name, not the config.
-  // Resolve it to the plain config { file, size, color } before forwarding so
-  // the C# renderer can load the font. Returns the feedback unchanged (shared,
-  // not copied) when there is no font to resolve.
+  // Each feedback state (onDrag / onHover) carries a `text: { value, font }`
+  // whose `font` is a setFont handle (it carries the resolved config on
+  // `.__font`). Handles stringify to their bare name in the JSON snapshot, so
+  // the renderer would only ever see the name, not the config. Resolve each
+  // state's font to the plain config { file, size, color } before forwarding so
+  // the C# renderer can load the font. `text.value` is a StringExpression which
+  // stringifies to its concrete string on its own, so it is forwarded as is.
+  // Returns the feedback unchanged (shared, not copied) when no state has a
+  // font to resolve.
   function resolveFeedbackFont(fb) {
     if (!fb || typeof fb !== 'object') return fb;
-    var t = fb.text;
-    if (!(t && typeof t === 'object' && t.font && typeof t.font === 'object' && t.font.__font)) {
-      return fb;
+    function stateFont(st) {
+      return st && st.text && typeof st.text === 'object' && st.text.font &&
+        typeof st.text.font === 'object' && st.text.font.__font;
     }
+    if (!stateFont(fb.onDrag) && !stateFont(fb.onHover)) return fb;
     var c = {};
     for (var k in fb) {
       if (Object.prototype.hasOwnProperty.call(fb, k)) c[k] = fb[k];
     }
-    c.text = { value: t.value, font: t.font.__font };
+    function fixState(st) {
+      if (!st || !st.text) return st;
+      var t = st.text;
+      var sc = {};
+      for (var sk in st) {
+        if (Object.prototype.hasOwnProperty.call(st, sk)) sc[sk] = st[sk];
+      }
+      sc.text = { value: t.value, font: (t.font && t.font.__font) ? t.font.__font : t.font };
+      return sc;
+    }
+    if (fb.onDrag) c.onDrag = fixState(fb.onDrag);
+    if (fb.onHover) c.onHover = fixState(fb.onHover);
     return c;
   }
   function __prepDragDrop(id, opts, children, inner) {
@@ -91,7 +106,7 @@ if (__uih && globalThis.host) {
     if (panel.droppable && typeof panel.droppable === 'object') {
       // Resolve the effective drop semantics. An inline droppable.onDrop/feedback
       // is a per-target override and wins; otherwise inherit from an accepted
-      // drag type (the onDrop/feedback declared on dragAndDrop). The accepted
+      // drag type (the onDrop/feedback declared on dragAndDropChannel). The accepted
       // type resolves to its registry handle (globalThis.__uiDragTypes), which
       // carries both. Stash the resolved onDrop behind the "__jsHandler" marker
       // (so the C# fires the drop FFI) and forward the resolved feedback to the

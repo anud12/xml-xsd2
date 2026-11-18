@@ -5,6 +5,7 @@
 
 import { Expression } from "../Expression";
 import { ActionReadOnlyExpression } from "../dataExpression/action/no-input-action";
+import { StringReadOnlyExpression } from "../primitives/stringExpression";
 import { UiTexture, UiFontReference } from "./Ui";
 
 // ---------------------------------------------------------------------------
@@ -12,7 +13,7 @@ import { UiTexture, UiFontReference } from "./Ui";
 // ---------------------------------------------------------------------------
 
 /**
- * A registered drag type reference. Created via `hostApi.ui.dragAndDrop`.
+ * A registered drag type reference. Created via `hostApi.ui.dragAndDropChannel`.
  * Carries a stable name for serialization; matched by name-string equality
  * against a drop-off's `accepts` list.
  *
@@ -21,7 +22,7 @@ import { UiTexture, UiFontReference } from "./Ui";
  *  - `droppable(options?)`           → a `DroppableOptions` that accepts this type.
  *
  * @example
- * const LAND = hostApi.ui.dragAndDrop({ name: "land", onDrop, feedback });
+ * const LAND = hostApi.ui.dragAndDropChannel({ name: "land", onDrop, feedback });
  * // drag source:
  * hostApi.ui.window("shop", {
  *   panel: { draggable: LAND.draggable({ entityId: 1, sourceContainerId: "lands" }) },
@@ -57,6 +58,30 @@ export type DragTypeReference<P = DraggablePayload> = Expression & {
 };
 
 /**
+ * The centered text label drawn over a feedback-state's overlay.
+ *
+ * `value` is a {@link StringReadOnlyExpression} — build it with
+ * `hostApi.runtime.string.of("…")` (and `concat` / `map` / …). `font` is a
+ * {@link UiFontReference} from `ui.setFont` (the same font mechanism
+ * `ui.text` / `ui.field` use).
+ */
+export type DragFeedbackText = {
+  /** The label text (a non-empty {@link StringReadOnlyExpression}). */
+  value: StringReadOnlyExpression;
+  /** The font to draw the label with (from `ui.setFont`). */
+  font: UiFontReference;
+};
+
+/**
+ * One feedback state: the {@link UiTexture} (animation + fill) plus the
+ * REQUIRED centered {@link DragFeedbackText} label drawn over it.
+ */
+export type DragFeedbackState = UiTexture & {
+  /** REQUIRED centered label drawn over this state's overlay. */
+  text: DragFeedbackText;
+};
+
+/**
  * The drop-target feedback affordance, in two states:
  *  - `onDrag`    — the ambient "you can drop here" indicator. Shown on EVERY
  *    compatible drop zone while a compatible drag is in flight (pointer not on
@@ -64,32 +89,20 @@ export type DragTypeReference<P = DraggablePayload> = Expression & {
  *  - `onHover`   — the "release to drop" highlight. Shown on the specific zone
  *    the pointer is currently over (overrides that zone's `onDrag`).
  *
- * Both are {@link UiTexture} (animation + fill). A per-target
- * `droppable.feedback` may override either field.
+ * Each is a {@link DragFeedbackState} (a {@link UiTexture} plus its own
+ * centered {@link DragFeedbackText} label). A per-target `droppable.feedback`
+ * may override either field.
  *
- * The required {@link DragFeedback.text} label is rendered over the overlay
- * (centered) using the given font, and is visible ONLY while the feedback is
- * active — i.e. in the `onDrag` (Available) or `onHover` (Hovered) state, which
- * is exactly while a compatible drag is in flight over this target.
+ * Each state's label is rendered over the overlay (centered) using its own
+ * font, and is visible ONLY while that state's feedback is active — i.e. the
+ * `onDrag` label in the Available state, the `onHover` label in the Hovered
+ * state, which is exactly while a compatible drag is in flight over this target.
  */
 export type DragFeedback = {
   /** Ambient "available drop zone" indicator (all compatible zones, while dragging). */
-  onDrag: UiTexture;
+  onDrag: DragFeedbackState;
   /** "You're over me" highlight (the specific zone under the pointer). */
-  onHover: UiTexture;
-  /**
-   * REQUIRED centered text label drawn over the feedback overlay. Shown only
-   * while the feedback is active (the `onDrag` Available indicator or the
-   * `onHover` highlight). `font` is a {@link UiFontReference} from
-   * `ui.setFont` (the same font mechanism `ui.text` / `ui.field` use). Every
-   * drop-target feedback must carry a label.
-   */
-  text: {
-    /** The label text (a non-empty string). */
-    value: string;
-    /** The font to draw the label with (from `ui.setFont`). */
-    font: UiFontReference;
-  };
+  onHover: DragFeedbackState;
 };
 
 /**
@@ -101,7 +114,7 @@ export type DragFeedback = {
  * includes this type inherits the type's `onDrop` / `feedback`, so a whole
  * family of compatible drop targets shares one drop behavior + affordance.
  */
-export type DragAndDropArgs<P = DraggablePayload> = {
+export type DragAndDropChannelArgs<P = DraggablePayload> = {
   /** Stable name for the drag type (used for matching + serialization). */
   name: string;
   /** Optional human-readable description (for debug tools). */
@@ -127,16 +140,16 @@ export type DragAndDropArgs<P = DraggablePayload> = {
 
 /**
  * Factory: registers (or retrieves) a drag type by name. Idempotent.
- * Exposed as `hostApi.ui.dragAndDrop`.
+ * Exposed as `hostApi.ui.dragAndDropChannel`.
  *
  * Generic over the drag payload `P`. The returned `DragTypeReference<P>`
  * constrains `draggable(payload)` to the SAME `P`, so a drag source's payload
  * must match what the type's `onDrop` reads from `ctx.item`. `P` defaults to
- * `DraggablePayload`; pass it explicitly (e.g. `dragAndDrop<MyPayload>(...)`)
+ * `DraggablePayload`; pass it explicitly (e.g. `dragAndDropChannel<MyPayload>(...)`)
  * to narrow both the `onDrop` payload and the `draggable` payload.
  */
-export type DragAndDropFunction = <P = DraggablePayload>(
-  args: DragAndDropArgs<P>
+export type DragAndDropChannelFunction = <P = DraggablePayload>(
+  args: DragAndDropChannelArgs<P>
 ) => DragTypeReference<P>;
 
 // ---------------------------------------------------------------------------
@@ -268,7 +281,7 @@ export type DroppableOptions<P = DraggablePayload> = {
    * (Many-to-many: a target lists the types it accepts.)
    *
    * The accepted type(s) supply the default `onDrop` + `feedback` (declared
-   * on `dragAndDrop`); this target inherits whichever type's drop semantics
+   * on `dragAndDropChannel`); this target inherits whichever type's drop semantics
    * the in-flight drag carries.
    */
   accepts?: DragTypeReference<P> | DragTypeReference<P>[];
@@ -280,13 +293,14 @@ export type DroppableOptions<P = DraggablePayload> = {
   onDrop?: (ctx: UiDropContext<P>) => void;
   /**
    * Optional per-target feedback affordance that OVERRIDES the accepted drag
-    * type's `feedback` (either the `onDrag` or the `onHover` field, or
-   * both). Omitted = inherit the drag type's `feedback`. Each field is a
-   * {@link UiTexture} (animation + fill), shown over the drop area displayed
-   * like a panel background — the module controls the look exactly like
-   * `panel.background`.
-   */
-  feedback?: DragFeedback;
+     * type's `feedback` (either the `onDrag` or the `onHover` field, or
+    * both). Omitted = inherit the drag type's `feedback`. Each field is a
+    * {@link DragFeedbackState} (a {@link UiTexture} animation + fill, plus its
+    * own centered {@link DragFeedbackText} label), shown over the drop area
+    * displayed like a panel background — the module controls the look exactly
+    * like `panel.background`.
+    */
+   feedback?: DragFeedback;
   [key: string]: unknown;
 };
 
@@ -317,9 +331,9 @@ export type UiDragDropPanelExtensions = {
  *
  *   export type UiApi = {
  *     ...existing...
- *     dragAndDrop: DragAndDropFunction;  // <-- new
+ *     dragAndDropChannel: DragAndDropChannelFunction;  // <-- new
  *   };
  */
 export type UiDragDropApiExtension = {
-  dragAndDrop: DragAndDropFunction;
+  dragAndDropChannel: DragAndDropChannelFunction;
 };

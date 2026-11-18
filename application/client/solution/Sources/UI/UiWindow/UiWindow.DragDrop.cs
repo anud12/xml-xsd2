@@ -49,12 +49,17 @@ public partial class UiWindow
     UiPaintSpec _dropHoverPaint = UiPaintSpec.Cover;
     DropFeedbackState _dropFeedbackState = DropFeedbackState.None;
     UiTextureSurface? _feedbackOverlay;
-    // Optional feedback text label (from feedback.text): the label content and
-    // the font to draw it with. Rendered as a child of the feedback overlay so
-    // it shows/hides together with the overlay (only while the feedback is
-    // active — the Available or Hovered state).
-    string _dropFeedbackText = "";
-    UiFontData? _dropFeedbackFont;
+    // Per-state feedback text labels (from feedback.onDrag.text / onHover.text):
+    // the label content + font for each state. Rendered on the shared feedback
+    // overlay's label child, set when each state is shown (only while the
+    // feedback is active — the Available or Hovered state).
+    string _dropAvailableText = "";
+    UiFontData? _dropAvailableFont;
+    string _dropHoverText = "";
+    UiFontData? _dropHoverFont;
+    // The shared label node (child of the feedback overlay); its Text/font are
+    // set per state in ShowAvailableFeedback / ShowHoverFeedback.
+    Label? _feedbackLabel;
 
     // ─── Drag interaction state ─────────────────────────────────────────────
     const float DragStartThreshold = 4f; // px moved before drag begins
@@ -177,35 +182,32 @@ public partial class UiWindow
             _dropHoverTexture = null;
             _dropAvailablePaint = UiPaintSpec.Cover;
             _dropHoverPaint = UiPaintSpec.Cover;
-            _dropFeedbackText = "";
-            _dropFeedbackFont = null;
+            _dropAvailableText = "";
+            _dropAvailableFont = null;
+            _dropHoverText = "";
+            _dropHoverFont = null;
             if (droppable.TryGetProperty("feedback", out var fb)
                 && fb.ValueKind == JsonValueKind.Object)
             {
+                // feedback.onDrag / onHover: each is a UiTexture (animation +
+                // fill) PLUS its own centered text label. ResolveUiTexture reads
+                // the texture and ignores `text`; ParseFeedbackText reads the
+                // label. The font arrives as a plain config (the host resolves
+                // the setFont handle to its config before serializing); the
+                // StringExpression value arrives as its concrete string.
                 if (fb.TryGetProperty("onDrag", out var onDrag)
                     && onDrag.ValueKind == JsonValueKind.Object)
                 {
                     _dropAvailableTexture = ResolveUiTexture(onDrag);
                     _dropAvailablePaint = ResolveUiTexturePaint(onDrag);
+                    ParseFeedbackText(onDrag, out _dropAvailableText, out _dropAvailableFont);
                 }
                 if (fb.TryGetProperty("onHover", out var hov)
                     && hov.ValueKind == JsonValueKind.Object)
                 {
                     _dropHoverTexture = ResolveUiTexture(hov);
                     _dropHoverPaint = ResolveUiTexturePaint(hov);
-                }
-                // feedback.text: { value: string, font: { file, size, color } }
-                // The font arrives as a plain config (the host resolves the
-                // setFont handle to its config before serializing).
-                if (fb.TryGetProperty("text", out var fbt)
-                    && fbt.ValueKind == JsonValueKind.Object)
-                {
-                    if (fbt.TryGetProperty("value", out var fbtValue)
-                        && fbtValue.ValueKind == JsonValueKind.String)
-                        _dropFeedbackText = fbtValue.GetString() ?? "";
-                    if (fbt.TryGetProperty("font", out var fbtFont)
-                        && fbtFont.ValueKind == JsonValueKind.Object)
-                        _dropFeedbackFont = ParseFeedbackFont(fbtFont);
+                    ParseFeedbackText(hov, out _dropHoverText, out _dropHoverFont);
                 }
             }
 
@@ -230,8 +232,10 @@ public partial class UiWindow
             _dropOnDropJs = false;
             _dropAvailableTexture = null;
             _dropHoverTexture = null;
-            _dropFeedbackText = "";
-            _dropFeedbackFont = null;
+            _dropAvailableText = "";
+            _dropAvailableFont = null;
+            _dropHoverText = "";
+            _dropHoverFont = null;
             _dropFeedbackState = DropFeedbackState.None;
             // Deregister if we were previously a target.
             if (_dropTargetRegistry.Remove(this))
@@ -517,7 +521,9 @@ public partial class UiWindow
 
     // ─── Drop target feedback overlay ───────────────────────────────────────
 
-    /// Ensures the shared feedback overlay node exists (created lazily).
+    /// Ensures the shared feedback overlay node exists (created lazily), with
+    /// its centered label child. The label's text/font are set per state in
+    /// ShowAvailableFeedback / ShowHoverFeedback (they differ per state).
     void EnsureFeedbackOverlay()
     {
         if (_feedbackOverlay == null)
@@ -531,25 +537,50 @@ public partial class UiWindow
             _feedbackOverlay.SetAnchorsPreset(LayoutPreset.FullRect, true);
             AddChild(_feedbackOverlay);
 
-            // Optional feedback text: a Label child of the overlay, so it is
+            // The feedback label: a Label child of the overlay, so it is
             // clipped to the window and shown/hidden together with the overlay
-            // (visible only while the feedback is active). Created here — after
-            // WireDragDrop has set _dropFeedbackText/_dropFeedbackFont.
-            if (_dropFeedbackText.Length > 0)
+            // (visible only while the feedback is active). Its Text/font are
+            // set per state when that state is shown.
+            _feedbackLabel = new Label
             {
-                var lbl = new Label
-                {
-                    Name = "__dropFeedbackText",
-                    MouseFilter = MouseFilterEnum.Ignore,
-                    Text = _dropFeedbackText,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                lbl.SetAnchorsPreset(LayoutPreset.FullRect, true);
-                if (_dropFeedbackFont != null)
-                    ApplyFont(lbl, _dropFeedbackFont);
-                _feedbackOverlay.AddChild(lbl);
-            }
+                Name = "__dropFeedbackText",
+                MouseFilter = MouseFilterEnum.Ignore,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            _feedbackLabel.SetAnchorsPreset(LayoutPreset.FullRect, true);
+            _feedbackLabel.Visible = false;
+            _feedbackOverlay.AddChild(_feedbackLabel);
+        }
+    }
+
+    /// Sets the shared feedback label's text + font for the state being shown,
+    /// hiding it when the label is empty. ApplyFont is idempotent (re-applies
+    /// theme overrides), so it is safe to call on every state change.
+    void SetFeedbackLabel(string text, UiFontData? font)
+    {
+        if (_feedbackLabel == null) return;
+        _feedbackLabel.Text = text ?? "";
+        _feedbackLabel.Visible = _feedbackLabel.Text.Length > 0;
+        if (font != null)
+            ApplyFont(_feedbackLabel, font);
+    }
+
+    /// Reads `state.text` ({ value: string, font: { file, size, color } }) from
+    /// a feedback-state JSON object. The value is the StringExpression's
+    /// concrete string (the host serialized it); the font is a plain config
+    /// (the host resolved the setFont handle).
+    static void ParseFeedbackText(JsonElement state, out string text, out UiFontData? font)
+    {
+        text = "";
+        font = null;
+        if (state.ValueKind != JsonValueKind.Object) return;
+        if (state.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.Object)
+        {
+            if (t.TryGetProperty("value", out var v) && v.ValueKind == JsonValueKind.String)
+                text = v.GetString() ?? "";
+            if (t.TryGetProperty("font", out var f) && f.ValueKind == JsonValueKind.Object)
+                font = ParseFeedbackFont(f);
         }
     }
 
@@ -570,6 +601,7 @@ public partial class UiWindow
         }
         EnsureFeedbackOverlay();
         _feedbackOverlay.Update(_dropAvailablePaint, _dropAvailableTexture);
+        SetFeedbackLabel(_dropAvailableText, _dropAvailableFont);
         _feedbackOverlay.Visible = true;
     }
 
@@ -586,6 +618,7 @@ public partial class UiWindow
         }
         EnsureFeedbackOverlay();
         _feedbackOverlay.Update(_dropHoverPaint, _dropHoverTexture);
+        SetFeedbackLabel(_dropHoverText, _dropHoverFont);
         _feedbackOverlay.Visible = true;
     }
 

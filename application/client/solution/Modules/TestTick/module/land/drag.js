@@ -34,16 +34,15 @@ export const getLandDragType = memoize((hostApi) => {
     // land/inventory UIs use). Required on the feedback; rendered centered over
     // the overlay, visible only while the onDrag/onHover feedback is active.
     const feedbackFont = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 22, color: "#FFFFFF" });
-    return hostApi.ui.dragAndDrop({
+    return hostApi.ui.dragAndDropChannel({
         name: "land",
         description: "A land parcel; drop it on the inventory to buy it",
         onDrop: (ctx) => {
             ctx.emitAction(inventory.buy, { entityId: ctx.item.entityId });
         },
         feedback: {
-            onDrag: { animation: feedbackOnDrag, fill },
-            onHover: { animation: feedback, fill },
-            text: { value: "BUY", font: feedbackFont },
+            onDrag: { animation: feedbackOnDrag, fill, text: { value: hostApi.runtime.string.of("DROP"), font: feedbackFont } },
+            onHover: { animation: feedback, fill, text: { value: hostApi.runtime.string.of("HERE"), font: feedbackFont } },
         },
     });
 });

@@ -98,7 +98,7 @@ export default (hostApi) => {
   //    callback is declared HERE (on the type, not the droppable): __prepDragDrop
   //    stashes it into globalThis.__uiDropHandlers["inventory"] behind the
   //    "__jsHandler" marker for every target that accepts LAND.
-  const LAND = hostApi.ui.dragAndDrop({
+  const LAND = hostApi.ui.dragAndDropChannel({
     name: "land",
     description: "A purchasable land parcel",
     onDrop: (ctx) => {
@@ -106,12 +106,11 @@ export default (hostApi) => {
       ctx.emitAction(buyAction, { entityId: ctx.item.entityId });
     },
     feedback: {
-      onDrag: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
-      onHover: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
-      text: { value: "BUY", font: feedbackFont },
+      onDrag: { animation: highlight, fill: { width: "stretch", height: "stretch" }, text: { value: string.of("DROP"), font: feedbackFont } },
+      onHover: { animation: highlight, fill: { width: "stretch", height: "stretch" }, text: { value: string.of("HERE"), font: feedbackFont } },
     },
   });
-  hostApi.runtime.log("___dragdrop dragAndDrop name=" + LAND.name + "___");
+  hostApi.runtime.log("___dragdrop dragAndDropChannel name=" + LAND.name + "___");
 
   // 7. Drag source: a window whose panel is `draggable`. `LAND.draggable(payload)`
   //    produces the draggable config — it emits this type and tags the per-source

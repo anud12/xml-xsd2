@@ -103,7 +103,7 @@ export default (hostApi) => {
   //    the onDrop callback (fires the buy action) and the hover feedback
   //    texture. Any droppable that accepts LAND inherits both, so the drop
   //    target below only needs to declare `accepts`.
-  const LAND = hostApi.ui.dragAndDrop({
+  const LAND = hostApi.ui.dragAndDropChannel({
     name: "land",
     description: "A purchasable land parcel",
     onDrop: (ctx) => {
@@ -111,12 +111,11 @@ export default (hostApi) => {
       ctx.emitAction(buyAction, { entityId: ctx.item.entityId });
     },
     feedback: {
-      onDrag: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
-      onHover: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
-      text: { value: "BUY", font: feedbackFont },
+      onDrag: { animation: highlight, fill: { width: "stretch", height: "stretch" }, text: { value: string.of("DROP"), font: feedbackFont } },
+      onHover: { animation: highlight, fill: { width: "stretch", height: "stretch" }, text: { value: string.of("HERE"), font: feedbackFont } },
     },
   });
-  hostApi.runtime.log("___dragdrop visual dragAndDrop name=" + LAND.name + "___");
+  hostApi.runtime.log("___dragdrop visual dragAndDropChannel name=" + LAND.name + "___");
 
   // 9. Drag source: a window whose panel is `draggable`. `LAND.draggable(payload)`
   //    produces the draggable config — it emits this type and tags the per-source

@@ -96,7 +96,7 @@ export default (hostApi) => {
   // `onDrop` (see `containerWindow`) that OVERRIDES the type's, so a drop
   // moves the entity INTO that window's container. The type-level `onDrop`
   // below is a no-op fallback that is therefore never actually reached.
-  const LAND = hostApi.ui.dragAndDrop({
+  const LAND = hostApi.ui.dragAndDropChannel({
     name: "land",
     description: "A movable item",
     onDrop: (ctx) => {
@@ -107,9 +107,8 @@ export default (hostApi) => {
       void ctx;
     },
     feedback: {
-      onDrag: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
-      onHover: { animation: highlight, fill: { width: "stretch", height: "stretch" } },
-      text: { value: "DROP", font: feedbackFont },
+      onDrag: { animation: highlight, fill: { width: "stretch", height: "stretch" }, text: { value: string.of("DROP"), font: feedbackFont } },
+      onHover: { animation: highlight, fill: { width: "stretch", height: "stretch" }, text: { value: string.of("HERE"), font: feedbackFont } },
     },
   });
 

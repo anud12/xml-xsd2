@@ -94,7 +94,7 @@ export default (hostApi) => {
 
   // Two INDEPENDENT drag channels. Each owns its onDrop (move into its bin) and
   // its feedback affordance (ambient `onDrag` + `onHover` highlight).
-  const channelA = hostApi.ui.dragAndDrop({
+  const channelA = hostApi.ui.dragAndDropChannel({
     name: "channel-a",
     description: "Channel A: drops item-a into bin-a",
     onDrop: (ctx) => {
@@ -106,12 +106,11 @@ export default (hostApi) => {
       });
     },
     feedback: {
-      onDrag: { animation: dragZone, fill },
-      onHover: { animation: hoverZone, fill },
-      text: { value: "DROP", font: feedbackFont },
+      onDrag: { animation: dragZone, fill, text: { value: string.of("DROP"), font: feedbackFont } },
+      onHover: { animation: hoverZone, fill, text: { value: string.of("HERE"), font: feedbackFont } },
     },
   });
-  const channelB = hostApi.ui.dragAndDrop({
+  const channelB = hostApi.ui.dragAndDropChannel({
     name: "channel-b",
     description: "Channel B: drops item-b into bin-b",
     onDrop: (ctx) => {
@@ -123,9 +122,8 @@ export default (hostApi) => {
       });
     },
     feedback: {
-      onDrag: { animation: dragZone, fill },
-      onHover: { animation: hoverZone, fill },
-      text: { value: "DROP", font: feedbackFont },
+      onDrag: { animation: dragZone, fill, text: { value: string.of("DROP"), font: feedbackFont } },
+      onHover: { animation: hoverZone, fill, text: { value: string.of("HERE"), font: feedbackFont } },
     },
   });
 

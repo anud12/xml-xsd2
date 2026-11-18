@@ -112,6 +112,21 @@ function (root) {
         throw new Error('ui: fontRef must be a setFont handle, its name string, or a config object');
     }
 
+    // A feedback text `value`: a StringExpression handle (which carries its
+    // concrete string on `.value` and stringifies via toString/toJSON) or a raw
+    // string. Resolves to the concrete string for validation / preview; "" when
+    // the value is not a usable string.
+    function stringExprToString(v) {
+        if (typeof v === 'string') return v;
+        if (v != null && typeof v === 'object') {
+            if (typeof v.value === 'string') return v.value;
+            if (typeof v.toString === 'function') {
+                try { return String(v); } catch (e) { return ''; }
+            }
+        }
+        return '';
+    }
+
     // A child reference (a `children` element or a render result): a raw id
     // string or a node handle. Resolves to the plain id string the engine
     // stores; null when the value is not a usable reference.
@@ -996,36 +1011,44 @@ function (root) {
         // string, so it can flow into a panel's `draggable.type` or a
         // drop-off's `droppable.accepts`. Idempotent: the same name always
         // yields the same handle object (stored in globalThis.__uiDragTypes).
-        dragAndDrop: function (args) {
+        dragAndDropChannel: function (args) {
             if (!args || typeof args !== 'object') {
-                throw new Error('ui: dragAndDrop args must be an object with name');
+                throw new Error('ui: dragAndDropChannel args must be an object with name');
             }
             if (typeof args.name !== 'string' || args.name.length === 0) {
-                throw new Error('ui: dragAndDrop args.name must be a non-empty string');
+                throw new Error('ui: dragAndDropChannel args.name must be a non-empty string');
             }
             var name = args.name;
             if (globalThis.__uiDragTypes && globalThis.__uiDragTypes[name]) {
                 return globalThis.__uiDragTypes[name];
             }
             if (!globalThis.__uiDragTypes) globalThis.__uiDragTypes = {};
-            // `feedback` is required on the drag type, and its `text` label is
-            // required on the feedback (every drop-target feedback carries a
-            // centered label). Fail fast at registration so a malformed module
-            // reports a clear error instead of a blank overlay later.
+            // `feedback` is required on the drag type; each state (onDrag /
+            // onHover) carries its OWN required centered `text` label (value +
+            // font). Fail fast at registration so a malformed module reports a
+            // clear error instead of a blank overlay later. `text.value` is a
+            // StringExpression (an object carrying a concrete string, or a raw
+            // string); `text.font` is a setFont handle.
             var feedback = (args.feedback != null) ? args.feedback : null;
             if (feedback == null || typeof feedback !== 'object') {
-                throw new Error('ui: dragAndDrop("' + name + '") requires a feedback { onDrag, onHover, text }');
+                throw new Error('ui: dragAndDropChannel("' + name + '") requires a feedback { onDrag, onHover } (each a UiTexture + text)');
             }
-            var feedbackText = feedback.text;
-            if (feedbackText == null || typeof feedbackText !== 'object') {
-                throw new Error('ui: dragAndDrop("' + name + '").feedback.text is required ({ value, font })');
-            }
-            if (typeof feedbackText.value !== 'string' || feedbackText.value.length === 0) {
-                throw new Error('ui: dragAndDrop("' + name + '").feedback.text.value must be a non-empty string');
-            }
-            if (feedbackText.font == null || typeof feedbackText.font !== 'object') {
-                throw new Error('ui: dragAndDrop("' + name + '").feedback.text.font is required (a ui.setFont reference)');
-            }
+            ['onDrag', 'onHover'].forEach(function (stName) {
+                var st = feedback[stName];
+                if (st == null || typeof st !== 'object') {
+                    throw new Error('ui: dragAndDropChannel("' + name + '").feedback.' + stName + ' is required ({ animation, fill, text })');
+                }
+                var t = st.text;
+                if (t == null || typeof t !== 'object') {
+                    throw new Error('ui: dragAndDropChannel("' + name + '").feedback.' + stName + '.text is required ({ value, font })');
+                }
+                if (stringExprToString(t.value).length === 0) {
+                    throw new Error('ui: dragAndDropChannel("' + name + '").feedback.' + stName + '.text.value must be a non-empty StringExpression');
+                }
+                if (t.font == null || typeof t.font !== 'object') {
+                    throw new Error('ui: dragAndDropChannel("' + name + '").feedback.' + stName + '.text.font is required (a ui.setFont reference)');
+                }
+            });
             var handle = {
                 __dragType: name,
                 name: name,
