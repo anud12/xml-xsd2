@@ -8,11 +8,12 @@
  * child windows (one per entity) through `entityList`. `item-1` and `item-2`
  * start in `container_1`; `container_2` starts empty.
  *
- * The drag type ("land") owns the shared drop affordance (the `feedback`
- * overlay). The per-target `onDrop` is set on each window's droppable config
- * (overriding the type), so a drop moves the entity INTO that window's
- * container: the entity is removed from its source container and re-added to
- * the target (the same re-reference-by-id move used by TestTick).
+ * The drag type ("land") owns BOTH the shared drop affordance (the `feedback`
+ * overlay) and the drop semantics: its `onDrop` moves the entity INTO the
+ * drop-off container, identified by `ctx.targetId` (each container window is
+ * declared with `id == containerId`). The entity is removed from its source
+ * container and re-added to the target (the same re-reference-by-id move used
+ * by TestTick).
  */
 
 /** @type {ModuleEntrypoint} */
@@ -90,45 +91,41 @@ export default (hostApi) => {
     },
   });
 
-  // The drag type owns the shared drop affordance (the feedback overlay).
-  // `onDrop` is REQUIRED on the type, but ContainerDrag resolves the target
-  // container per-window: every container window supplies its own per-target
-  // `onDrop` (see `containerWindow`) that OVERRIDES the type's, so a drop
-  // moves the entity INTO that window's container. The type-level `onDrop`
-  // below is a no-op fallback that is therefore never actually reached.
+  // The drag type owns BOTH the shared drop affordance (feedback) and the drop
+  // semantics: `onDrop` moves the entity into the drop-off's container.
+  // `ctx.targetId` is the drop-off window's id, and each container window is
+  // declared with `id == containerId` — so this single onDrop routes every drop
+  // to the right container with no per-target override.
   const LAND = hostApi.ui.dragAndDropChannel({
     name: "land",
     description: "A movable item",
-    onDrop: (ctx) => {
-      // No-op fallback: every container target overrides this with a
-      // per-container move (see `containerWindow`). Reaching it would mean a
-      // drop landed on a target that forgot to override the type's onDrop.
-      hostApi.runtime.log("___container drag: type-level onDrop fallback (should not fire)___");
-      void ctx;
-    },
+    onDrop: (ctx) => emitMove(ctx),
     feedback: {
       onDrag: { animation: highlight, fill: { width: "stretch", height: "stretch" }, text: { value: string.of("DROP"), font: feedbackFont } },
       onHover: { animation: highlight, fill: { width: "stretch", height: "stretch" }, text: { value: string.of("HERE"), font: feedbackFont } },
     },
   });
 
-  // Per-target onDrop: move the dropped entity into THIS window's container.
+  // Drop handler: move the dropped entity into the drop-off's container.
   // `ctx.item.entityId` is the entity id carried by the drag payload;
-  // `ctx.item.sourceContainerId` is the container it was dragged from.
-  const emitMove = (ctx, targetContainer) => {
+  // `ctx.item.sourceContainerId` is the container it was dragged from;
+  // `ctx.targetId` is the drop-off's (container) id — the destination.
+  const emitMove = (ctx) => {
     hostApi.runtime.log(
-      "___container drag move " + ctx.item.entityId + " -> " + targetContainer + "___"
+      "___container drag move " + ctx.item.entityId + " -> " + ctx.targetId + "___"
     );
     ctx.emitAction(moveAction, {
       entityId: ctx.item.entityId,
       from: ctx.item.sourceContainerId,
-      to: targetContainer,
+      to: ctx.targetId,
     });
   };
 
-  // A container window: a droppable panel (per-target onDrop) that maps to
-  // `container` via `entityList`, rendering each member as a draggable child
-  // window whose drag payload carries the entity id + source container id.
+  // A container window: a droppable panel (accepts the "land" type) that maps
+  // to `container` via `entityList`, rendering each member as a draggable child
+  // window whose drag payload carries the entity id + source container id. Its
+  // window id equals `containerId`, so the type's onDrop routes drops via
+  // ctx.targetId.
   const containerWindow = (id, containerId, container, x) =>
     hostApi.ui.window(id, {
       panel: {
@@ -137,7 +134,7 @@ export default (hostApi) => {
         width: 220,
         height: 300,
         background: { animation: panelBg, fill: { width: "stretch", height: "stretch" } },
-        droppable: LAND.droppable({ onDrop: (ctx) => emitMove(ctx, containerId) }),
+        droppable: LAND.droppable(),
       },
     }, [
       hostApi.ui.entityList(id + "_items", { container }, (entity) => [
@@ -146,7 +143,7 @@ export default (hostApi) => {
             width: 200,
             height: 60,
             background: { animation: itemBg, fill: { width: "stretch", height: "stretch" } },
-            draggable: LAND.draggable({ entityId: entity.id, sourceContainerId: containerId }),
+            draggable: LAND.draggable({ payload: { entityId: entity.id, sourceContainerId: containerId } }),
           },
         }, []),
       ]),

@@ -117,7 +117,7 @@ export default (hostApi) => {
   });
   hostApi.runtime.log("___dragdrop visual dragAndDropChannel name=" + LAND.name + "___");
 
-  // 9. Drag source: a window whose panel is `draggable`. `LAND.draggable(payload)`
+  // 9. Drag source: a window whose panel is `draggable`. `LAND.draggable({ payload, ...options })`
   //    produces the draggable config — it emits this type and tags the per-source
   //    identity (which land + source container). Positioned at y=150 — below the
   //    coreUI button row (y 8-44) — so the buttons are out of the captured frame.
@@ -125,10 +125,10 @@ export default (hostApi) => {
     panel: {
       x: 20, y: 150, width: 300, height: 100,
       background: { animation: panelBg, fill: { width: "stretch", height: "stretch" } },
-      draggable: LAND.draggable(
-        { entityId: 1, sourceContainerId: "lands" },
-        { ghost: { animation: ghostSprite, fill: { width: "fit", height: "fit" } } },
-      ),
+      draggable: LAND.draggable({
+        payload: { entityId: 1, sourceContainerId: "lands" },
+        ghost: { animation: ghostSprite, fill: { width: "fit", height: "fit" } },
+      }),
     },
   }, []);
 

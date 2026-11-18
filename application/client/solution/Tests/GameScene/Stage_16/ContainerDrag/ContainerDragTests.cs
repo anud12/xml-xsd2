@@ -10,8 +10,8 @@ namespace GdUnit4.Examples.Basics.Setup.Test.Stage_16.ContainerDrag;
 /// entities are individually draggable, dragged between two such panels:
 /// `item-1` starts in `container_1`; the test drives a live mouse drag from the
 /// `item-1` child window to the `container_2` window and proves the entity is
-/// moved from `container_1` to `container_2` (the per-target `onDrop` fires the
-/// move action on the container the pointer is released over).
+/// moved from `container_1` to `container_2` (the drag type's `onDrop` fires the
+/// move action, identifying the destination via `ctx.targetId`).
 ///
 /// Unlike the runtime-only `DragDropBuy` test, this drives a LIVE Godot scene
 /// and pushes synthetic mouse input (press → motion → motion → release) so the

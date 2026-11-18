@@ -112,13 +112,13 @@ export default (hostApi) => {
   });
   hostApi.runtime.log("___dragdrop dragAndDropChannel name=" + LAND.name + "___");
 
-  // 7. Drag source: a window whose panel is `draggable`. `LAND.draggable(payload)`
+  // 7. Drag source: a window whose panel is `draggable`. `LAND.draggable({ payload, ...options })`
   //    produces the draggable config — it emits this type and tags the per-source
   //    identity (which land + source container).
   hostApi.ui.window("shop", {
     panel: {
       x: 20, y: 20, width: 300, height: 100,
-      draggable: LAND.draggable({ entityId: 1, sourceContainerId: "lands" }),
+      draggable: LAND.draggable({ payload: { entityId: 1, sourceContainerId: "lands" } }),
     },
   }, []);
 

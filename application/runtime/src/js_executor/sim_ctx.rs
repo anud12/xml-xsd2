@@ -104,16 +104,16 @@ if (__uih && globalThis.host) {
       return c;
     }
     if (panel.droppable && typeof panel.droppable === 'object') {
-      // Resolve the effective drop semantics. An inline droppable.onDrop/feedback
-      // is a per-target override and wins; otherwise inherit from an accepted
-      // drag type (the onDrop/feedback declared on dragAndDropChannel). The accepted
-      // type resolves to its registry handle (globalThis.__uiDragTypes), which
-      // carries both. Stash the resolved onDrop behind the "__jsHandler" marker
-      // (so the C# fires the drop FFI) and forward the resolved feedback to the
-      // renderer.
+      // Resolve the drop semantics from the accepted drag type (the onDrop /
+      // feedback declared on dragAndDropChannel). The accepted type resolves to
+      // its registry handle (globalThis.__uiDragTypes), which carries both.
+      // Stash the resolved onDrop behind the "__jsHandler" marker (so the C#
+      // fires the drop FFI) and forward the resolved feedback to the renderer.
+      // A target only declares which type(s) it accepts — it has no per-target
+      // override.
       var dro = panel.droppable;
-      var effOnDrop = (typeof dro.onDrop === 'function') ? dro.onDrop : null;
-      var effFeedback = (dro.feedback != null) ? dro.feedback : null;
+      var effOnDrop = null;
+      var effFeedback = null;
       var accepts = dro.accepts;
       var typeRefs = Array.isArray(accepts) ? accepts : (accepts != null ? [accepts] : null);
       if (typeRefs) {

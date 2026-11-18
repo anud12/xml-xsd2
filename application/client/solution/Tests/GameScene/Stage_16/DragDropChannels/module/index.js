@@ -133,14 +133,14 @@ export default (hostApi) => {
     panel: {
       x: 20, y: 100, width: 200, height: 80,
       background: { animation: panelBg, fill },
-      draggable: channelA.draggable({ entityId: "item-a", sourceContainerId: "tray-a" }),
+      draggable: channelA.draggable({ payload: { entityId: "item-a", sourceContainerId: "tray-a" } }),
     },
   }, []);
   hostApi.ui.window("source-b", {
     panel: {
       x: 20, y: 250, width: 200, height: 80,
       background: { animation: panelBg, fill },
-      draggable: channelB.draggable({ entityId: "item-b", sourceContainerId: "tray-b" }),
+      draggable: channelB.draggable({ payload: { entityId: "item-b", sourceContainerId: "tray-b" } }),
     },
   }, []);
   hostApi.ui.window("target-a", {

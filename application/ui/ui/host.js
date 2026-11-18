@@ -1056,44 +1056,40 @@ function (root) {
                 // Drop semantics owned by the drag type: the onDrop callback
                 // (fired when an item of this type is dropped on a compatible
                 // target) and the hover feedback texture. __prepDragDrop
-                // resolves these per-target — stashing onDrop behind the
-                // "__jsHandler" marker and forwarding feedback to the renderer.
-                // They live on the handle object only (toJSON returns the bare
-                // name), so they never leak into the serialized panel options.
+                // resolves these for each accepting target — stashing onDrop
+                // behind the "__jsHandler" marker and forwarding feedback to the
+                // renderer. They live on the handle object only (toJSON returns
+                // the bare name), so they never leak into the serialized panel
+                // options.
                 onDrop: (typeof args.onDrop === 'function') ? args.onDrop : null,
                 feedback: feedback,
                 // Ready-made config factories that pass straight to the panel.
                 //
-                // draggable(payload?, options?) -> { type: <handle>, payload?, ...options }
-                //   A drag SOURCE of this type. `payload` tags the per-source
-                //   identity (which entity is being dragged); `options` carries
-                //   per-source extras (ghost, requireHold, onDragStart, onDragEnd,
-                //   onCancel). `type` is set after spreading options so it always
-                //   wins; it serializes (toJSON) to the bare name for the renderer.
-                draggable: function (payload, options) {
+                // draggable({ payload, ...options }) -> { type: <handle>, payload, ...options }
+                //   A drag SOURCE of this type. The single config object carries the
+                //   required `payload` (per-source identity: which entity is being
+                //   dragged) plus any per-source extras (ghost, requireHold,
+                //   onDragStart, onDragEnd, onCancel). `type` is set after copying
+                //   the config so it always wins; it serializes (toJSON) to the bare
+                //   name for the renderer.
+                draggable: function (config) {
                     var cfg = {};
-                    if (options != null) {
-                        for (var k in options) {
-                            if (Object.prototype.hasOwnProperty.call(options, k)) cfg[k] = options[k];
+                    if (config != null) {
+                        for (var k in config) {
+                            if (Object.prototype.hasOwnProperty.call(config, k)) cfg[k] = config[k];
                         }
                     }
                     cfg.type = handle;
-                    if (payload != null) cfg.payload = payload;
                     return cfg;
                 },
-                // droppable(options?) -> { accepts: [<handle>], ...options }
-                //   A drop TARGET accepting this type. `options` carries
-                //   per-target overrides (onDrop, feedback) — the type's
-                //   onDrop/feedback are the defaults. __prepDragDrop resolves
-                //   the effective onDrop/feedback from this handle.
-                droppable: function (options) {
-                    var cfg = { accepts: [handle] };
-                    if (options != null) {
-                        for (var k in options) {
-                            if (Object.prototype.hasOwnProperty.call(options, k)) cfg[k] = options[k];
-                        }
-                    }
-                    return cfg;
+                // droppable() -> { accepts: [<handle>] }
+                //   A drop TARGET accepting this type. Takes no arguments — the
+                //   type's onDrop/feedback are authoritative for any drop onto
+                //   this target (the type's onDrop identifies the target via
+                //   ctx.targetId). __prepDragDrop resolves the onDrop/feedback
+                //   from this handle for the target.
+                droppable: function () {
+                    return { accepts: [handle] };
                 },
                 toString: function () { return name; },
                 toJSON: function () { return name; }

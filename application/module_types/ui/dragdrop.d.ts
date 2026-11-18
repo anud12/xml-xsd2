@@ -18,43 +18,39 @@ import { UiTexture, UiFontReference } from "./Ui";
  * against a drop-off's `accepts` list.
  *
  * Also exposes two ready-made config factories that pass straight to the panel:
- *  - `draggable(payload?, options?)` → a `DraggableOptions` that emits this type.
- *  - `droppable(options?)`           → a `DroppableOptions` that accepts this type.
+  *  - `draggable({ payload, ...options })` → a `DraggableOptions` that emits this type.
+  *  - `droppable()`                   → a `DroppableOptions` that accepts this type.
  *
  * @example
  * const LAND = hostApi.ui.dragAndDropChannel({ name: "land", onDrop, feedback });
  * // drag source:
  * hostApi.ui.window("shop", {
- *   panel: { draggable: LAND.draggable({ entityId: 1, sourceContainerId: "lands" }) },
+    *   panel: { draggable: LAND.draggable({ payload: { entityId: 1, sourceContainerId: "lands" } }) },
  * });
  * // drop target:
- * hostApi.ui.window("inventory", { panel: { droppable: LAND.droppable() } });
+   * hostApi.ui.window("inventory", { panel: { droppable: LAND.droppable() } });
  */
 export type DragTypeReference<P = DraggablePayload> = Expression & {
   /** The registered name (serializable). */
   readonly name: string;
-  /**
-   * Produce a `draggable` panel option that emits THIS type. Assign the result
-   * to `panel.draggable`.
-   * @param payload  Per-source identity — the drag payload. Must be the SAME
-   *                 shape `P` that this type's `onDrop` reads from `ctx.item`.
-   * @param options  Per-source extras (ghost, requireHold, onDragStart,
-   *                 onDragEnd, onCancel). `type` is always set to this handle.
-   */
-  draggable: (
-    payload?: P,
-    options?: Omit<DraggableOptions<P>, "type" | "payload">
-  ) => DraggableOptions<P>;
-  /**
-   * Produce a `droppable` panel option that accepts THIS type. Assign the
-   * result to `panel.droppable`. The type's `onDrop` / `feedback` are the
-   * defaults; the options override them per-target. `accepts` is set to
-   * `[this type]`.
-   * @param options  Per-target overrides (onDrop, feedback).
-   */
-  droppable: (
-    options?: Pick<DroppableOptions<P>, "onDrop" | "feedback">
-  ) => DroppableOptions<P>;
+   /**
+    * Produce a `draggable` panel option that emits THIS type. Assign the result
+    * to `panel.draggable`.
+    * @param config  A {@link DraggableConfig}: the required per-source `payload`
+    *                (the same shape `P` this type's `onDrop` reads from
+    *                `ctx.item`) plus any per-source extras (ghost, requireHold,
+    *                onDragStart, onDragEnd, onCancel). `type` is always set to
+    *                this handle and cannot be set here.
+    */
+   draggable: (config: DraggableConfig<P>) => DraggableOptions<P>;
+   /**
+    * Produce a `droppable` panel option that accepts THIS type. Assign the
+    * result to `panel.droppable`. Takes no arguments — the type's `onDrop` /
+    * `feedback` are authoritative for any drop onto this target (the type's
+    * `onDrop` identifies the target via `ctx.targetId`). `accepts` is set to
+    * `[this type]`.
+    */
+   droppable: () => DroppableOptions<P>;
 };
 
 /**
@@ -90,8 +86,7 @@ export type DragFeedbackState = UiTexture & {
  *    the pointer is currently over (overrides that zone's `onDrag`).
  *
  * Each is a {@link DragFeedbackState} (a {@link UiTexture} plus its own
- * centered {@link DragFeedbackText} label). A per-target `droppable.feedback`
- * may override either field.
+ * centered {@link DragFeedbackText} label).
  *
  * Each state's label is rendered over the overlay (centered) using its own
  * font, and is visible ONLY while that state's feedback is active — i.e. the
@@ -120,20 +115,19 @@ export type DragAndDropChannelArgs<P = DraggablePayload> = {
   /** Optional human-readable description (for debug tools). */
   description?: string;
   /**
-   * Callback invoked when an item of THIS drag type is dropped on a compatible
-   * target. Receives a `UiDropContext<P>` — `ctx.item` is the payload `P`.
-   * Resolved per-target by the host: for each droppable that accepts this type
-   * the callback is stashed behind a `__jsHandler` marker and fired through the
-   * drop FFI.
-   * (A per-target `droppable.onDrop` still overrides this when present.)
+    * Callback invoked when an item of THIS drag type is dropped on a compatible
+    * target. Receives a `UiDropContext<P>` — `ctx.item` is the payload `P` and
+    * `ctx.targetId` is the drop-off's node id (use it to tell which target the
+    * drop landed on). Resolved by the host for each target: for each droppable
+    * that accepts this type the callback is stashed behind a `__jsHandler` marker
+    * and fired through the drop FFI.
    */
   onDrop: (ctx: UiDropContext<P>) => void;
   /**
     * The drop-target feedback affordance for this drag type. `onDrag` is
    * shown on every compatible drop zone while a drag of THIS type is in flight
    * (so you can see all available drop zones); `onHover` is shown on the zone
-   * the pointer is over. (A per-target `droppable.feedback` still overrides
-   * either field when present.)
+   * the pointer is over.
    */
   feedback: DragFeedback;
 };
@@ -191,7 +185,6 @@ export type UiDropContext<P = DraggablePayload> = {
   emitAction: (action: ActionReadOnlyExpression, args?: Record<string, unknown>) => void;
   /** The drop-off's own node id. */
   targetId: string;
-  [key: string]: unknown;
 };
 
 /**
@@ -206,7 +199,6 @@ export type UiDragContext<P = DraggablePayload> = {
   cursor?: { getX: () => number; getY: () => number };
   /** Emit an action at drag start. */
   emitAction: (action: ActionReadOnlyExpression, args?: Record<string, unknown>) => void;
-  [key: string]: unknown;
 };
 
 /**
@@ -262,10 +254,27 @@ export type DraggableOptions<P = DraggablePayload> = {
   onDragStart?: (ctx: UiDragContext<P>) => void;
   /** Fired when the drag ends (dropped or cancelled). */
   onDragEnd?: (ctx: UiDragEndContext<P>) => void;
-  /** Action emitted on cancel (dropped on nothing). Optional. */
-  onCancel?: ActionReadOnlyExpression;
-  [key: string]: unknown;
+   /** Action emitted on cancel (dropped on nothing). Optional. */
+   onCancel?: ActionReadOnlyExpression;
 };
+
+/**
+ * The single config object accepted by {@link DragTypeReference.draggable}.
+ *
+ * `payload` is required (per-source identity — must be the same shape `P` this
+ * type's `onDrop` reads from `ctx.item`). The remaining per-source extras
+ * (ghost, requireHold, onDragStart, onDragEnd, onCancel) are lifted to the top
+ * level alongside it. `type` is set to the handle internally and cannot be set
+ * here.
+ *
+ * @example
+ * LAND.draggable({ payload: { entityId: 1, sourceContainerId: "lands" } });
+ * LAND.draggable({ payload: { entityId: 1 }, ghost: { animation: g, fill: { width: "stretch" } } });
+ */
+export type DraggableConfig<P = DraggablePayload> = {
+  /** Per-source identity — the drag payload (the type's `P`). Required. */
+  payload: P;
+} & Omit<DraggableOptions<P>, "type" | "payload">;
 
 // ---------------------------------------------------------------------------
 // 4. Drop target — the `droppable` panel option
@@ -273,6 +282,11 @@ export type DraggableOptions<P = DraggablePayload> = {
 
 /**
  * Options that mark a panel as a DROP-OFF (drop target). Add as `panel.droppable`.
+ *
+ * The drop semantics (`onDrop`) and the feedback affordance live on the DRAG
+ * TYPE (declared once on `dragAndDropChannel`), not here — a target only
+ * declares which type(s) it accepts, and inherits the in-flight drag's type's
+ * `onDrop` / `feedback`.
  */
 export type DroppableOptions<P = DraggablePayload> = {
   /**
@@ -280,28 +294,11 @@ export type DroppableOptions<P = DraggablePayload> = {
    * source's `type` is present here. Omitted/empty = accept any drag.
    * (Many-to-many: a target lists the types it accepts.)
    *
-   * The accepted type(s) supply the default `onDrop` + `feedback` (declared
-   * on `dragAndDropChannel`); this target inherits whichever type's drop semantics
+   * The accepted type(s) supply the `onDrop` + `feedback` (declared on
+   * `dragAndDropChannel`); this target inherits whichever type's drop semantics
    * the in-flight drag carries.
    */
   accepts?: DragTypeReference<P> | DragTypeReference<P>[];
-  /**
-   * Optional per-target drop callback that OVERRIDES the accepted drag
-   * type's `onDrop`. Receives a `UiDropContext<P>`. Omit to use the drag type's
-   * `onDrop` (the common case). (Callback-only — no declarative plan form.)
-   */
-  onDrop?: (ctx: UiDropContext<P>) => void;
-  /**
-   * Optional per-target feedback affordance that OVERRIDES the accepted drag
-     * type's `feedback` (either the `onDrag` or the `onHover` field, or
-    * both). Omitted = inherit the drag type's `feedback`. Each field is a
-    * {@link DragFeedbackState} (a {@link UiTexture} animation + fill, plus its
-    * own centered {@link DragFeedbackText} label), shown over the drop area
-    * displayed like a panel background — the module controls the look exactly
-    * like `panel.background`.
-    */
-   feedback?: DragFeedback;
-  [key: string]: unknown;
 };
 
 // ---------------------------------------------------------------------------

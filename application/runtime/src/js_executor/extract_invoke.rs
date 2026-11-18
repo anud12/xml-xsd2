@@ -126,14 +126,19 @@ if (globalThis.__stringGeneratorFactory) {
   // dragAndDropChannel: extraction only needs the module to run to completion so
   // its runtime declarations (containers/entities/actions) are baked. The
   // returned handle carries .name and serializes (toJSON) to the name string,
-  // so it flows through draggable/droppable options unchanged. Idempotent by
-  // name so repeated calls yield the same handle (mirrors the sim path).
+  // so it flows through draggable/droppable options unchanged. It also exposes
+  // no-op draggable/droppable config factories (mirroring the sim path) so a
+  // module that calls them on the handle does not abort. Idempotent by name so
+  // repeated calls yield the same handle.
   if(!u.dragAndDropChannel)u.dragAndDropChannel=function(args){
     var name=(args&&typeof args.name==='string')?args.name:'';
     globalThis.__uiDragTypes=globalThis.__uiDragTypes||{};
     if(globalThis.__uiDragTypes[name])return globalThis.__uiDragTypes[name];
+    var copyOwn=function(src,dst){if(src&&typeof src==='object'){for(var k in src){if(Object.prototype.hasOwnProperty.call(src,k))dst[k]=src[k];}}return dst;};
     var handle={__dragType:name,name:name,value:name,
-      toString:function(){return name;},toJSON:function(){return name;}};
+      toString:function(){return name;},toJSON:function(){return name;},
+      draggable:function(config){var cfg={};copyOwn(config,cfg);cfg.type=handle;return cfg;},
+      droppable:function(){return {accepts:[handle]};}};
     globalThis.__uiDragTypes[name]=handle;
     return handle;
   };
