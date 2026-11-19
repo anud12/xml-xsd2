@@ -40,14 +40,22 @@ public partial class UiWindow
     {
         if (opts.ValueKind == JsonValueKind.Undefined) return;
 
-        // A container view fills its host window. It must behave like a
-        // division for mouse input: pass through so the host's edge/corner
-        // resize drags reach the host, and suppress its own onClick over those
-        // zones (see OnGuiInput). The flag distinguishes it from a board panel
-        // (whose container lives in the layout spec and keeps Stop filtering).
+        // A container view (entityList / containerView) fills its host window.
+        // It must behave like a division for mouse input: pass through so the
+        // host's edge/corner resize drags reach the host, and suppress its own
+        // onClick over those zones (see OnGuiInput). The flag distinguishes it
+        // from a board panel (whose container lives in the layout spec and keeps
+        // Stop filtering). Setting Pass here (not only when onClick is present)
+        // is what makes a host carrying an entityList corner-resizable: the
+        // entityList is a division with no onClick, so without this it would
+        // keep Godot's default Stop filter and swallow the host's corner press.
+        // Its interactive item children carry their own filters and are unaffected.
         if (opts.TryGetProperty("containerView", out var cvFlag)
             && cvFlag.ValueKind == JsonValueKind.True)
+        {
             _isDivision = true;
+            MouseFilter = MouseFilterEnum.Pass;
+        }
 
         if (opts.TryGetProperty("onClick", out var onClick))
         {
@@ -188,6 +196,11 @@ public partial class UiWindow
     void OnResizeGuiInput(InputEvent evt)
     {
         if (!_resizable) return;
+        // While a compatible drag is in flight over this drop target, the corner
+        // hit zones stay inert (no resize, no resize cursor) so a drag can never
+        // be mistaken for a corner-resize; normal use (no drag in flight) keeps
+        // the window fully resizable.
+        if (_dropFeedbackState != DropFeedbackState.None) return;
         if (evt is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
         {
             if (mb.Pressed)

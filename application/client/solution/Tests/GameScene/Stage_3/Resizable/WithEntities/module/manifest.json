@@ -1,0 +1,6 @@
+{
+  "id": "resizable-with-entities-test",
+  "version": "1.0.0",
+  "name": "Resizable With Entities Test Module",
+  "entry": "index.js"
+}
