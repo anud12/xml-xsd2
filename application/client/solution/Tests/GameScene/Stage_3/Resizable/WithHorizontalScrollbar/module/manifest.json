@@ -1,0 +1,6 @@
+{
+  "id": "resizable-with-horizontal-scrollbar-test",
+  "version": "1.0.0",
+  "name": "Resizable With Horizontal Scrollbar Test Module",
+  "entry": "index.js"
+}

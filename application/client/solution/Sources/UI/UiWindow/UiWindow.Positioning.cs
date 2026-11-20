@@ -114,6 +114,10 @@ public partial class UiWindow
 
         ApplyBackground(opts);
         ApplyBorder(opts);
+        // Last, so the grips sit above the scroll container, overlay bars,
+        // background, and any content added earlier.
+        if (_resizable)
+            EnsureResizeGrips();
     }
 
     /// Parses the window geometry options (x/y/anchor/width/height) into the

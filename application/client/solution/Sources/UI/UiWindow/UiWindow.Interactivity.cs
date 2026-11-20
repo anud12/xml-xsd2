@@ -31,6 +31,9 @@ public partial class UiWindow
     bool _resizing;
     const int EdgeLeft = 1, EdgeRight = 2, EdgeTop = 4, EdgeBottom = 8;
     const float ResizeHitZone = 6f; // px edge/corner hit thickness
+    // On-top edge grips: keep the 6px resize hit zones reachable even when
+    // content (e.g. an entity list) fills the window to its edges.
+    Godot.Control[] _resizeGrips;
 
     /// onClick: left-click press emits the named action. onHover: while
     /// hovered the node's background is swapped (the hover animation's first
@@ -382,6 +385,91 @@ public partial class UiWindow
         if (local.Y <= ResizeHitZone) edge |= EdgeTop;
         if (local.Y >= h - ResizeHitZone) edge |= EdgeBottom;
         return edge;
+    }
+
+    /// Creates the four invisible, on-top edge grips for a resizable window.
+    /// Each sits in a 6px resize hit zone above all content (scroll container,
+    /// entity list, overlay bars), so an edge/corner press lands on the grip
+    /// (Stop) instead of a content window underneath (which is Stop by default
+    /// and would otherwise consume the press before it reached the host's
+    /// resize path). The grip forwards the press to the host's resize state
+    /// machine; the edge is re-derived from the host-local point, so a corner
+    /// press on either overlapping edge grip still resolves to the corner.
+    void EnsureResizeGrips()
+    {
+        if (!_resizable || _resizeGrips != null) return;
+        _resizeGrips = new[]
+        {
+            CreateResizeGrip("__resizeGripLeft",   0f, 0f, 0f, 1f,  0f,           0f,           ResizeHitZone, 0f),
+            CreateResizeGrip("__resizeGripRight",  1f, 0f, 1f, 1f, -ResizeHitZone, 0f,           0f,           0f),
+            CreateResizeGrip("__resizeGripTop",    0f, 0f, 1f, 0f,  0f,           0f,           0f,           ResizeHitZone),
+            CreateResizeGrip("__resizeGripBottom", 0f, 1f, 1f, 1f,  0f,          -ResizeHitZone, 0f,           0f),
+        };
+    }
+
+    Godot.Control CreateResizeGrip(
+        string name,
+        float anchorL, float anchorT, float anchorR, float anchorB,
+        float offL, float offT, float offR, float offB)
+    {
+        var grip = new ColorRect
+        {
+            Name = name,
+            Color = Colors.Transparent,
+            MouseFilter = MouseFilterEnum.Stop,
+            AnchorLeft = anchorL, AnchorTop = anchorT,
+            AnchorRight = anchorR, AnchorBottom = anchorB,
+            OffsetLeft = offL, OffsetTop = offT,
+            OffsetRight = offR, OffsetBottom = offB,
+        };
+        AddChild(grip);
+        // Capture this grip so the shared handler can set its hover cursor:
+        // Godot applies the hovered control's shape, not the host's, so the
+        // resize cursor must be set on the grip itself.
+        grip.GuiInput += evt => OnResizeGripGuiInput(grip, evt);
+        return grip;
+    }
+
+    void OnResizeGripGuiInput(Godot.Control grip, InputEvent evt)
+    {
+        if (!_resizable) return;
+        // A drop-drag in flight over this window keeps the grips inert (no
+        // resize, no resize cursor), mirroring the host's own resize path.
+        if (_dropFeedbackState != DropFeedbackState.None) return;
+        if (evt is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
+        {
+            var local = GetGlobalTransform().AffineInverse() * mb.GlobalPosition;
+            if (mb.Pressed)
+            {
+                // The grip is the hovered control Godot applies, so set its
+                // shape too (BeginResizeAtLocal sets the host's own shape).
+                grip.MouseDefaultCursorShape = CursorShapeForEdge(ResizeEdgeAt(local));
+                BeginResizeAtLocal(local, mb.GlobalPosition);
+            }
+            else if (_resizing)
+            {
+                EndResizeAtLocal(local);
+            }
+            GetViewport().SetInputAsHandled();
+        }
+        else if (evt is InputEventMouseMotion mm)
+        {
+            if (_resizing)
+            {
+                UpdateResizeMotion(mm.GlobalPosition);
+                GetViewport().SetInputAsHandled();
+            }
+            else
+            {
+                // Hover feedback: set the resize cursor on the grip (the
+                // hovered control) and the host (the window's own cursor
+                // property, as the direct resize path does).
+                var local = GetGlobalTransform().AffineInverse() * mm.GlobalPosition;
+                var edge = ResizeEdgeAt(local);
+                grip.MouseDefaultCursorShape = CursorShapeForEdge(edge);
+                ApplyResizeCursor(edge);
+            }
+        }
     }
 
     /// Resolves the click plan captured at panel-definition time: each

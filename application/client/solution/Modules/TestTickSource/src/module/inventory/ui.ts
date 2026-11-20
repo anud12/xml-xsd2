@@ -40,6 +40,7 @@ export const inventoryUi = (hostApi: HostApi) => {
           grabber: {animation: portrait, fill: {width: "stretch", height: "stretch" as const}},
         },
       },
+      resizable: true,
       background: {
         animation: track,
         fill: {width: "stretch", height: "stretch" as const},

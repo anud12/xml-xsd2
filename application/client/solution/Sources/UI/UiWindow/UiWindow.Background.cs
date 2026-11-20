@@ -431,6 +431,7 @@ public partial class UiWindow
         if (_animName != null)
             AdvanceAnimationFrame(false);
         AdvanceScrollbarAnims();
+        SyncOverlayScrollbars();
         if (_isProgress)
         {
             AdvanceProgressTex(_progressFill, false);

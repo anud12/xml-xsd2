@@ -211,6 +211,9 @@ public partial class UiWindow
                 AttachFlowDirect(flow);
                 current.QueueFree();
             }
+            ClearOverlayBar(horizontal: true);
+            ClearOverlayBar(horizontal: false);
+            _overlayScroll = null;
             return;
         }
 
@@ -245,24 +248,154 @@ public partial class UiWindow
         float size = TryNum(opts, "barSize", out var b) && b > 0f ? b : DefaultBarSize;
         StyleBoxTexture? track = ResolveScrollbarBox(opts, "scrollbarTrack");
         StyleBoxTexture? grabber = ResolveScrollbarBox(opts, "scrollbarGrabber");
+
+        // The ScrollContainer's own bars are hidden: they stay the scroll-state
+        // source of truth (Value/MinValue/MaxValue/Page track the container) and
+        // expose the configured thickness for inspection. The visible, interactive
+        // bars are overlay ScrollBars placed over the content and inset from the
+        // window edge by the resize hit zone, so they never sit on the window's
+        // edge/corner resize zones (a bar there would swallow the resize press and
+        // the resize cursor). Each overlay bar is styled identically to the hidden
+        // bar it replaces.
+        _overlayScroll = scroll;
         if (scrollH)
         {
             var h = scroll.GetHScrollBar();
             if (h != null)
             {
                 h.CustomMinimumSize = new Vector2(0f, size);
-                ApplyScrollbarStyle(h, track, grabber);
+                HideBuiltInBar(h);
             }
+            CreateOverlayBar(horizontal: true, size, track, grabber);
         }
+        else
+            ClearOverlayBar(horizontal: true);
         if (scrollV)
         {
             var v = scroll.GetVScrollBar();
             if (v != null)
             {
                 v.CustomMinimumSize = new Vector2(size, 0f);
-                ApplyScrollbarStyle(v, track, grabber);
+                HideBuiltInBar(v);
             }
+            CreateOverlayBar(horizontal: false, size, track, grabber);
         }
+        else
+            ClearOverlayBar(horizontal: false);
+    }
+
+    // Overlay scroll bars (direct children of this window, drawn over the
+    // content) and the ScrollContainer they mirror. Tracked so re-applies reuse
+    // the nodes and the no-scroll path can drop them.
+    Godot.ScrollBar? _overlayBarH;
+    Godot.ScrollBar? _overlayBarV;
+    ScrollContainer? _overlayScroll;
+
+    /// Creates (or reuses) the overlay scroll bar for an axis, positioned over the
+    /// content and inset from the window edge by the resize hit zone so it never
+    /// covers the edge/corner resize zones. The bar's grabber drives the container
+    /// scroll offset (ValueChanged); the reverse direction (container → bar, e.g.
+    /// mouse wheel) is mirrored per frame by SyncOverlayScrollbars.
+    void CreateOverlayBar(bool horizontal, float barSize, StyleBoxTexture? track, StyleBoxTexture? grabber)
+    {
+        string name = horizontal ? "sbHOverlay" : "sbVOverlay";
+        var bar = GetNodeOrNull<ScrollBar>(name);
+        if (bar == null)
+        {
+            bar = horizontal ? new HScrollBar { Name = name } : new VScrollBar { Name = name };
+            bar.MouseFilter = MouseFilterEnum.Stop;
+            bar.ValueChanged += v =>
+            {
+                if (_overlayScroll == null) return;
+                if (horizontal) _overlayScroll.ScrollHorizontal = (int)v;
+                else _overlayScroll.ScrollVertical = (int)v;
+            };
+            AddChild(bar);
+        }
+        PositionOverlayBar(bar, horizontal, barSize);
+        ApplyScrollbarStyle(bar, track, grabber);
+        if (horizontal) _overlayBarH = bar; else _overlayBarV = bar;
+    }
+
+    /// Positions an overlay bar as a strip over the content, inset from the window
+    /// edge by the resize hit zone so the outer hit zone stays clear for resize
+    /// drags and the resize cursor.
+    void PositionOverlayBar(ScrollBar bar, bool horizontal, float barSize)
+    {
+        if (horizontal)
+        {
+            bar.AnchorLeft = 0f; bar.AnchorTop = 1f;
+            bar.AnchorRight = 1f; bar.AnchorBottom = 1f;
+            bar.OffsetLeft = 0f; bar.OffsetRight = 0f;
+            bar.OffsetTop = -(barSize + ResizeHitZone);
+            bar.OffsetBottom = -ResizeHitZone;
+        }
+        else
+        {
+            bar.AnchorLeft = 1f; bar.AnchorTop = 0f;
+            bar.AnchorRight = 1f; bar.AnchorBottom = 1f;
+            bar.OffsetLeft = -(barSize + ResizeHitZone);
+            bar.OffsetRight = -ResizeHitZone;
+            bar.OffsetTop = 0f; bar.OffsetBottom = 0f;
+        }
+    }
+
+    /// Drops the overlay bar for an axis (no scroll on that axis this pass).
+    void ClearOverlayBar(bool horizontal)
+    {
+        var bar = horizontal ? _overlayBarH : _overlayBarV;
+        if (bar != null)
+        {
+            bar.QueueFree();
+            if (horizontal) _overlayBarH = null; else _overlayBarV = null;
+        }
+    }
+
+    /// Per-frame mirror of the container's scroll state into the overlay bars: the
+    /// range (min/max/page) always follows the container, and an externally-driven
+    /// offset (mouse wheel / programmatic) is copied into the bar. A user grabber
+    /// drag already moved the bar and drove the container via ValueChanged, so
+    /// those values agree and the copy is a no-op.
+    void SyncOverlayScrollbars()
+    {
+        if (_overlayScroll == null || !IsInstanceValid(_overlayScroll)) return;
+        var bh = _overlayScroll.GetHScrollBar();
+        var bv = _overlayScroll.GetVScrollBar();
+        // The ScrollContainer re-shows its own edge bars on layout (Visible does
+        // not stick across the container's relayout); force them hidden, faded,
+        // and non-interactive every frame so only the inset overlay bars show and
+        // the window's edge/corner resize zones are never blocked.
+        if (bh != null) HideBuiltInBar(bh);
+        if (bv != null) HideBuiltInBar(bv);
+        SyncOverlayAxis(_overlayBarH, bh);
+        SyncOverlayAxis(_overlayBarV, bv);
+    }
+
+    /// Hides the ScrollContainer's own edge bar: it stays the scroll-state source
+    /// of truth (Value/MinValue/MaxValue/Page) and the configured thickness, but
+    /// is not drawn (self_modulate alpha 0 — a flag the container never resets,
+    /// unlike Visible, which it re-asserts on relayout) and does not intercept
+    /// input (MouseFilter.Ignore). The inset overlay bar is the visible one.
+    void HideBuiltInBar(Godot.ScrollBar bar)
+    {
+        bar.Visible = false;
+        bar.MouseFilter = MouseFilterEnum.Ignore;
+        bar.SelfModulate = new Color(1f, 1f, 1f, 0f);
+    }
+
+    void SyncOverlayAxis(ScrollBar? overlay, ScrollBar? builtIn)
+    {
+        if (overlay == null || !IsInstanceValid(overlay)) return;
+        if (builtIn == null || !IsInstanceValid(builtIn)) return;
+        overlay.MinValue = builtIn.MinValue;
+        overlay.MaxValue = builtIn.MaxValue;
+        overlay.Page = builtIn.Page;
+        if (overlay.Value != builtIn.Value)
+            // SetValueNoSignal: an externally-driven offset (mouse wheel /
+            // programmatic) is mirrored into the bar without re-driving the
+            // container (that would be a no-op and could fight an in-flight
+            // grabber drag).
+            overlay.SetValueNoSignal(builtIn.Value);
     }
 
     /// Scrollbar texture cache: archive path → resolved Texture2D, shared by the
