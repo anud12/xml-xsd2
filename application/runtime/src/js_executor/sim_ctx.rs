@@ -294,6 +294,13 @@ pub fn install(files: &HashMap<String, String>) -> Result<()> {
     }
     let rt = create_runtime()?;
     let ctx = create_context(&rt)?;
+    // Seed the LXM PRNG (number.random) before the host is built, so the
+    // IIFE that initializes the PRNG state reads it. When the host never set a
+    // seed this is skipped and the PRNG keeps its 0x7FFFFFFF default.
+    if let Some(seed) = crate::state::lxm_seed() {
+        ctx.with(|c| c.eval::<(), _>(format!("globalThis.__lxmSeed = {seed};")))
+            .map_err(|e| anyhow::anyhow!("lxm seed install failed: {:?}", e))?;
+    }
     install_host_api(&ctx)?;
     // .ui layer: transport + node registries + live host.ui factories, all
     // installed before the module entry declares nodes.

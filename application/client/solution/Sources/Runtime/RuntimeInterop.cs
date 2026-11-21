@@ -91,6 +91,14 @@ public static class RuntimeInterop
 
     public static void ClearState() => runtime_clear_state();
 
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_set_seed(uint seed);
+
+    /// Sets the LXM PRNG seed (32-bit) used by number.random. It takes effect
+    /// the next time the module is (re)installed; the host passes 0x7FFFFFFF
+    /// to keep the default sequence.
+    public static void SetSeed(uint seed) => runtime_set_seed(seed);
+
     [Obsolete("Kept for backward compatibility")]
     public static void TestFixedStructMarshaling() { }
 

@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use crate::js_runtime::{create_runtime, create_context};
-use crate::js_host_api::{extract_declarations, Declarations};
+use crate::js_host_api::{extract_declarations, lxm_prng_script, Declarations};
 use crate::js_host_api::script_emit;
 use crate::js_host_api::script_rest;
 use crate::js_host_api::script_generator;
@@ -15,6 +15,9 @@ fn create_rt_ctx() -> Result<(rquickjs::Runtime, rquickjs::Context)> {
 
 fn get_host_api_script() -> String {
     [
+        // Install the shared LXM PRNG (globalThis.__lxmNext) first so the
+        // module entry's number.random resolves during extraction too.
+        lxm_prng_script(),
         // Register the stringGenerator factory (globalThis.__stringGeneratorFactory)
         // so extract_invoke can install runtime.stringGenerator.
         script_generator::host_api_script_generator(),
@@ -58,6 +61,14 @@ fn transform_source(source: &str) -> String {
 
 pub fn extract_from_source(source: &str) -> Result<Declarations> {
     let (_rt, ctx) = create_rt_ctx()?;
+    // Seed the LXM PRNG for the extraction context so the module's
+    // number.random is governed by the host seed (matching the persistent
+    // install). Must run before the host script, whose __lxmNext IIFE reads
+    // __lxmSeed when it is defined.
+    if let Some(seed) = crate::state::lxm_seed() {
+        ctx.with(|c| c.eval::<(), _>(format!("globalThis.__lxmSeed = {seed};")))
+            .map_err(|e| anyhow!("lxm seed (extract) failed: {:?}", e))?;
+    }
     let bundled = bundle_imports(source);
     let transformed = transform_source(&bundled);
     let host_script = get_host_api_script();

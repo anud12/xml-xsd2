@@ -29,24 +29,11 @@ pub fn host_api_script_log() -> &'static str {
                 toStringExpression: function() { return globalThis.host.string.of(String(x)); }
             };
         }
-        // LXM PRNG: LCG + Xorshift + MurmurHash3 mixer
-        var _lxm_state = 0x7FFFFFFF; // 2147483647 (Mersenne prime M31)
-        function lxm_next() {
-            _lxm_state = (Math.imul(_lxm_state, 1664525) + 1013904223) & 0xFFFFFFFF;
-            var x = _lxm_state;
-            x ^= x << 13; x &= 0xFFFFFFFF;
-            x ^= x >>> 17;
-            x ^= x << 5; x &= 0xFFFFFFFF;
-            x ^= x >>> 16;
-            x = Math.imul(x, 0x85ebca6b);
-            x ^= x >>> 13;
-            x = Math.imul(x, 0xc2b2ae35);
-            x ^= x >>> 16;
-            return (x >>> 0) / 4294967296;
-        }
+        // number.random draws from the shared seeded LXM stream
+        // (globalThis.__lxmNext), so it is governed by the module seed.
         return {
             of: function(n) { return wrap(Number(n)); },
-            random: function(from, to) { var f = Math.floor(numOf(from)); var t = Math.floor(numOf(to)); var r = f + Math.floor(lxm_next() * (t - f + 1)); return wrap(r); }
+            random: function(from, to) { var f = Math.floor(numOf(from)); var t = Math.floor(numOf(to)); var r = f + Math.floor(globalThis.__lxmNext() * (t - f + 1)); return wrap(r); }
         };
     })(),
     string: { of: function(s) {

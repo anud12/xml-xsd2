@@ -39,6 +39,11 @@ pub struct Declarations {
 
 pub fn install_host_api(ctx: &Context) -> Result<()> {
     let script = [
+        // Install the shared LXM PRNG (seeded from globalThis.__lxmSeed) as
+        // globalThis.__lxmNext, so every module-API random entry point
+        // (number.random, randomElement, ...) draws from one coherent seeded
+        // stream. It must come first, before any host script that consumes it.
+        lxm_prng_script(),
         // Install the shared entity-filter runtime (FilterArg evaluator,
         // entity proxy, condition reader) before the host is assembled so
         // every context's getEntityBy can use it.
@@ -54,6 +59,31 @@ pub fn install_host_api(ctx: &Context) -> Result<()> {
     ].join("\n");
     ctx.with(|ctx| { ctx.eval::<(), _>(script) })?;
     Ok(())
+}
+
+/// The shared LXM PRNG (LCG + Xorshift + MurmurHash3 mixer) exposed as
+/// `globalThis.__lxmNext() -> [0,1)`. The seed is read from
+/// `globalThis.__lxmSeed` (a 32-bit value the host sets at install time),
+/// falling back to 2147483647 (0x7FFFFFFF, Mersenne M31). Every module-API
+/// random entry point draws from this single stream, so the seed governs all
+/// module randomness and the sequence is reproducible.
+pub fn lxm_prng_script() -> &'static str {
+    r#"(function(){
+  var s = (typeof globalThis.__lxmSeed === 'number') ? (globalThis.__lxmSeed >>> 0) : 0x7FFFFFFF;
+  globalThis.__lxmNext = function() {
+    s = (Math.imul(s, 1664525) + 1013904223) & 0xFFFFFFFF;
+    var x = s;
+    x ^= x << 13; x &= 0xFFFFFFFF;
+    x ^= x >>> 17;
+    x ^= x << 5; x &= 0xFFFFFFFF;
+    x ^= x >>> 16;
+    x = Math.imul(x, 0x85ebca6b);
+    x ^= x >>> 13;
+    x = Math.imul(x, 0xc2b2ae35);
+    x ^= x >>> 16;
+    return (x >>> 0) / 4294967296;
+  };
+})();"#
 }
 
 pub fn extract_declarations(

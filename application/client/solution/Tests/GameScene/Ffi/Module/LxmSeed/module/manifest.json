@@ -1,0 +1,6 @@
+{
+  "id": "lxm-seed",
+  "version": "1.0.0",
+  "name": "LXM Seed Test",
+  "entry": "index.js"
+}

@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 use std::sync::Mutex;
 
 pub fn last_file_rows() -> &'static Mutex<Vec<Vec<String>>> {
@@ -83,4 +83,19 @@ pub fn archive_files() -> &'static Mutex<HashMap<String, String>> {
 }
 pub fn set_archive_files(map: HashMap<String, String>) {
     *archive_files().lock().unwrap() = map;
+}
+pub fn lxm_seed_store() -> &'static AtomicU64 {
+    &super::LXM_SEED
+}
+/// Records the 32-bit LXM PRNG seed to install on the next module (re)install.
+/// It is not cleared by {@link super::clear_state}, so a hot reload re-installs
+/// against the same seed the host set before the first install.
+pub fn set_lxm_seed(seed: u32) {
+    lxm_seed_store().store(seed as u64, Ordering::SeqCst);
+}
+/// The configured LXM seed, or `None` when the host never set one (the JS side
+/// then uses its 0x7FFFFFFF default).
+pub fn lxm_seed() -> Option<u32> {
+    let v = lxm_seed_store().load(Ordering::SeqCst);
+    if v == u64::MAX { None } else { Some(v as u32) }
 }

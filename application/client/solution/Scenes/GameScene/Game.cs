@@ -13,6 +13,9 @@ public partial class Game : Node {
     static bool _logWriterStarted;
     public static string? ARCHIVE_DIR;
     public static string? MODULE_DIR;
+    // LXM PRNG seed for the module's number.random, chosen in the module
+    // picker. Null keeps the default (0x7FFFFFFF) sequence.
+    public static uint? SEED;
     public static bool RUN_RUNTIME_LOOP = true;
     public static bool SKIP_CREATE_ARCHIVE = false;
     public static bool TEST_MODE = false;
@@ -34,6 +37,9 @@ public partial class Game : Node {
         MODULE_DIR ??= ProjectSettings.GlobalizePath("res://Modules/TestTick");
 
         if (ARCHIVE_DIR == null && !SKIP_CREATE_ARCHIVE) {
+            // Apply the chosen seed (or the default) before the module is
+            // installed, so its number.random PRNG starts from it.
+            RuntimeInterop.SetSeed(SEED ?? 0x7FFFFFFF);
             string zip = CreateArchive(MODULE_DIR);
             string db = RuntimeInterop.ProcessArchive(zip);
             if (db == null) {

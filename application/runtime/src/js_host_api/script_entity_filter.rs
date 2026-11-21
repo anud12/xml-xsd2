@@ -176,6 +176,12 @@ pub fn host_api_script_entity_filter() -> &'static str {
         if (i < 0 || i >= values.length) return absentMaybe;
         return presentMaybe(values[i], elementWrap(values[i]));
       },
+      randomElement: function () {
+        if (values.length === 0) return absentMaybe;
+        var i = Math.floor(globalThis.__lxmNext() * values.length);
+        if (i >= values.length) i = values.length - 1;
+        return presentMaybe(values[i], elementWrap(values[i]));
+      },
       exactlyOne: function () {
         if (values.length === 1) return presentMaybe(values[0], elementWrap(values[0]));
         return absentMaybe;
@@ -485,7 +491,7 @@ pub fn host_api_script_entity_filter() -> &'static str {
           ifPresent: function (cb) {
             if (typeof cb !== 'function') return;
             if (ids.length > 0) {
-              cb(globalThis.__entityProxy(ids[Math.floor(Math.random() * ids.length)]));
+              cb(globalThis.__entityProxy(ids[Math.floor(globalThis.__lxmNext() * ids.length)]));
             } else {
               cb(null);
             }
@@ -534,6 +540,11 @@ pub fn host_api_script_entity_filter() -> &'static str {
         matched.push(ids[j]);
       }
     }
+    // Deterministic order: __entityData is populated from a Rust map whose
+    // iteration order is not stable, so index-dependent operations (randomElement,
+    // get(index), ifPresent) would otherwise see a different element for the
+    // same seed. Sorting by id makes the list order stable across installs.
+    matched.sort();
     if (matched.length === 0) filterLog('___filter-no-match');
     return globalThis.__makeEntityList(matched);
   };
@@ -622,6 +633,12 @@ pub fn host_api_script_entity_filter() -> &'static str {
         if (ids.length > 0 && typeof cb === 'function') {
           cb(globalThis.__containerProxy(ids[0]));
         }
+      },
+      randomElement: function () {
+        if (ids.length === 0) return absentMaybe;
+        var i = Math.floor(globalThis.__lxmNext() * ids.length);
+        if (i >= ids.length) i = ids.length - 1;
+        return presentMaybe(ids[i], globalThis.__containerProxy(ids[i]));
       },
       exactlyOne: function () {
         if (ids.length === 1) return presentMaybe(ids[0], globalThis.__containerProxy(ids[0]));

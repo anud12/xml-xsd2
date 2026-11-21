@@ -60,7 +60,7 @@ public class StringGeneratorTests : Steps
 
     [TestCategory("Stage_13")]
     [TestCase]
-    public void Given_generate_value_it_should_yield_a_deterministic_concrete_member()
+    public void Given_generate_value_it_should_yield_a_valid_language_member()
     {
         CleanupArchive();
         AddFileToArchive("module/index.js", "index.js")
@@ -68,15 +68,44 @@ public class StringGeneratorTests : Steps
             .EnsureDllAccessible()
             .ProcessArchive();
 
-        // A composed product yields its representative member (first x first)...
-        Assertions.AssertThat(RuntimeInterop.GetEntityTextMapValue("sg", "genName")).IsEqual("Al Smith");
-        // ...and it is deterministic across repeated calls.
-        Assertions.AssertThat(RuntimeInterop.GetEntityTextMapValue("sg", "genNameRepeat")).IsEqual("Al Smith");
-        // A oneOf generator yields its first alternative.
-        Assertions.AssertThat(RuntimeInterop.GetEntityTextMapValue("sg", "genFirst")).IsEqual("Al");
-        // A concat of two oneOf generators composes their generated values.
-        Assertions.AssertThat(RuntimeInterop.GetEntityTextMapValue("sg", "genConcat")).IsEqual("x1");
-        // An empty language is absent, so orElse supplies the fallback.
+        // generateValue() now picks a RANDOM member (seeded LXM). The exact
+        // string is not fixed, but each result must be a valid member of its
+        // own language (isGeneratedBy)...
+        Assertions.AssertThat(RuntimeInterop.GetEntityTextMapValue("sg", "genNameIsMember")).IsEqual("1");
+        Assertions.AssertThat(RuntimeInterop.GetEntityTextMapValue("sg", "genFirstIsMember")).IsEqual("1");
+        Assertions.AssertThat(RuntimeInterop.GetEntityTextMapValue("sg", "genConcatIsMember")).IsEqual("1");
+        // ...and an empty language is absent, so orElse supplies the fallback.
         Assertions.AssertThat(RuntimeInterop.GetEntityTextMapValue("sg", "genFallback")).IsEqual("FALLBACK");
+    }
+
+    [TestCategory("Stage_13")]
+    [TestCase]
+    public void Given_seed_the_generated_values_are_reproducible()
+    {
+        // With a fixed seed the LXM stream is reproducible, so the random picks
+        // are stable across runs.
+        try {
+            CleanupArchive();
+            RuntimeInterop.SetSeed(0xABCD);
+            AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/manifest.json", "manifest.json")
+                .EnsureDllAccessible()
+                .ProcessArchive();
+            string firstRun = RuntimeInterop.GetEntityTextMapValue("sg", "genName");
+
+            CleanupArchive();
+            RuntimeInterop.SetSeed(0xABCD);
+            AddFileToArchive("module/index.js", "index.js")
+                .AddFileToArchive("module/manifest.json", "manifest.json")
+                .EnsureDllAccessible()
+                .ProcessArchive();
+            string secondRun = RuntimeInterop.GetEntityTextMapValue("sg", "genName");
+
+            Assertions.AssertThat(firstRun).IsEqual(secondRun);
+            // and the picked name is a valid member of the name language
+            Assertions.AssertThat(RuntimeInterop.GetEntityTextMapValue("sg", "genNameIsMember")).IsEqual("1");
+        } finally {
+            RuntimeInterop.SetSeed(0x7FFFFFFF); // restore the default seed
+        }
     }
 }

@@ -16,6 +16,7 @@ pub mod actor_interrupt;
 pub mod actor_active_action;
 pub mod sector_state;
 pub mod entity_area;
+pub mod set_lxm_seed;
 
 pub use entity_area::runtime_get_entities_inside_area;
 pub use entity_area::runtime_get_entity_containers;

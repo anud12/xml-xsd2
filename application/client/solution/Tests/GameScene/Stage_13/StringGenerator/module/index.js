@@ -38,16 +38,28 @@ export default (hostApi) => {
   // Self-consistency: a generated grammar is a member of its own language.
   const sample = name.generateValue().orElse(string.of(""));
 
-  // Concrete generateValue() results. In this runtime the generated value is
-  // the deterministic representative member of the language (the first one),
-  // so the exact string is known. Absent (empty language) -> the orElse fallback.
-  const genName = name.generateValue().orElse(string.of("FALLBACK")); // "Al Smith"
-  const genNameRepeat = name.generateValue().orElse(string.of("FALLBACK")); // deterministic
-  const genFirst = first.generateValue().orElse(string.of("NOPE")); // "Al"
-  const genConcat = sg.concat([
+  // Membership probe for any grammar + candidate -> "1"/"0".
+  const isMember = (grammar, candidate) => {
+    let v = "0";
+    grammar.isGeneratedBy(candidate).ifTrue(() => {
+      v = "1";
+      return string.of("1");
+    });
+    return v;
+  };
+
+  // Concrete generateValue() results are RANDOM members of the language, drawn
+  // from the shared seeded LXM stream. So the exact string is not fixed; each
+  // is verified as a valid member of its own language (isGeneratedBy). The raw
+  // values are also exposed for the seed-reproducibility test. Absent (empty
+  // language) -> the orElse fallback.
+  const genName = name.generateValue().orElse(string.of("FALLBACK"));
+  const genFirst = first.generateValue().orElse(string.of("NOPE"));
+  const genConcatGen = sg.concat([
     sg.oneOf([string.of("x"), string.of("y")]).generateValue().orElse(string.of("")),
     sg.oneOf([string.of("1"), string.of("2")]).generateValue().orElse(string.of("")),
-  ]).generateValue().orElse(string.of("NOPE")); // "x1"
+  ]);
+  const genConcat = genConcatGen.generateValue().orElse(string.of("NOPE"));
   const genFallback = sg.oneOf([]).generateValue().orElse(string.of("FALLBACK")); // "FALLBACK"
 
   hostApi.runtime.setEntity({
@@ -68,15 +80,16 @@ export default (hostApi) => {
       emptyAbsent: string.of(emptyAbsent),
       // a grammar value is accepted by its own isGeneratedBy
       sampleIsMember: string.of(probe(sample)),
-      // generateValue concrete results (deterministic representative member):
-      // a composed product yields first-x-first, oneOf yields its first
-      // alternative, concat composes its parts, and an empty language yields
-      // the orElse fallback.
+      // generateValue concrete results are random members: verify each is a
+      // valid member of its own language, and the empty one yields the
+      // orElse fallback.
       genName: genName,
-      genNameRepeat: genNameRepeat,
       genFirst: genFirst,
       genConcat: genConcat,
       genFallback: genFallback,
+      genNameIsMember: string.of(isMember(name, genName)),
+      genFirstIsMember: string.of(isMember(first, genFirst)),
+      genConcatIsMember: string.of(isMember(genConcatGen, genConcat)),
     },
   });
 };

@@ -8,6 +8,10 @@ public partial class SelectModule : Control
     public override void _Ready()
     {
         GetNode<Button>("Options/BackButton").Pressed += OnBack;
+        // Default the seed field to the current Unix time (seconds) so each run
+        // starts from a fresh, time-based seed unless the user overrides it.
+        GetNode<LineEdit>("Options/SeedInput").Text =
+            DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
         PopulateModules(GetNode<VBoxContainer>("Options/ModuleList"));
     }
 
@@ -58,7 +62,28 @@ public partial class SelectModule : Control
     public void OnSelect(string moduleDir)
     {
         Game.MODULE_DIR = moduleDir;
+        Game.SEED = ParseSeed(GetNode<LineEdit>("Options/SeedInput").Text);
         GetTree().ChangeSceneToFile("res://Scenes/GameScene/Game.tscn");
+    }
+
+    /// Parses the seed field into a 32-bit LXM seed. Blank yields null (the
+    /// default sequence); decimal and "0x" hex are accepted; anything else
+    /// warns and falls back to the default.
+    static uint? ParseSeed(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        text = text.Trim();
+        try
+        {
+            if (text.StartsWith("0x", System.StringComparison.OrdinalIgnoreCase))
+                return Convert.ToUInt32(text.Substring(2), 16);
+            return uint.Parse(text);
+        }
+        catch
+        {
+            GD.PushWarning($"Invalid random seed '{text}'; using the default");
+            return null;
+        }
     }
 
     void OnBack()

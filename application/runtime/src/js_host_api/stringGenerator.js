@@ -124,16 +124,25 @@
   }
 
   // The StringExpression that carries a language: it exposes the full set of
-  // strings (__lang) for composition, plus a representative concrete `value`
-  // (a valid member) for downstream use / evaluation.
+  // strings (__lang) for composition, plus a concrete `value` (a valid member)
+  // for downstream use / evaluation. The concrete member is chosen at random
+  // from the language via the shared seeded LXM stream (__lxmNext), so the
+  // pick is governed by the host seed and reproducible. Empty language ->
+  // undefined.
   function makeLangExpr(strings) {
     var lang = strings.slice();
+    var concrete;
+    if (lang.length > 0) {
+      var idx = Math.floor(globalThis.__lxmNext() * lang.length);
+      if (idx >= lang.length) idx = lang.length - 1;
+      concrete = lang[idx];
+    }
     return {
       __langExpr: true,
       __lang: lang,
-      value: lang.length ? lang[0] : undefined,
-      toString: function () { return lang.length ? lang[0] : ''; },
-      toJSON: function () { return lang.length ? lang[0] : ''; }
+      value: concrete,
+      toString: function () { return concrete !== undefined ? concrete : ''; },
+      toJSON: function () { return concrete !== undefined ? concrete : ''; }
     };
   }
 

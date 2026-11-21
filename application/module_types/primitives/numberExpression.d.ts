@@ -4,7 +4,7 @@ import {StringReadOnlyExpression} from "./stringExpression";
 
 export type NumberReadOnlyExpressionApi = {
   of: (number:number) => NumberReadOnlyExpression,
-  /** Generates a random integer in [fromInclusive, toInclusive] using LXM (LCG + Xorshift + MurmurHash3 mixer) PRNG. Hardcoded seed: 2147483647 (0x7FFFFFFF, Mersenne prime M31). */
+  /** Generates a random integer in [fromInclusive, toInclusive] using the LXM (LCG + Xorshift + MurmurHash3 mixer) PRNG. The seed is set per module at load time (default: 2147483647, 0x7FFFFFFF, Mersenne prime M31). */
   random: (fromInclusive: NumberReadOnlyExpression, toInclusive: NumberReadOnlyExpression) => NumberReadOnlyExpression,
   asRule:(ruleName: string, numberExpression: NumberReadOnlyExpression) => NumberReadOnlyExpressionApi,
   getRule: (ruleName: string) => NumberReadOnlyExpressionApi,

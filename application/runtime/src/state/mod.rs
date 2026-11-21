@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::sync::atomic::{AtomicBool, AtomicI64};
+use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU64};
 use std::sync::{Once, Mutex};
 use std::collections::HashMap;
 
@@ -39,6 +39,13 @@ static mut ARCHIVE_FILES: Option<&'static Mutex<HashMap<String, String>>> = None
 static mut ACTIVE_PLANS: Option<&'static Mutex<Vec<ActivePlan>>> = None;
 static mut SECTOR_GRIDS: Option<&'static Mutex<HashMap<String, SectorGridState>>> = None;
 static mut ENTITY_AREAS: Option<&'static Mutex<HashMap<String, HashMap<String, Vec<(f64, f64)>>>>> = None;
+// The LXM PRNG seed for the loaded module. u64::MAX means "not set" (the JS
+// side then falls back to the 0x7FFFFFFF default). It is NOT reset by
+// clear_state: the host sets it once before (re)installing the module, and a
+// hot reload re-installs against the same seed. Kept as a standalone static
+// (outside the INIT group) so the host can set it before the first
+// process_archive without forcing the full state initialization.
+static LXM_SEED: AtomicU64 = AtomicU64::new(u64::MAX);
 
 /// The entity-area store (idempotent with `persisted_flag`). Reached directly
 /// by `area_query` so it shares the same init ordering as every other state

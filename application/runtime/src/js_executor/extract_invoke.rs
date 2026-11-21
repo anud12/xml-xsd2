@@ -34,7 +34,7 @@ var hostApi={
   },
   runtime:{
     string:{of:function(s){return s;}},
-    number:{of:function(n){return n;}},
+    number:{of:function(n){return n;},random:function(f,t){var a=Math.floor(f);var b=Math.floor(t);return a+Math.floor(globalThis.__lxmNext()*(b-a+1));}},
     emitEvent:h.emitEvent,
     setEvent:h.setEvent,
     setAction:h.setAction,
