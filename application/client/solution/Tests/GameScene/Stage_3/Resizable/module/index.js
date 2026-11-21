@@ -12,7 +12,7 @@ export default (hostApi) => {
       height: 200,
       x: 100,
       y: 100,
-      resizable: true,
+      resizable: { horizontal: true, vertical: true },
       background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, []);

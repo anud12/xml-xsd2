@@ -147,10 +147,28 @@ public static class UiSlab
             Add("containerView", "true");
         if (o.Resizable != 0)
         {
+            // Re-emit the per-axis object form the Positioning reader consumes:
+            // { horizontal?, vertical?, keepAspectRatio? }.
+            var rz = new StringBuilder("{");
+            bool rzFirst = true;
+            if ((o.Resizable & 1) != 0)
+            {
+                rz.Append("\"horizontal\":true");
+                rzFirst = false;
+            }
+            if ((o.Resizable & 2) != 0)
+            {
+                if (!rzFirst) rz.Append(',');
+                rz.Append("\"vertical\":true");
+                rzFirst = false;
+            }
             if (o.ResizableKeepAspect != 0)
-                Add("resizable", "{\"keepAspectRatio\":true}");
-            else
-                Add("resizable", "true");
+            {
+                if (!rzFirst) rz.Append(',');
+                rz.Append("\"keepAspectRatio\":true");
+            }
+            rz.Append('}');
+            Add("resizable", rz.ToString());
         }
         if (o.PortalArrow != 0)
             Add("portalArrow", "true");

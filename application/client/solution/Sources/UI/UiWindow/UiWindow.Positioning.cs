@@ -86,24 +86,18 @@ public partial class UiWindow
         _isWindow = true;
         var opts = ParseOptions(node);
         ParseWindowGeometry(opts);
-        // resizable: true — the user can drag edges/corners to resize the
-        // window. Only meaningful for windows (explicitly sized panels).
-        bool resizable = false;
-        if (opts.ValueKind == JsonValueKind.Object && opts.TryGetProperty("resizable", out var rz))
+        // resizable: object { horizontal?, vertical?, keepAspectRatio? } — each
+        // axis is opt-in (a window is resizable on an axis only when that axis
+        // is set true). Only meaningful for windows (explicitly sized panels).
+        if (opts.ValueKind == JsonValueKind.Object
+            && opts.TryGetProperty("resizable", out var rz)
+            && rz.ValueKind == JsonValueKind.Object)
         {
-            if (rz.ValueKind == JsonValueKind.True)
-                resizable = true;
-            else if (rz.ValueKind == JsonValueKind.Number)
-                resizable = rz.GetDouble() != 0;
-            else if (rz.ValueKind == JsonValueKind.Object)
-            {
-                resizable = true;
-                _resizableKeepAspect = rz.TryGetProperty("keepAspectRatio", out var ka)
-                    && (ka.ValueKind == JsonValueKind.True
-                        || (ka.ValueKind == JsonValueKind.Number && ka.GetDouble() != 0));
-            }
+            _resizableHorizontal = RzTrue(rz, "horizontal");
+            _resizableVertical = RzTrue(rz, "vertical");
+            _resizableKeepAspect = RzTrue(rz, "keepAspectRatio");
         }
-        _resizable = resizable;
+        _resizable = _resizableHorizontal || _resizableVertical;
         if (_resizable)
             WireResizeInput();
 
@@ -168,4 +162,10 @@ public partial class UiWindow
             CustomMinimumSize = Vector2.Zero;
         }
     }
+
+    /// True when `obj[prop]` is a truthy flag (JSON true, or a non-zero number).
+    static bool RzTrue(JsonElement obj, string prop)
+        => obj.TryGetProperty(prop, out var v)
+            && (v.ValueKind == JsonValueKind.True
+                || (v.ValueKind == JsonValueKind.Number && v.GetDouble() != 0));
 }

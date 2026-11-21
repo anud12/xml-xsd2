@@ -232,6 +232,10 @@ pub struct UiNodeOptions {
     pub on_click: UiOnClick,
     pub on_hover: UiOnHover,
     pub container: u32,
+    /// Resizable axis bitmask: bit 0 (1) = horizontal (left/right edges),
+    /// bit 1 (2) = vertical (top/bottom edges). 0 = not resizable. Each axis
+    /// is opt-in; `resizable_keep_aspect` locks the ratio and only applies
+    /// when both bits are set.
     pub resizable: u8,
     pub resizable_keep_aspect: u8,
     pub portal_arrow: u8,
@@ -1566,18 +1570,21 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     } else {
         0
     };
-    // resizable: a bare boolean, or an object { keepAspectRatio }. Both enable
-    // resize; the object form additionally locks the aspect ratio.
-    match panel.get("resizable") {
-        Some(Value::Bool(b)) => {
-            o.resizable = *b as u8;
+    // resizable: object { horizontal?, vertical?, keepAspectRatio? }. Each axis
+    // is opt-in (disabled unless explicitly true); keepAspectRatio locks the
+    // ratio and only applies when both axes are enabled. A non-object value is
+    // ignored (the old bare-boolean form is gone).
+    if let Some(v) = panel.get("resizable").filter(|v| v.is_object()) {
+        let mut r = 0u8;
+        if v.get("horizontal").and_then(|b| b.as_bool()).unwrap_or(false) {
+            r |= 1;
         }
-        Some(v) if v.is_object() => {
-            o.resizable = 1;
-            let ka = v.get("keepAspectRatio").and_then(|b| b.as_bool()).unwrap_or(false);
-            o.resizable_keep_aspect = ka as u8;
+        if v.get("vertical").and_then(|b| b.as_bool()).unwrap_or(false) {
+            r |= 2;
         }
-        _ => {}
+        o.resizable = r;
+        let ka = v.get("keepAspectRatio").and_then(|b| b.as_bool()).unwrap_or(false);
+        o.resizable_keep_aspect = ka as u8;
     }
     o.portal_arrow = opt_bool(opts, "portalArrow") as u8;
     o.unlinked = opt_bool(opts, "unlinked") as u8;

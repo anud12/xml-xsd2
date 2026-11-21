@@ -34,7 +34,7 @@ export default (hostApi) => {
   hostApi.ui.window("resizable-hscroll", {
     panel: {
       x: 100, y: 100, width: 200, height: 100,
-      resizable: true,
+      resizable: { horizontal: true, vertical: true },
       overflow: {
         width: "scroll", height: "scroll", barSize: 8,
         texture: {

@@ -1,0 +1,6 @@
+{
+  "id": "resizable-per-axis-test",
+  "version": "1.0.0",
+  "name": "Resizable Per-Axis Test Module",
+  "entry": "index.js"
+}

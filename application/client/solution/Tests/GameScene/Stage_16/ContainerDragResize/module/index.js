@@ -9,8 +9,8 @@
  * `container_2`), each a `draggable`/`droppable` window that renders its
  * container's entities as child windows (one per entity) through `entityList`.
  * `item-1` and `item-2` start in `container_1`; `container_2` starts empty.
- * Both container windows are declared `resizable: true` so the test can resize
- * the drop target before releasing a drag over it.
+  * Both container windows are declared `resizable` (both axes) so the test can
+  * resize the drop target before releasing a drag over it.
  *
  * The drag type ("land") owns BOTH the shared drop affordance (the `feedback`
  * overlay) and the drop semantics: its `onDrop` moves the entity INTO the
@@ -141,7 +141,7 @@ export default (hostApi) => {
         y: 100,
         width: 220,
         height: 300,
-        resizable: true,
+        resizable: { horizontal: true, vertical: true },
         background: { animation: panelBg, fill: { width: "stretch", height: "stretch" } },
         droppable: LAND.droppable(),
       },

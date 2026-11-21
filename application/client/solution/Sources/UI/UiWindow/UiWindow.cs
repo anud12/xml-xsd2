@@ -24,12 +24,17 @@ public partial class UiWindow : Control
     // own onClick over the host's resize zones.
     bool _isDivision;
 
-    // User-resizable (resizable: true option): drag edge/corner hit zones
-    // resize the window. `_userSize` / `_userPosition` are the drag-adjusted
-    // size/position; non-zero/has-value while they differ from the declared
-    // values, so per-frame repaints keep the user values instead of resetting
-    // to the declared ones (top/left edge drags also move the window).
+    // User-resizable (resizable: { horizontal, vertical, keepAspectRatio }
+    // option): drag edge/corner hit zones resize the window on the enabled
+    // axes. `_resizable` is true when any axis is enabled; `_resizableHorizontal`
+    // / `_resizableVertical` are the per-axis opt-in flags. `_userSize` /
+    // `_userPosition` are the drag-adjusted size/position; non-zero/has-value
+    // while they differ from the declared values, so per-frame repaints keep
+    // the user values instead of resetting to the declared ones (top/left edge
+    // drags also move the window).
     bool _resizable;
+    bool _resizableHorizontal;
+    bool _resizableVertical;
     bool _resizableKeepAspect;
     Vector2 _userSize = Vector2.Zero;
     bool _hasUserPosition;

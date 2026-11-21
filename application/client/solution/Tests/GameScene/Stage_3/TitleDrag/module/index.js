@@ -16,7 +16,7 @@ export default (hostApi) => {
       width: 200,
       height: 120,
       title: "Resizable",
-      resizable: true,
+      resizable: { horizontal: true, vertical: true },
     },
   });
 }

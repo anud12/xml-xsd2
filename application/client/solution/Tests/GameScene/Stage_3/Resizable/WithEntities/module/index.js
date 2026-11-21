@@ -33,7 +33,7 @@ export default (hostApi) => {
       height: 200,
       x: 350,
       y: 100,
-      resizable: true,
+      resizable: { horizontal: true, vertical: true },
       background: { animation: texture, fill: { width: "stretch", height: "stretch" } },
     },
   }, [

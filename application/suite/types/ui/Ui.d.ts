@@ -5,6 +5,7 @@ import {SpriteResource} from "../texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "../texture/SpriteMap";
 import {ContainerReadOnlyExpression, GridReadOnlyExpression} from "../dataExpression/Contaier";
 import {ActionReadOnlyExpression} from "../dataExpression/action/no-input-action";
+import { DraggableOptions, DroppableOptions, DragAndDropChannelFunction } from "./dragdrop";
 
 /**
  * A raw node id string.
@@ -224,13 +225,21 @@ export type UiPanelOptions = {
      */
     overflow?: UiOverflow;
     /**
-     * Enables user edge/corner drag-resize. A bare `true` allows free resizing
-     * on all four edges and corners. An object form accepts options:
-     * `keepAspectRatio` locks the width:height ratio to the declared size, so
-     * a drag grows/shrinks both axes in proportion (the dominant edge/corner
-     * wins). Only honored for windows (explicitly sized panels).
+     * Per-axis user drag-resize for a window (explicitly sized panel). Each
+     * axis is opt-in (disabled unless set `true`): `horizontal` enables the
+     * left/right edges, `vertical` the top/bottom edges (a corner is where the
+     * two enabled axes overlap). `keepAspectRatio` locks the width:height ratio
+     * to the declared size so a drag grows/shrinks both axes in proportion (the
+     * dominant edge wins); it only takes effect when both axes are enabled.
      */
-    resizable?: boolean | { keepAspectRatio?: boolean };
+    resizable?: {
+      /** Enable horizontal resize (left/right edges). Default `false`. */
+      horizontal?: boolean;
+      /** Enable vertical resize (top/bottom edges). Default `false`. */
+      vertical?: boolean;
+      /** Lock the width:height ratio; only applies when both axes are enabled. */
+      keepAspectRatio?: boolean;
+    };
     /**
      * Window title: drawn as a title strip across the top of the window with
      * the text centered, and makes the window draggable by the strip
@@ -261,7 +270,10 @@ export type UiPanelOptions = {
         thickness?: number;
       }[];
     };
-    [key: string]: unknown;
+    /** Marks this panel as a drag source. See {@link DraggableOptions}. */
+    draggable?: DraggableOptions;
+    /** Marks this panel as a drop target. See {@link DroppableOptions}. */
+    droppable?: DroppableOptions;
   }
 };
 
@@ -271,7 +283,6 @@ export type UiPanelOptions = {
 export type UiClickContext = {
   emitAction: (action: ActionReadOnlyExpression, args?: Record<string, unknown>) => void;
   cursor?: { getX: () => number; getY: () => number };
-  [key: string]: unknown;
 };
 
 /**
@@ -502,6 +513,42 @@ export interface UiSectorGridComponent
  * all return a {@link UiParentExpression}, whose `addChild` appends a child
  * to the node's children list after the node was created.
  */
+/**
+ * Legacy panel descriptor (stage-2 FFI path). `registerPanel` forwards this to
+ * the C# host, which reads the full shape; the JS side is a no-op. `id` is
+ * required; the rest are the legacy positioning / size / content / background
+ * slots. Numeric slots take {@link NumberReadOnlyExpression} values (e.g.
+ * `number.of(0)`), matching how legacy JS modules build them.
+ */
+export type UiLegacyPanelOptions = {
+  id: string;
+  /** Legacy content slot (constant / field / container-list value). */
+  content?: {
+    type: string;
+    value?: string;
+    name?: string;
+    entityId?: string;
+    fallback?: string;
+    align?: string;
+    containerId?: string;
+    vertical?: boolean;
+  };
+  /** Legacy anchor point. */
+  anchor?: { x?: NumberReadOnlyExpression; y?: NumberReadOnlyExpression };
+  /** Legacy edge insets. */
+  offset?: {
+    top?: NumberReadOnlyExpression;
+    bottom?: NumberReadOnlyExpression;
+    left?: NumberReadOnlyExpression;
+    right?: NumberReadOnlyExpression;
+  };
+  /** Legacy explicit size. */
+  size?: { height?: NumberReadOnlyExpression; width?: NumberReadOnlyExpression };
+  /** Legacy background (sprite frames). */
+  background?: { frames?: { sprite: SpriteResource }[] };
+  /** Legacy child node ids. */
+  children?: string[];
+};
 export type UiApi = {
   panel: UiPanelComponent;
   window: UiWindowComponent;
@@ -515,7 +562,7 @@ export type UiApi = {
    * Legacy panel registration (stage-2 FFI path): a no-op on the JS side, the
    * descriptor is handled by the C# host. Accepts the legacy panel descriptor.
    */
-  registerPanel: (panelOptions: { id: string; [key: string]: unknown }) => void;
+  registerPanel: (panelOptions: UiLegacyPanelOptions) => void;
   /** Register a font from an archive .ttf file; returns a reference handle. */
   setFont: (config: UiFontConfig) => UiFontReference;
   /** A text label: must be nested under a window. */
@@ -534,4 +581,6 @@ export type UiApi = {
   spriteMapTIFF: (mapPath: string, layers: MapLayerBinding[]) => SpriteMap;
   getSpritePNG: (path: string) => SpriteResource;
   getAnimation: GetAnimationFunction;
+  /** Register (or retrieve) a drag type by name. Returns a `DragTypeReference` handle. */
+  dragAndDropChannel: DragAndDropChannelFunction;
 };

@@ -179,6 +179,10 @@ public static class UiAbi
         public UiOnClick OnClick;
         public UiOnHover OnHover;
         public uint Container;
+        // Resizable axis bitmask: bit 0 (1) = horizontal (left/right edges),
+        // bit 1 (2) = vertical (top/bottom edges). 0 = not resizable. Each
+        // axis is opt-in; ResizableKeepAspect locks the ratio and only applies
+        // when both bits are set.
         public byte Resizable;
         public byte ResizableKeepAspect;
         public byte PortalArrow;

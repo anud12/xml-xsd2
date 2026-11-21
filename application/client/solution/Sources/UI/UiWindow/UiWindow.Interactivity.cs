@@ -246,7 +246,10 @@ public partial class UiWindow
         var delta = globalMouse - _resizeStartMouse;
         var newSize = _resizeStartSize;
         var newPos = _resizeStartPos;
-        if (_resizableKeepAspect)
+        // keepAspectRatio only takes effect when BOTH axes are enabled (a
+        // single-axis resize has no ratio to lock); otherwise the enabled
+        // edges resize freely (the disabled axis stays fixed via edge masking).
+        if (_resizableKeepAspect && _resizableHorizontal && _resizableVertical)
             KeepAspectResize(delta, _resizeEdge, ref newSize, ref newPos);
         else
         {
@@ -384,6 +387,11 @@ public partial class UiWindow
         if (local.X >= w - ResizeHitZone) edge |= EdgeRight;
         if (local.Y <= ResizeHitZone) edge |= EdgeTop;
         if (local.Y >= h - ResizeHitZone) edge |= EdgeBottom;
+        // Mask out disabled axes (opt-in per axis): a disabled axis contributes
+        // no edges, so a corner over a disabled axis degrades to the single
+        // enabled edge (or nothing when neither axis is enabled there).
+        if (!_resizableHorizontal) edge &= ~(EdgeLeft | EdgeRight);
+        if (!_resizableVertical) edge &= ~(EdgeTop | EdgeBottom);
         return edge;
     }
 
@@ -398,13 +406,20 @@ public partial class UiWindow
     void EnsureResizeGrips()
     {
         if (!_resizable || _resizeGrips != null) return;
-        _resizeGrips = new[]
+        // Only create grips for the enabled axes (opt-in per axis): horizontal
+        // adds the left/right grips, vertical the top/bottom grips.
+        var grips = new List<Godot.Control>();
+        if (_resizableHorizontal)
         {
-            CreateResizeGrip("__resizeGripLeft",   0f, 0f, 0f, 1f,  0f,           0f,           ResizeHitZone, 0f),
-            CreateResizeGrip("__resizeGripRight",  1f, 0f, 1f, 1f, -ResizeHitZone, 0f,           0f,           0f),
-            CreateResizeGrip("__resizeGripTop",    0f, 0f, 1f, 0f,  0f,           0f,           0f,           ResizeHitZone),
-            CreateResizeGrip("__resizeGripBottom", 0f, 1f, 1f, 1f,  0f,          -ResizeHitZone, 0f,           0f),
-        };
+            grips.Add(CreateResizeGrip("__resizeGripLeft",   0f, 0f, 0f, 1f,  0f,           0f,           ResizeHitZone, 0f));
+            grips.Add(CreateResizeGrip("__resizeGripRight",  1f, 0f, 1f, 1f, -ResizeHitZone, 0f,           0f,           0f));
+        }
+        if (_resizableVertical)
+        {
+            grips.Add(CreateResizeGrip("__resizeGripTop",    0f, 0f, 1f, 0f,  0f,           0f,           0f,           ResizeHitZone));
+            grips.Add(CreateResizeGrip("__resizeGripBottom", 0f, 1f, 1f, 1f,  0f,          -ResizeHitZone, 0f,           0f));
+        }
+        _resizeGrips = grips.ToArray();
     }
 
     Godot.Control CreateResizeGrip(

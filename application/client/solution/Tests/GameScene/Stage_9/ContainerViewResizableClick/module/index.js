@@ -53,7 +53,7 @@ export default (hostApi) => {
       y: 10,
       width: 400,
       height: 200,
-      resizable: true,
+      resizable: { horizontal: true, vertical: true },
     },
   }, [
     hostApi.ui.containerView("plane", {

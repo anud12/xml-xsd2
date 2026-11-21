@@ -35,7 +35,7 @@ export default (hostApi) => {
     panel: {
       x: 100, y: 100, width: 200, height: 200,
       layout: "column",
-      resizable: true,
+      resizable: { horizontal: true, vertical: true },
       overflow: {
         width: "show", height: "scroll", barSize: 8,
         texture: {
