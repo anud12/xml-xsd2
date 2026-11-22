@@ -1,10 +1,10 @@
 using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
 
-namespace GdUnit4.Examples.Basics.Setup.Test.Stage_13.StringGenerator;
+namespace GdUnit4.Examples.Basics.Setup.Test.Stage_13.StringBlueprint;
 
 [TestSuite]
-public class StringGeneratorTests : Steps
+public class StringBlueprintTests : Steps
 {
     [TestCategory("Stage_13")]
     [TestCase]

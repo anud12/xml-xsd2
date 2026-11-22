@@ -1,10 +1,10 @@
 using NewGameProject.Runtime;
 using NewGameProject.Tests.XUnit;
 
-namespace GdUnit4.Examples.Basics.Setup.Test.Stage_13.EntityGenerator;
+namespace GdUnit4.Examples.Basics.Setup.Test.Stage_13.EntityBlueprint;
 
 [TestSuite]
-public class EntityGeneratorTests : Steps
+public class EntityBlueprintTests : Steps
 {
     [TestCategory("Stage_13")]
     [TestCase]

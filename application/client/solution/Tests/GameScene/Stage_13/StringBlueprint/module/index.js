@@ -1,6 +1,6 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
-  const { string, stringGenerator: sg } = hostApi.runtime;
+  const { string, stringBlueprint: sg } = hostApi.runtime;
 
   // A "person name" grammar: <first> + " " + <last>. Each part draws from two
   // alternatives, so the composed language is their ordered product.

@@ -67,11 +67,14 @@ var hostApi={
   }
 };
 globalThis.hostApi=hostApi;
-if (globalThis.__stringGeneratorFactory) {
-  hostApi.runtime.stringGenerator = globalThis.__stringGeneratorFactory.create();
+if (globalThis.__stringBlueprintFactory) {
+  hostApi.runtime.stringBlueprint = globalThis.__stringBlueprintFactory.create();
 }
-if (globalThis.__entityGeneratorFactory) {
-  hostApi.runtime.entityGenerator = globalThis.__entityGeneratorFactory.create();
+if (globalThis.__numberBlueprintFactory) {
+  hostApi.runtime.numberBlueprint = globalThis.__numberBlueprintFactory.create();
+}
+if (globalThis.__entityBlueprintFactory) {
+  hostApi.runtime.entityBlueprint = globalThis.__entityBlueprintFactory.create();
 }
 "#
 }

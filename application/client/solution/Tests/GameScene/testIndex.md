@@ -205,13 +205,15 @@ Full-screen UI elements and screen-level layout.
 |--------|-------|
 | `Screen` | Screen-level panel (fullscreen overlay) |
 
-## Stage_13 — String generation
+## Stage_13 — Blueprints
 
-Runtime string generation utilities.
+Runtime procedural blueprints (string, number, entity).
 
 | Folder | Scope |
 |--------|-------|
-| `StringGenerator` | Procedural string generation (ids, names) |
+| `StringBlueprint` | Procedural string generation (ids, names) |
+| `NumberBlueprint` | Procedural integer generation (ranges, unions) |
+| `EntityBlueprint` | Procedural entity generation (text/number maps) |
 
 ## Stage_14 — Entity filter system
 

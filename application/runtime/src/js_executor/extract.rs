@@ -3,7 +3,7 @@ use crate::js_runtime::{create_runtime, create_context};
 use crate::js_host_api::{extract_declarations, lxm_prng_script, Declarations};
 use crate::js_host_api::script_emit;
 use crate::js_host_api::script_rest;
-use crate::js_host_api::script_generator;
+use crate::js_host_api::script_blueprint;
 use super::strip_export::strip_export_prefix;
 use super::import_resolver::resolve_and_fetch;
 
@@ -18,12 +18,15 @@ fn get_host_api_script() -> String {
         // Install the shared LXM PRNG (globalThis.__lxmNext) first so the
         // module entry's number.random resolves during extraction too.
         lxm_prng_script(),
-        // Register the stringGenerator factory (globalThis.__stringGeneratorFactory)
-        // so extract_invoke can install runtime.stringGenerator.
-        script_generator::host_api_script_generator(),
-        // Register the entityGenerator factory (globalThis.__entityGeneratorFactory)
-        // so extract_invoke can install runtime.entityGenerator.
-        script_generator::host_api_script_entity_generator(),
+        // Register the stringBlueprint factory (globalThis.__stringBlueprintFactory)
+        // so extract_invoke can install runtime.stringBlueprint.
+        script_blueprint::host_api_script_string_blueprint(),
+        // Register the numberBlueprint factory (globalThis.__numberBlueprintFactory)
+        // so extract_invoke can install runtime.numberBlueprint.
+        script_blueprint::host_api_script_number_blueprint(),
+        // Register the entityBlueprint factory (globalThis.__entityBlueprintFactory)
+        // so extract_invoke can install runtime.entityBlueprint.
+        script_blueprint::host_api_script_entity_blueprint(),
         script_emit::host_api_script_part1(),
         script_emit::host_api_script_emit(),
         script_rest::host_api_script_rest().as_str(),

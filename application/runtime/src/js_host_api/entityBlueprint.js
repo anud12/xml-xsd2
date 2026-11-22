@@ -1,39 +1,40 @@
 /**
- * EntityGenerator — a composable grammar over a set of entity blueprints.
+ * EntityBlueprint — a composable grammar over a set of entity templates.
  *
- * A blueprint is a template for an entity's field maps — it carries no id; the
- * caller supplies one at registration. Any textMap field value may itself be a
- * StringGenerator's generateValue() grammar, so a single blueprint can denote
- * many concrete entities — its *language* L(blueprint) = the cartesian
- * product of its generated fields' languages (numberMap fields are fixed).
+ * A template is the field maps an entity blueprint instantiates — it carries no
+ * id; the caller supplies one at registration. Any textMap field value may
+ * itself be a StringBlueprint's generateValue() grammar, and any numberMap field
+ * may be a NumberBlueprint's generateValue() grammar (or a fixed number), so a
+ * single template can denote many concrete entities — its *language*
+ * L(template) = the cartesian product of its generated fields' languages.
  *
- * A generator is built with oneOf(makeList), where makeList is a lambda
- * () => Array<blueprintSpec | subGenerator>. The lambda is evaluated at
- * generateValue()/isGeneratedBy() time, so the blueprint set — and any generated
+ * A blueprint is built with oneOf(makeList), where makeList is a lambda
+ * () => Array<template | subBlueprint>. The lambda is evaluated at
+ * generateValue()/isGeneratedBy() time, so the template set — and any generated
  * field values — can be produced dynamically (it can reach the live hostApi
  * through its enclosing scope).
  *
- * A generator exposes:
- *   - oneOf(makeList)   : L = union of the blueprints' (or sub-generators')
+ * A blueprint exposes:
+ *   - oneOf(makeList)   : L = union of the templates' (or sub-blueprints')
  *       languages.
  *   - generateValue()   -> MaybeExpression<EntityReadOnlyExpression>
- *       Instantiates a new entity from a random concrete blueprint (drawn from
+ *       Instantiates a new entity from a random concrete template (drawn from
  *       the shared seeded LXM stream), registers it in the world via setEntity
  *       under a fresh id, and returns a read-only EntityExpression over it.
  *       Absent (maybe.none) when the language is empty (oneOf([])).
  *   - isGeneratedBy(candidate) -> ConditionExpression
- *       Exact field membership: true iff `candidate` (an entity or blueprint)
+ *       Exact field membership: true iff `candidate` (an entity or template)
  *       matches a member of the language (id is not considered).
  *
  * This file is self-contained (no dependencies) and UMD: in Node it sets
  * module.exports; when eval'd by the embedded runtime it sets
- * globalThis.__entityGeneratorFactory.
+ * globalThis.__entityBlueprintFactory.
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
     module.exports = factory();
   } else {
-    root.__entityGeneratorFactory = factory();
+    root.__entityBlueprintFactory = factory();
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
@@ -119,15 +120,24 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Own string keys of a plain object, in insertion order.
+  // ---------------------------------------------------------------------------
+  function ownKeys(o) {
+    var out = [];
+    for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) out.push(k);
+    return out;
+  }
+
+  // ---------------------------------------------------------------------------
   // Value resolution.
   // ---------------------------------------------------------------------------
   // Resolve a string-ish field (plain string | StringExpression | a language-
   // bearing grammar | a Maybe-wrapped value) to its language: the array of
   // concrete strings it can denote.
-   function fieldLanguage(e) {
+  function fieldLanguage(e) {
     if (e && typeof e === 'object') {
       if (e.__isMaybe) return fieldLanguage(e.value);
-      if (e.__generator) return e.language();
+      if (e.__stringBlueprint) return e.language();
       if (Array.isArray(e.__lang)) return e.__lang.slice();
       if (typeof e.value === 'string') return [e.value];
     }
@@ -135,82 +145,109 @@
     return [];
   }
 
-  // Resolve a number-ish field to a concrete number. Numbers have no generator
-  // grammar, so a blueprint's numberMap fields are fixed values.
-  function numberValue(e) {
+  // Resolve a number-ish field to its integer pieces. A field is one of:
+  //   - a fixed number / NumberExpression ({value|_raw})  -> a singleton piece
+  //   - a NumberBlueprint (__numberBlueprint)             -> its pieces
+  //   - (defensively) a Maybe-wrapped value              -> recurse into .value
+  function numberPieces(e) {
     if (e && typeof e === 'object') {
-      if (e._raw !== undefined) return Number(e._raw);
-      if (typeof e.value === 'number') return e.value;
+      if (e.__numberBlueprint) return e.pieces();
+      if (e.__isMaybe) return numberPieces(e.value);
+      if (e._raw !== undefined) { var n = Math.floor(Number(e._raw)); if (isFinite(n)) return [{ lo: n, hi: n }]; return []; }
+      if (typeof e.value === 'number') { var m = Math.floor(Number(e.value)); if (isFinite(m)) return [{ lo: m, hi: m }]; return []; }
     }
-    return Number(e);
+    var nn = Number(e);
+    if (isFinite(nn)) return [{ lo: Math.floor(nn), hi: Math.floor(nn) }];
+    return [];
   }
 
-  // Own string keys of a plain object, in insertion order.
-  function ownKeys(o) {
-    var out = [];
-    for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) out.push(k);
-    return out;
+  // ---------------------------------------------------------------------------
+  // Integer-piece helpers. A piece is { lo, hi } (inclusive, lo <= hi).
+  // ---------------------------------------------------------------------------
+  function piecesTotal(pieces) {
+    var total = 0;
+    for (var i = 0; i < pieces.length; i++) total += (pieces[i].hi - pieces[i].lo + 1);
+    return total;
   }
 
-  // Cartesian product of an array of dimension arrays: each result is one pick
-  // from every dimension, in order.
-  function cartesian(dims) {
-    var result = [ [] ];
-    for (var d = 0; d < dims.length; d++) {
-      var next = [];
-      for (var r = 0; r < result.length; r++) {
-        for (var v = 0; v < dims[d].length; v++) next.push(result[r].concat([dims[d][v]]));
-      }
-      result = next;
+  function inPieces(n, pieces) {
+    n = Math.floor(Number(n));
+    if (!isFinite(n)) return false;
+    for (var i = 0; i < pieces.length; i++) {
+      if (n >= pieces[i].lo && n <= pieces[i].hi) return true;
     }
-    return result;
+    return false;
   }
 
-  // A blueprint spec -> its concrete instantiations: each is
-  // { textMap: {k: string}, numberMap: {k: number} }. A blueprint has no id;
-  // the caller supplies one at registration.
-  function blueprintInstantiations(spec) {
-    if (!spec || typeof spec !== 'object') return [];
+  // A random integer drawn uniformly across all pieces (weighted by piece size)
+  // using the shared seeded LXM stream.
+  function randomInt(pieces) {
+    var total = piecesTotal(pieces);
+    if (total <= 0) return 0;
+    var r = globalThis.__lxmNext() * total;
+    if (r < 0) r = 0;
+    var acc = 0;
+    for (var i = 0; i < pieces.length; i++) {
+      var size = pieces[i].hi - pieces[i].lo + 1;
+      if (r < acc + size) return pieces[i].lo + Math.floor(r - acc);
+      acc += size;
+    }
+    return pieces[pieces.length - 1].hi;
+  }
+
+  // A template: { textMap: {k: string[]}, numberMap: {k: pieces[]} }.
+  function parseTemplate(spec) {
+    if (!spec || typeof spec !== 'object') return null;
     var textMap = spec.textMap || {};
-    var textKeys = ownKeys(textMap);
-    var textLangs = [];
-    for (var t = 0; t < textKeys.length; t++) textLangs.push(fieldLanguage(textMap[textKeys[t]]));
+    var tkeys = ownKeys(textMap);
+    var t = { textMap: {}, numberMap: {} };
+    for (var i = 0; i < tkeys.length; i++) t.textMap[tkeys[i]] = fieldLanguage(textMap[tkeys[i]]);
     var numberMap = spec.numberMap || {};
-    var numKeys = ownKeys(numberMap);
-    var resolvedNum = {};
-    for (var n = 0; n < numKeys.length; n++) resolvedNum[numKeys[n]] = numberValue(numberMap[numKeys[n]]);
+    var nkeys = ownKeys(numberMap);
+    for (var j = 0; j < nkeys.length; j++) t.numberMap[nkeys[j]] = numberPieces(numberMap[nkeys[j]]);
+    return t;
+  }
 
-    var combos = cartesian(textLangs);
-    var out = [];
-    for (var i = 0; i < combos.length; i++) {
-      var c = combos[i];
-      var inst = { textMap: {}, numberMap: {} };
-      for (var a = 0; a < textKeys.length; a++) inst.textMap[textKeys[a]] = c[a];
-      for (var b = 0; b < numKeys.length; b++) inst.numberMap[numKeys[b]] = resolvedNum[numKeys[b]];
-      out.push(inst);
+  // A template with an empty dimension (a text field with no strings, or a
+  // number field with no integers) can never instantiate, so it is excluded.
+  function templateIsEmpty(t) {
+    var tkeys = ownKeys(t.textMap || {});
+    for (var i = 0; i < tkeys.length; i++) {
+      if ((t.textMap[tkeys[i]] || []).length === 0) return true;
     }
-    return out;
+    var nkeys = ownKeys(t.numberMap || {});
+    for (var j = 0; j < nkeys.length; j++) {
+      if (piecesTotal(t.numberMap[nkeys[j]] || []) === 0) return true;
+    }
+    return false;
   }
 
-  // Canonical key for an instantiation (for dedupe + membership).
-  function instKey(inst) {
-    var tk = [];
-    var t = inst.textMap || {};
-    for (var i = 0; i < ownKeys(t).length; i++) { var k = ownKeys(t)[i]; tk.push(k + '=' + t[k]); }
-    tk.sort();
-    var nk = [];
-    var n = inst.numberMap || {};
-    for (var j = 0; j < ownKeys(n).length; j++) { var m = ownKeys(n)[j]; nk.push(m + '=' + n[m]); }
-    nk.sort();
-    return tk.join(',') + '||' + nk.join(',');
+  // Canonical key for a template (for dedupe).
+  function templateKey(t) {
+    var parts = [];
+    var tkeys = ownKeys(t.textMap || {}).slice().sort();
+    for (var i = 0; i < tkeys.length; i++) {
+      var arr = (t.textMap[tkeys[i]] || []).slice().sort();
+      parts.push('t' + tkeys[i] + '=' + arr.join('~'));
+    }
+    var nkeys = ownKeys(t.numberMap || {}).slice().sort();
+    for (var j = 0; j < nkeys.length; j++) {
+      var ps = (t.numberMap[nkeys[j]] || []).slice().sort(function (a, b) { return a.lo - b.lo || a.hi - b.hi; });
+      var s = '';
+      for (var k = 0; k < ps.length; k++) s += '[' + ps[k].lo + ',' + ps[k].hi + ']';
+      parts.push('n' + nkeys[j] + '=' + s);
+    }
+    parts.sort();
+    return parts.join('|');
   }
 
-  function dedupeInsts(instances) {
+  function dedupeTemplates(templates) {
     var seen = Object.create(null);
     var out = [];
-    for (var i = 0; i < instances.length; i++) {
-      var key = instKey(instances[i]);
-      if (!seen[key]) { seen[key] = 1; out.push(instances[i]); }
+    for (var i = 0; i < templates.length; i++) {
+      if (templates[i] == null) continue;
+      var key = templateKey(templates[i]);
+      if (!seen[key]) { seen[key] = 1; out.push(templates[i]); }
     }
     return out;
   }
@@ -311,18 +348,36 @@
   // Register a concrete instantiation as a new entity and return a read-only
   // EntityExpression over it. Plain field values (raw strings/numbers) are
   // stored so both the entity proxy and the Rust sync read clean values.
-  function instantiateEntity(inst) {
+  function instantiateEntity(concrete) {
     globalThis.__lxmEntityGenSeq = (globalThis.__lxmEntityGenSeq || 0) + 1;
     var id = 'gen_' + globalThis.__lxmEntityGenSeq;
     var textMap = {};
-    var t = inst.textMap || {};
+    var t = concrete.textMap || {};
     for (var i = 0; i < ownKeys(t).length; i++) { var k = ownKeys(t)[i]; textMap[k] = t[k]; }
     var numberMap = {};
-    var n = inst.numberMap || {};
+    var n = concrete.numberMap || {};
     for (var j = 0; j < ownKeys(n).length; j++) { var m = ownKeys(n)[j]; numberMap[m] = n[m]; }
     var rt = hostApiObj().runtime;
     if (rt && typeof rt.setEntity === 'function') rt.setEntity({ id: id, textMap: textMap, numberMap: numberMap });
     return makeEntityProxy(id, textMap, numberMap);
+  }
+
+  // Pick one concrete value per field from a (non-empty) template.
+  function randomInstantiate(t) {
+    var textMap = {};
+    var tkeys = ownKeys(t.textMap || {});
+    for (var i = 0; i < tkeys.length; i++) {
+      var arr = t.textMap[tkeys[i]] || [];
+      var idx = Math.floor(globalThis.__lxmNext() * arr.length);
+      if (idx >= arr.length) idx = arr.length - 1;
+      textMap[tkeys[i]] = arr[idx];
+    }
+    var numberMap = {};
+    var nkeys = ownKeys(t.numberMap || {});
+    for (var j = 0; j < nkeys.length; j++) {
+      numberMap[nkeys[j]] = randomInt(t.numberMap[nkeys[j]] || []);
+    }
+    return { textMap: textMap, numberMap: numberMap };
   }
 
   // Resolve a field value (plain or expression) to its concrete value.
@@ -343,7 +398,7 @@
   }
 
   // Resolve a candidate (a generated entity proxy, or a field-map spec) to a
-  // comparable shape. A proxy built by this generator carries its plain field
+  // comparable shape. A proxy built by this blueprint carries its plain field
   // maps (__textMap/__numberMap); a host proxy carries __id (data read from
   // __entityData); a plain spec carries textMap/numberMap.
   function resolveCandidate(candidate) {
@@ -360,67 +415,81 @@
     return { textMap: textMap, numberMap: numberMap };
   }
 
-  // Exact field-by-field equality between an instantiation and a resolved candidate.
-  function instMatches(inst, resolved) {
+  // Field-by-field membership of a resolved candidate against a template.
+  function matchesTemplate(t, resolved) {
     if (resolved == null) return false;
-    var t = inst.textMap || {};
     var rt = resolved.textMap || {};
-    for (var i = 0; i < ownKeys(t).length; i++) {
-      var k = ownKeys(t)[i];
-      if (String(t[k]) !== String(rt[k])) return false;
+    var tkeys = ownKeys(t.textMap || {});
+    for (var i = 0; i < tkeys.length; i++) {
+      var k = tkeys[i];
+      var arr = t.textMap[k] || [];
+      var v = String(rt[k]);
+      var found = false;
+      for (var a = 0; a < arr.length; a++) {
+        if (String(arr[a]) === v) { found = true; break; }
+      }
+      if (!found) return false;
     }
-    var n = inst.numberMap || {};
     var rn = resolved.numberMap || {};
-    for (var j = 0; j < ownKeys(n).length; j++) {
-      var m = ownKeys(n)[j];
-      if (Number(n[m]) !== Number(rn[m])) return false;
+    var nkeys = ownKeys(t.numberMap || {});
+    for (var j = 0; j < nkeys.length; j++) {
+      var m = nkeys[j];
+      if (!inPieces(rn[m], t.numberMap[m] || [])) return false;
     }
     return true;
   }
 
   // ---------------------------------------------------------------------------
-  // Generator (lazy).
+  // Blueprint (lazy). The template list (and hence the language) is produced by
+  // computeTemplates and re-evaluated at every generateValue()/isGeneratedBy()
+  // call so it can produce values dynamically.
   // ---------------------------------------------------------------------------
-  // The blueprint list (and hence the language) is produced by computeInsts and
-  // is re-evaluated at every generateValue() / isGeneratedBy() call so it can
-  // produce values dynamically. The result is deduped on demand.
-  function makeLazyGenerator(computeInsts) {
-    return {
-      __entityGenerator: true,
-      insts: function () {
-        return dedupeInsts(computeInsts());
-      },
-      generateValue: function () {
-        var insts = dedupeInsts(computeInsts());
-        if (insts.length === 0) return maybeNone();
-        var idx = Math.floor(globalThis.__lxmNext() * insts.length);
-        if (idx >= insts.length) idx = insts.length - 1;
-        return maybeOf(instantiateEntity(insts[idx]));
-      },
-      isGeneratedBy: function (candidate) {
-        var insts = dedupeInsts(computeInsts());
-        var resolved = resolveCandidate(candidate);
-        var ok = false;
-        for (var i = 0; i < insts.length; i++) {
-          if (instMatches(insts[i], resolved)) { ok = true; break; }
-        }
-        return conditionOf(ok, candidate);
+  function makeLazyBlueprint(computeTemplates) {
+    var self = { __entityBlueprint: true };
+    self.templates = function () {
+      var ts = computeTemplates();
+      var nonEmpty = [];
+      for (var i = 0; i < ts.length; i++) {
+        if (ts[i] != null && !templateIsEmpty(ts[i])) nonEmpty.push(ts[i]);
       }
+      return dedupeTemplates(nonEmpty);
     };
+    self.generateValue = function () {
+      var ts = self.templates();
+      if (ts.length === 0) return maybeNone();
+      var idx = Math.floor(globalThis.__lxmNext() * ts.length);
+      if (idx >= ts.length) idx = ts.length - 1;
+      return maybeOf(instantiateEntity(randomInstantiate(ts[idx])));
+    };
+    self.isGeneratedBy = function (candidate) {
+      var ts = self.templates();
+      var resolved = resolveCandidate(candidate);
+      var ok = false;
+      for (var i = 0; i < ts.length; i++) {
+        if (matchesTemplate(ts[i], resolved)) { ok = true; break; }
+      }
+      return conditionOf(ok, candidate);
+    };
+    return self;
   }
 
-  // L(oneOf(makeList)) = union of the blueprints' (or sub-generators') languages.
-  // makeList is a lambda () => Array<blueprintSpec | subGenerator>, evaluated at
-  // generateValue()/isGeneratedBy() time for dynamic generation (it can reach the
-  // live hostApi through its enclosing scope).
+  // L(oneOf(makeList)) = union of the templates' (or sub-blueprints') languages.
+  // makeList is a lambda () => Array<template | subBlueprint>, evaluated at
+  // generateValue()/isGeneratedBy() time for dynamic generation (it can reach
+  // the live hostApi through its enclosing scope).
   function oneOf(makeList) {
-    return makeLazyGenerator(function () {
+    return makeLazyBlueprint(function () {
       var acc = [];
       var arr = (typeof makeList === 'function') ? (makeList() || []) : (makeList || []);
       for (var i = 0; i < arr.length; i++) {
         var el = arr[i];
-        var insts = (el && el.__entityGenerator) ? el.insts() : blueprintInstantiations(el);
-        for (var j = 0; j < insts.length; j++) acc.push(insts[j]);
+        if (el && el.__entityBlueprint) {
+          var sub = el.templates();
+          for (var j = 0; j < sub.length; j++) acc.push(sub[j]);
+        } else {
+          var t = parseTemplate(el);
+          if (t) acc.push(t);
+        }
       }
       return acc;
     });
@@ -430,7 +499,7 @@
     create: function () {
       return {
         oneOf: oneOf,
-        type: { __entityGeneratorApi: true }
+        type: { __entityBlueprintApi: true }
       };
     }
   };

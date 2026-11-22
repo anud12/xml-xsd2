@@ -1,0 +1,6 @@
+{
+  "id": "entity-blueprint-test",
+  "version": "1.0.0",
+  "name": "Entity Blueprint Test Module",
+  "entry": "index.js"
+}

@@ -1,0 +1,6 @@
+{
+  "id": "string-blueprint-test",
+  "version": "1.0.0",
+  "name": "String Blueprint Test Module",
+  "entry": "index.js"
+}

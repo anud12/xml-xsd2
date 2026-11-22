@@ -1,14 +1,14 @@
 'use strict';
-// Engine-agnostic tests for the stringGenerator host API.
-// Run with: node test/stringGenerator.test.js
+// Engine-agnostic tests for the stringBlueprint host API.
+// Run with: node test/stringBlueprint.test.js
 const assert = require('node:assert');
 
-// The embedded runtime registers this as globalThis.__stringGeneratorFactory;
+// The embedded runtime registers this as globalThis.__stringBlueprintFactory;
 // in Node the UMD wrapper exports it via module.exports.
-const sgFactory = require('../src/js_host_api/stringGenerator.js');
+const sgFactory = require('../src/js_host_api/stringBlueprint.js');
 const sg = sgFactory.create();
 
-// The generator draws concrete members from the host's seeded LXM stream
+// The blueprint draws concrete members from the host's seeded LXM stream
 // (globalThis.__lxmNext), which the embedded runtime injects. In plain Node it
 // is not present, so install a deterministic xorshift32 stream to make
 // generateValue() reproducible and testable.

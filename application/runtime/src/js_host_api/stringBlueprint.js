@@ -1,10 +1,10 @@
 /**
- * StringGenerator — a composable grammar over a regular language of strings.
+ * StringBlueprint — a composable grammar over a regular language of strings.
  *
  * See specification/expressions/stringGenerator.md.
  *
- * A generator denotes a *language* L(gen): the set of concrete strings it can
- * produce. It is built with:
+ * A blueprint denotes a *language* L(blueprint): the set of concrete strings it
+ * can produce. It is built with:
  *   - oneOf(makeList)  : L = union of the elements' languages
  *   - concat(elements) : L = ordered concatenation (product) of the elements'
  *
@@ -13,9 +13,9 @@
  * values) can be produced dynamically (it can reach the live hostApi through its
  * enclosing scope). concat takes a plain array (its sequence is fixed).
  *
- * A generator exposes exactly two operations:
+ * A blueprint exposes exactly two operations:
  *   - generateValue()  -> MaybeExpression<StringExpression>
- *       The generator -> StringExpression conversion. Present (maybe.of) with the
+ *       The blueprint -> StringExpression conversion. Present (maybe.of) with the
  *       language grammar when L is non-empty; absent (maybe.none) when L is empty
  *       (the oneOf([]) case). The concrete random string emerges when the returned
  *       StringExpression is evaluated.
@@ -24,21 +24,21 @@
  *       string) is a member of L. NOT a substring test.
  *
  * Chaining: because oneOf/concat take a list of StringExpression (inside the
- * makeList lambda), a sub-generator is spliced in by converting it
+ * makeList lambda), a sub-blueprint is spliced in by converting it
  * (sub.generateValue().orElse(fallback)) and passing the resulting
  * StringExpression into the outer list. The language-bearing grammar carries the
- * full set of strings, so composition keeps the full language. A sub-generator
+ * full set of strings, so composition keeps the full language. A sub-blueprint
  * may also be passed directly as an element.
  *
  * This file is self-contained (no dependencies) and UMD: in Node it sets
  * module.exports; when eval'd by the embedded runtime it sets
- * globalThis.__stringGeneratorFactory.
+ * globalThis.__stringBlueprintFactory.
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
     module.exports = factory();
   } else {
-    root.__stringGeneratorFactory = factory();
+    root.__stringBlueprintFactory = factory();
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
@@ -108,12 +108,12 @@
   // An element is one of:
   //   - a plain string                      -> [that string]
   //   - a language-bearing grammar (__langExpr)  -> its full language
-  //   - a generator (__generator)                 -> its full language
+  //   - a blueprint (__stringBlueprint)             -> its full language
   //   - (defensively) a Maybe-wrapped value -> recurse into .value
    function languageOfElement(e) {
     if (e && typeof e === 'object') {
       if (e.__langExpr) return e.__lang.slice();
-      if (e.__generator) return e.language();
+      if (e.__stringBlueprint) return e.language();
       if (e.__isMaybe) return languageOfElement(e.value);
     }
     if (typeof e === 'string') return [e];
@@ -153,12 +153,12 @@
     };
   }
 
-  // A lazy generator: the language is produced by computeLanguage and is
+  // A lazy blueprint: the language is produced by computeLanguage and is
   // re-evaluated at every generateValue() / isGeneratedBy() call so it can
   // produce values dynamically.
-  function makeLazyGenerator(computeLanguage) {
+  function makeLazyBlueprint(computeLanguage) {
     return {
-      __generator: true,
+      __stringBlueprint: true,
       language: function () {
         return dedupe(computeLanguage());
       },
@@ -186,7 +186,7 @@
   // () => Array<element>, evaluated at generateValue()/isGeneratedBy() time for
   // dynamic generation (it can reach the live hostApi through its scope).
   function oneOf(makeList) {
-    return makeLazyGenerator(function () {
+    return makeLazyBlueprint(function () {
       var acc = [];
       var arr = (typeof makeList === 'function') ? (makeList() || []) : (makeList || []);
       for (var i = 0; i < arr.length; i++) {
@@ -203,7 +203,7 @@
   // host-driven choice.
   function concat(elements) {
     var arr = elements || [];
-    return makeLazyGenerator(function () {
+    return makeLazyBlueprint(function () {
       var langs = [];
       for (var i = 0; i < arr.length; i++) langs.push(languageOfElement(arr[i]));
 
@@ -226,7 +226,7 @@
       return {
         oneOf: oneOf,
         concat: concat,
-        type: { __stringGeneratorApi: true }
+        type: { __stringBlueprintApi: true }
       };
     }
   };

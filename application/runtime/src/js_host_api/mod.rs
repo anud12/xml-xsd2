@@ -4,7 +4,7 @@ pub mod script_panel_entity;
 pub mod script_rest;
 pub mod script_entity_filter;
 pub mod script_behavior;
-pub mod script_generator;
+pub mod script_blueprint;
 mod script_extract;
 mod script_extract_map;
 
@@ -48,13 +48,16 @@ pub fn install_host_api(ctx: &Context) -> Result<()> {
         // entity proxy, condition reader) before the host is assembled so
         // every context's getEntityBy can use it.
         script_entity_filter::host_api_script_entity_filter(),
-        // Register the stringGenerator factory (globalThis.__stringGeneratorFactory)
+        // Register the stringBlueprint factory (globalThis.__stringBlueprintFactory)
         // before the host is assembled, so the hostApi builders can install
-        // runtime.stringGenerator.
-        script_generator::host_api_script_generator(),
-        // Register the entityGenerator factory (globalThis.__entityGeneratorFactory)
-        // so the hostApi builders can install runtime.entityGenerator.
-        script_generator::host_api_script_entity_generator(),
+        // runtime.stringBlueprint.
+        script_blueprint::host_api_script_string_blueprint(),
+        // Register the numberBlueprint factory (globalThis.__numberBlueprintFactory)
+        // so the hostApi builders can install runtime.numberBlueprint.
+        script_blueprint::host_api_script_number_blueprint(),
+        // Register the entityBlueprint factory (globalThis.__entityBlueprintFactory)
+        // so the hostApi builders can install runtime.entityBlueprint.
+        script_blueprint::host_api_script_entity_blueprint(),
         script_emit::host_api_script_part1(),
         script_emit::host_api_script_emit(),
         script_rest::host_api_script_rest().as_str(),

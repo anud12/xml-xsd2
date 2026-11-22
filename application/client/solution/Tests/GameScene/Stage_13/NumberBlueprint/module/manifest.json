@@ -1,0 +1,6 @@
+{
+  "id": "number-blueprint-test",
+  "version": "1.0.0",
+  "name": "Number Blueprint Test Module",
+  "entry": "index.js"
+}

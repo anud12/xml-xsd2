@@ -1,5 +1,5 @@
 export default (hostApi) => {
-  const { string, number, stringGenerator: sg, entityGenerator: eg } = hostApi.runtime;
+  const { string, number, stringBlueprint: sg, entityBlueprint: eg } = hostApi.runtime;
 
   // Read a raw value out of a runtime Maybe (an entity-proxy field).
   const raw = (maybe) => {
