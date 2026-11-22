@@ -49,14 +49,12 @@ public class TestClass : Steps {
             for (int i = 0; i < 12; i++) {
                 RuntimeInterop.RunIteration(1);
                 await runner.SimulateFrames(2);
-                var c = ContainerInterop.GetContainerById("grid-1");
                 if (!RuntimeInterop.IsActorBusy("node-1")) break;
             }
-            var done = ContainerInterop.GetContainerById("grid-1");
-            Assertions.AssertThat(done.GetXForEntityId["node-1"])
+            Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X)
                 .OverrideFailureMessage("node should land on the clicked cell's column (6)")
                 .IsEqual(6.0);
-            Assertions.AssertThat(done.GetYForEntityId["node-1"])
+            Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y)
                 .OverrideFailureMessage("node should land on the clicked cell's row (3)")
                 .IsEqual(3.0);
             ClearSimulatedMouse();

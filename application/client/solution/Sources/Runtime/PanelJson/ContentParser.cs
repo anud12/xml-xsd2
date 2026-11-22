@@ -35,13 +35,13 @@ static class ContentParser
             return name != null ? new EntityNumberValueContent(name, align, entityId) : null;
         }
 
-        if (type == "containerListView")
+        if (type == "entityList")
         {
-            var containerId = Extract.String(elem, "containerId");
-            if (containerId != null)
+            var groupId = Extract.String(elem, "group");
+            if (groupId != null)
             {
                 var vertical = Extract.Bool(elem, "vertical") ?? true;
-                var content = new ContainerListViewContent(containerId, vertical);
+                var content = new EntityListContent(groupId, Extract.String(elem, "list") ?? "", vertical);
 
                 if (elem.TryGetProperty("__templateResults", out var results) && results.ValueKind == JsonValueKind.Array)
                 {

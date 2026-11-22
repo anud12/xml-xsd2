@@ -34,9 +34,9 @@ export default (hostApi) => {
 
   // A concrete sample: instantiated as a new entity, returned as a proxy.
   const sample = gen.generateValue();
-  const sampleId = (sample && sample.__id) ? String(sample.__id) : "none";
-  const name = (sample && sample.text_map && typeof sample.text_map.get === "function")
-    ? (raw(sample.text_map.get("name")) || "none") : "none";
+  const sampleId = String(sample.id);
+  const name = (sample && sample.string_map && typeof sample.string_map.get === "function")
+    ? (raw(sample.string_map.get("name")) || "none") : "none";
   const hpVal = (sample && sample.number_map && typeof sample.number_map.get === "function")
     ? raw(sample.number_map.get("hp")) : null;
   const hp = (hpVal === null) ? -1 : Number(hpVal);
@@ -55,19 +55,7 @@ export default (hostApi) => {
 
   hostApi.runtime.setEntity({
     id: string.of("probe"),
-    textMap: {
-      present: string.of(present),
-      emptyAbsent: string.of(emptyAbsent),
-      sampleIsMember: string.of(sampleIsMember),
-      sampleId: string.of(sampleId),
-      genName: string.of(String(name)),
-      alpha10: string.of(memberProbe("alpha", 10)),
-      beta10: string.of(memberProbe("beta", 10)),
-      static10: string.of(memberProbe("static", 10)),
-      static20: string.of(memberProbe("static", 20)),
-      alpha20: string.of(memberProbe("alpha", 20)),
-      static99: string.of(memberProbe("static", 99)),
-    },
     numberMap: { genHp: number.of(hp) },
+    stringMap: { present: string.of(present), emptyAbsent: string.of(emptyAbsent), sampleIsMember: string.of(sampleIsMember), sampleId: string.of(sampleId), genName: string.of(String(name)), alpha10: string.of(memberProbe("alpha", 10)), beta10: string.of(memberProbe("beta", 10)), static10: string.of(memberProbe("static", 10)), static20: string.of(memberProbe("static", 20)), alpha20: string.of(memberProbe("alpha", 20)), static99: string.of(memberProbe("static", 99)) },
   });
 };

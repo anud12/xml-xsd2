@@ -28,192 +28,34 @@ fn isqrt(n: i64) -> i64 {
     x
 }
 
-/// One container's size bounds: max coordinate along each axis (None = unbound).
-fn container_bounds(
-    containers: &[String],
-    container_id: &str,
-) -> (Option<f64>, Option<f64>) {
-    for json_str in containers.iter() {
-        let cid = extract_container_id(json_str);
-        if cid != container_id {
-            continue;
-        }
-        if let Ok(v) = serde_json::from_str::<serde_json::Value>(json_str) {
-            let sx = v.get("sizeX")
-                .and_then(|s| s.get("value"))
-                .and_then(|n| n.as_f64());
-            let sy = v.get("sizeY")
-                .and_then(|s| s.get("value"))
-                .and_then(|n| n.as_f64());
-            return (sx, sy);
-        }
-    }
-    (None, None)
+use crate::state::{entity_map, EntityMap};
+
+fn bounds(entities: &EntityMap, group_id: &str) -> (Option<f64>, Option<f64>) {
+    entities.get(group_id).filter(|group| group.entity_list_map.is_some())
+        .map(|group| (group.number("sizeX"), group.number("sizeY")))
+        .unwrap_or_default()
 }
 
-/// The `id` field of a serialized container row (mirrors get_container_by_id).
-fn extract_container_id(json_str: &str) -> String {
-    let trimmed = json_str.trim();
-    if trimmed.starts_with('{') {
-        if let Some(pos) = trimmed.find("\"id\"") {
-            if let Some(colon) = trimmed[pos..].find(':') {
-                let after = &trimmed[pos + colon + 1..];
-                let mut s = after.trim_start();
-                if s.starts_with('"') {
-                    s = &s[1..];
-                    if let Some(end) = s.find('"') {
-                        s = &s[..end];
-                    }
-                } else {
-                    if let Some(end) = s.find(',') { s = &s[..end]; }
-                    if let Some(end) = s.find('}') { s = &s[..end]; }
-                    s = s.trim();
-                }
-                return s.to_string();
-            }
-        }
-    }
-    trimmed.to_string()
-}
-
-/// Find the entity number-data keys holding the actor's position for this
-/// container: the persisted `xKey`/`yKey` (the keys the container's position
-/// accessors read), falling back to the literal `x`/`y` when the container
-/// JSON carries no key names. Either may be empty if the container declares
-/// no such accessor for the entity.
-fn position_keys(
-    containers: &[String],
-    container_id: &str,
-    entity_id: &str,
-) -> (String, String) {
-    for json_str in containers.iter() {
-        let cid = extract_container_id(json_str);
-        if cid != container_id {
-            continue;
-        }
-        if let Ok(v) = serde_json::from_str::<serde_json::Value>(json_str) {
-            let x_in = v.get("getX").and_then(|g| g.get(entity_id))
-                .and_then(|n| n.as_f64()).is_some();
-            let y_in = v.get("getY").and_then(|g| g.get(entity_id))
-                .and_then(|n| n.as_f64()).is_some();
-            let xk = v.get("xKey").and_then(|k| k.as_str()).filter(|s| !s.is_empty())
-                .map(|s| s.to_string()).unwrap_or_else(|| "x".to_string());
-            let yk = v.get("yKey").and_then(|k| k.as_str()).filter(|s| !s.is_empty())
-                .map(|s| s.to_string()).unwrap_or_else(|| "y".to_string());
-            return (
-                if x_in { xk } else { String::new() },
-                if y_in { yk } else { String::new() },
-            );
-        }
-    }
-    (String::new(), String::new())
-}
-
-/// Read the actor's current position from the container's pre-baked
-/// `getX`/`getY` maps (the same source the sim's `teleportTo` writes to).
-fn current_position(
-    containers: &[String],
-    container_id: &str,
-    entity_id: &str,
-) -> Option<(f64, f64)> {
-    for json_str in containers.iter() {
-        let cid = extract_container_id(json_str);
-        if cid != container_id {
-            continue;
-        }
-        if let Ok(v) = serde_json::from_str::<serde_json::Value>(json_str) {
-            let x = v.get("getX").and_then(|g| g.get(entity_id))
-                .and_then(|n| n.as_f64());
-            let y = v.get("getY").and_then(|g| g.get(entity_id))
-                .and_then(|n| n.as_f64());
-            if x.is_some() || y.is_some() {
-                return Some((x.unwrap_or(0.0), y.unwrap_or(0.0)));
-            }
-        }
-    }
-    None
-}
-
-/// Write the actor's position into the entity number data under the
-/// container's position keys and rebake the container's registered JSON so
-/// `get_container_by_id` reflects the new position.
-fn write_position(
-    containers: &mut Vec<String>,
-    container_id: &str,
-    entity_id: &str,
-    x: f64,
-    y: f64,
-) {
-    let (xk, yk) = position_keys(containers, container_id, entity_id);
-    {
-        let mut nd = crate::state::last_entity_number_data().lock().unwrap();
-        let em = nd.entry(entity_id.to_string()).or_insert_with(HashMap::new);
-        if !xk.is_empty() { em.insert(xk.clone(), x); }
-        if !yk.is_empty() { em.insert(yk.clone(), y); }
-    }
-    rebake_container(containers, container_id, entity_id, x, y);
-}
-
-/// Replace the container row's `getX`/`getY` value for the entity and write the
-/// updated JSON back into the `last_containers` state.
-fn rebake_container(
-    containers: &mut Vec<String>,
-    container_id: &str,
-    entity_id: &str,
-    x: f64,
-    y: f64,
-) {
-    for (idx, json_str) in containers.iter_mut().enumerate() {
-        let cid = extract_container_id(json_str);
-        if cid != container_id {
-            continue;
-        }
-        if let Ok(mut v) = serde_json::from_str::<serde_json::Value>(json_str) {
-            if let Some(gx) = v.get_mut("getX").and_then(|g| g.as_object_mut()) {
-                gx.insert(entity_id.to_string(), num_json(x));
-            }
-            if let Some(gy) = v.get_mut("getY").and_then(|g| g.as_object_mut()) {
-                gy.insert(entity_id.to_string(), num_json(y));
-            }
-            if let Ok(serialized) = serde_json::to_string(&v) {
-                containers[idx] = serialized;
-            }
-            return;
-        }
+fn write_position(entities: &mut EntityMap, entity_id: &str, x: f64, y: f64) {
+    if let Some(entity) = entities.get_mut(entity_id) {
+        let (x_key, y_key) = entity.position_keys();
+        let (x_key, y_key) = (x_key.to_owned(), y_key.to_owned());
+        entity.number_map.insert(x_key, x);
+        entity.number_map.insert(y_key, y);
     }
 }
 
-fn num_json(n: f64) -> serde_json::Value {
-    serde_json::Number::from_f64(n)
-        .map(serde_json::Value::Number)
-        .unwrap_or(serde_json::Value::Null)
-}
-
-use std::collections::HashMap;
-
-/// Apply a teleport to the actor: write its position into the entity number
-/// data (under the container's position keys) and rebake the container's
-/// `getX`/`getY` so `get_container_by_id` reflects it immediately. A bound is
-/// the container's max coordinate; the lower bound is 0. A `None` bound leaves
-/// that axis unclamped. This is a synchronous write — a teleport is not walked.
-pub fn apply_teleport(
-    containers: &mut Vec<String>,
-    container_id: &str,
-    entity_id: &str,
-    x: f64,
-    y: f64,
-    clamp: bool,
-) {
-    let (bx, by) = container_bounds(containers, container_id);
-    let mut nx = x;
-    let mut ny = y;
-    if clamp {
-        nx = nx.max(0.0);
-        ny = ny.max(0.0);
-        if let Some(b) = bx { if nx > b { nx = b; } }
-        if let Some(b) = by { if ny > b { ny = b; } }
+/// Write one intrinsic position, clamped to the addressed group's bounds.
+pub fn apply_teleport(group_id: &str, entity_id: &str, x: f64, y: f64, clamp: bool) {
+    let mut entities = entity_map().lock().unwrap();
+    if !entities.get(group_id).is_some_and(|group| group.entity_list_map.is_some()) {
+        return;
     }
-    write_position(containers, container_id, entity_id, nx, ny);
+    let (bx, by) = bounds(&entities, group_id);
+    let clamp_axis = |n: f64, bound: Option<f64>| {
+        if clamp { n.max(0.0).min(bound.unwrap_or(f64::INFINITY).max(0.0)) } else { n }
+    };
+    write_position(&mut entities, entity_id, clamp_axis(x, bx), clamp_axis(y, by));
 }
 
 pub fn process_active_plans(now: i64) {
@@ -223,8 +65,6 @@ pub fn process_active_plans(now: i64) {
     };
     if due.is_empty() { return; }
 
-    let mut containers: Vec<String> =
-        crate::state::last_containers().lock().unwrap().clone();
     let mut emitted: Vec<String> = Vec::new();
     let mut to_park: Vec<(String, String, Vec<serde_json::Value>, i64, bool)> = Vec::new();
     let mut to_remove: Vec<(String, String)> = Vec::new();
@@ -283,7 +123,7 @@ pub fn process_active_plans(now: i64) {
                 };
                 let mut remaining = true;
                 for _ in 0..ticks.min(100000) {
-                    remaining = advance_move_step(&mut plan.steps[i], now, &mut containers);
+                    remaining = advance_move_step(&mut plan.steps[i], now, &mut entity_map().lock().unwrap());
                     if !remaining { break; }
                 }
                 if remaining {
@@ -320,7 +160,6 @@ pub fn process_active_plans(now: i64) {
     if !emitted.is_empty() {
         crate::state::pending_effects().lock().unwrap().extend(emitted);
     }
-    *crate::state::last_containers().lock().unwrap() = containers;
 }
 
 /// Advance a `move` plan step by one tick. Returns `true` if the move is still
@@ -339,23 +178,27 @@ pub fn process_active_plans(now: i64) {
 fn advance_move_step(
     step: &mut serde_json::Value,
     now: i64,
-    containers: &mut Vec<String>,
+    entities: &mut EntityMap,
 ) -> bool {
     let move_obj = match step.get_mut("move").and_then(|m| m.as_object_mut()) {
         Some(m) => m,
         None => return false,
     };
-    let container_id = move_obj.get("containerId")
+    let group_id = move_obj.get("groupId")
         .and_then(|v| v.as_str()).unwrap_or("").to_string();
     let entity_id = move_obj.get("entityId")
         .and_then(|v| v.as_str()).unwrap_or("").to_string();
     let tx = move_obj.get("x").and_then(|v| v.as_f64()).map(|n| n.round() as i64).unwrap_or(0);
     let ty = move_obj.get("y").and_then(|v| v.as_f64()).map(|n| n.round() as i64).unwrap_or(0);
 
+    if !entities.get(&group_id).is_some_and(|group| group.entity_list_map.is_some()) {
+        return false;
+    }
+
     // Lazy setup: capture the start position, segment deltas and distance
     // exactly once, on the first advance. The per-axis remainders start at 0.
     if move_obj.get("startX").is_none() {
-        let (cx, cy) = match current_position(containers, &container_id, &entity_id) {
+        let (cx, cy) = match entities.get(&entity_id).map(|entity| entity.position()) {
             Some(c) => c,
             None => return false,
         };
@@ -445,7 +288,7 @@ fn advance_move_step(
     ly += stepy;
 
     // Clamp the logical position into the container's [0, bound] for writing.
-    let (bx, by) = container_bounds(containers, &container_id);
+    let (bx, by) = bounds(entities, &group_id);
     let mut nx = lx;
     let mut ny = ly;
     if nx < 0 { nx = 0; }
@@ -459,7 +302,7 @@ fn advance_move_step(
     move_obj.insert("posY".into(), serde_json::json!(ly));
     // Record this GTU so a later (jumped) call advances one step per GTU.
     move_obj.insert("lastTick".into(), serde_json::json!(now));
-    write_position(containers, &container_id, &entity_id, nx as f64, ny as f64);
+    write_position(entities, &entity_id, nx as f64, ny as f64);
 
     // Exhausted once the *logical* position reaches the target. An out-of-
     // bounds target never satisfies this (the logical position keeps tracking
@@ -669,64 +512,36 @@ mod tests {
     // ---- moveTo walker tests ----
 
     fn move_step(
-        container_id: &str,
+        group_id: &str,
         entity_id: &str,
         x: f64,
         y: f64,
         speed: f64,
     ) -> serde_json::Value {
         json!({ "move": {
-            "containerId": container_id,
+            "groupId": group_id,
             "entityId": entity_id,
             "x": x, "y": y, "speed": speed
         }})
     }
 
-    fn container_with_pos(
-        id: &str,
-        entity: &str,
-        x: f64,
-        y: f64,
-        size_x: Option<f64>,
-        size_y: Option<f64>,
-    ) -> String {
-        let mut c = serde_json::Map::new();
-        c.insert("id".into(), json!(id));
-        c.insert("entities".into(), json!([entity]));
-        c.insert("getX".into(), json!({ entity: x }));
-        c.insert("getY".into(), json!({ entity: y }));
-        if let Some(sx) = size_x {
-            c.insert("sizeX".into(), json!({ "value": sx, "outOfBounds": "clamp" }));
-        }
-        if let Some(sy) = size_y {
-            c.insert("sizeY".into(), json!({ "value": sy, "outOfBounds": "clamp" }));
-        }
-        serde_json::to_string(&serde_json::Value::Object(c)).unwrap()
+    fn seed_group(id: &str, member: &str, x: f64, y: f64, sx: Option<f64>, sy: Option<f64>) {
+        crate::state::seed_group(id, "members", &[(member, x, y)]);
+        let mut entities = entity_map().lock().unwrap();
+        let group = entities.get_mut(id).unwrap();
+        if let Some(value) = sx { group.number_map.insert("sizeX".into(), value); }
+        if let Some(value) = sy { group.number_map.insert("sizeY".into(), value); }
     }
 
-    /// The actor's position as the container's pre-baked getX/getY see it —
-    /// the same source `get_container_by_id` exposes to the client.
     fn pos_of(entity: &str) -> (f64, f64) {
-        let containers = crate::state::last_containers().lock().unwrap();
-        for json_str in containers.iter() {
-            if let Ok(v) = serde_json::from_str::<serde_json::Value>(json_str) {
-                let x = v.get("getX").and_then(|g| g.get(entity))
-                    .and_then(|n| n.as_f64()).unwrap_or(0.0);
-                let y = v.get("getY").and_then(|g| g.get(entity))
-                    .and_then(|n| n.as_f64()).unwrap_or(0.0);
-                return (x, y);
-            }
-        }
-        (0.0, 0.0)
+        entity_map().lock().unwrap()[entity].position()
     }
 
     #[test]
     fn axis_aligned_move_advances_one_per_tick() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 0.0, 0.0, Some(10.0), Some(10.0))
-        ]);
+        seed_group("grid", "e1", 0.0, 0.0, Some(10.0), Some(10.0));
         plan("walk", "e1", vec![move_step("grid", "e1", 5.0, 0.0, 1.0)], 0);
 
         // Tick advances by 1 each step so the parked plan (resume_at = now+1)
@@ -746,9 +561,7 @@ mod tests {
     fn diagonal_move_takes_14_ticks_at_speed_1() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
-        ]);
+        seed_group("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0));
         plan("diag", "e1", vec![move_step("grid", "e1", 10.0, 10.0, 1.0)], 0);
 
         // Bresenham stepping: dist = isqrt(200) = 14, each axis pools
@@ -775,9 +588,7 @@ mod tests {
     fn odd_angle_move_walks_straight_line_at_speed_1() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
-        ]);
+        seed_group("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0));
         // Target (10,3): atan2(3,10) ≈ 16.7° — neither 45° nor axis-aligned.
         plan("odd", "e1", vec![move_step("grid", "e1", 10.0, 3.0, 1.0)], 0);
 
@@ -803,9 +614,7 @@ mod tests {
     fn speed_greater_than_one_covers_multiple_cells() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
-        ]);
+        seed_group("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0));
         // 10 cells at speed 3: the walker covers `speed` GTU of *path* per
         // tick, so a pure-x move advances 3 cells/tick → 3, 6, 9. On the final
         // tick the pooled motion (3) exceeds the 1 GTU still remaining, so the
@@ -829,9 +638,7 @@ mod tests {
     fn speed_greater_than_one_does_not_overshoot_on_final_tick() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
-        ]);
+        seed_group("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0));
         // (0,0) -> (10,0) at speed 10: the final tick's pooled amount (10 *
         // 10 * Q16) exceeds the remaining path, so without clamping the axis
         // would release its whole remaining delta and land at 20 (past the
@@ -847,9 +654,7 @@ mod tests {
     fn speed_greater_than_one_diagonal_does_not_overshoot() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0))
-        ]);
+        seed_group("grid", "e1", 0.0, 0.0, Some(20.0), Some(20.0));
         // (0,0) -> (10,10) at speed 10: dist = isqrt(200) = 14. Without the
         // remaining-path clamp, each axis's final-tick pooled amount crosses the
         // distance scale and the logical position lands past (10,10) — the move
@@ -871,9 +676,7 @@ mod tests {
     fn negative_axis_move_advances_toward_zero() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 5.0, 3.0, Some(10.0), Some(10.0))
-        ]);
+        seed_group("grid", "e1", 5.0, 3.0, Some(10.0), Some(10.0));
         // Move from (5,3) toward the origin: negative x AND negative y, speed 1.
         // dist = isqrt(34) = 5. x pools -5/5 = -1.0 (moves a whole unit every
         // tick); y pools -3/5 = -0.6 and moves on ticks 2, 4 and 5 (the pooled
@@ -898,9 +701,7 @@ mod tests {
     fn negative_axis_only_move() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 4.0, 0.0, Some(10.0), Some(10.0))
-        ]);
+        seed_group("grid", "e1", 4.0, 0.0, Some(10.0), Some(10.0));
         // Pure negative-x move: (4,0) -> (0,0) at speed 1, one cell per tick.
         plan("west", "e1", vec![move_step("grid", "e1", 0.0, 0.0, 1.0)], 0);
 
@@ -917,9 +718,7 @@ mod tests {
     fn negative_move_speed_greater_than_one() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 9.0, 0.0, Some(20.0), Some(20.0))
-        ]);
+        seed_group("grid", "e1", 9.0, 0.0, Some(20.0), Some(20.0));
         // (9,0) -> (0,0) at speed 3: 9,6,3,0 over 4 ticks.
         plan("west-dash", "e1", vec![move_step("grid", "e1", 0.0, 0.0, 3.0)], 0);
 
@@ -936,9 +735,7 @@ mod tests {
     fn out_of_bounds_stops_early_at_bound() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 0.0, 0.0, Some(5.0), Some(5.0))
-        ]);
+        seed_group("grid", "e1", 0.0, 0.0, Some(5.0), Some(5.0));
         // Target x=10 exceeds sizeX=5 → the written position clamps at 5 while
         // the *logical* position keeps tracking toward 10, so the move never
         // "lands" and stays parked (the actor holds at the bound edge).
@@ -961,9 +758,7 @@ mod tests {
     fn speed_zero_does_not_move() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 2.0, 1.0, Some(10.0), Some(10.0))
-        ]);
+        seed_group("grid", "e1", 2.0, 1.0, Some(10.0), Some(10.0));
         plan("still", "e1", vec![move_step("grid", "e1", 8.0, 1.0, 0.0)], 0);
 
         process_active_plans(0);
@@ -975,9 +770,7 @@ mod tests {
     fn move_step_is_interruptible_by_default() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 0.0, 0.0, Some(10.0), Some(10.0))
-        ]);
+        seed_group("grid", "e1", 0.0, 0.0, Some(10.0), Some(10.0));
         // A multi-tick move parked with the default (interruptible) flag stays
         // busy and interruptible while it is mid-way.
         crate::state::set_active_plan(
@@ -992,9 +785,7 @@ mod tests {
     fn deny_interrupt_move_rejects_new_action() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 0.0, 0.0, Some(10.0), Some(10.0))
-        ]);
+        seed_group("grid", "e1", 0.0, 0.0, Some(10.0), Some(10.0));
         // A multi-tick move parked non-interruptible (denyInterrupt before
         // moveTo) stays busy but not interruptible.
         crate::state::set_active_plan(
@@ -1009,9 +800,7 @@ mod tests {
     fn move_then_interruptible_after_flag() {
         let _g = lock_test();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![
-            container_with_pos("grid", "e1", 0.0, 0.0, Some(10.0), Some(10.0))
-        ]);
+        seed_group("grid", "e1", 0.0, 0.0, Some(10.0), Some(10.0));
         // move, then an allowInterrupt marker, then a wait. After the move
         // exhausts the walker passes the marker and parks the wait interruptible.
         plan("seq", "e1", vec![
@@ -1031,23 +820,19 @@ mod tests {
     fn move_writes_position_to_persisted_position_keys() {
         let _g = lock_test();
         crate::state::clear_state();
-        let c = json!({
-            "id": "grid",
-            "entities": ["e1"],
-            "getX": { "e1": 0.0 },
-            "getY": { "e1": 0.0 },
-            "xKey": "column",
-            "yKey": "row",
-            "sizeX": { "value": 10.0, "outOfBounds": "clamp" },
-            "sizeY": { "value": 10.0, "outOfBounds": "clamp" }
-        });
-        crate::state::set_last_containers(vec![serde_json::to_string(&c).unwrap()]);
+        seed_group("grid", "e1", 0.0, 0.0, Some(10.0), Some(10.0));
+        {
+            let mut entities = entity_map().lock().unwrap();
+            let member = entities.get_mut("e1").unwrap();
+            member.string_map.extend([("xKey".into(), "column".into()), ("yKey".into(), "row".into())]);
+            member.number_map.clear();
+        }
         plan("walk", "e1", vec![move_step("grid", "e1", 2.0, 0.0, 1.0)], 0);
         process_active_plans(0);
 
         // The position lands under the container's real key names, not x/y.
-        let nd = crate::state::last_entity_number_data().lock().unwrap();
-        let em = nd.get("e1").expect("entity number data written");
+        let nd = entity_map().lock().unwrap();
+        let em = &nd["e1"].number_map;
         assert_eq!(em.get("column"), Some(&1.0));
         assert_eq!(em.get("row"), Some(&0.0));
         assert!(em.get("x").is_none());

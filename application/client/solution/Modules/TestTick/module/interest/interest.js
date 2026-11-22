@@ -1,7 +1,7 @@
 import { memoize } from "../../util/memoize";
 export const getInterestModule = memoize((hostApi) => {
     const key = "property";
-    const max = hostApi.runtime.number.of(1000);
+    const max = hostApi.runtime.number.of(10000);
     const entityNumberMap = {
         [key]: max,
     };

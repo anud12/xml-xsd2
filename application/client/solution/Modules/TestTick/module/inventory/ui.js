@@ -42,7 +42,7 @@ export const inventoryUi = (hostApi) => {
         },
     }, [
         hostApi.ui.entityList("inventory-items", {
-            container: module.container,
+            group: module.container, list: "members",
             vertical: false,
         }, (entity) => [
             hostApi.ui.window(entity.id, {

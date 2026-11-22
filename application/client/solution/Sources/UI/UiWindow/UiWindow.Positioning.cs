@@ -146,7 +146,7 @@ public partial class UiWindow
         // for cursor-cell resolution, never as a fixed flow size, so a user
         // resize of the host carries the view with it.
         bool isContainerView = opts.ValueKind == JsonValueKind.Object
-            && opts.TryGetProperty("container", out var ctr)
+            && opts.TryGetProperty("group", out var ctr)
             && ctr.ValueKind == JsonValueKind.String
             && !string.IsNullOrEmpty(ctr.GetString());
         if (_windowExplicitSize != Vector2.Zero && !isContainerView)

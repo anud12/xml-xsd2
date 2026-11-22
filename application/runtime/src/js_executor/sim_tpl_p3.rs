@@ -41,22 +41,22 @@ const SIM_TPL_P3: &str = r#"
       // advances it one cell per tick, re-parking until the target is reached.
       moveTo: function(spec) {
         var s = spec || {};
-        var c = (typeof s.containerId === 'object' && s.containerId !== null) ? s.containerId.value : s.containerId;
-        var e = (typeof s.entityId === 'object' && s.entityId !== null) ? s.entityId.value : s.entityId;
+        var c = globalThis.__entityId(s.groupId);
+        var e = globalThis.__entityId(s.entityId);
         var sp = s.speed;
         if (typeof sp === 'object' && sp !== null) sp = sp.value;
         globalThis.__plannedMoves.push({
-          containerId: c, entityId: e,
+          groupId: c, entityId: e,
           x: Number(s.x), y: Number(s.y), speed: Number(sp) || 0
         });
       },
       teleportTo: function(spec) {
         // A teleport is a zero-length, immediate move: write the position now.
         var s = spec || {};
-        var c = (typeof s.containerId === 'object' && s.containerId !== null) ? s.containerId.value : s.containerId;
-        var e = (typeof s.entityId === 'object' && s.entityId !== null) ? s.entityId.value : s.entityId;
+        var c = globalThis.__entityId(s.groupId);
+        var e = globalThis.__entityId(s.entityId);
         globalThis.__plannedMoves.push({
-          containerId: c, entityId: e,
+          groupId: c, entityId: e,
           x: Number(s.x), y: Number(s.y), speed: Infinity, teleport: true
         });
       },

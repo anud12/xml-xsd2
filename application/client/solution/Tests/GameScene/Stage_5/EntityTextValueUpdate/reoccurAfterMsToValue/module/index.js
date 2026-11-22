@@ -5,9 +5,7 @@ export default (hostApi) => {
 
   const entity = hostApi.runtime.setEntity({
     id: string.of("entity_id"),
-    numberMap: {
-      "key": number.of(0)
-    }
+    numberMap: { "key": number.of(0) },
   })
 
   const repeat = hostApi.runtime.setEffect({

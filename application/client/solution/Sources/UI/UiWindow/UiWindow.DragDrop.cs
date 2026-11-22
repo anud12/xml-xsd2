@@ -2,7 +2,6 @@ using Godot;
 using NewGameProject.UI;
 using System;
 using System.Text.Json;
-using ContainerInterop = NewGameProject.Runtime.ContainerInterop;
 using RuntimeInterop = NewGameProject.Runtime.RuntimeInterop;
 
 namespace GdUnit4.Examples.Basics.Setup.Sources.UI;
@@ -671,29 +670,12 @@ public partial class UiWindow
 
     /// Resolves the grid cell (cellX, cellY) for a drop position in global
     /// coordinates. Returns (-1, -1) when this window has no grid.
-    (int CellX, int CellY) ResolveDropCell(Vector2 globalMouse)
+    internal (int CellX, int CellY) ResolveDropCell(Vector2 globalMouse)
     {
         // Convert global → local for this window.
         var local = GetGlobalTransform().AffineInverse() * globalMouse;
 
-        if (_onClickContainerId != null)
-        {
-            var container = ContainerInterop.GetContainerById(_onClickContainerId);
-            var view = _windowExplicitSize != Vector2.Zero
-                ? _windowExplicitSize
-                : Size;
-            if (container.SizeX is { } sx
-                && container.SizeY is { } sy
-                && sx.Value > 0 && sy.Value > 0
-                && view.X > 0 && view.Y > 0)
-            {
-                int col = (int)((local.X / view.X) * sx.Value);
-                int row = (int)((local.Y / view.Y) * sy.Value);
-                col = Math.Clamp(col, 0, (int)sx.Value - 1);
-                row = Math.Clamp(row, 0, (int)sy.Value - 1);
-                return (col, row);
-            }
-        }
+        if (TryResolveGroupCell(local) is { } cell) return cell;
         var grid = GetNodeOrNull<UiGrid>("grid")
             ?? GetNodeOrNull<ScrollContainer>("scroll")?.GetNodeOrNull<UiGrid>("grid");
         if (grid == null)

@@ -17,9 +17,9 @@ export default (hostApi) => {
     numberMap: { cost: number.of(15) },
   });
 
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("bag-1"),
-    entities: [],
+    entityListMap: { members: [] },
   });
 
   const addToBagEffect = hostApi.runtime.setEffect({
@@ -30,10 +30,10 @@ export default (hostApi) => {
         numberMap: { cost: number.of(15) },
       });
 
-      context.getMutableContainersBy({
+      context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of("bag-1"))],
       }).forEach((container) => {
-        container.addEntity(item);
+        container.addMember("members", item);
       });
     },
   });

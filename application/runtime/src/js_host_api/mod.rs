@@ -5,6 +5,7 @@ pub mod script_rest;
 pub mod script_entity_filter;
 pub mod script_behavior;
 pub mod script_blueprint;
+pub(crate) mod entity_access;
 mod script_extract;
 mod script_extract_map;
 
@@ -26,9 +27,7 @@ pub struct Declarations {
     #[serde(default)]
     pub panels: Vec<String>,
     #[serde(default)]
-    pub entity_data: serde_json::Value,
-    #[serde(default)]
-    pub containers: Vec<String>,
+    pub entity_map: crate::state::EntityMap,
     #[serde(default)]
     pub sectors: Vec<String>,
     #[serde(default)]
@@ -44,6 +43,7 @@ pub fn install_host_api(ctx: &Context) -> Result<()> {
         // (number.random, randomElement, ...) draws from one coherent seeded
         // stream. It must come first, before any host script that consumes it.
         lxm_prng_script(),
+        include_str!("entity_access.js"),
         // Install the shared entity-filter runtime (FilterArg evaluator,
         // entity proxy, condition reader) before the host is assembled so
         // every context's getEntityBy can use it.

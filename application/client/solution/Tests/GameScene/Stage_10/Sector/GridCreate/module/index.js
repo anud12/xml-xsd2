@@ -1,9 +1,9 @@
 /** @type {ModuleEntrypoint} */
 export default (hostApi) => {
   const cave = hostApi.world.sectorGrid(hostApi.runtime.string.of("cave"));
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: hostApi.runtime.string.of("room-a"),
-    entities: [],
+    entityListMap: { members: [] },
     sector: {
       grid: cave,
       footprint: [[0, 0]],

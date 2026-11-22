@@ -126,10 +126,10 @@ public class DragDropChannelsTests : Steps {
             Assertions.AssertThat(targetB.FeedbackState)
                 .OverrideFailureMessage("target-b should be None after the channel-a drop")
                 .IsEqual(DropFeedbackState.None);
-            Assertions.AssertThat(ContainerInterop.GetContainerById("tray-a").Entities.Contains("item-a"))
+            Assertions.AssertThat(EntityInterop.GetEntityById("tray-a")!.Members("members").Contains("item-a"))
                 .OverrideFailureMessage("item-a should no longer be in tray-a after the channel-a drop")
                 .IsFalse();
-            Assertions.AssertThat(ContainerInterop.GetContainerById("bin-a").Entities.Contains("item-a"))
+            Assertions.AssertThat(EntityInterop.GetEntityById("bin-a")!.Members("members").Contains("item-a"))
                 .OverrideFailureMessage("item-a should be in bin-a after the channel-a drop")
                 .IsTrue();
             AssertRuntimeOutputContains("___channel-a onDrop item-a___");
@@ -182,10 +182,10 @@ public class DragDropChannelsTests : Steps {
             Assertions.AssertThat(targetA.FeedbackState)
                 .OverrideFailureMessage("target-a should be None after the channel-b drop")
                 .IsEqual(DropFeedbackState.None);
-            Assertions.AssertThat(ContainerInterop.GetContainerById("tray-b").Entities.Contains("item-b"))
+            Assertions.AssertThat(EntityInterop.GetEntityById("tray-b")!.Members("members").Contains("item-b"))
                 .OverrideFailureMessage("item-b should no longer be in tray-b after the channel-b drop")
                 .IsFalse();
-            Assertions.AssertThat(ContainerInterop.GetContainerById("bin-b").Entities.Contains("item-b"))
+            Assertions.AssertThat(EntityInterop.GetEntityById("bin-b")!.Members("members").Contains("item-b"))
                 .OverrideFailureMessage("item-b should be in bin-b after the channel-b drop")
                 .IsTrue();
             AssertRuntimeOutputContains("___channel-b onDrop item-b___");

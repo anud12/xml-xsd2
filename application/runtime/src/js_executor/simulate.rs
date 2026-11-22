@@ -61,7 +61,7 @@ fn persist_planned_moves(action_name: &str, sim: &Sr) {
         let actor = m.entity_id.clone();
         let step = serde_json::json!({
             "move": {
-                "containerId": m.container_id,
+                "groupId": m.group_id,
                 "entityId": m.entity_id,
                 "x": m.x,
                 "y": m.y,
@@ -84,8 +84,8 @@ struct Pe { name: String, #[allow(dead_code)] payload: serde_json::Value }
 
 #[derive(serde::Deserialize)]
 struct PlannedMove {
-    #[serde(rename = "containerId")]
-    container_id: String,
+    #[serde(rename = "groupId")]
+    group_id: String,
     #[serde(rename = "entityId")]
     entity_id: String,
     x: f64,

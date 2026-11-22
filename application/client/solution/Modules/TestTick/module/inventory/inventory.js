@@ -1,9 +1,9 @@
 import { memoize } from "../../util/memoize";
 import { landTypeKey } from "../land/landGenerator";
 export const getInventoryModule = memoize((hostApi) => {
-    const container = hostApi.runtime.setContainer({
+    const container = hostApi.runtime.setEntity({
         id: hostApi.runtime.string.of("inventory"),
-        entities: [],
+        entityListMap: { members: [] },
     });
     const purchaseEffect = hostApi.runtime.setEffect({
         name: hostApi.runtime.string.of("inventory-purchase"),
@@ -15,10 +15,10 @@ export const getInventoryModule = memoize((hostApi) => {
             const zero = hostApi.runtime.number.of(0);
             const one = hostApi.runtime.number.of(1);
             // The id selects the specific item; the number map identifies its type.
-            context.getMutableContainersBy({
+            context.getMutableEntityBy({
                 filters: [(c) => c.id.isContainingExactly(hostApi.runtime.string.of("lands"))],
             }).forEach((landsContainer) => {
-                landsContainer.entities.forEach((member) => {
+                landsContainer.members("members").forEach((member) => {
                     member.id.isContainingExactly(id).ifTrue(() => {
                         context.getMutableEntityBy({
                             filters: [
@@ -32,12 +32,12 @@ export const getInventoryModule = memoize((hostApi) => {
                                 }).forEach((game) => {
                                     game.number_map.get("value").ifPresent((value) => {
                                         value.isGreaterOrEqualTo(cost).ifTrue(() => {
-                                            context.getMutableContainersBy({
+                                            context.getMutableEntityBy({
                                                 filters: [(container) => container.id.isContainingExactly(hostApi.runtime.string.of("inventory"))],
                                             }).forEach((inventory) => {
                                                 game.number_map.put("value", (current) => current.map((v) => v.subtract(cost)));
-                                                landsContainer.removeEntity(id);
-                                                inventory.addEntity(land);
+                                                landsContainer.removeMember("members", id);
+                                                inventory.addMember("members", land);
                                             });
                                             return hostApi.runtime.condition.of(true);
                                         });

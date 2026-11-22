@@ -239,9 +239,7 @@
     return out;
   }
 
-  // The current host API (resolved lazily so setEntity runs in the calling
-  // context). Always exposes `runtime`; falls back to a shim when only the raw
-  // `host` surface is present.
+  // Resolve lazily so setEntity runs in the calling context.
   function hostApiObj() {
     if (globalThis.hostApi) return globalThis.hostApi;
     if (globalThis.host) return { runtime: globalThis.host };
@@ -300,27 +298,38 @@
     return self;
   }
 
-  // Build a read-only EntityExpression over a concrete entity (id + plain
-  // field maps). Self-contained: it does not depend on the host's
-  // __entityProxy helper, which is not exposed to the module context. The
-  // plain maps are also carried (__textMap/__numberMap) so isGeneratedBy can
-  // resolve a candidate without round-tripping through __entityData.
-  function makeEntityProxy(id, textMap, numberMap) {
+  function emptyEntityList() {
+    return {
+      forEach: function () {},
+      map: emptyEntityList,
+      size: function () { return 0; },
+      count: function () { return numWrap(0); },
+      length: function () { return numWrap(0); },
+      get: maybeNone,
+      exactlyOne: maybeNone,
+      randomElement: maybeNone
+    };
+  }
+
+  // A generated read-only expression keeps its concrete field values.
+  // Membership and area queries use the registered entity when hosted.
+  function makeEntityProxy(id, textMap, numberMap, registered) {
     var tm = textMap || {};
     var nm = numberMap || {};
     var proxy = {
       __id: id,
       __textMap: textMap,
       __numberMap: numberMap,
-      // Id-holder surface (matching the host setEntity proxy) so createEntity /
-      // addEntity resolve the concrete id via value/toString/toJSON instead of
-      // stringifying the whole proxy to "[object Object]".
+      // String coercion and serialization match the hosted entity expression.
       value: id,
       toString: function () { return id; },
       toJSON: function () { return id; },
-      id: {
-        isContaining: function (o) { return conditionOf(String(id).indexOf(String(o)) >= 0, { _raw: id }); },
-        isContainingExactly: function (o) { return conditionOf(String(id) === String(o), { _raw: id }); }
+      id: strWrap(id),
+      members: function (list) {
+        return registered ? registered.members(list) : emptyEntityList();
+      },
+      getEntitiesInsideArea: function (area) {
+        return registered ? registered.getEntitiesInsideArea(area) : emptyEntityList();
       },
       number_map: {
         get: function (key) {
@@ -328,7 +337,7 @@
           return presentMaybe(numWrap(nm[key]));
         }
       },
-      text_map: {
+      string_map: {
         get: function (key) {
           if (!Object.prototype.hasOwnProperty.call(tm, key)) return maybeNone();
           return presentMaybe(strWrap(tm[key]));
@@ -351,8 +360,10 @@
     var n = concrete.numberMap || {};
     for (var j = 0; j < ownKeys(n).length; j++) { var m = ownKeys(n)[j]; numberMap[m] = n[m]; }
     var rt = hostApiObj().runtime;
-    if (rt && typeof rt.setEntity === 'function') rt.setEntity({ id: id, textMap: textMap, numberMap: numberMap });
-    return makeEntityProxy(id, textMap, numberMap);
+    var registered = rt && typeof rt.setEntity === 'function'
+      ? rt.setEntity({ id: rt.string.of(id), stringMap: textMap, numberMap: numberMap })
+      : undefined;
+    return makeEntityProxy(id, textMap, numberMap, registered);
   }
 
   // Pick one concrete value per field from a (non-empty) template.
@@ -391,19 +402,19 @@
   }
 
   // Resolve a candidate (a generated entity proxy, or a field-map spec) to a
-  // comparable shape. A proxy built by this blueprint carries its plain field
-  // maps (__textMap/__numberMap); a host proxy carries __id (data read from
-  // __entityData); a plain spec carries textMap/numberMap.
+  // comparable shape. Standalone expressions carry their concrete maps;
+  // hosted expressions resolve by id; a plain spec carries textMap/numberMap.
   function resolveCandidate(candidate) {
     if (!candidate || typeof candidate !== 'object') return null;
     if (candidate.__textMap !== undefined || candidate.__numberMap !== undefined) {
       return { textMap: resolveMap(candidate.__textMap), numberMap: resolveMap(candidate.__numberMap) };
     }
-    if (candidate.__id && globalThis.__entityData && globalThis.__entityData[candidate.__id]) {
-      var data = globalThis.__entityData[candidate.__id];
-      return { textMap: resolveMap(data.textMap), numberMap: resolveMap(data.numberMap) };
+    var id = globalThis.__entityId && globalThis.__entityId(candidate);
+    var data = id && globalThis.__readEntity(id);
+    if (data) {
+      return { textMap: resolveMap(data.stringMap), numberMap: resolveMap(data.numberMap) };
     }
-    var textMap = resolveMap(candidate.textMap || candidate.text_map);
+    var textMap = resolveMap(candidate.textMap || candidate.string_map);
     var numberMap = resolveMap(candidate.numberMap || candidate.number_map);
     return { textMap: textMap, numberMap: numberMap };
   }

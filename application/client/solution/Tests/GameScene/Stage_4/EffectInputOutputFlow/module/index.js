@@ -4,10 +4,8 @@ export default (hostApi) => {
     const {number, string} = hostApi.runtime;
 
     const entity = hostApi.runtime.setEntity({
-        id: string.of("game"),
-        numberMap: {
-            "result": number.of(0)
-        }
+      id: string.of("game"),
+      numberMap: { "result": number.of(0) },
     });
 
     const compute = hostApi.runtime.setEffect({

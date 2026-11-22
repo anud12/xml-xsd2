@@ -4,9 +4,7 @@ export default (hostApi) => {
 
   hostApi.runtime.setEntity({
     id: string.of("node-1"),
-    numberMap: {
-      "key": number.of(0)
-    }
+    numberMap: { "key": number.of(0) },
   });
 
   // Same effect and same 3-unit period, re-declared so the preserved

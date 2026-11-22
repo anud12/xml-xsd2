@@ -6,8 +6,7 @@ pub(super) fn extract_declarations_script() -> String {
             const out = {{
                 events: [], actions: [], functions: [],
                 entities: [], creators: {{}}, emits: {{}},
-                panels: [], entity_data: {{}},
-                containers: [], sectors: [],
+                panels: [], entity_map: {{}}, sectors: [],
                 pending_effects: [],
                 animations: {{}}
             }};
@@ -27,10 +26,7 @@ pub(super) fn extract_declarations_script() -> String {
             out.emits = globalThis.__emitsMap || {{}};
             out.panels =
                 globalThis.__registeredPanels || [];
-            out.entity_data =
-                globalThis.__entityData || {{}};
-            out.containers =
-                globalThis.__registeredContainers || [];
+            out.entity_map = globalThis.__entityMap;
             out.sectors =
                 globalThis.__registeredSectors || [];
             const pending =

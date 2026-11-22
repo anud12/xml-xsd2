@@ -1,5 +1,5 @@
 import { EntityReadOnlyExpression } from "./Entity";
-import { ContainerReadOnlyExpression, GridReadOnlyExpression } from "./Contaier";
+import { GridReadOnlyExpression } from "./Sector";
 import { BehaviorReadOnlyExpression } from "./behavior";
 import { ActionReadOnlyExpression } from "./action/no-input-action";
 import { EffectReadOnlyExpression } from "./Effect";
@@ -12,7 +12,6 @@ import { AnimationReadOnlyExpression } from "./animation/AnimationRegistration";
  */
 export type DataExpression =
   | EntityReadOnlyExpression
-  | ContainerReadOnlyExpression
   | GridReadOnlyExpression
   | BehaviorReadOnlyExpression
   | ActionReadOnlyExpression

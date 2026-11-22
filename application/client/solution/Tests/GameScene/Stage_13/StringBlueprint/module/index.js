@@ -57,32 +57,6 @@ export default (hostApi) => {
 
   hostApi.runtime.setEntity({
     id: string.of("sg"),
-    textMap: {
-      // every (first x last) product member is generated
-      alSmith: string.of(probe(string.of("Al Smith"))),
-      alJones: string.of(probe(string.of("Al Jones"))),
-      boSmith: string.of(probe(string.of("Bo Smith"))),
-      boJones: string.of(probe(string.of("Bo Jones"))),
-      // full-match: NOT substring / prefix / different case / out-of-vocab
-      substring: string.of(probe(string.of("Smith"))),
-      prefix: string.of(probe(string.of("Bo Jon"))),
-      notInVocab: string.of(probe(string.of("Zed Jones"))),
-      caseSensitive: string.of(probe(string.of("al smith"))),
-      // generateValue present for non-empty language, absent for the empty one
-      present: string.of(present),
-      emptyAbsent: string.of(emptyAbsent),
-      // a grammar value is accepted by its own isGeneratedBy
-      sampleIsMember: string.of(probe(sample)),
-      // generateValue concrete results are random members: verify each is a
-      // valid member of its own language, and the empty one yields the
-      // orElse fallback.
-      genName: genName,
-      genFirst: genFirst,
-      genConcat: genConcat,
-      genFallback: genFallback,
-      genNameIsMember: string.of(isMember(name, genName)),
-      genFirstIsMember: string.of(isMember(first, genFirst)),
-      genConcatIsMember: string.of(isMember(genConcatGen, genConcat)),
-    },
+    stringMap: { alSmith: string.of(probe(string.of("Al Smith"))), alJones: string.of(probe(string.of("Al Jones"))), boSmith: string.of(probe(string.of("Bo Smith"))), boJones: string.of(probe(string.of("Bo Jones"))), substring: string.of(probe(string.of("Smith"))), prefix: string.of(probe(string.of("Bo Jon"))), notInVocab: string.of(probe(string.of("Zed Jones"))), caseSensitive: string.of(probe(string.of("al smith"))), present: string.of(present), emptyAbsent: string.of(emptyAbsent), sampleIsMember: string.of(probe(sample)), genName: genName, genFirst: genFirst, genConcat: genConcat, genFallback: genFallback, genNameIsMember: string.of(isMember(name, genName)), genFirstIsMember: string.of(isMember(first, genFirst)), genConcatIsMember: string.of(isMember(genConcatGen, genConcat)) },
   });
 };

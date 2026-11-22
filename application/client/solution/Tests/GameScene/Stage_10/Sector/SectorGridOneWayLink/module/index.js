@@ -7,9 +7,9 @@ export default (hostApi) => {
   // A single-cell sector "room-a" at [0,0]. It declares NO openings, so it
   // can never link to a neighbour: a doorway on the other side of the shared
   // wall is not enough to form a portal.
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("room-a"),
-    entities: [],
+    entityListMap: { members: [] },
     sector: {
       grid: cave,
       footprint: [[0, 0]],
@@ -24,9 +24,9 @@ export default (hostApi) => {
   const createB = hostApi.runtime.setEffect({
     name: string.of("create-b"),
     apply: () => {
-      hostApi.runtime.setContainer({
-    id: string.of("room-b"),
-        entities: [],
+      hostApi.runtime.setEntity({
+        id: string.of("room-b"),
+        entityListMap: { members: [] },
         sector: {
           grid: cave,
           footprint: [[0, 0]],

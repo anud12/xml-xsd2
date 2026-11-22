@@ -25,7 +25,10 @@ export default (hostApi) => {
   for (let i = 0; i < 6; i++) {
     ents.push(hostApi.runtime.setEntity({ id: string.of("ent" + i) }));
   }
-  const inv = hostApi.runtime.setContainer({ id: string.of("inv"), entities: ents });
+  const inv = hostApi.runtime.setEntity({
+    id: string.of("inv"),
+    entityListMap: { members: ents },
+  });
 
   // A vertical column of 6 items, each 240px wide x 20px tall, inside a
   // 200x100 panel: the items are WIDER than the panel (horizontal overflow) and
@@ -44,7 +47,7 @@ export default (hostApi) => {
       },
       background: { animation: panelBg, fill: { width: "stretch", height: "stretch" } },
     },
-  }, [hostApi.ui.entityList("list", { container: inv }, (entity) => [
+  }, [hostApi.ui.entityList("list", { group: inv, list: "members" }, (entity) => [
     hostApi.ui.window(entity.id, {
       panel: {
         width: 240, height: 20,

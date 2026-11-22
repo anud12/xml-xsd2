@@ -19,9 +19,8 @@ public class TestClass : Steps {
         var scene = await AttachUiScene();
 
         // Before the action fires, node-1 sits at column=2, row=1.
-        var before = ContainerInterop.GetContainerById("grid-1");
-        Assertions.AssertThat(before.GetXForEntityId["node-1"]).IsEqual(2.0);
-        Assertions.AssertThat(before.GetYForEntityId["node-1"]).IsEqual(1.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(2.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(1.0);
         // The readout panels bind node-1's column/row, so the rendered labels
         // show where the entity currently sits.
         scene.AssertPanelThat("col").HasContentText("2");
@@ -29,13 +28,11 @@ public class TestClass : Steps {
 
         // Firing the action runs ctx.teleportTo, relocating node-1 in both x and y.
         RuntimeInterop.emitAction("relocate-node-1");
-
-        var after = ContainerInterop.GetContainerById("grid-1");
-        Assertions.AssertThat(after.GetXForEntityId["node-1"]).IsEqual(6.0);
-        Assertions.AssertThat(after.GetYForEntityId["node-1"]).IsEqual(3.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(6.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(3.0);
         // The other member of the container is unaffected.
-        Assertions.AssertThat(after.GetXForEntityId["node-2"]).IsEqual(0.0);
-        Assertions.AssertThat(after.GetYForEntityId["node-2"]).IsEqual(0.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-2")!.X).IsEqual(0.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-2")!.Y).IsEqual(0.0);
         // The teleport rewrote the entity's column/row; the labels pick it up.
         await runner.SimulateFrames(2);
         scene.AssertPanelThat("col").HasContentText("6");
@@ -56,10 +53,8 @@ public class TestClass : Steps {
 
         // Destination (x=15, y=9) exceeds sizeX (10) and sizeY (5); clamp caps both.
         RuntimeInterop.emitAction("relocate-node-1-out-of-bounds");
-
-        var after = ContainerInterop.GetContainerById("grid-1");
-        Assertions.AssertThat(after.GetXForEntityId["node-1"]).IsEqual(10.0);
-        Assertions.AssertThat(after.GetYForEntityId["node-1"]).IsEqual(5.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(10.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(5.0);
         await runner.SimulateFrames(2);
         scene.AssertPanelThat("col").HasContentText("10");
         scene.AssertPanelThat("row").HasContentText("5");

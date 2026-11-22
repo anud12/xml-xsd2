@@ -15,8 +15,8 @@ public class ContainerDynamicEntityListFfiTests : Steps {
             .ProcessArchive();
 
         // Initially the container is empty and the entityList has no item children.
-        var container = ContainerInterop.GetContainerById("inventory");
-        Assertions.AssertThat(container.Entities.Length).IsEqual(0);
+        var container = EntityInterop.GetEntityById("inventory")!;
+        Assertions.AssertThat(container.Members("members").Length).IsEqual(0);
 
         var initialChildren = UiStateReader.GetChildren("inv-items");
         Assertions.AssertThat(initialChildren.Count).IsEqual(0);
@@ -26,9 +26,9 @@ public class ContainerDynamicEntityListFfiTests : Steps {
         RuntimeInterop.RunIteration();
 
         // The container now has the entity.
-        container = ContainerInterop.GetContainerById("inventory");
-        Assertions.AssertThat(container.Entities.Length).IsEqual(1);
-        Assertions.AssertThat(container.Entities.Contains("sword-1")).IsTrue();
+        container = EntityInterop.GetEntityById("inventory")!;
+        Assertions.AssertThat(container.Members("members").Length).IsEqual(1);
+        Assertions.AssertThat(container.Members("members").Contains("sword-1")).IsTrue();
 
         // The entityList panel should dynamically reflect the new entity.
         var children = UiStateReader.GetChildren("inv-items");
@@ -40,9 +40,9 @@ public class ContainerDynamicEntityListFfiTests : Steps {
         RuntimeInterop.RunIteration();
 
         // The container now has two entities.
-        container = ContainerInterop.GetContainerById("inventory");
-        Assertions.AssertThat(container.Entities.Length).IsEqual(2);
-        Assertions.AssertThat(container.Entities.Contains("shield-1")).IsTrue();
+        container = EntityInterop.GetEntityById("inventory")!;
+        Assertions.AssertThat(container.Members("members").Length).IsEqual(2);
+        Assertions.AssertThat(container.Members("members").Contains("shield-1")).IsTrue();
 
         // The entityList panel should dynamically reflect both entities.
         children = UiStateReader.GetChildren("inv-items");

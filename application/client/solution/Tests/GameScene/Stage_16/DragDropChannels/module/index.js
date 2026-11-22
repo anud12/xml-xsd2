@@ -49,10 +49,22 @@ export default (hostApi) => {
   // start empty. A drop moves the entity from its tray into its channel's bin.
   const itemA = hostApi.runtime.setEntity({ id: string.of("item-a") });
   const itemB = hostApi.runtime.setEntity({ id: string.of("item-b") });
-  hostApi.runtime.setContainer({ id: string.of("tray-a"), entities: [itemA] });
-  hostApi.runtime.setContainer({ id: string.of("tray-b"), entities: [itemB] });
-  hostApi.runtime.setContainer({ id: string.of("bin-a"), entities: [] });
-  hostApi.runtime.setContainer({ id: string.of("bin-b"), entities: [] });
+  hostApi.runtime.setEntity({
+    id: string.of("tray-a"),
+    entityListMap: { members: [itemA] },
+  });
+  hostApi.runtime.setEntity({
+    id: string.of("tray-b"),
+    entityListMap: { members: [itemB] },
+  });
+  hostApi.runtime.setEntity({
+    id: string.of("bin-a"),
+    entityListMap: { members: [] },
+  });
+  hostApi.runtime.setEntity({
+    id: string.of("bin-b"),
+    entityListMap: { members: [] },
+  });
 
   // Shared move effect: remove the entity from `from`, re-add it to `to`. The
   // entity is re-referenced by id so no captured handle is needed for the add.
@@ -65,13 +77,13 @@ export default (hostApi) => {
       const from = String(args.from);
       const to = String(args.to);
       if (!entityId || !from || !to || from === to) return;
-      context.getMutableContainersBy({
+      context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of(from))],
-      }).forEach((c) => c.removeEntity(string.of(entityId)));
-      const entityRef = hostApi.runtime.setEntity({ id: string.of(entityId) });
-      context.getMutableContainersBy({
+      }).forEach((c) => c.removeMember("members", string.of(entityId)));
+      const entity = hostApi.runtime.setEntity({ id: string.of(entityId) });
+      context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of(to))],
-      }).forEach((c) => c.addEntity(entityRef));
+      }).forEach((c) => c.addMember("members", entity));
     },
   });
 

@@ -28,9 +28,7 @@ export default (hostApi) => {
 
   hostApi.runtime.setEntity({
     id: string.of("guard"),
-    textMap: {
-      "state": string.of("idle")
-    },
-    behavior: guardBehavior
+    stringMap: { "state": string.of("idle") },
+    behavior: guardBehavior,
   });
 };

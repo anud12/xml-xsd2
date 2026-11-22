@@ -4,11 +4,11 @@ export default (hostApi) => {
 
   hostApi.runtime.setEntity({
     id: string.of("p"),
-    textMap: { f1: string.of("no"), f2: string.of("no"), f3: string.of("no"), f4: string.of("no") }
+    stringMap: { f1: string.of("no"), f2: string.of("no"), f3: string.of("no"), f4: string.of("no") },
   });
   hostApi.runtime.setEntity({
     id: string.of("q"),
-    textMap: { f1: string.of("no"), f2: string.of("no"), f3: string.of("no"), f4: string.of("no") }
+    stringMap: { f1: string.of("no"), f2: string.of("no"), f3: string.of("no"), f4: string.of("no") },
   });
 
   // Every empty variant must match everything (vacuous truth).
@@ -26,7 +26,7 @@ export default (hostApi) => {
       prepare: () => ({value: true}),
       apply: (ctx) => {
         ctx.getMutableEntityBy(variant)
-           .map(ee => ee.text_map.put(flag, () => hostApi.runtime.maybe.of(string.of("yes"))))
+           .map(ee => ee.string_map.put(flag, () => hostApi.runtime.maybe.of(string.of("yes"))))
       }
     });
     hostApi.runtime.emitEvent(effect, {});

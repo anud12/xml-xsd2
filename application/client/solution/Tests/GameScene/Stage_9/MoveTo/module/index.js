@@ -3,71 +3,51 @@ export default (hostApi) => {
  const { number, string } = hostApi.runtime;
 
   hostApi.runtime.setEntity({
-    id: "node-1",
-    numberMap: {
-      column: number.of(0),
-      row: number.of(0),
-    },
+    id: hostApi.runtime.string.of("node-1"),
+    numberMap: { column: number.of(0), row: number.of(0) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
   hostApi.runtime.setEntity({
-    id: "node-2",
-    numberMap: {
-      column: number.of(0),
-      row: number.of(0),
-    },
+    id: hostApi.runtime.string.of("node-2"),
+    numberMap: { column: number.of(0), row: number.of(0) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
   // node-3 starts to the east; the negative-x test walks it back to the origin.
   hostApi.runtime.setEntity({
-    id: "node-3",
-    numberMap: {
-      column: number.of(5),
-      row: number.of(0),
-    },
+    id: hostApi.runtime.string.of("node-3"),
+    numberMap: { column: number.of(5), row: number.of(0) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
   // node-4 starts in the first quadrant; the negative diagonal test walks it
   // toward the origin (negative x AND negative y).
   hostApi.runtime.setEntity({
-    id: "node-4",
-    numberMap: {
-      column: number.of(5),
-      row: number.of(3),
-    },
+    id: hostApi.runtime.string.of("node-4"),
+    numberMap: { column: number.of(5), row: number.of(3) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
   // node-5 starts at the origin; the odd-angle test walks it to (10,3) —
   // atan2(3,10) ≈ 16.7°, neither 45° nor axis-aligned.
   hostApi.runtime.setEntity({
-    id: "node-5",
-    numberMap: {
-      column: number.of(0),
-      row: number.of(0),
-    },
+    id: hostApi.runtime.string.of("node-5"),
+    numberMap: { column: number.of(0), row: number.of(0) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
-  hostApi.runtime.setContainer({
-    id: "grid-1",
-    entities: [
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of("grid-1"),
+    entityListMap: { members: [
       hostApi.runtime.string.of("node-1"),
       hostApi.runtime.string.of("node-2"),
       hostApi.runtime.string.of("node-3"),
       hostApi.runtime.string.of("node-4"),
       hostApi.runtime.string.of("node-5"),
-    ],
-    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
-    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    getSpanX: (entity) => number.of(1),
-    getSpanY: (entity) => number.of(1),
-    sizeX: {
-      value: number.of(10),
-      outOfBounds: "clamp",
-    },
-    sizeY: {
-      value: number.of(10),
-      outOfBounds: "clamp",
-    },
+    ] },
+    numberMap: { sizeX: number.of(10), sizeY: number.of(10) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp" },
   });
 
   // A straight-line move at speed 1: advances one cell per tick, interruptible
@@ -76,7 +56,7 @@ export default (hostApi) => {
     name: string.of("march-node-1"),
     apply: (ctx) => {
       ctx.moveTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-1"),
         x: 5,
         y: 0,
@@ -90,7 +70,7 @@ export default (hostApi) => {
     name: string.of("dash-node-1"),
     apply: (ctx) => {
       ctx.moveTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-1"),
         x: 10,
         y: 0,
@@ -106,7 +86,7 @@ export default (hostApi) => {
     name: string.of("blitz-node-1"),
     apply: (ctx) => {
       ctx.moveTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-1"),
         x: 10,
         y: 10,
@@ -121,7 +101,7 @@ export default (hostApi) => {
     name: string.of("march-node-1-out-of-bounds"),
     apply: (ctx) => {
       ctx.moveTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-1"),
         x: 20,
         y: 0,
@@ -135,7 +115,7 @@ export default (hostApi) => {
     name: string.of("march-node-3-west"),
     apply: (ctx) => {
       ctx.moveTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-3"),
         x: 0,
         y: 0,
@@ -149,7 +129,7 @@ export default (hostApi) => {
     name: string.of("march-node-4-to-origin"),
     apply: (ctx) => {
       ctx.moveTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-4"),
         x: 0,
         y: 0,
@@ -167,7 +147,7 @@ export default (hostApi) => {
     name: string.of("march-node-5-odd-angle"),
     apply: (ctx) => {
       ctx.moveTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-5"),
         x: 10,
         y: 3,
@@ -182,7 +162,7 @@ export default (hostApi) => {
     apply: (ctx) => {
       ctx.denyInterrupt();
       ctx.moveTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-1"),
         x: 5,
         y: 0,
@@ -197,7 +177,7 @@ export default (hostApi) => {
     name: string.of("relocate-node-1"),
     apply: (ctx) => {
       ctx.teleportTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-1"),
         x: 6,
         y: 3,

@@ -9,29 +9,17 @@ const { number, string } = hostApi.runtime;
 
   hostApi.runtime.setEntity({
     id: string.of("node-1"),
-    numberMap: {
-      column: number.of(0),
-      row: number.of(0),
-    },
+    numberMap: { column: number.of(0), row: number.of(0) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
   // A 10x5 container: the 700x500 plane is split into 10 columns of 70 and 5
   // rows of 100, so each container cell maps to exactly one grid cell.
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("grid-1"),
-    entities: [string.of("node-1")],
-    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
-    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    getSpanX: (entity) => number.of(1),
-    getSpanY: (entity) => number.of(1),
-    sizeX: {
-      value: number.of(10),
-      outOfBounds: "clamp",
-    },
-    sizeY: {
-      value: number.of(5),
-      outOfBounds: "clamp",
-    },
+    entityListMap: { members: [string.of("node-1")] },
+    numberMap: { sizeX: number.of(10), sizeY: number.of(5) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp" },
   });
 
   // A speed-1 move toward (3,2): advances one cell per tick along a diagonal.
@@ -41,7 +29,7 @@ const { number, string } = hostApi.runtime;
     name: string.of("march-node-1"),
     apply: (ctx) => {
       ctx.moveTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-1"),
         x: 3,
         y: 2,
@@ -84,8 +72,8 @@ const { number, string } = hostApi.runtime;
       height: 500,
     },
   }, [
-    hostApi.ui.containerView("plane", {
-      container: "grid-1",
+    hostApi.ui.groupView("plane", {
+      group: "grid-1", list: "members",
       panel: {
         width: 700,
         height: 500,

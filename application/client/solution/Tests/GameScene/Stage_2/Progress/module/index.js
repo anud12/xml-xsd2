@@ -3,10 +3,7 @@ export default (hostApi) => {
   const { number, string } = hostApi.runtime;
   const hero = hostApi.runtime.setEntity({
     id: string.of("hero"),
-    numberMap: {
-      hp: number.of(7), max: number.of(10),
-      mp: number.of(6), maxMp: number.of(12)
-    }
+    numberMap: { hp: number.of(7), max: number.of(10), mp: number.of(6), maxMp: number.of(12) },
   });
   // Still images are single-frame animations: register the fill/track tiles.
   const fill = hostApi.runtime.setAnimation(string.of("fill"), {

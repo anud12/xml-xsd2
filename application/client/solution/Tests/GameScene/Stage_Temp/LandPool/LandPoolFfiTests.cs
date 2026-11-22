@@ -20,12 +20,12 @@ public class LandPoolFfiTests : Steps {
             RuntimeInterop.RunIteration(10);
         }
 
-        var lands = ContainerInterop.GetContainerById("lands");
+        var lands = EntityInterop.GetEntityById("lands")!;
         var landGen = RuntimeInterop.ReadEntityNumberValue("game", "landGen");
-        Console.WriteLine($"DEBUG LandPool lands count={lands.Entities.Length} ids=[{string.Join(",", lands.Entities)}] landGen='{landGen}'");
+        Console.WriteLine($"DEBUG LandPool lands count={lands.Members("members").Length} ids=[{string.Join(",", lands.Members("members"))}] landGen='{landGen}'");
 
-        Assertions.AssertThat(lands.Entities.Length)
-            .OverrideFailureMessage($"land pool did not top up to 4 (got {lands.Entities.Length}: [{string.Join(",", lands.Entities)}], landGen='{landGen}')")
+        Assertions.AssertThat(lands.Members("members").Length)
+            .OverrideFailureMessage($"land pool did not top up to 4 (got {lands.Members("members").Length}: [{string.Join(",", lands.Members("members"))}], landGen='{landGen}')")
             .IsEqual(4);
     }
 }

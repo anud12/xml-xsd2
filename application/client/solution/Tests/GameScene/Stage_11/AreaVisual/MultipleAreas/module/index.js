@@ -8,23 +8,15 @@ export default (hostApi) => {
   const room = hostApi.runtime.setEntity({
     id: string.of("room"),
     numberMap: { column: number.of(10), row: number.of(10) },
-    areaMap: {
-      floor: {
-        polygon: [[0, 0], [30, 0], [30, 40], [0, 40]],
-      },
-      roof: {
-        polygon: [[0, 40], [30, 40], [30, 80], [0, 80]],
-      },
-    },
+    stringMap: { xKey: "column", yKey: "row" },
+    polygons: { floor: [[0, 0], [30, 0], [30, 40], [0, 40]], roof: [[0, 40], [30, 40], [30, 80], [0, 80]] },
   });
 
-  const grid1 = hostApi.runtime.setContainer({
+  const grid1 = hostApi.runtime.setEntity({
     id: string.of("grid-1"),
-    entities: [room],
-    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
-    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    sizeX: { value: number.of(100), outOfBounds: "clamp" },
-    sizeY: { value: number.of(100), outOfBounds: "clamp" },
+    entityListMap: { members: [room] },
+    numberMap: { sizeX: number.of(100), sizeY: number.of(100) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp" },
   });
 
   // A 700x500 top-down view of the 100x100 container (cell_w = 7, cell_h = 5).
@@ -39,8 +31,8 @@ export default (hostApi) => {
       height: 500,
     },
   }, [
-    hostApi.ui.containerView("world", {
-      container: grid1,
+    hostApi.ui.groupView("world", {
+      group: grid1, list: "members",
       panel: {
         width: 700,
         height: 500,

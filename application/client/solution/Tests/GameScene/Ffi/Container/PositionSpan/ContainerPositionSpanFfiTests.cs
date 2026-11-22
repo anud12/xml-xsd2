@@ -12,11 +12,10 @@ public class ContainerPositionSpanFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var container = ContainerInterop.GetContainerById("bag-1");
-        Assertions.AssertThat(container.GetXForEntityId).IsNotNull();
-        Assertions.AssertThat(container.GetXForEntityId["sword-1"]).IsEqual(3.0);
-        Assertions.AssertThat(container.GetXForEntityId["potion-1"]).IsEqual(0.0);
-        Assertions.AssertThat(container.GetXForEntityId["shield-1"]).IsEqual(5.0);
+        var container = EntityInterop.GetEntityById("bag-1")!;
+        Assertions.AssertThat(EntityInterop.GetEntityById("sword-1")!.X).IsEqual(3.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("potion-1")!.X).IsEqual(0.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("shield-1")!.X).IsEqual(5.0);
     }
 
     [TestCase]
@@ -26,10 +25,9 @@ public class ContainerPositionSpanFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var container = ContainerInterop.GetContainerById("bag-1");
-        Assertions.AssertThat(container.GetYForEntityId).IsNotNull();
-        Assertions.AssertThat(container.GetYForEntityId["sword-1"]).IsEqual(0.0);
-        Assertions.AssertThat(container.GetYForEntityId["potion-1"]).IsEqual(0.0);
+        var container = EntityInterop.GetEntityById("bag-1")!;
+        Assertions.AssertThat(EntityInterop.GetEntityById("sword-1")!.Y).IsEqual(0.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("potion-1")!.Y).IsEqual(0.0);
     }
 
     [TestCase]
@@ -39,10 +37,9 @@ public class ContainerPositionSpanFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var container = ContainerInterop.GetContainerById("bag-1");
-        Assertions.AssertThat(container.GetSpanXForEntityId).IsNotNull();
-        Assertions.AssertThat(container.GetSpanXForEntityId["sword-1"]).IsEqual(2.0);
-        Assertions.AssertThat(container.GetSpanXForEntityId["potion-1"]).IsEqual(1.0);
+        var container = EntityInterop.GetEntityById("bag-1")!;
+        Assertions.AssertThat(EntityInterop.GetEntityById("sword-1")!.SpanX).IsEqual(2.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("potion-1")!.SpanX).IsEqual(1.0);
     }
 
     [TestCase]
@@ -52,8 +49,7 @@ public class ContainerPositionSpanFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var container = ContainerInterop.GetContainerById("bag-1");
-        Assertions.AssertThat(container.GetSpanYForEntityId).IsNotNull();
-        Assertions.AssertThat(container.GetSpanYForEntityId["sword-1"]).IsEqual(1.0);
+        var container = EntityInterop.GetEntityById("bag-1")!;
+        Assertions.AssertThat(EntityInterop.GetEntityById("sword-1")!.SpanY).IsEqual(1.0);
     }
 }

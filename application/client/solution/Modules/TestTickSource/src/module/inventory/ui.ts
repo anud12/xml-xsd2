@@ -1,5 +1,4 @@
 import {HostApi} from "module_types/HostApi";
-import {Entity} from "module_types/dataExpression/Entity";
 import {getInventoryModule} from "./inventory";
 import {getLandSprites} from "../land/sprites";
 import {getLandDragType} from "../land/drag";
@@ -51,10 +50,10 @@ export const inventoryUi = (hostApi: HostApi) => {
     },
   }, [
     hostApi.ui.entityList("inventory-items", {
-        container: module.container,
+        group: module.container, list: "members",
         vertical: false,
       },
-      (entity: Entity) => [
+      (entity: { id: string; index: number }) => [
         hostApi.ui.window(entity.id, {
           panel: {
             width: 120,

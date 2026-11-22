@@ -336,12 +336,11 @@
     <TypeScriptCompile Include="Modules\TestTickSource\node_modules\typescript\lib\tsserverlibrary.d.ts" />
     <TypeScriptCompile Include="Modules\TestTickSource\node_modules\typescript\lib\typescript.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\action\common.d.ts" />
-    <TypeScriptCompile Include="node_modules\suite\types\action\container-action.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\action\entity-action.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\action\index.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\action\no-input-action.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\action\point-action.d.ts" />
-    <TypeScriptCompile Include="node_modules\suite\types\Contaier.d.ts" />
+    <TypeScriptCompile Include="node_modules\suite\types\dataExpression\Sector.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\Effect.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\Entity.d.ts" />
     <TypeScriptCompile Include="node_modules\suite\types\EntityFilter.d.ts" />

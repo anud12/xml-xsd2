@@ -2,14 +2,14 @@
 export default (hostApi) => {
   const {string, number} = hostApi.runtime;
 
-  const itemA = hostApi.runtime.setEntity({id: string.of("item-a")});
-  const itemB = hostApi.runtime.setEntity({id: string.of("item-b")});
-  const itemC = hostApi.runtime.setEntity({id: string.of("item-c")});
-  const itemD = hostApi.runtime.setEntity({id: string.of("item-d")});
-  const itemE = hostApi.runtime.setEntity({id: string.of("item-e")});
-  const inv = hostApi.runtime.setContainer({
+  const itemA = hostApi.runtime.setEntity({ id: string.of("item-a") });
+  const itemB = hostApi.runtime.setEntity({ id: string.of("item-b") });
+  const itemC = hostApi.runtime.setEntity({ id: string.of("item-c") });
+  const itemD = hostApi.runtime.setEntity({ id: string.of("item-d") });
+  const itemE = hostApi.runtime.setEntity({ id: string.of("item-e") });
+  const inv = hostApi.runtime.setEntity({
     id: string.of("inventory"),
-    entities: [itemA, itemB, itemC, itemD, itemE],
+    entityListMap: { members: [itemA, itemB, itemC, itemD, itemE] },
   });
 
   // Scrollbar textures (required on every overflow declaration): the track is
@@ -27,7 +27,7 @@ export default (hostApi) => {
   hostApi.ui.window("show-host", {
     panel: {x: 20, y: 20, width: 120, height: 60},
   }, [
-    hostApi.ui.entityList("show-list", {container: inv, vertical: false}, (entity) => [
+    hostApi.ui.entityList("show-list", {group: inv, list: "members", vertical: false}, (entity) => [
       hostApi.ui.window(entity.id + "-s", {panel: {width: 40, height: 40}}),
     ]),
   ]);
@@ -37,7 +37,7 @@ export default (hostApi) => {
     panel: {x: 20, y: 100, width: 120, height: 60, layout: "row", overflow: {width: "scroll", height: "show", barSize: 8, texture: {track: {animation: barTrack, fill: {width: "stretch", height: "stretch"}}, grabber: {animation: barGrabber, fill: {width: "stretch", height: "stretch"}}}}},
   }, [
     hostApi.ui.entityList("hscroll-list", {
-      container: inv,
+      group: inv, list: "members",
       vertical: false
     }, (entity) => [
       hostApi.ui.window(entity.id + "-h", {panel: {width: 40, height: 40}}),
@@ -48,7 +48,7 @@ export default (hostApi) => {
   hostApi.ui.window("vscroll-host", {
     panel: {x: 20, y: 180, width: 60, height: 100, overflow: {width: "show", height: "scroll", barSize: 8, texture: {track: {animation: barTrack, fill: {width: "stretch", height: "stretch"}}, grabber: {animation: barGrabber, fill: {width: "stretch", height: "stretch"}}}}},
   }, [
-    hostApi.ui.entityList("vscroll-list", {container: inv}, (entity) => [
+    hostApi.ui.entityList("vscroll-list", {group: inv, list: "members"}, (entity) => [
       hostApi.ui.window(entity.id + "-v", {panel: {width: 40, height: 40}}),
     ]),
   ]);
@@ -57,7 +57,7 @@ export default (hostApi) => {
   hostApi.ui.window("both-host", {
     panel: {x: 20, y: 300, width: 120, height: 100, layout: "row", overflow: {width: "scroll", height: "scroll", barSize: 8, texture: {track: {animation: barTrack, fill: {width: "stretch", height: "stretch"}}, grabber: {animation: barGrabber, fill: {width: "stretch", height: "stretch"}}}}},
   }, [
-    hostApi.ui.entityList("both-list", {container: inv, vertical: false}, (entity) => [
+    hostApi.ui.entityList("both-list", {group: inv, list: "members", vertical: false}, (entity) => [
       hostApi.ui.window(entity.id + "-b", {panel: {width: 40, height: 40}}),
     ]),
   ]);
@@ -68,7 +68,7 @@ export default (hostApi) => {
   hostApi.ui.window("win-overflow-host", {
     panel: {x: 20, y: 400, width: 120, height: 60, layout: "row", overflow: {width: "scroll", height: "show", barSize: 8, texture: {track: {animation: barTrack, fill: {width: "stretch", height: "stretch"}}, grabber: {animation: barGrabber, fill: {width: "stretch", height: "stretch"}}}}},
   }, [
-    hostApi.ui.entityList("win-overflow-list", {container: inv, vertical: false}, (entity) => [
+    hostApi.ui.entityList("win-overflow-list", {group: inv, list: "members", vertical: false}, (entity) => [
       hostApi.ui.window(entity.id + "-w", {panel: {width: 40, height: 40}}),
     ]),
   ]);

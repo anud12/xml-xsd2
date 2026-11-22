@@ -15,10 +15,10 @@ public class BuyLandFfiTests : Steps {
 
         // Before purchase: the land is in "lands", the inventory is empty, and
         // the game holds 100 interest.
-        var lands = ContainerInterop.GetContainerById("lands");
-        Assertions.AssertThat(lands.Entities.Contains("1")).IsTrue();
-        var inv = ContainerInterop.GetContainerById("inventory");
-        Assertions.AssertThat(inv.Entities.Length).IsEqual(0);
+        var lands = EntityInterop.GetEntityById("lands")!;
+        Assertions.AssertThat(lands.Members("members").Contains("1")).IsTrue();
+        var inv = EntityInterop.GetEntityById("inventory")!;
+        Assertions.AssertThat(inv.Members("members").Length).IsEqual(0);
         Assertions.AssertThat(double.Parse(
             RuntimeInterop.ReadEntityNumberValue("game", "value"))).IsEqual(100.0);
 
@@ -30,11 +30,11 @@ public class BuyLandFfiTests : Steps {
         RuntimeInterop.RunIteration();
 
         // The land moved from "lands" into "inventory".
-        lands = ContainerInterop.GetContainerById("lands");
-        Assertions.AssertThat(lands.Entities.Contains("1")).IsFalse();
-        inv = ContainerInterop.GetContainerById("inventory");
-        Assertions.AssertThat(inv.Entities.Length).IsEqual(1);
-        Assertions.AssertThat(inv.Entities.Contains("1")).IsTrue();
+        lands = EntityInterop.GetEntityById("lands")!;
+        Assertions.AssertThat(lands.Members("members").Contains("1")).IsFalse();
+        inv = EntityInterop.GetEntityById("inventory")!;
+        Assertions.AssertThat(inv.Members("members").Length).IsEqual(1);
+        Assertions.AssertThat(inv.Members("members").Contains("1")).IsTrue();
 
         // The land's cost (10) was deducted from the game's value.
         Assertions.AssertThat(double.Parse(

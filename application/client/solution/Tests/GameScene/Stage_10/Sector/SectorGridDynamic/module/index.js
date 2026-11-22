@@ -8,9 +8,9 @@ export default (hostApi) => {
   // an opening on the south edge, facing the (currently empty) square (1,1).
   // With no sector there yet, that opening is unlinked: a dead-end doorway
   // rendered as a red shaft on the L's boundary edge.
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("room-l"),
-    entities: [],
+    entityListMap: { members: [] },
     sector: {
       grid: cave,
       footprint: [[0, 0], [1, 0], [0, 1]],
@@ -28,9 +28,9 @@ export default (hostApi) => {
   const createRoom = hostApi.runtime.setEffect({
     name: string.of("create-room"),
     apply: () => {
-      hostApi.runtime.setContainer({
-    id: string.of("room-b"),
-        entities: [],
+      hostApi.runtime.setEntity({
+        id: string.of("room-b"),
+        entityListMap: { members: [] },
         sector: {
           grid: cave,
           footprint: [[0, 0]],

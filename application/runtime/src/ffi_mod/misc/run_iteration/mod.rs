@@ -31,13 +31,6 @@ pub extern "C" fn runtime_run_iteration(elapsed_units: i64) -> i64 {
         helpers::log(&format!("runtime_run_iteration, \
             pending_effects before: {:?}", pe));
     }
-    {
-        let nd = crate::state::last_entity_number_data()
-            .lock().unwrap().clone();
-        helpers::log(&format!("runtime_run_iteration, \
-            entity_number_data before: {:?}", nd));
-    }
-
     helpers::log("runtime_run_iteration, CALLING process_behavior_machine");
     if let Err(e) = crate::js_executor::behavior_scripts::process_behavior_machine(total) {
         helpers::log(&format!("Failed to process behavior machine: {:?}", e));
@@ -55,14 +48,6 @@ pub extern "C" fn runtime_run_iteration(elapsed_units: i64) -> i64 {
     }
     helpers::log("runtime_run_iteration, RETURNED from process_pending_effects");
 
-    {
-        let nd = crate::state::last_entity_number_data()
-            .lock().unwrap().clone();
-        helpers::log(&format!(
-            "runtime_run_iteration, entity_number_data after \
-            pending_effects: {:?}", nd));
-    }
-
     helpers::log("runtime_run_iteration, CALLING process_scheduled_effects");
     if let Err(e) = crate::js_executor::process_scheduled_effects(
         &files_map, total) {
@@ -72,21 +57,13 @@ pub extern "C" fn runtime_run_iteration(elapsed_units: i64) -> i64 {
     helpers::log(
         "runtime_run_iteration, RETURNED from process_scheduled_effects");
 
-    // Re-derive sector grids from the live container state: an effect that
+    // Re-derive sector grids from the live sector declarations: an effect that
     // created a sector this tick re-computes its grid now, so the view (on the
     // next UI tick) reflects the new cells/portals.
     helpers::log("runtime_run_iteration, CALLING recompute_sector_grids");
     crate::js_executor::recompute_sector_grids();
     helpers::log(
         "runtime_run_iteration, RETURNED from recompute_sector_grids");
-
-    {
-        let nd = crate::state::last_entity_number_data()
-            .lock().unwrap().clone();
-        helpers::log(&format!(
-            "runtime_run_iteration, entity_number_data after \
-            ALL processing: {:?}", nd));
-    }
 
     let _elapsed = start.elapsed();
     total

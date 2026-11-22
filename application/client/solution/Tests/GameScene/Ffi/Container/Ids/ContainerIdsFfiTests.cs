@@ -12,7 +12,7 @@ public class ContainerIdsFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var ids = ContainerInterop.GetContainerIds();
+        var ids = EntityInterop.GetEntityIds();
         Assertions.AssertThat(ids.Length >= 2).IsTrue();
         Assertions.AssertThat(ids.Contains("bag-1")).IsTrue();
         Assertions.AssertThat(ids.Contains("chest-grid-1")).IsTrue();

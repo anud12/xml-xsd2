@@ -158,21 +158,21 @@ pub fn dispatch_action_in_sim_for(action_name: &str, actor: &str) -> Result<()> 
               textMap: {{ create: function(){{ return {{ put: function(k,v){{ var o={{}}; o[k]=v; return o; }} }}; }} }},\
                string: {{ of: function(s){{ return s; }} }},\
                args: globalThis.__actionArgs || {{}},\
-               actor: {{ id: {actor_json}, containers: {{}} }},\
+               actor: globalThis.__entityProxy({actor_json}),\
               moveTo: function(spec){{\
                 var s = spec || {{}};\
-                var c = (typeof s.containerId === 'object' && s.containerId !== null) ? s.containerId.value : s.containerId;\
-                var e = (typeof s.entityId === 'object' && s.entityId !== null) ? s.entityId.value : s.entityId;\
+                var c = globalThis.__entityId(s.groupId);\
+                var e = globalThis.__entityId(s.entityId);\
                 var sp = s.speed;\
                 if (typeof sp === 'object' && sp !== null) sp = sp.value;\
-                globalThis.__plannedMoves.push({{ containerId: c, entityId: e,\
+                globalThis.__plannedMoves.push({{ groupId: c, entityId: e,\
                   x: Number(s.x), y: Number(s.y), speed: Number(sp) || 0 }});\
               }},\
               teleportTo: function(spec){{\
                 var s = spec || {{}};\
-                var c = (typeof s.containerId === 'object' && s.containerId !== null) ? s.containerId.value : s.containerId;\
-                var e = (typeof s.entityId === 'object' && s.entityId !== null) ? s.entityId.value : s.entityId;\
-                globalThis.__plannedMoves.push({{ containerId: c, entityId: e,\
+                var c = globalThis.__entityId(s.groupId);\
+                var e = globalThis.__entityId(s.entityId);\
+                globalThis.__plannedMoves.push({{ groupId: c, entityId: e,\
                   x: Number(s.x), y: Number(s.y), speed: Infinity, teleport: true }});\
               }},\
               allowInterrupt: function(){{\
@@ -247,10 +247,8 @@ pub fn dispatch_action_in_sim_for(action_name: &str, actor: &str) -> Result<()> 
     let actor = actor.trim().to_string();
 
     if let Some(moves) = moves {
-        let mut containers: Vec<String> =
-            crate::state::last_containers().lock().unwrap().clone();
         for m in moves {
-            let cid = m.get("containerId").and_then(|c| c.as_str()).unwrap_or("").to_string();
+            let cid = m.get("groupId").and_then(|c| c.as_str()).unwrap_or("").to_string();
             let eid = m.get("entityId").and_then(|c| c.as_str()).unwrap_or("").to_string();
             let x = m.get("x").and_then(|n| n.as_f64()).unwrap_or(0.0);
             let y = m.get("y").and_then(|n| n.as_f64()).unwrap_or(0.0);
@@ -258,11 +256,11 @@ pub fn dispatch_action_in_sim_for(action_name: &str, actor: &str) -> Result<()> 
                 || m.get("speed").and_then(|s| s.as_str()).map(|s| s == "Infinity").unwrap_or(false);
             if is_teleport {
                 // clamp: true is the teleport default in the fixtures.
-                super::active_plans::apply_teleport(&mut containers, &cid, &eid, x, y, true);
+                super::active_plans::apply_teleport(&cid, &eid, x, y, true);
             } else {
                 let speed = m.get("speed").and_then(|n| n.as_f64()).unwrap_or(0.0);
                 let step = serde_json::json!({
-                    "move": { "containerId": cid, "entityId": eid, "x": x, "y": y, "speed": speed }
+                    "move": { "groupId": cid, "entityId": eid, "x": x, "y": y, "speed": speed }
                 });
                 // The actor (if bound) owns the plan; the moved entity is the
                 // position target. A bound actor is the busy/interruptible key.
@@ -276,7 +274,6 @@ pub fn dispatch_action_in_sim_for(action_name: &str, actor: &str) -> Result<()> 
                 );
             }
         }
-        *crate::state::last_containers().lock().unwrap() = containers;
     }
 
     // Park a wait/emit/interrupt step sequence for the walker. Only when the
@@ -302,9 +299,6 @@ pub fn dispatch_action_in_sim_for(action_name: &str, actor: &str) -> Result<()> 
         }
     }
 
-    // Sync entity-store writes back to shared state (setEntity/createEntity).
-    let _ = sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(
-        "if (typeof globalThis.__syncEntityDataBack === 'function') globalThis.__syncEntityDataBack();"));
     Ok(())
 }
 

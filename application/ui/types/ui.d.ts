@@ -29,7 +29,8 @@ export interface UiFactories {
    * returns the node id(s) to place as that entity's children. Returns the
    * list node id.
    */
-  container(name: string, args: { container: string }, render: (entity: UiContainerEntity) => string | string[]): string;
+  groupView(name: string, args: { group: string; list: string; panel: { width: number; height: number } }, render: (member: UiContainerEntity) => string | null): string;
+  entityList(name: string, args: { group: string; list: string }, render: (entity: UiContainerEntity) => string | string[]): string;
 }
 
 export interface UiTransport {

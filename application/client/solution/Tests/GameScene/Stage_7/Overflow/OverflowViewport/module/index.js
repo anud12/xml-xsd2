@@ -2,13 +2,14 @@
 export default (hostApi) => {
   const {string, number} = hostApi.runtime;
 
-  const itemA = hostApi.runtime.setEntity({id: string.of("item-a")});
-  const itemB = hostApi.runtime.setEntity({id: string.of("item-b")});
-  const itemC = hostApi.runtime.setEntity({id: string.of("item-c")});
-  const itemD = hostApi.runtime.setEntity({id: string.of("item-d")});
-  const itemE = hostApi.runtime.setEntity({id: string.of("item-e")});
-  const inv = hostApi.runtime.setContainer({
-    id: string.of("inventory"), entities: [itemA, itemB, itemC, itemD, itemE],
+  const itemA = hostApi.runtime.setEntity({ id: string.of("item-a") });
+  const itemB = hostApi.runtime.setEntity({ id: string.of("item-b") });
+  const itemC = hostApi.runtime.setEntity({ id: string.of("item-c") });
+  const itemD = hostApi.runtime.setEntity({ id: string.of("item-d") });
+  const itemE = hostApi.runtime.setEntity({ id: string.of("item-e") });
+  const inv = hostApi.runtime.setEntity({
+    id: string.of("inventory"),
+    entityListMap: { members: [itemA, itemB, itemC, itemD, itemE] },
   });
 
   const red = hostApi.runtime.setAnimation(string.of("red"), {
@@ -46,7 +47,7 @@ export default (hostApi) => {
       }, background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("hscroll-list", {
-    container: inv, vertical: false
+    group: inv, list: "members", vertical: false
   }, (entity) => {
     const tex = entity.id.endsWith("-a") ? red : entity.id.endsWith("-b") ? green : blue;
     return [hostApi.ui.window(entity.id + "-h", {
@@ -70,7 +71,7 @@ export default (hostApi) => {
       }, background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("win-scroll-list", {
-    container: inv, vertical: false
+    group: inv, list: "members", vertical: false
   }, (entity) => {
     const tex = entity.id.endsWith("-a") ? red : entity.id.endsWith("-b") ? green : blue;
     return [hostApi.ui.window(entity.id + "-w", {
@@ -92,7 +93,7 @@ export default (hostApi) => {
       }, background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("vscroll-list", {
-    container: inv
+    group: inv, list: "members"
   }, (entity) => {
     const tex = entity.id.endsWith("-a") ? red : entity.id.endsWith("-b") ? green : blue;
     return [hostApi.ui.window(entity.id + "-v", {

@@ -15,9 +15,9 @@ export default (hostApi) => {
     id: string.of("item-c"),
     numberMap: { value: number.of(3) },
   });
-  const itemsContainer = hostApi.runtime.setContainer({
+  const itemsContainer = hostApi.runtime.setEntity({
     id: string.of("items-container"),
-    entities: [itemA, itemB, itemC],
+    entityListMap: { members: [itemA, itemB, itemC] },
   });
 
   const texture = hostApi.runtime.setAnimation(string.of("texture"), {
@@ -38,7 +38,7 @@ export default (hostApi) => {
       background: { animation: texture, fill: { width: "stretch", height: "stretch", keepAspectRatio: true } },
     },
   }, [
-    hostApi.ui.entityList("items", { container: itemsContainer },
+    hostApi.ui.entityList("items", { group: itemsContainer, list: "members" },
       (entity) => [
         hostApi.ui.window(entity.id, {
           panel: {

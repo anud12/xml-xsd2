@@ -46,7 +46,7 @@ public class SectorGridDynamicTests : Steps
         Assertions.AssertThat(scene.GetWindowOrNull("caveview-portal-0")).IsNull();
         DebugSaveScreenshot("debug_initial.png");
 
-        // ---- Fire the action: action -> effect -> setContainer(room-b). ---
+        // ---- Fire the action: action -> effect -> setEntity(room-b). ---
         RuntimeInterop.emitAction("build-room");
         RuntimeInterop.RunIteration(0);
         await runner.SimulateFrames(2);

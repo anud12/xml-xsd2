@@ -12,11 +12,11 @@ public class ContainerEntitiesFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var container = ContainerInterop.GetContainerById("bag-1");
-        Assertions.AssertThat(container.Entities).IsNotNull();
-        Assertions.AssertThat(container.Entities.Length).IsEqual(3);
-        Assertions.AssertThat(container.Entities.Contains("sword-1")).IsTrue();
-        Assertions.AssertThat(container.Entities.Contains("potion-1")).IsTrue();
-        Assertions.AssertThat(container.Entities.Contains("shield-1")).IsTrue();
+        var container = EntityInterop.GetEntityById("bag-1")!;
+        Assertions.AssertThat(container.Members("members")).IsNotNull();
+        Assertions.AssertThat(container.Members("members").Length).IsEqual(3);
+        Assertions.AssertThat(container.Members("members").Contains("sword-1")).IsTrue();
+        Assertions.AssertThat(container.Members("members").Contains("potion-1")).IsTrue();
+        Assertions.AssertThat(container.Members("members").Contains("shield-1")).IsTrue();
     }
 }

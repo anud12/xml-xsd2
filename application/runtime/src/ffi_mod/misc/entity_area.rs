@@ -17,26 +17,7 @@ pub extern "C" fn runtime_get_entities_inside_area(
     }
     let id_str = unsafe { std::ffi::CStr::from_ptr(id).to_string_lossy().to_string() };
     let area_str = unsafe { std::ffi::CStr::from_ptr(area_id).to_string_lossy().to_string() };
-    let containers = crate::state::last_containers().lock().unwrap().clone();
-    let ids = crate::state::entities_inside_area(&id_str, &area_str, &containers);
-    let json = serde_json::to_string(&ids).unwrap_or_else(|_| "[]".into());
-    CString::new(json).unwrap_or_else(|_| CString::new("[]").unwrap()).into_raw()
-}
-
-/// The ids of the containers the named entity is a member of, as a JSON array
-/// of strings. Diagnostics only. Free with [`runtime_free_string`].
-#[no_mangle]
-pub extern "C" fn runtime_get_entity_containers(
-    id: *const c_char,
-) -> *mut c_char {
-    if id.is_null() {
-        return CString::new("[]").unwrap().into_raw();
-    }
-    let id_str = unsafe {
-        std::ffi::CStr::from_ptr(id).to_string_lossy().to_string()
-    };
-    let containers = crate::state::last_containers().lock().unwrap().clone();
-    let ids = crate::state::entity_containers(&id_str, &containers);
+    let ids = crate::state::entities_inside_area(&id_str, &area_str);
     let json = serde_json::to_string(&ids).unwrap_or_else(|_| "[]".into());
     CString::new(json).unwrap_or_else(|_| CString::new("[]").unwrap()).into_raw()
 }
@@ -100,26 +81,6 @@ mod tests {
         CString::new(s).unwrap()
     }
 
-    /// A container row in the exact shape `setContainer` serializes: id,
-    /// entities, and pre-baked getX/getY per member.
-    fn container(id: &str, members: &[(&str, f64, f64)]) -> String {
-        let mut c = serde_json::Map::new();
-        c.insert("id".into(), serde_json::json!(id));
-        c.insert(
-            "entities".into(),
-            serde_json::json!(members.iter().map(|(e, _, _)| *e).collect::<Vec<_>>()),
-        );
-        let mut gx = serde_json::Map::new();
-        let mut gy = serde_json::Map::new();
-        for (e, x, y) in members {
-            gx.insert((**e).to_string(), serde_json::json!(*x));
-            gy.insert((**e).to_string(), serde_json::json!(*y));
-        }
-        c.insert("getX".into(), serde_json::Value::Object(gx));
-        c.insert("getY".into(), serde_json::Value::Object(gy));
-        serde_json::to_string(&serde_json::Value::Object(c)).unwrap()
-    }
-
     #[test]
     fn ffi_set_area_then_query_roundtrips() {
         let _g = test_lock();
@@ -129,10 +90,10 @@ mod tests {
         unsafe {
             runtime_set_entity_area(c("room").as_ptr(), c("floor").as_ptr(), room_poly.as_ptr())
         };
-        crate::state::set_last_containers(vec![container(
-            "c1",
+        crate::state::seed_group(
+            "c1", "members",
             &[("room", 10.0, 10.0), ("npc-in", 30.0, 40.0), ("npc-out", 500.0, 500.0)],
-        )]);
+        );
 
         // The area name is required and resolves the "floor" area.
         let out = unsafe {
@@ -156,10 +117,10 @@ mod tests {
         unsafe {
             runtime_set_entity_area(c("room").as_ptr(), c("home").as_ptr(), home_poly.as_ptr())
         };
-        crate::state::set_last_containers(vec![container(
-            "c1",
+        crate::state::seed_group(
+            "c1", "members",
             &[("room", 10.0, 10.0), ("npc-in", 15.0, 15.0), ("npc-out", 500.0, 500.0)],
-        )]);
+        );
 
         // The named query resolves the "home" area first and finds npc-in.
         let out = unsafe {
@@ -185,10 +146,10 @@ mod tests {
     fn ffi_query_without_area_is_empty() {
         let _g = test_lock();
         crate::state::clear_state();
-        crate::state::set_last_containers(vec![container(
-            "c1",
+        crate::state::seed_group(
+            "c1", "members",
             &[("room", 10.0, 10.0), ("npc", 30.0, 40.0)],
-        )]);
+        );
         let out = unsafe {
             runtime_get_entities_inside_area(c("room").as_ptr(), c("floor").as_ptr())
         };

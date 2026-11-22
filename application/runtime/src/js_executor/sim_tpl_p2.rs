@@ -9,12 +9,9 @@ const SIM_TPL_P2: &str = r#"
     };
   }
   function buildApplyContext() {
-    return { createEntity: recordCreated,
+    return { createEntity: function (entity) { recordCreated(entity); return this; },
       getMutableEntityBy: function(filter) {
-        return globalThis.__evalEntityFilter(filter);
-      },
-      getMutableContainersBy: function(filter) {
-        return globalThis.__evalContainerFilter(filter);
+        return globalThis.__evalEntityFilter(filter, true);
       }
     };
   }"#;

@@ -16,7 +16,7 @@ export const interestUi = (hostApi, game) => {
             context.getMutableEntityBy({
                 filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
             }).forEach((entity) => {
-                entity.number_map.put(module.propertyKey, (current) => current.map(c => c.sum(hostApi.runtime.number.of(10))));
+                entity.number_map.put(module.propertyKey, (current) => current.map(c => c.sum(hostApi.runtime.number.of(200))));
             });
         },
     });

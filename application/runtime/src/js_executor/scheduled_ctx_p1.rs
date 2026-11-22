@@ -50,12 +50,10 @@ const SCHED_CTX_JS_P1: &str = r#"(function() {
                 globalThis.__entityStore.push({textMap_name: String(o)});
                 globalThis.__createdEntities.push(String(o));
             }
+            return this;
         },
         getMutableEntityBy: function(filter) {
-            return globalThis.__evalEntityFilter(filter);
-        },
-        getMutableContainersBy: function(filter) {
-            return globalThis.__evalContainerFilter(filter);
+            return globalThis.__evalEntityFilter(filter, true);
         }
     };
 })()"#;

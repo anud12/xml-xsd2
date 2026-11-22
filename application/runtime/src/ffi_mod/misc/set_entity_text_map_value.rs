@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::ffi::CStr;
 use libc::c_char;
 
@@ -15,8 +14,7 @@ pub extern "C" fn runtime_set_entity_text_map_value(
     let key = unsafe { CStr::from_ptr(key) }.to_string_lossy().to_string();
     let value = unsafe { CStr::from_ptr(value) }.to_string_lossy().to_string();
 
-    let mut data = crate::state::last_entity_data().lock().unwrap();
-    data.entry(entity_id)
-        .or_insert_with(HashMap::new)
+    let mut data = crate::state::entity_map().lock().unwrap();
+    crate::state::ensure_entity(&mut data, &entity_id).string_map
         .insert(key, value);
 }

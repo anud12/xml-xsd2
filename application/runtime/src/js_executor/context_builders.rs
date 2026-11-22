@@ -3,12 +3,7 @@ use rquickjs::Context;
 pub use super::js_strings_effect::{
     call_effect_prepare, call_effect_apply, eval_reoccur_interval,
 };
-pub use super::entity_sync::{
-    lookup_effect, sync_entity_data_with_initial,
-};
-pub use super::entity_sync_back::{
-    sync_entity_data_back, collect_logs,
-};
+pub use super::effect_helpers::{lookup_effect, collect_logs};
 
 pub fn build_effect_context_pending(ctx: &Context) {
     let _ = build_effect_context_impl(ctx, "pending");
@@ -29,42 +24,9 @@ fn build_effect_context_impl(ctx: &Context, kind: &str) -> anyhow::Result<()> {
          super::scheduled_ctx_p3::get_part3())
     };
 
-    // Precompute the inside-area map so entity wrappers can read it without a
-    // per-call FFI round trip. Areas and container membership are static at
-    // this point (synced before context build).
-    let containers = crate::state::last_containers().lock().unwrap().clone();
-    let inside_json = crate::state::inside_area_map_json(&containers);
-
-    // Build __containerData from the Rust-side container state so that
-    // getMutableContainersBy can filter and mutate in the effect context.
-    // Only inject if not already present (the persistent sim context already
-    // has the full objects from module loading; overwriting would lose
-    // non-serializable fields like behavior and position functions).
-    let mut entries = Vec::new();
-    for json_str in &containers {
-        if let Ok(val) = serde_json::from_str::<serde_json::Value>(json_str) {
-            if let Some(id) = val.get("id").and_then(|v| v.as_str()) {
-                entries.push(format!("'{}': {}", id, json_str));
-            }
-        }
-    }
-    let container_data_js = format!(
-        "if (!globalThis.__containerData) {{ globalThis.__containerData = {{{}}}; }} ",
-        entries.join(", ")
-    );
-
-    let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(
-        format!("globalThis.__insideArea = {}; {}", inside_json, container_data_js).as_str()
-    ));
-
     // Evaluate full JS directly
     let full = format!("{}{}{}", p1, p2, p3);
     let _ = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(full.as_str()));
     Ok(())
 }
-
-pub fn sync_entity_data(ctx: &Context) {
-    super::entity_sync::sync_entity_store(ctx);
-}
-
 

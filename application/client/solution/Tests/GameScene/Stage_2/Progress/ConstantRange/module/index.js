@@ -14,9 +14,7 @@ export default (hostApi) => {
   const hFill = { width: "tile", height: "stretch" };
   const hero = hostApi.runtime.setEntity({
     id: string.of("hero"),
-    // The entity carries live data the bar must NOT read: the range is
-    // constant, so hp/max on the entity stay out of the fill.
-    numberMap: { hp: number.of(9), max: number.of(10) }
+    numberMap: { hp: number.of(9), max: number.of(10) },
   });
   hostApi.ui.window("prog-const-win", {
     panel: {

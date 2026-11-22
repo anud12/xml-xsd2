@@ -5,12 +5,8 @@ export default (hostApi) => {
 
   const entity = hostApi.runtime.setEntity({
     id: string.of("entity_id"),
-    textMap: {
-      "textKey": string.of("textValue")
-    },
-    numberMap: {
-      "numberKey": number.of(42)
-    },
+    numberMap: { "numberKey": number.of(42) },
+    stringMap: { "textKey": string.of("textValue") },
   });
 
 

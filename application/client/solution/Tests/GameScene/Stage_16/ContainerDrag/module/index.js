@@ -11,7 +11,7 @@
  * The drag type ("land") owns BOTH the shared drop affordance (the `feedback`
  * overlay) and the drop semantics: its `onDrop` moves the entity INTO the
  * drop-off container, identified by `ctx.targetId` (each container window is
- * declared with `id == containerId`). The entity is removed from its source
+ * declared with `id == groupId`). The entity is removed from its source
  * container and re-added to the target (the same re-reference-by-id move used
  * by TestTick).
  */
@@ -49,13 +49,13 @@ export default (hostApi) => {
   // Two entities that start in container_1; container_2 starts empty.
   const item1 = hostApi.runtime.setEntity({ id: string.of("item-1") });
   const item2 = hostApi.runtime.setEntity({ id: string.of("item-2") });
-  const container1 = hostApi.runtime.setContainer({
+  const container1 = hostApi.runtime.setEntity({
     id: string.of("container_1"),
-    entities: [item1, item2],
+    entityListMap: { members: [item1, item2] },
   });
-  const container2 = hostApi.runtime.setContainer({
+  const container2 = hostApi.runtime.setEntity({
     id: string.of("container_2"),
-    entities: [],
+    entityListMap: { members: [] },
   });
 
   // Move effect: removes the entity from `from` and re-adds it to `to`. The
@@ -70,13 +70,13 @@ export default (hostApi) => {
       const from = String(args.from);
       const to = String(args.to);
       if (!entityId || !from || !to || from === to) return;
-      context.getMutableContainersBy({
+      context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of(from))],
-      }).forEach((c) => c.removeEntity(string.of(entityId)));
-      const entityRef = hostApi.runtime.setEntity({ id: string.of(entityId) });
-      context.getMutableContainersBy({
+      }).forEach((c) => c.removeMember("members", string.of(entityId)));
+      const entity = hostApi.runtime.setEntity({ id: string.of(entityId) });
+      context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of(to))],
-      }).forEach((c) => c.addEntity(entityRef));
+      }).forEach((c) => c.addMember("members", entity));
     },
   });
 
@@ -94,7 +94,7 @@ export default (hostApi) => {
   // The drag type owns BOTH the shared drop affordance (feedback) and the drop
   // semantics: `onDrop` moves the entity into the drop-off's container.
   // `ctx.targetId` is the drop-off window's id, and each container window is
-  // declared with `id == containerId` — so this single onDrop routes every drop
+  // declared with `id == groupId` — so this single onDrop routes every drop
   // to the right container with no per-target override.
   const LAND = hostApi.ui.dragAndDropChannel({
     name: "land",
@@ -124,9 +124,9 @@ export default (hostApi) => {
   // A container window: a droppable panel (accepts the "land" type) that maps
   // to `container` via `entityList`, rendering each member as a draggable child
   // window whose drag payload carries the entity id + source container id. Its
-  // window id equals `containerId`, so the type's onDrop routes drops via
+  // window id equals `groupId`, so the type's onDrop routes drops via
   // ctx.targetId.
-  const containerWindow = (id, containerId, container, x) =>
+  const containerWindow = (id, groupId, container, x) =>
     hostApi.ui.window(id, {
       panel: {
         x,
@@ -137,13 +137,13 @@ export default (hostApi) => {
         droppable: LAND.droppable(),
       },
     }, [
-      hostApi.ui.entityList(id + "_items", { container }, (entity) => [
+      hostApi.ui.entityList(id + "_items", { group: container, list: "members" }, (entity) => [
         hostApi.ui.window(entity.id, {
           panel: {
             width: 200,
             height: 60,
             background: { animation: itemBg, fill: { width: "stretch", height: "stretch" } },
-            draggable: LAND.draggable({ payload: { entityId: entity.id, sourceContainerId: containerId } }),
+            draggable: LAND.draggable({ payload: { entityId: entity.id, sourceContainerId: groupId } }),
           },
         }, []),
       ]),

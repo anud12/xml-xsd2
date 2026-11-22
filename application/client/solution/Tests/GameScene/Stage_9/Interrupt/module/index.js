@@ -3,11 +3,8 @@ export default (hostApi) => {
  const { number, string } = hostApi.runtime;
 
   hostApi.runtime.setEntity({
-    id: "worker-1",
-    numberMap: {
-      column: number.of(0),
-      row: number.of(0),
-    },
+    id: hostApi.runtime.string.of("worker-1"),
+    numberMap: { column: number.of(0), row: number.of(0) },
   });
 
   // Each operation is an effect that logs a distinct line, so the test can

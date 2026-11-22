@@ -12,10 +12,10 @@ public class ContainerSizeFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var container = ContainerInterop.GetContainerById("bag-1");
-        Assertions.AssertThat(container.SizeX).IsNotNull();
-        Assertions.AssertThat(container.SizeX.Value.Value).IsEqual(20.0);
-        Assertions.AssertThat(container.SizeX.Value.OutOfBounds).IsEqual(OutOfBoundsRule.Clamp);
+        var container = EntityInterop.GetEntityById("bag-1")!;
+        Assertions.AssertThat(container.NumberMap["sizeX"]).IsNotNull();
+        Assertions.AssertThat(container.NumberMap["sizeX"]).IsEqual(20.0);
+        Assertions.AssertThat(container.StringMap["outOfBoundsX"]).IsEqual("clamp");
     }
 
     [TestCase]
@@ -25,10 +25,10 @@ public class ContainerSizeFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var container = ContainerInterop.GetContainerById("bag-1");
-        Assertions.AssertThat(container.SizeY).IsNotNull();
-        Assertions.AssertThat(container.SizeY.Value.Value).IsEqual(1.0);
-        Assertions.AssertThat(container.SizeY.Value.OutOfBounds).IsEqual(OutOfBoundsRule.Clamp);
+        var container = EntityInterop.GetEntityById("bag-1")!;
+        Assertions.AssertThat(container.NumberMap["sizeY"]).IsNotNull();
+        Assertions.AssertThat(container.NumberMap["sizeY"]).IsEqual(1.0);
+        Assertions.AssertThat(container.StringMap["outOfBoundsY"]).IsEqual("clamp");
     }
 
     [TestCase]
@@ -38,11 +38,11 @@ public class ContainerSizeFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var container = ContainerInterop.GetContainerById("chest-grid-1");
-        Assertions.AssertThat(container.SizeX).IsNotNull();
-        Assertions.AssertThat(container.SizeX.Value.Value).IsEqual(6.0);
-        Assertions.AssertThat(container.SizeX.Value.OutOfBounds).IsEqual(OutOfBoundsRule.Wrap);
-        Assertions.AssertThat(container.SizeY.Value.Value).IsEqual(4.0);
-        Assertions.AssertThat(container.SizeY.Value.OutOfBounds).IsEqual(OutOfBoundsRule.Wrap);
+        var container = EntityInterop.GetEntityById("chest-grid-1")!;
+        Assertions.AssertThat(container.NumberMap["sizeX"]).IsNotNull();
+        Assertions.AssertThat(container.NumberMap["sizeX"]).IsEqual(6.0);
+        Assertions.AssertThat(container.StringMap["outOfBoundsX"]).IsEqual("wrap");
+        Assertions.AssertThat(container.NumberMap["sizeY"]).IsEqual(4.0);
+        Assertions.AssertThat(container.StringMap["outOfBoundsY"]).IsEqual("wrap");
     }
 }

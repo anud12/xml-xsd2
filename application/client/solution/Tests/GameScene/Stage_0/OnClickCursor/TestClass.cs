@@ -39,6 +39,30 @@ public class TestClass : Steps {
         AssertRuntimeOutputContains("___move fired x=2 y=2___");
     }
 
+    [TestCase]
+    [RequireGodotRuntime]
+    public async Task Drop_cell_uses_live_group_size_instead_of_panel_tracks() {
+        CleanupArchive();
+        AddFileToArchive("module/index.js", "index.js")
+            .AddFileToArchive("module/manifest.json", "manifest.json")
+            .EnsureDllAccessible()
+            .ProcessArchive();
+
+        var scene = await AttachUiScene();
+        var board = scene.Window("board");
+        // Avoid an exact cell boundary (the transform uses floating point).
+        var point = board.GetGlobalTransform() * new Vector2(260, 150);
+        var (col, row) = board.ResolveDropCell(point);
+        Assertions.AssertThat(col).IsEqual(2);
+        Assertions.AssertThat(row).IsEqual(1);
+
+        // The panel tracks stay unchanged; a write to the group is enough.
+        NewGameProject.Runtime.RuntimeInterop.SetEntityNumberMapValue("grid-1", "sizeX", 6);
+        (col, row) = board.ResolveDropCell(point);
+        Assertions.AssertThat(col).IsEqual(5);
+        Assertions.AssertThat(row).IsEqual(1);
+    }
+
     void ClickLocal(UiWindow window, Vector2 local) {
         var globalPos = window.GlobalPosition + local;
         var press = new InputEventMouseButton {

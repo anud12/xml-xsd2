@@ -142,7 +142,7 @@ public static class UiSlab
         if (click != null) Add("onClick", click);
         var hover = SerializeOnHover(o.OnHover, arena);
         if (hover != null) Add("onHover", hover);
-        AddStr("container", o.Container);
+        AddStr("group", o.Container);
         if (o.ContainerView != 0)
             Add("containerView", "true");
         if (o.Resizable != 0)

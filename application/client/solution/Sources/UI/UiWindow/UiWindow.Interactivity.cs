@@ -92,11 +92,12 @@ public partial class UiWindow
 
         // The container this panel represents; the cursor cell is resolved from
         // its sizeX/sizeY at click time (independent of the layout tracks).
-        if (opts.TryGetProperty("container", out var ctr)
+        _spatialGroupId = null;
+        if (opts.TryGetProperty("group", out var ctr)
             && ctr.ValueKind == JsonValueKind.String)
         {
             var cid = ctr.GetString();
-            if (!string.IsNullOrEmpty(cid)) _onClickContainerId = cid;
+            if (!string.IsNullOrEmpty(cid)) _spatialGroupId = cid;
         }
 
         if (!opts.TryGetProperty("onHover", out var hover)
@@ -542,34 +543,28 @@ public partial class UiWindow
     /// window with neither resolves to (0, 0).
     (int Col, int Row) ResolveCursorCell(Godot.Vector2 localPos)
     {
-        if (_onClickContainerId != null)
-        {
-            var container = ContainerInterop.GetContainerById(_onClickContainerId);
-            // The view's items are laid out by the runtime's position pass from
-            // the view's declared (viewWidth/viewHeight) size — frozen for the
-            // module's lifetime and independent of any user resize. Resolve the
-            // click against that same declared extent (not the live Size) so a
-            // click lands on the cell whose marker sits under the pointer.
-            var view = _windowExplicitSize != Godot.Vector2.Zero
-                ? _windowExplicitSize
-                : Size;
-            if (container.SizeX is { } sx
-                && container.SizeY is { } sy
-                && sx.Value > 0 && sy.Value > 0
-                && view.X > 0 && view.Y > 0)
-            {
-                int col = (int)((localPos.X / view.X) * sx.Value);
-                int row = (int)((localPos.Y / view.Y) * sy.Value);
-                col = Math.Clamp(col, 0, (int)sx.Value - 1);
-                row = Math.Clamp(row, 0, (int)sy.Value - 1);
-                return (col, row);
-            }
-        }
+        if (TryResolveGroupCell(localPos) is { } cell) return cell;
         var grid = GetNodeOrNull<UiGrid>("grid")
             ?? GetNodeOrNull<ScrollContainer>("scroll")?.GetNodeOrNull<UiGrid>("grid");
         if (grid == null)
             return (0, 0);
         return grid.CellAt(localPos);
+    }
+
+    // Clicks and drops share the same view extent and group geometry.
+    (int Col, int Row)? TryResolveGroupCell(Godot.Vector2 localPos)
+    {
+        if (_spatialGroupId == null || EntityInterop.GetEntityById(_spatialGroupId) is not { } group)
+            return null;
+        if (!group.NumberMap.TryGetValue("sizeX", out var sx) ||
+            !group.NumberMap.TryGetValue("sizeY", out var sy) || sx < 1 || sy < 1)
+            return null;
+        // Use the declared extent, which is also used to lay out the markers.
+        var view = _windowExplicitSize != Godot.Vector2.Zero ? _windowExplicitSize : Size;
+        if (view.X <= 0 || view.Y <= 0) return null;
+        int col = (int)((localPos.X / view.X) * sx);
+        int row = (int)((localPos.Y / view.Y) * sy);
+        return (Math.Clamp(col, 0, (int)sx - 1), Math.Clamp(row, 0, (int)sy - 1));
     }
 
     /// The hover background-swap texture: the node store passes the first

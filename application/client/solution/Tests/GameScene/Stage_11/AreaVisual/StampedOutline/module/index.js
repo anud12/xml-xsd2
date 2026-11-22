@@ -9,26 +9,22 @@ export default (hostApi) => {
   const room = hostApi.runtime.setEntity({
     id: string.of("room"),
     numberMap: { column: number.of(10), row: number.of(10) },
-    areaMap: {
-      floor: {
-        polygon: [[0, 0], [40, 0], [60, 20], [60, 80], [0, 80]],
-      },
-    },
+    stringMap: { xKey: "column", yKey: "row" },
+    polygons: { floor: [[0, 0], [40, 0], [60, 20], [60, 80], [0, 80]] },
   });
 
   // A "crate" with no declared area (the 1x1 fallback case).
   const crate = hostApi.runtime.setEntity({
     id: string.of("crate"),
     numberMap: { column: number.of(40), row: number.of(40) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
-  const grid1 = hostApi.runtime.setContainer({
+  const grid1 = hostApi.runtime.setEntity({
     id: string.of("grid-1"),
-    entities: [room, crate],
-    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
-    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    sizeX: { value: number.of(100), outOfBounds: "clamp" },
-    sizeY: { value: number.of(100), outOfBounds: "clamp" },
+    entityListMap: { members: [room, crate] },
+    numberMap: { sizeX: number.of(100), sizeY: number.of(100) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp" },
   });
 
   // A 700x500 top-down view of the 100x100 container: cell_w = 7, cell_h = 5.
@@ -41,8 +37,8 @@ export default (hostApi) => {
       height: 500,
     },
   }, [
-    hostApi.ui.containerView("world", {
-      container: grid1,
+    hostApi.ui.groupView("world", {
+      group: grid1, list: "members",
       panel: {
         width: 700,
         height: 500,

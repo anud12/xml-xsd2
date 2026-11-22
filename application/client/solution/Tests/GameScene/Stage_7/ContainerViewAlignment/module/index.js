@@ -6,38 +6,31 @@ export default (hostApi) => {
   // position difference isolates the centering behavior.
   hostApi.runtime.setEntity({
     id: string.of("node-a"),
-    numberMap: { column: number.of(2), row: number.of(1), span: number.of(2) },
+    numberMap: { column: number.of(2), row: number.of(1), span: number.of(2), spanX: number.of(2), spanY: number.of(2) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
   hostApi.runtime.setEntity({
     id: string.of("node-b"),
-    numberMap: { column: number.of(2), row: number.of(1), span: number.of(2) },
+    numberMap: { column: number.of(2), row: number.of(1), span: number.of(2), spanX: number.of(2), spanY: number.of(2) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
   // grid-center declares alignment "center": the marker is centered on the
   // midpoint of its span.
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("grid-center"),
-    entities: [string.of("node-a")],
-    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
-    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    getSpanX: (entity) => entity.number_map.get("span").orElse(number.of(1)),
-    getSpanY: (entity) => entity.number_map.get("span").orElse(number.of(1)),
-    sizeX: { value: number.of(10), outOfBounds: "clamp" },
-    sizeY: { value: number.of(5), outOfBounds: "clamp" },
-    alignment: "center",
+    entityListMap: { members: [string.of("node-a")] },
+    numberMap: { sizeX: number.of(10), sizeY: number.of(5) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp", alignment: "center" },
   });
 
   // grid-default omits the alignment flag: the marker pins its top-left
   // corner to (x, y) (the default "top-left" behavior).
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("grid-default"),
-    entities: [string.of("node-b")],
-    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
-    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    getSpanX: (entity) => entity.number_map.get("span").orElse(number.of(1)),
-    getSpanY: (entity) => entity.number_map.get("span").orElse(number.of(1)),
-    sizeX: { value: number.of(10), outOfBounds: "clamp" },
-    sizeY: { value: number.of(5), outOfBounds: "clamp" },
+    entityListMap: { members: [string.of("node-b")] },
+    numberMap: { sizeX: number.of(10), sizeY: number.of(5) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp" },
   });
 
   // Each 700x500 view maps its 10x5 container cell-for-cell: each cell is
@@ -50,8 +43,8 @@ export default (hostApi) => {
       height: 500,
     },
   }, [
-    hostApi.ui.containerView("plane-center", {
-      container: "grid-center",
+    hostApi.ui.groupView("plane-center", {
+      group: "grid-center", list: "members",
       panel: {
         width: 700,
         height: 500,
@@ -69,8 +62,8 @@ export default (hostApi) => {
       height: 500,
     },
   }, [
-    hostApi.ui.containerView("plane-default", {
-      container: "grid-default",
+    hostApi.ui.groupView("plane-default", {
+      group: "grid-default", list: "members",
       panel: {
         width: 700,
         height: 500,

@@ -53,7 +53,7 @@ if (__uih && globalThis.host) {
   // runtime_ui_js_drag_start / _drag_end / _js_drop.
   globalThis.__uiDragHandlers = globalThis.__uiDragHandlers || {};
   globalThis.__uiDropHandlers = globalThis.__uiDropHandlers || {};
-  var __uWin0 = __uih.window, __uDiv0 = __uih.div, __uCV0 = __uih.containerView, __uSG0 = __uih.sectorGrid;
+  var __uWin0 = __uih.window, __uDiv0 = __uih.div, __uCV0 = __uih.groupView, __uSG0 = __uih.sectorGrid;
   // Each feedback state (onDrag / onHover) carries a `text: { value, font }`
   // whose `font` is a setFont handle (it carries the resolved config on
   // `.__font`). Handles stringify to their bare name in the JSON snapshot, so
@@ -203,7 +203,7 @@ if (__uih && globalThis.host) {
   __uih.div = function (id, options, children) {
     return __prepBoth(id, options, children, __uDiv0);
   };
-  __uih.containerView = function (name, args, render) {
+  __uih.groupView = function (name, args, render) {
     return __prepBoth(name, args, render, __uCV0);
   };
   __uih.sectorGrid = function (name, args, render) {
@@ -221,7 +221,7 @@ if (__uih && globalThis.host) {
   __u.progress = __uih.progress;
   __u.canvas = __uih.canvas;
   __u.entityList = __uih.entityList;
-  __u.containerView = __uih.containerView;
+  __u.groupView = __uih.groupView;
   __u.sectorGrid = __uih.sectorGrid;
   // panel is a plain flow container (a division): only ui.window creates a
   // window and ui.setScreen the screen. A standalone (window-less,
@@ -237,29 +237,9 @@ if (__uih && globalThis.host) {
       })
     };
   };
-  globalThis.__uiEntitiesFor = function (name) {
-    // `name` may be a UI node id (entityList: resolve its options.container)
-    // or a runtime container id directly (containerView). Resolve the
-    // container id first, then look it up in the per-tick container list.
-    var cid = null;
-    var snap = __uih.snapshot();
-    for (var i = 0; i < snap.length; i++) {
-      if (snap[i].id !== name) continue;
-      var c2 = snap[i].options && snap[i].options.container;
-      if (typeof c2 === 'string') { cid = c2; break; }
-    }
-    if (typeof cid !== 'string') {
-      // Not a UI node in the snapshot; treat `name` as the container id.
-      cid = name;
-    }
-    var list = globalThis.__uiContainerList || [];
-    var found = null;
-    // The container store appends a row per setContainer call; the latest
-    // row for an id wins.
-    for (var j = 0; j < list.length; j++) {
-      if (list[j].id === cid) found = list[j].entities || [];
-    }
-    return found || [];
+  globalThis.__uiEntitiesFor = function (group, list) {
+    var data = globalThis.__readEntity(group);
+    return (data && data.entityListMap && data.entityListMap[list]) || [];
   };
 }
 "#;
@@ -317,6 +297,7 @@ pub fn install(files: &HashMap<String, String>) -> Result<()> {
     // The module's own log lines are already surfaced by the extraction
     // pipeline; flushing them here would duplicate them. The install-time
     // entries are dropped by the per-run `__logs` reset in the effect path.
+    crate::js_host_api::entity_access::install(&ctx)?;
     replace_host(rt, ctx);
     runtime_log!("sim: module installed in persistent context");
     Ok(())

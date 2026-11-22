@@ -4,27 +4,15 @@ export default (hostApi) => {
 
   const node_1 = hostApi.runtime.setEntity({
     id: string.of("node-1"),
-    numberMap: {
-      column: number.of(0),
-      row: number.of(0),
-    },
+    numberMap: { column: number.of(0), row: number.of(0) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
-  const grid_1 = hostApi.runtime.setContainer({
+  const grid_1 = hostApi.runtime.setEntity({
     id: string.of("grid-1"),
-    entities: [node_1],
-    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
-    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    getSpanX: (entity) => number.of(1),
-    getSpanY: (entity) => number.of(1),
-    sizeX: {
-      value: number.of(3),
-      outOfBounds: "clamp",
-    },
-    sizeY: {
-      value: number.of(3),
-      outOfBounds: "clamp",
-    },
+    entityListMap: { members: [node_1] },
+    numberMap: { sizeX: number.of(3), sizeY: number.of(3) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp" },
   });
 
   const action = hostApi.runtime.setAction({
@@ -43,7 +31,7 @@ export default (hostApi) => {
       layout: {
         columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
         rows: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
-        container: grid_1,
+        group: grid_1,
       },
       onClick: (ctx) => {
         if (!ctx.cursor) return;

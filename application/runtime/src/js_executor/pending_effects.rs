@@ -1,8 +1,8 @@
 use anyhow::Result;
 use super::context_builders::{
-    build_effect_context_pending, sync_entity_data,
+    build_effect_context_pending,
     eval_reoccur_interval, collect_logs, lookup_effect,
-    call_effect_prepare, call_effect_apply, sync_entity_data_back,
+    call_effect_prepare, call_effect_apply,
 };
 
 pub fn process_pending_effects(
@@ -27,6 +27,7 @@ pub fn process_pending_effects(
     crate::js_host_api::install_host_api(&ctx)?;
     let source = crate::js_executor::simulate::select_entry_source(_files);
     let _ = crate::js_executor::simulate::eval_entry_in_ctx(&ctx, &source);
+    crate::js_host_api::entity_access::install(&ctx)?;
     run_pending_effects_in_sim(&ctx, &effects, current_elapsed)
 }
 
@@ -40,7 +41,6 @@ fn run_pending_effects_in_sim(
     current_elapsed: i64,
 ) -> Result<()> {
     // Rebuild the effect context against the context's live entity data.
-    sync_entity_data(ctx);
 
     for effect_name in effects.iter() {
         let found = lookup_effect(ctx, effect_name);
@@ -61,8 +61,6 @@ fn run_pending_effects_in_sim(
             );
         }
 
-        sync_entity_data_back(ctx);
-        super::entity_sync_back::sync_container_data_back(ctx);
         collect_logs(ctx);
     }
     Ok(())
@@ -87,7 +85,10 @@ mod tests {
 export default (hostApi) => {
   const { number, string } = hostApi.runtime;
   hostApi.runtime.setEntity({ id: string.of("game"), numberMap: { count: number.of(0) } });
-  hostApi.runtime.setContainer({ id: string.of("inv"), entities: [] });
+  hostApi.runtime.setEntity({
+    id: string.of("inv"),
+    entityListMap: { members: [] },
+  });
   const eff = hostApi.runtime.setEffect({
     name: string.of("tick"),
     reoccurAfterMs: () => hostApi.runtime.maybe.of(number.of(10)),
@@ -108,6 +109,7 @@ export default (hostApi) => {
         files.insert("index.js".to_string(), module.to_string());
         files.insert("manifest.json".to_string(), r#"{"entry":"index.js"}"#.to_string());
 
+        crate::module::process_module(&files, &mut Vec::new());
         super::super::sim_ctx::install(&files).unwrap();
 
         // In the real flow, process_module extracts __pendingEffects from JS
@@ -123,8 +125,8 @@ export default (hostApi) => {
         assert!(!crate::state::scheduled_effects().lock().unwrap().is_empty(),
             "expected scheduled effect after pending processing");
 
-        let count1 = crate::state::last_entity_number_data().lock().unwrap()
-            .get("game").and_then(|m| m.get("count")).copied().unwrap_or(-1.0);
+        let count1 = crate::state::entity_map().lock().unwrap()
+            .get("game").and_then(|m| m.number_map.get("count")).copied().unwrap_or(-1.0);
         assert_eq!(count1, 1.0);
 
         crate::state::add_elapsed_time_units(10);
@@ -132,8 +134,8 @@ export default (hostApi) => {
 
         super::super::scheduled_effects::process_scheduled_effects(&HashMap::new(), elapsed2).unwrap();
 
-        let count2 = crate::state::last_entity_number_data().lock().unwrap()
-            .get("game").and_then(|m| m.get("count")).copied().unwrap_or(-1.0);
+        let count2 = crate::state::entity_map().lock().unwrap()
+            .get("game").and_then(|m| m.number_map.get("count")).copied().unwrap_or(-1.0);
         assert_eq!(count2, 2.0, "reoccurring effect should have fired again");
 
         super::super::sim_ctx::reset();

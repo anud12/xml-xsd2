@@ -7,9 +7,9 @@ export default (hostApi) => {
     numberMap: { landCount: number.of(0) },
   });
 
-  const inventory = hostApi.runtime.setContainer({
+  const inventory = hostApi.runtime.setEntity({
     id: string.of("inventory"),
-    entities: [],
+    entityListMap: { members: [] },
   });
 
   const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 14, color: "#FFFFFF" });
@@ -28,7 +28,7 @@ export default (hostApi) => {
       title: "Inventory",
     },
   }, [
-    hostApi.ui.entityList("inv-items", { container: inventory },
+    hostApi.ui.entityList("inv-items", { group: inventory, list: "members" },
       (entity) => [
         hostApi.ui.window(entity.id, {
           panel: {
@@ -62,14 +62,14 @@ export default (hostApi) => {
         const next = count.sum(number.of(1));
         const item = hostApi.runtime.setEntity({
           id: next.toStringExpression(),
-          textMap: { name: string.of("Item") },
           numberMap: { cost: number.of(10) },
+          stringMap: { name: string.of("Item") },
         });
         context.createEntity(item);
-        context.getMutableContainersBy({
+        context.getMutableEntityBy({
           filters: [(c) => c.id.isContainingExactly(string.of("inventory"))],
         }).forEach((container) => {
-          container.addEntity(item);
+          container.addMember("members", item);
         });
         g.number_map.put("landCount", () => hostApi.runtime.maybe.of(next));
       });

@@ -2,8 +2,8 @@ const entry = (hostApi) => {
     const { string, number } = hostApi.runtime;
 
     hostApi.runtime.setEntity({
-        id: string.of("obj"),
-        numberMap: { score: number.of(0) },
+      id: string.of("obj"),
+      numberMap: { score: number.of(0) },
     });
 
     const incrementEffect = hostApi.runtime.setEffect({

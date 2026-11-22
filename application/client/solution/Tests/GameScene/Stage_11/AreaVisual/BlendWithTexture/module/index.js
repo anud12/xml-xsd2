@@ -18,26 +18,16 @@ export default (hostApi) => {
   // the outline+body blend over the top, the bare yellow texture shows below.
   const room = hostApi.runtime.setEntity({
     id: string.of("room"),
-    numberMap: { column: number.of(10), row: number.of(10) },
-    areaMap: {
-      floor: {
-        polygon: [[0, 0], [30, 0], [30, 20], [0, 20]],
-      },
-    },
+    numberMap: { column: number.of(10), row: number.of(10), spanX: number.of(30), spanY: number.of(40) },
+    stringMap: { xKey: "column", yKey: "row" },
+    polygons: { floor: [[0, 0], [30, 0], [30, 20], [0, 20]] },
   });
 
-  const grid1 = hostApi.runtime.setContainer({
+  const grid1 = hostApi.runtime.setEntity({
     id: string.of("grid-1"),
-    entities: [room],
-    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
-    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    // Give the item a 30x40 span so its yellow texture stretches across the
-    // whole area polygon (view-local (70,50)..(280,250)). Without a span the
-    // item is 1x1 (7x5 px) and the outline would not overlap the texture.
-    getSpanX: (entity) => number.of(30),
-    getSpanY: (entity) => number.of(40),
-    sizeX: { value: number.of(100), outOfBounds: "clamp" },
-    sizeY: { value: number.of(100), outOfBounds: "clamp" },
+    entityListMap: { members: [room] },
+    numberMap: { sizeX: number.of(100), sizeY: number.of(100) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp" },
   });
 
   // A 700x500 top-down view (cell_w = 7, cell_h = 5). Selects the "floor"
@@ -52,8 +42,8 @@ export default (hostApi) => {
       height: 500,
     },
   }, [
-    hostApi.ui.containerView("world", {
-      container: grid1,
+    hostApi.ui.groupView("world", {
+      group: grid1, list: "members",
       panel: {
         width: 700,
         height: 500,

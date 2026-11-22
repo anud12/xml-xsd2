@@ -8,9 +8,9 @@ export default (hostApi) => {
   // No neighbouring sector exists, so none of these openings can link; every
   // one is an unlinked dead-end that renders as a red headless shaft on its
   // boundary edge (in contrast to a linked portal, which is orange).
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("room-a"),
-    entities: [],
+    entityListMap: { members: [] },
     sector: {
       grid: cave,
       footprint: [[0, 0]],

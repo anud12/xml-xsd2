@@ -81,14 +81,13 @@ var hostApi={
     setAction:h.setAction,
     setEffect:h.setEffect,
     setEntity:h.setEntity,
-    setContainer:h.setContainer,
     linkOpening:function(a,b){
       var g=globalThis.__portalLinks;
       if(!g){g=globalThis.__portalLinks=[];}
       function norm(o){
         if(!o||typeof o!=='object')return null;
         var cell=o.cell||[0,0];
-        return {container:String(o.container),
+        return {container:globalThis.__entityId(o.sector),
           cell:[cell[0]|0,cell[1]|0],side:String(o.side)};
       }
       var na=norm(a),nb=norm(b);
@@ -150,7 +149,7 @@ if (globalThis.__entityBlueprintFactory) {
   hostApi.runtime.entityBlueprint = globalThis.__entityBlueprintFactory.create();
 }
 // Wire the live .ui node factories from the persistent __uiHost layer so the
-// module's hostApi.ui.panel/field/containerView calls register real nodes.
+// module's hostApi.ui.panel/field/groupView calls register real nodes.
 (function(){
   var u=hostApi.ui;
   var H=globalThis.__uiHost;
@@ -164,7 +163,7 @@ if (globalThis.__entityBlueprintFactory) {
     if(H.progress)u.progress=H.progress;
     if(H.canvas)u.canvas=H.canvas;
     if(H.entityList)u.entityList=H.entityList;
-    if(H.containerView)u.containerView=H.containerView;
+    if(H.groupView)u.groupView=H.groupView;
     if(H.sectorGrid)u.sectorGrid=H.sectorGrid;
     if(H.setActor)u.setActor=H.setActor;
     if(H.setFont)u.setFont=H.setFont;

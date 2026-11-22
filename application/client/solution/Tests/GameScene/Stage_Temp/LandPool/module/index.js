@@ -17,15 +17,18 @@ export default (hostApi) => {
     numberMap: { [genKey]: number.of(0) },
   });
 
-  hostApi.runtime.setContainer({ id: string.of("lands"), entities: [] });
+  hostApi.runtime.setEntity({
+    id: string.of("lands"),
+    entityListMap: { members: [] },
+  });
 
   const tick = hostApi.runtime.setEffect({
     name: string.of("land-tick"),
     reoccurAfterMs: () => hostApi.runtime.maybe.of(number.of(10)),
     apply: (context) => {
-      let poolCount = context.getMutableContainersBy({
+      let poolCount = context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of("lands"))],
-      }).map((container) => container.entities.length())
+      }).map((container) => container.members("members").count())
         .exactlyOne()
         .orElse(number.of(0));
 
@@ -37,13 +40,13 @@ export default (hostApi) => {
           const next = gen.sum(one);
           const land = hostApi.runtime.setEntity({
             id: next.toStringExpression(),
-            textMap: { name: string.of("Land") },
-            numberMap: landNumberMap,
+            numberMap: { ...landNumberMap },
+            stringMap: { name: string.of("Land") },
           });
           context.createEntity(land);
-          context.getMutableContainersBy({
+          context.getMutableEntityBy({
             filters: [(c) => c.id.isContainingExactly(string.of("lands"))],
-          }).forEach((container) => container.addEntity(land));
+          }).forEach((container) => container.addMember("members", land));
           game.number_map.put(genKey, () => hostApi.runtime.maybe.of(next));
         });
         return hostApi.runtime.condition.of(true);

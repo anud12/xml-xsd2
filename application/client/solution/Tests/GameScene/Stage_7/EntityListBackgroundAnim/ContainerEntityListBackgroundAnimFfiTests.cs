@@ -17,21 +17,21 @@ public class ContainerEntityListBackgroundAnimFfiTests : Steps {
 
         // First iteration: the queued tick effect fires, adding entity 1.
         RuntimeInterop.RunIteration(10);
-        var container = ContainerInterop.GetContainerById("inventory");
-        Assertions.AssertThat(container.Entities.Length).IsEqual(1);
+        var container = EntityInterop.GetEntityById("inventory")!;
+        Assertions.AssertThat(container.Members("members").Length).IsEqual(1);
 
         // Subsequent iterations: the reoccurring effect keeps firing.
         RuntimeInterop.RunIteration(10);
-        container = ContainerInterop.GetContainerById("inventory");
-        Assertions.AssertThat(container.Entities.Length).IsEqual(2);
+        container = EntityInterop.GetEntityById("inventory")!;
+        Assertions.AssertThat(container.Members("members").Length).IsEqual(2);
 
         RuntimeInterop.RunIteration(10);
-        container = ContainerInterop.GetContainerById("inventory");
-        Assertions.AssertThat(container.Entities.Length).IsEqual(3);
+        container = EntityInterop.GetEntityById("inventory")!;
+        Assertions.AssertThat(container.Members("members").Length).IsEqual(3);
 
         RuntimeInterop.RunIteration(10);
-        container = ContainerInterop.GetContainerById("inventory");
-        Assertions.AssertThat(container.Entities.Length).IsEqual(4);
+        container = EntityInterop.GetEntityById("inventory")!;
+        Assertions.AssertThat(container.Members("members").Length).IsEqual(4);
 
         // The entity list should reflect all entities.
         var children = UiStateReader.GetChildren("inv-items");

@@ -55,7 +55,7 @@ public partial class UiWindow : Control
     string? _onClickStepsJson;
     // The container this panel represents; the click cursor cell resolves from
     // its sizeX/sizeY rather than the declared layout tracks.
-    string? _onClickContainerId;
+    string? _spatialGroupId;
     bool _hoverWired;
     string? _hoverEmitAction;
     bool _hoverStopPropagation;

@@ -4,7 +4,7 @@ export default (hostApi) => {
   const { number, string } = hostApi.runtime;
   const hero = hostApi.runtime.setEntity({
     id: string.of("hero"),
-    numberMap: { hp: number.of(7), max: number.of(10) }
+    numberMap: { hp: number.of(7), max: number.of(10) },
   });
   hostApi.ui.window("slab-win", { panel: { width: 200, height: 100 } }, [
     hostApi.ui.text("slab-text", "slab", font),

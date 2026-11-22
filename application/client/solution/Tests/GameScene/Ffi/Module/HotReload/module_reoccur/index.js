@@ -4,9 +4,7 @@ export default (hostApi) => {
 
   hostApi.runtime.setEntity({
     id: string.of("node-1"),
-    numberMap: {
-      "key": number.of(0)
-    }
+    numberMap: { "key": number.of(0) },
   });
 
   // Recurs every 3 units.

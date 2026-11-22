@@ -7,9 +7,9 @@ export default (hostApi) => {
   // An L-shaped sector at [0,0] over cells (0,0),(1,0),(0,1). Its (1,0) arm opens
   // south toward the box's (1,1) north edge, and its (0,1) cell opens east toward
   // the box's (1,1) west edge.
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("room-l"),
-    entities: [],
+    entityListMap: { members: [] },
     sector: {
       grid: cave,
       footprint: [[0, 0], [1, 0], [0, 1]],
@@ -23,9 +23,9 @@ export default (hostApi) => {
 
   // A 1x1 "box" sector at [1,1]: opens north (to L's (1,0) S) and west (to L's
   // (0,1) E), forming two portals with the L sector.
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("room-b"),
-    entities: [],
+    entityListMap: { members: [] },
     sector: {
       grid: cave,
       footprint: [[0, 0]],

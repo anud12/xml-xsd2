@@ -25,9 +25,8 @@ public class TestClass : Steps {
         Assertions.AssertThat(board).IsNotNull();
 
         // Before any click, node-1 sits at column=2, row=1.
-        var before = ContainerInterop.GetContainerById("grid-1");
-        Assertions.AssertThat(before.GetXForEntityId["node-1"]).IsEqual(2.0);
-        Assertions.AssertThat(before.GetYForEntityId["node-1"]).IsEqual(1.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(2.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(1.0);
 
         // The readout panels bind node-1's column/row, so the rendered labels
         // show where the entity currently sits.
@@ -45,16 +44,16 @@ public class TestClass : Steps {
         // Two frames: the first flushes the click input (teleport applies) and
         // the second paints, refreshing the readout labels from the entity store.
         await runner.SimulateFrames(2);
-        Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetXForEntityId["node-1"]).IsEqual(5.0);
-        Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetYForEntityId["node-1"]).IsEqual(2.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(5.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(2.0);
         scene.AssertPanelThat("col").HasContentText("5");
         scene.AssertPanelThat("row").HasContentText("2");
 
         // Column 0, row 0: the top-left of the board.
         ClickLocal(board, new Vector2(5, 5));
         await runner.SimulateFrames(2);
-        Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetXForEntityId["node-1"]).IsEqual(0.0);
-        Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetYForEntityId["node-1"]).IsEqual(0.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(0.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(0.0);
         scene.AssertPanelThat("col").HasContentText("0");
         scene.AssertPanelThat("row").HasContentText("0");
 
@@ -62,8 +61,8 @@ public class TestClass : Steps {
         // sizeX x sizeY grid, regardless of the 3x3 layout.
         ClickLocal(board, new Vector2(295, 295));
         await runner.SimulateFrames(2);
-        Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetXForEntityId["node-1"]).IsEqual(9.0);
-        Assertions.AssertThat(ContainerInterop.GetContainerById("grid-1").GetYForEntityId["node-1"]).IsEqual(4.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(9.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(4.0);
         scene.AssertPanelThat("col").HasContentText("9");
         scene.AssertPanelThat("row").HasContentText("4");
     }

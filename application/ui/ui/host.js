@@ -11,29 +11,29 @@ function (root) {
     var nodes = Object.create(null);
     var order = [];
     // Render lambdas for ui.entityList lists, keyed by list name. The engine
-    // re-invokes these per entity during expansion (see expandContainers).
+    // re-invokes these per entity during expansion (see expandEntityLists).
     // A list render returns an array of node ids; the items are flow children
     // placed by the parent's layout (insertion order).
-    var containerRenders = Object.create(null);
+    var entityListRenders = Object.create(null);
     // Item node ids materialized per container list by the last expansion, so
-    // resetContainers can drop them and restore the list's marker between
+    // resetEntityViews can drop them and restore the list's marker between
     // engine ticks.
-    var containerItems = Object.create(null);
-    // Render lambdas for ui.containerView views, keyed by view name. Unlike
+    var entityListItems = Object.create(null);
+    // Render lambdas for ui.groupView views, keyed by view name. Unlike
     // container lists (which return an array of node ids), a view render
     // returns a single panel id per entity; the engine stamps each item with
     // `options.entity = entityId` so the per-tick position pass can resolve
     // its geometry from the container.
-    var containerViewRenders = Object.create(null);
+    var groupViewRenders = Object.create(null);
     // Item node ids materialized per container view by the last expansion.
-    var containerViewItems = Object.create(null);
+    var groupViewItems = Object.create(null);
     // Render lambdas for ui.sectorGrid views, keyed by view name. The render
     // takes a cell/portal descriptor (the grid's "container expression") and
     // returns a single node id; the engine positions + sizes that node from the
     // grid geometry, and the module sets its background/content.
     var sectorGridRenders = Object.create(null);
     // Item node ids (cell + portal windows) materialized per sector grid view
-    // by the last expansion, so resetContainers can drop them and restore the
+    // by the last expansion, so resetEntityViews can drop them and restore the
     // view's marker between engine ticks.
     var sectorGridItems = Object.create(null);
     // The single global screen: a top-level surface like a window. Each
@@ -150,7 +150,7 @@ function (root) {
     }
 
     function isMarker(c) {
-        return typeof c === 'string' && c.indexOf('$$container:') === 0;
+        return typeof c === 'string' && c.indexOf('$$entityList:') === 0;
     }
 
     // Hover/border visuals carry a UiTexture shape ({ animation, fill,
@@ -432,8 +432,8 @@ function (root) {
     /// Marks the children slot of a container list with `name`: the engine
     /// replaces this marker with the ids the render lambda declares, one item
     /// per entity of the container.
-    function containerMarker(name) {
-        return '$$container:' + name;
+    function entityListMarker(name) {
+        return '$$entityList:' + name;
     }
 
     // Marks the children slot of a container view with `name`: same marker
@@ -441,12 +441,12 @@ function (root) {
     // panel per entity (not an array), and the engine stamps each item with
     // `options.entity = entityId` so the per-tick position pass can resolve
     // its geometry from the container's getX/getY/getSpanX/getSpanY.
-    function containerViewMarker(name) {
-        return '$$containerView:' + name;
+    function groupViewMarker(name) {
+        return '$$groupView:' + name;
     }
 
-    function isContainerViewMarker(c) {
-        return typeof c === 'string' && c.indexOf('$$containerView:') === 0;
+    function isGroupViewMarker(c) {
+        return typeof c === 'string' && c.indexOf('$$groupView:') === 0;
     }
 
     // Marks the children slot of a sector grid view with `name`: same marker
@@ -465,9 +465,9 @@ function (root) {
     /// render lambda declared for that node's container entities. The render
     /// lambda is declarative: re-invoking it per entity re-registers the same
     /// item node ids, so the engine's id-diff reconciles add/update/remove.
-    /// `entitiesFor(name)` is injected by the engine and must return an array
+    /// `entitiesFor(node.options.group, node.options.list)` is injected by the engine and must return an array
     /// of entity ids for the list's container (empty array when unknown).
-    function expandContainers(entitiesFor) {
+    function expandEntityLists(entitiesFor) {
         for (var i = 0; i < order.length; i++) {
             var node = nodes[order[i]];
             if (!node || node.kind !== 'division') continue;
@@ -476,10 +476,10 @@ function (root) {
             for (var j = 0; j < node.children.length; j++) {
                 var c = node.children[j];
                 if (!isMarker(c)) continue;
-                var name = c.slice('$$container:'.length);
-                var render = containerRenders[name];
+                var name = c.slice('$$entityList:'.length);
+                var render = entityListRenders[name];
                 var entities = (typeof entitiesFor === 'function' && render)
-                    ? entitiesFor(name) : [];
+                    ? entitiesFor(node.options.group, node.options.list) : [];
                 var itemIds = [];
                 if (render && Array.isArray(entities)) {
                     for (var e = 0; e < entities.length; e++) {
@@ -492,7 +492,7 @@ function (root) {
                         }
                     }
                 }
-                containerItems[name] = itemIds;
+                entityListItems[name] = itemIds;
                 for (var m = itemIds.length - 1; m >= 0; m--) {
                     node.children.splice(j, 0, itemIds[m]);
                 }
@@ -513,7 +513,7 @@ function (root) {
     /// the engine's per-tick position pass can resolve its geometry. The
     /// render lambda returns a single panel id per entity (not an array);
     /// returning null skips the entity.
-    function expandContainerViews(entitiesFor) {
+    function expandGroupViews(entitiesFor) {
         for (var i = 0; i < order.length; i++) {
             var node = nodes[order[i]];
             if (!node || node.kind !== 'window') continue;
@@ -521,12 +521,12 @@ function (root) {
             var changed = false;
             for (var j = 0; j < node.children.length; j++) {
                 var c = node.children[j];
-                if (!isContainerViewMarker(c)) continue;
-                var name = c.slice('$$containerView:'.length);
-                var render = containerViewRenders[name];
-                var cid = node.options && node.options.container;
+                if (!isGroupViewMarker(c)) continue;
+                var name = c.slice('$$groupView:'.length);
+                var render = groupViewRenders[name];
+                var cid = node.options && node.options.group;
                 var entities = (typeof entitiesFor === 'function' && render && typeof cid === 'string')
-                    ? entitiesFor(cid) : [];
+                    ? entitiesFor(cid, node.options.list) : [];
                 var itemIds = [];
                 if (render && Array.isArray(entities)) {
                     for (var e = 0; e < entities.length; e++) {
@@ -551,7 +551,7 @@ function (root) {
                         }
                     }
                 }
-                containerViewItems[name] = itemIds;
+                groupViewItems[name] = itemIds;
                 for (var m = itemIds.length - 1; m >= 0; m--) {
                     node.children.splice(j, 0, itemIds[m]);
                 }
@@ -920,29 +920,29 @@ function (root) {
     }
 
     /// Undoes the last expansion: drops every materialized container item and
-    /// restores each list node's `$$container:` marker, so the engine can
+    /// restores each list node's `$$entityList:` marker, so the engine can
     /// re-expand against a fresh entity list on the next tick.
-    function resetContainers() {
-        for (var name in containerRenders) {
-            var items = containerItems[name];
+    function resetEntityViews() {
+        for (var name in entityListRenders) {
+            var items = entityListItems[name];
             if (items) {
                 for (var i = 0; i < items.length; i++) removeSubtree(items[i]);
             }
-            containerItems[name] = [];
+            entityListItems[name] = [];
             var list = nodes[name];
             if (list && Array.isArray(list.children)) {
-                list.children = [containerMarker(name)];
+                list.children = [entityListMarker(name)];
             }
         }
-        for (var vname in containerViewRenders) {
-            var vitems = containerViewItems[vname];
+        for (var vname in groupViewRenders) {
+            var vitems = groupViewItems[vname];
             if (vitems) {
                 for (var vi = 0; vi < vitems.length; vi++) removeSubtree(vitems[vi]);
             }
-            containerViewItems[vname] = [];
+            groupViewItems[vname] = [];
             var view = nodes[vname];
             if (view && Array.isArray(view.children)) {
-                view.children = [containerViewMarker(vname)];
+                view.children = [groupViewMarker(vname)];
             }
         }
         for (var sname in sectorGridItems) {
@@ -974,7 +974,7 @@ function (root) {
     // The UiNodeExpression handle a factory returns for a registered node:
     // it carries the id on .id/.value and stringifies back to it
     // (toString/toJSON), so it flows into any id-accepting slot (a parent's
-    // children, binding.entity, args.container) or where a plain id string
+    // children, binding.entity, args.group) or where a plain id string
     // is expected.
     function nodeHandle(id) {
         return {
@@ -1195,16 +1195,17 @@ function (root) {
                 throw new Error('ui: entityList mandatory name missing');
             }
             if (!args || typeof args !== 'object') {
-                throw new Error('ui: entityList args must be an object with container');
+                throw new Error('ui: entityList args must be an object with group and list');
             }
-            var entityListContainer = resolveId(args.container);
-            if (typeof entityListContainer !== 'string' || entityListContainer.length === 0) {
-                throw new Error('ui: entityList args.container must be a non-empty container id');
+            var entityListGroup = resolveId(args.group);
+            if (typeof entityListGroup !== 'string' || entityListGroup.length === 0) {
+                throw new Error('ui: entityList args.group must be a non-empty group id');
             }
+            if (typeof args.list !== 'string' || !args.list) throw new Error('ui: entityList requires a named list');
             if (typeof render !== 'function') {
                 throw new Error('ui: entityList render must be a function(entity) => nodeIds');
             }
-            containerRenders[name] = render;
+            entityListRenders[name] = render;
             // The list's flow direction. `vertical` (default true) maps to the
             // `panel.layout` the renderer actually consumes: true -> column
             // (top to bottom), false -> row (left to right).
@@ -1214,38 +1215,40 @@ function (root) {
             return parentHandle(register({
                 id: name,
                 kind: 'division',
-                options: { container: entityListContainer, panel: listPanel },
-                children: [containerMarker(name)]
+                options: { group: entityListGroup, list: args.list, panel: listPanel },
+                children: [entityListMarker(name)]
             }));
         },
-        containerView: function (name, args, render) {
+        groupView: function (name, args, render) {
             if (typeof name !== 'string' || name.length === 0) {
-                throw new Error('ui: containerView mandatory name missing');
+                throw new Error('ui: groupView mandatory name missing');
             }
             if (!args || typeof args !== 'object') {
-                throw new Error('ui: containerView args must be an object with container and panel');
+                throw new Error('ui: groupView args must be an object with group and list and panel');
             }
-            var containerViewContainer = resolveId(args.container);
-            if (typeof containerViewContainer !== 'string' || containerViewContainer.length === 0) {
-                throw new Error('ui: containerView args.container must be a non-empty container id');
+            var groupViewGroup = resolveId(args.group);
+            if (typeof groupViewGroup !== 'string' || groupViewGroup.length === 0) {
+                throw new Error('ui: groupView args.group must be a non-empty group id');
             }
             var panel = (args.panel && typeof args.panel === 'object') ? args.panel : {};
             if (typeof panel.width !== 'number' || !(panel.width > 0)) {
-                throw new Error('ui: containerView panel.width must be a positive number (view width)');
+                throw new Error('ui: groupView panel.width must be a positive number (view width)');
             }
             if (typeof panel.height !== 'number' || !(panel.height > 0)) {
-                throw new Error('ui: containerView panel.height must be a positive number (view height)');
+                throw new Error('ui: groupView panel.height must be a positive number (view height)');
             }
+            if (typeof args.list !== 'string' || !args.list) throw new Error('ui: groupView requires a named list');
             if (typeof render !== 'function') {
-                throw new Error('ui: containerView render must be a function(entity) => panelId');
+                throw new Error('ui: groupView render must be a function(entity) => panelId');
             }
-            containerViewRenders[name] = render;
+            groupViewRenders[name] = render;
             // The view node is a window (it extends panel: the size/position/
             // background/anchor live in `panel`). It carries `container`,
             // `viewWidth`, `viewHeight` (top-level, for the per-tick position
             // pass) plus `area?` and the resolved `panel` config.
             var opts = {
-                container: containerViewContainer,
+                group: groupViewGroup,
+                list: args.list,
                 viewWidth: panel.width,
                 viewHeight: panel.height
             };
@@ -1255,7 +1258,7 @@ function (root) {
                 id: name,
                 kind: 'window',
                 options: opts,
-                children: [containerViewMarker(name)]
+                children: [groupViewMarker(name)]
             }));
         },
         sectorGrid: function (name, args, render) {
@@ -1429,10 +1432,10 @@ function (root) {
         clear: function () {
             nodes = Object.create(null);
             order = [];
-            containerRenders = Object.create(null);
-            containerItems = Object.create(null);
-            containerViewRenders = Object.create(null);
-            containerViewItems = Object.create(null);
+            entityListRenders = Object.create(null);
+            entityListItems = Object.create(null);
+            groupViewRenders = Object.create(null);
+            groupViewItems = Object.create(null);
             sectorGridRenders = Object.create(null);
             sectorGridItems = Object.create(null);
             screenCounter = 0;
@@ -1443,8 +1446,8 @@ function (root) {
         loadSnapshot: function (arr) {
             nodes = Object.create(null);
             order = [];
-            containerItems = Object.create(null);
-            containerViewItems = Object.create(null);
+            entityListItems = Object.create(null);
+            groupViewItems = Object.create(null);
             sectorGridItems = Object.create(null);
             (arr || []).forEach(function (n) {
                 requireId(n.id, n.kind);
@@ -1452,17 +1455,17 @@ function (root) {
                 order.push(n.id);
             });
         },
-        expandContainers: function (entitiesFor) {
-            expandContainers(entitiesFor);
+        expandEntityLists: function (entitiesFor) {
+            expandEntityLists(entitiesFor);
         },
-        expandContainerViews: function (entitiesFor) {
-            expandContainerViews(entitiesFor);
+        expandGroupViews: function (entitiesFor) {
+            expandGroupViews(entitiesFor);
         },
         expandSectorGrids: function () {
             expandSectorGrids();
         },
-        resetContainers: function () {
-            resetContainers();
+        resetEntityViews: function () {
+            resetEntityViews();
         }
     };
     return api;

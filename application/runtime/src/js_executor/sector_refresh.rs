@@ -1,26 +1,15 @@
-//! Refreshes sector grids from the live container state on every simulation
-//! tick. A sector is attached to a container via `setContainer`'s `sector`
-//! field; the JS `setContainer` records the latest data per id in
-//! `globalThis.__containerData` (latest wins). Reading that map and
-//! re-computing the affected grids means a sector created by an effect at
-//! runtime takes effect in the grid state on the same tick, and the view
-//! picks it up on the next UI tick.
+//! Refresh grids from live sector declarations.
 
 use crate::js_executor::sim_ctx;
 
-/// Read the current sectors (containers carrying a `sector` field) from the
+/// Read the current sector declarations from the
 /// live sim context and recompute their grids.
 pub fn recompute_sector_grids() {
     let Some(ctx) = sim_ctx::ctx() else {
         return;
     };
     let script = "(function(){\
-        var d = globalThis.__containerData || {};\
-        var sectors = [];\
-        for (var k in d) {\
-            var v = d[k];\
-            if (v && v.sector) { sectors.push(JSON.stringify({id: k, sector: v.sector})); }\
-        }\
+        var sectors = globalThis.__registeredSectors || [];\
         var l = globalThis.__portalLinks || [];\
         var links = [];\
         for (var i = 0; i < l.length; i++) { links.push(JSON.stringify(l[i])); }\

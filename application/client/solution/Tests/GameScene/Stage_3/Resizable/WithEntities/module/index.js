@@ -22,9 +22,9 @@ export default (hostApi) => {
   // Two child entities that the panel renders through its entityList.
   const entA = hostApi.runtime.setEntity({ id: string.of("ent-a") });
   const entB = hostApi.runtime.setEntity({ id: string.of("ent-b") });
-  const entContainer = hostApi.runtime.setContainer({
+  const entContainer = hostApi.runtime.setEntity({
     id: string.of("ent-container"),
-    entities: [entA, entB],
+    entityListMap: { members: [entA, entB] },
   });
 
   hostApi.ui.window("resizable-entities", {
@@ -37,7 +37,7 @@ export default (hostApi) => {
       background: { animation: texture, fill: { width: "stretch", height: "stretch" } },
     },
   }, [
-    hostApi.ui.entityList("ents", { container: entContainer }, (entity) => [
+    hostApi.ui.entityList("ents", { group: entContainer, list: "members" }, (entity) => [
       hostApi.ui.window(entity.id, {
         panel: {
           width: 60,

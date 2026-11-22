@@ -5,22 +5,25 @@ export default (hostApi) => {
   // The game holds value that is spent to buy land.
   hostApi.runtime.setEntity({
     id: string.of("game"),
-    numberMap: {
-      value: number.of(100),
-      landCount: number.of(0),
-    },
+    numberMap: { value: number.of(100), landCount: number.of(0) },
   });
 
   // A single land for sale, id "1", costing 10.
   const land = hostApi.runtime.setEntity({
     id: string.of("1"),
-    textMap: { name: string.of("Land") },
     numberMap: { cost: number.of(10) },
+    stringMap: { name: string.of("Land") },
   });
 
-  hostApi.runtime.setContainer({ id: string.of("lands"), entities: [land] });
+  hostApi.runtime.setEntity({
+    id: string.of("lands"),
+    entityListMap: { members: [land] },
+  });
 
-  hostApi.runtime.setContainer({ id: string.of("inventory"), entities: [] });
+  hostApi.runtime.setEntity({
+    id: string.of("inventory"),
+    entityListMap: { members: [] },
+  });
 
   const purchaseEffect = hostApi.runtime.setEffect({
     name: string.of("inventory-purchase"),
@@ -50,15 +53,15 @@ export default (hostApi) => {
       });
 
       // Move the land from "lands" into "inventory".
-      context.getMutableContainersBy({
+      context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of("lands"))],
       }).forEach((landsContainer) => {
-        landsContainer.removeEntity(string.of(idStr));
+        landsContainer.removeMember("members", string.of(idStr));
       });
-      context.getMutableContainersBy({
+      context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of("inventory"))],
       }).forEach((invContainer) => {
-        invContainer.addEntity(land);
+        invContainer.addMember("members", land);
       });
     },
   });

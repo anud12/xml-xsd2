@@ -30,7 +30,7 @@ export const landUi = (hostApi) => {
             },
         },
     }, [
-        hostApi.ui.entityList("land-items", { container: module.container }, (entity) => [
+        hostApi.ui.entityList("land-items", { group: module.container, list: "members" }, (entity) => [
             hostApi.ui.window(entity.id, {
                 panel: {
                     width: 190,

@@ -77,8 +77,8 @@ var __nodeToPanel = function (id, node, all) {
       texture: p.border.texture !== undefined ? p.border.texture : null
     };
   }
-  var __containerId = (p.layout && p.layout.container) || o.container;
-  if (__containerId !== undefined) out.container = __containerId;
+  var __groupId = (p.layout && p.layout.group) || o.group;
+  if (__groupId !== undefined) out.group = __groupId;
   if (p.layout !== undefined) {
     out.layout = typeof p.layout === 'object' ? p.layout
       : (p.layout === 'row' ? { rowFirst: true } : { rowFirst: false });

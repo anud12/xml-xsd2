@@ -371,7 +371,7 @@ public static class RuntimeInterop
     /// the real `.ui` click flow: `emitAction` publishes `__actionArgs`, the
     /// action's `emitEffect` enqueues the effect by name, and `RunIteration`'s
     /// `process_pending_effects` fires it against the persistent context (where
-    /// `__actionArgs` and the synced `__containerData` live).
+    /// `__actionArgs` live).
     public static void PublishActionArgsAndQueueEffect(string action, string effect, string argsJson)
     {
         var pairs = ParseArgsJson(argsJson);
@@ -621,32 +621,6 @@ public static class RuntimeInterop
 
     private static string[] ReadInsideArea(IntPtr ptr)
     {
-        try
-        {
-            var json = Marshal.PtrToStringAnsi(ptr) ?? "[]";
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-            var ids = new List<string>();
-            if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array)
-            {
-                foreach (var id in doc.RootElement.EnumerateArray())
-                    ids.Add(id.GetString() ?? "");
-            }
-            return ids.ToArray();
-        }
-        catch { return Array.Empty<string>(); }
-        finally { runtime_free_inside_area(ptr); }
-    }
-
-    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr runtime_get_entity_containers(
-        [MarshalAs(UnmanagedType.LPStr)] string entityId);
-
-    /// The ids of the containers the named entity is a member of (diagnostics).
-    public static string[] GetEntityContainers(string? entityId)
-    {
-        if (entityId == null) return Array.Empty<string>();
-        var ptr = runtime_get_entity_containers(entityId);
-        if (ptr == IntPtr.Zero) return Array.Empty<string>();
         try
         {
             var json = Marshal.PtrToStringAnsi(ptr) ?? "[]";

@@ -25,9 +25,8 @@ public class TestClass : Steps {
         Assertions.AssertThat(plane).IsNotNull();
 
         // Before any click, node-1 sits at column=2, row=1.
-        var before = ContainerInterop.GetContainerById("grid-1");
-        Assertions.AssertThat(before.GetXForEntityId["node-1"]).IsEqual(2.0);
-        Assertions.AssertThat(before.GetYForEntityId["node-1"]).IsEqual(1.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(2.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(1.0);
         scene.AssertPanelThat("col").HasContentText("2");
         scene.AssertPanelThat("row").HasContentText("1");
 
@@ -45,27 +44,24 @@ public class TestClass : Steps {
         Assertions.AssertThat(RuntimeInterop.IsActorBusy("node-1")).IsTrue();
         // Tick 1: (3,1).
         RuntimeInterop.RunIteration(1);
-        var t1 = ContainerInterop.GetContainerById("grid-1");
-        Assertions.AssertThat(t1.GetXForEntityId["node-1"]).IsEqual(3.0);
-        Assertions.AssertThat(t1.GetYForEntityId["node-1"]).IsEqual(1.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(3.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(1.0);
         await runner.SimulateFrames(2);
         scene.AssertPanelThat("col").HasContentText("3");
         scene.AssertPanelThat("row").HasContentText("1");
 
         // Tick 2: (4,1) — y's fraction still pooling.
         RuntimeInterop.RunIteration(1);
-        var t2 = ContainerInterop.GetContainerById("grid-1");
-        Assertions.AssertThat(t2.GetXForEntityId["node-1"]).IsEqual(4.0);
-        Assertions.AssertThat(t2.GetYForEntityId["node-1"]).IsEqual(1.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(4.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(1.0);
         await runner.SimulateFrames(2);
         scene.AssertPanelThat("col").HasContentText("4");
         scene.AssertPanelThat("row").HasContentText("1");
 
         // Tick 3: (5,2) — the destination is reached and the move ends.
         RuntimeInterop.RunIteration(1);
-        var done = ContainerInterop.GetContainerById("grid-1");
-        Assertions.AssertThat(done.GetXForEntityId["node-1"]).IsEqual(5.0);
-        Assertions.AssertThat(done.GetYForEntityId["node-1"]).IsEqual(2.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(5.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(2.0);
         Assertions.AssertThat(RuntimeInterop.IsActorBusy("node-1")).IsFalse();
         await runner.SimulateFrames(2);
         scene.AssertPanelThat("col").HasContentText("5");
@@ -73,9 +69,8 @@ public class TestClass : Steps {
 
         // A further tick does not resume the finished move.
         RuntimeInterop.RunIteration(1);
-        var still = ContainerInterop.GetContainerById("grid-1");
-        Assertions.AssertThat(still.GetXForEntityId["node-1"]).IsEqual(5.0);
-        Assertions.AssertThat(still.GetYForEntityId["node-1"]).IsEqual(2.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.X).IsEqual(5.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-1")!.Y).IsEqual(2.0);
         await runner.SimulateFrames(2);
         scene.AssertPanelThat("col").HasContentText("5");
         scene.AssertPanelThat("row").HasContentText("2");

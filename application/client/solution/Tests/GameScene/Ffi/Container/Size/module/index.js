@@ -1,27 +1,17 @@
 export default (hostApi) => {
   const { number } = hostApi.runtime;
 
-  hostApi.runtime.setContainer({
-    id: "bag-1",
-    sizeX: {
-      value: number.of(20),
-      outOfBounds: "clamp",
-    },
-    sizeY: {
-      value: number.of(1),
-      outOfBounds: "clamp",
-    },
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of("bag-1"),
+    entityListMap: { members: [] },
+    numberMap: { sizeX: number.of(20), sizeY: number.of(1) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp" },
   });
 
-  hostApi.runtime.setContainer({
-    id: "chest-grid-1",
-    sizeX: {
-      value: number.of(6),
-      outOfBounds: "wrap",
-    },
-    sizeY: {
-      value: number.of(4),
-      outOfBounds: "wrap",
-    },
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of("chest-grid-1"),
+    entityListMap: { members: [] },
+    numberMap: { sizeX: number.of(6), sizeY: number.of(4) },
+    stringMap: { outOfBoundsX: "wrap", outOfBoundsY: "wrap" },
   });
 }

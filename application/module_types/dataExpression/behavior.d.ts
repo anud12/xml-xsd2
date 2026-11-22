@@ -2,7 +2,7 @@ import { NumberReadOnlyExpression } from "../primitives/numberExpression";
 import { StringReadOnlyExpression } from "../primitives/stringExpression";
 import { ConditionReadOnlyExpression } from "../primitives/conditionExpression";
 import { Expression } from "../Expression";
-import { Entity } from "./Entity";
+import { EntityReadOnlyExpression } from "./Entity";
 import { ActionReadOnlyExpression } from "./action/no-input-action";
 
 /**
@@ -51,7 +51,7 @@ export type UtilityRule = {
    * Score, evaluated against the entity only (read-only).
    * Re-evaluated only when an entity key the score reads is written.
    */
-  score: (entity: Entity) => NumberReadOnlyExpression;
+  score: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression;
   /** Builds the execution script for this rule. */
   do: (ctx: DoContext) => BehaviorStep[];
 };
@@ -65,7 +65,7 @@ export type PriorityRule = {
   /** Human-readable name for the debug trace; required. */
   label: string;
   /** Enable gate, evaluated against the entity only (read-only). */
-  condition: (entity: Entity) => ConditionReadOnlyExpression<Expression>;
+  condition: (entity: EntityReadOnlyExpression) => ConditionReadOnlyExpression<Expression>;
   /** The fuzzy decision made within this branch. */
   utility: UtilityRule[];
 };

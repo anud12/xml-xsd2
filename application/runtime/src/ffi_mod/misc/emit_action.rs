@@ -82,7 +82,7 @@ pub extern "C" fn runtime_emit_action_args(
 /// real `.ui` click flow: `emitAction` publishes `__actionArgs`, the action's
 /// `emitEffect` enqueues the effect by name, and `RunIteration`'s
 /// `process_pending_effects` fires it against the persistent context (where
-/// `__actionArgs` and the synced `__containerData` live).
+/// `__actionArgs` live).
 #[no_mangle]
 pub extern "C" fn runtime_publish_action_args_and_queue_effect(
     action_name: *const std::os::raw::c_char,

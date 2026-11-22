@@ -1,8 +1,8 @@
 use anyhow::Result;
 use super::context_builders::{
-    build_effect_context_scheduled, sync_entity_data,
+    build_effect_context_scheduled,
     eval_reoccur_interval, collect_logs, lookup_effect,
-    call_effect_prepare, call_effect_apply, sync_entity_data_back,
+    call_effect_prepare, call_effect_apply,
 };
 
 /// Fire due reoccurring effects. Prefer the persistent sim context (the module
@@ -22,7 +22,6 @@ pub fn process_scheduled_effects(
     let Some(ctx) = super::sim_ctx::ctx() else { return Ok(()); };
 
     // Rebuild the effect context against the context's live entity data.
-    sync_entity_data(ctx);
 
     for scheduled in due.iter() {
         if !lookup_effect(ctx, &scheduled.name) { continue; }
@@ -50,8 +49,6 @@ pub fn process_scheduled_effects(
                 next, iv,
             );
         }
-        sync_entity_data_back(ctx);
-        super::entity_sync_back::sync_container_data_back(ctx);
         collect_logs(ctx);
     }
     Ok(())

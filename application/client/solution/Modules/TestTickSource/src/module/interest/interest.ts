@@ -1,14 +1,14 @@
 ﻿import {HostApi} from "module_types/HostApi";
-import {EntityCreationArguments} from "module_types/dataExpression/Entity";
+import {EntityDeclaration} from "module_types/dataExpression/Entity";
 import {memoize} from "../../util/memoize";
 
 export const getInterestModule = memoize((hostApi:HostApi, ) => {
 
   const key = "property";
 
-  const max = hostApi.runtime.number.of(1000);
+  const max = hostApi.runtime.number.of(10000);
 
-  const entityNumberMap:EntityCreationArguments["numberMap"] = {
+  const entityNumberMap:EntityDeclaration["numberMap"] = {
     [key] : max,
   }
 

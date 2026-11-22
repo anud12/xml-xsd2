@@ -1551,11 +1551,11 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     let layout_container = panel
         .get("layout")
         .and_then(|l| l.as_object())
-        .and_then(|l| l.get("container"))
+        .and_then(|l| l.get("group"))
         .and_then(|c| c.as_str())
         .filter(|s| !s.is_empty());
     let top_container = opts
-        .get("container")
+        .get("group")
         .and_then(|c| c.as_str())
         .filter(|s| !s.is_empty());
     o.container = layout_container
@@ -1954,12 +1954,12 @@ mod tests {
         assert_eq!(s.size_background, 48);
         assert_eq!(s.size_paint_spec, 12);
         assert_eq!(s.size_on_hover, 44);
-        assert_eq!(s.size_options, 392);
-        assert_eq!(s.size_node, 440);
+        assert_eq!(s.size_options, 496);
+        assert_eq!(s.size_node, 544);
         assert_eq!(s.size_animation, 24);
         assert_eq!(s.size_snapshot, 40);
         assert_eq!(s.size_delta, 32);
-        assert_eq!(s.size_delta_op, 448);
+        assert_eq!(s.size_delta_op, 552);
         // Pointer offsets land on 8-byte boundaries.
         for off in [
             s.off_node_children,
@@ -1982,7 +1982,7 @@ mod tests {
     #[test]
     fn snapshot_round_trips_nodes_options_and_strings() {
         let nodes = vec![
-            node(r#"{"kind":"window","id":"hud","options":{"panel":{"x":10,"y":-20,"anchor":"top-left","align":"top-left","title":"Hud Title","width":200,"height":100,"layout":{"columns":[{"min":50,"scale":1},{"max":120},80],"rows":[],"rowFirst":true,"gap":{"row":4,"column":2},"container":"items"},"background":{"map":"art/map.tiff","layers":[{"texture":"skin/a.png","layer":0},{"texture":"skin/b.png","layer":1}]},"border":{"texture":"art/border.png","width":3},"onClick":{"steps":[{"action":"click-a","args":{"col":{"__cursor":"x"},"row":{"__cursor":"y"},"entity":"ent-1","count":5}},{"action":"click-b","args":{}}]},"onHover":{"emitAction":"hud-hover","stopPropagation":true,"background":"art/hover.png","texture":"art/outline.png","thickness":2}}},"children":["title","hp"]}"#),
+            node(r#"{"kind":"window","id":"hud","options":{"panel":{"x":10,"y":-20,"anchor":"top-left","align":"top-left","title":"Hud Title","width":200,"height":100,"layout":{"columns":[{"min":50,"scale":1},{"max":120},80],"rows":[],"rowFirst":true,"gap":{"row":4,"column":2},"group":"items"},"background":{"map":"art/map.tiff","layers":[{"texture":"skin/a.png","layer":0},{"texture":"skin/b.png","layer":1}]},"border":{"texture":"art/border.png","width":3},"onClick":{"steps":[{"action":"click-a","args":{"col":{"__cursor":"x"},"row":{"__cursor":"y"},"entity":"ent-1","count":5}},{"action":"click-b","args":{}}]},"onHover":{"emitAction":"hud-hover","stopPropagation":true,"background":"art/hover.png","texture":"art/outline.png","thickness":2}}},"children":["title","hp"]}"#),
             node(r#"{"kind":"text","id":"title","value":"Health","children":[]}"#),
             node(r#"{"kind":"field","id":"hp","binding":{"entity":"ent-1","map":"number","name":"hp","fallback":"n/a"},"value":"7","children":[]}"#),
             node(r#"{"kind":"image","id":"icon","src":"art/icon.png","children":[]}"#),

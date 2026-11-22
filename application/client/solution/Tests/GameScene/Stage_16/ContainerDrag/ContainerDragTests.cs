@@ -42,12 +42,12 @@ public class ContainerDragTests : Steps {
                 .ProcessArchive();
 
             // Initial data: item-1 + item-2 start in container_1; container_2 empty.
-            var container1 = ContainerInterop.GetContainerById("container_1");
-            var container2 = ContainerInterop.GetContainerById("container_2");
-            Assertions.AssertThat(container1.Entities.Length).IsEqual(2);
-            Assertions.AssertThat(container1.Entities.Contains("item-1")).IsTrue();
-            Assertions.AssertThat(container1.Entities.Contains("item-2")).IsTrue();
-            Assertions.AssertThat(container2.Entities.Length).IsEqual(0);
+            var container1 = EntityInterop.GetEntityById("container_1")!;
+            var container2 = EntityInterop.GetEntityById("container_2")!;
+            Assertions.AssertThat(container1.Members("members").Length).IsEqual(2);
+            Assertions.AssertThat(container1.Members("members").Contains("item-1")).IsTrue();
+            Assertions.AssertThat(container1.Members("members").Contains("item-2")).IsTrue();
+            Assertions.AssertThat(container2.Members("members").Length).IsEqual(0);
 
             var scene = await AttachUiScene();
             // The scene runs with RUN_RUNTIME_LOOP=false: advance the runtime once
@@ -206,16 +206,16 @@ public class ContainerDragTests : Steps {
 
             // END-TO-END drop result (data path): the entity moved from
             // container_1 to container_2; item-2 stayed in container_1.
-            container1 = ContainerInterop.GetContainerById("container_1");
-            container2 = ContainerInterop.GetContainerById("container_2");
-            Assertions.AssertThat(container1.Entities.Contains("item-1"))
+            container1 = EntityInterop.GetEntityById("container_1")!;
+            container2 = EntityInterop.GetEntityById("container_2")!;
+            Assertions.AssertThat(container1.Members("members").Contains("item-1"))
                 .OverrideFailureMessage("item-1 should no longer be in container_1 after the drop")
                 .IsFalse();
-            Assertions.AssertThat(container1.Entities.Contains("item-2"))
+            Assertions.AssertThat(container1.Members("members").Contains("item-2"))
                 .OverrideFailureMessage("item-2 should still be in container_1 after the drop")
                 .IsTrue();
-            Assertions.AssertThat(container2.Entities.Length).IsEqual(1);
-            Assertions.AssertThat(container2.Entities.Contains("item-1"))
+            Assertions.AssertThat(container2.Members("members").Length).IsEqual(1);
+            Assertions.AssertThat(container2.Members("members").Contains("item-1"))
                 .OverrideFailureMessage("item-1 should be in container_2 after the drop")
                 .IsTrue();
             AssertRuntimeOutputContains("___container drag move item-1 -> container_2___");

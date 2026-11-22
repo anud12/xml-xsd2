@@ -5,23 +5,23 @@ export default (hostApi) => {
   // A lone entity with a known cost (the "exactly one" case).
   hostApi.runtime.setEntity({
     id: string.of("solo"),
-    numberMap: { cost: number.of(5) }
+    numberMap: { cost: number.of(5) },
   });
 
   // Two siblings sharing a substring (the "more than one" case).
   hostApi.runtime.setEntity({
     id: string.of("sib1"),
-    numberMap: { cost: number.of(1) }
+    numberMap: { cost: number.of(1) },
   });
   hostApi.runtime.setEntity({
     id: string.of("sib2"),
-    numberMap: { cost: number.of(2) }
+    numberMap: { cost: number.of(2) },
   });
 
   // A sink entity that receives the three extracted results.
   hostApi.runtime.setEntity({
     id: string.of("game"),
-    numberMap: { one: number.of(0), zero: number.of(0), multi: number.of(0) }
+    numberMap: { one: number.of(0), zero: number.of(0), multi: number.of(0) },
   });
 
   const probe = hostApi.runtime.setEffect({

@@ -1,6 +1,6 @@
 import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
 import { EntityReadOnlyExpression } from "../Entity";
-import { ContainerReadOnlyExpression } from "../Contaier";
+import { EntityId } from "../Entity";
 import { NumberReadOnlyExpression } from "../../primitives/numberExpression";
 import { EffectReadOnlyExpression } from "../Effect";
 import { ActionReadOnlyExpression } from "./no-input-action";
@@ -8,9 +8,9 @@ import { EntityFilter } from "../../EntityFilter";
 import { ListReadOnlyExpression } from "../../primitives/ListExpression";
 
 /**
- * 1D or 2D position within a container.
+ * 1D or 2D position within a group.
  */
-export type ContainerPoint =
+export type GroupPoint =
   | { dimension1: NumberReadOnlyExpression }
   | { dimension1: NumberReadOnlyExpression; dimension2: NumberReadOnlyExpression };
 
@@ -28,18 +28,18 @@ export type ActionContext = {
   getEntityBy: (entityFilter: EntityFilter) => ListReadOnlyExpression<EntityReadOnlyExpression>;
   /** Schedule the actor to idle for a temporal duration before resuming. */
   wait: (duration: TemporalReadOnlyExpression) => void;
-  /** Teleport an entity to a cell in a container. */
+  /** Teleport an entity to a cell in a group. */
   teleportTo: (target: {
-    containerId: ContainerReadOnlyExpression;
-    entityId: EntityReadOnlyExpression;
+    groupId: EntityId;
+    entityId: EntityId;
     x: any;
     y: any;
     clamp?: boolean;
   }) => void;
   /** Begin a per-tick movement plan toward a target cell (advances by speed per tick). */
   moveTo: (target: {
-    containerId: ContainerReadOnlyExpression;
-    entityId: EntityReadOnlyExpression;
+    groupId: EntityId;
+    entityId: EntityId;
     x: any;
     y: any;
     speed: any;

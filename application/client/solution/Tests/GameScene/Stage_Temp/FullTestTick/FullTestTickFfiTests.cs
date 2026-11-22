@@ -26,13 +26,13 @@ public partial class FullTestTickFfiTests : Steps {
 
         RuntimeInterop.RunIteration(10);
         await runner.SimulateFrames(3);
-        var firstLand = ContainerInterop.GetContainerById("lands").Entities[0];
+        var firstLand = EntityInterop.GetEntityById("lands")!.Members("members")[0];
         var initialValue = double.Parse(RuntimeInterop.ReadEntityNumberValue("game", "value"));
         Assertions.AssertThat(initialValue < double.Parse(RuntimeInterop.ReadEntityNumberValue(firstLand, "cost"))).IsTrue();
         RuntimeInterop.UiJsClick(firstLand + ":buy", 0, 0);
         RuntimeInterop.RunIteration();
-        Assertions.AssertThat(ContainerInterop.GetContainerById("lands").Entities.Contains(firstLand)).IsTrue();
-        Assertions.AssertThat(ContainerInterop.GetContainerById("inventory").Entities.Length).IsEqual(0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("lands")!.Members("members").Contains(firstLand)).IsTrue();
+        Assertions.AssertThat(EntityInterop.GetEntityById("inventory")!.Members("members").Length).IsEqual(0);
         Assertions.AssertThat(double.Parse(RuntimeInterop.ReadEntityNumberValue("game", "value"))).IsEqual(initialValue);
 
         for (int i = 0; i < 40; i++) {
@@ -40,7 +40,7 @@ public partial class FullTestTickFfiTests : Steps {
             await runner.SimulateFrames(1);
         }
 
-        var landId = ContainerInterop.GetContainerById("lands").Entities[0];
+        var landId = EntityInterop.GetEntityById("lands")!.Members("members")[0];
         var name = RuntimeInterop.GetEntityTextMapValue(landId, "name");
         var cost = double.Parse(RuntimeInterop.ReadEntityNumberValue(landId, "cost"));
         var before = double.Parse(RuntimeInterop.ReadEntityNumberValue("game", "value"));
@@ -51,8 +51,8 @@ public partial class FullTestTickFfiTests : Steps {
         RuntimeInterop.RunIteration();
         await runner.SimulateFrames(3);
 
-        Assertions.AssertThat(ContainerInterop.GetContainerById("lands").Entities.Contains(landId)).IsFalse();
-        Assertions.AssertThat(ContainerInterop.GetContainerById("inventory").Entities.Contains(landId)).IsTrue();
+        Assertions.AssertThat(EntityInterop.GetEntityById("lands")!.Members("members").Contains(landId)).IsFalse();
+        Assertions.AssertThat(EntityInterop.GetEntityById("inventory")!.Members("members").Contains(landId)).IsTrue();
         Assertions.AssertThat(double.Parse(RuntimeInterop.ReadEntityNumberValue("game", "value"))).IsEqual(before - cost);
         Assertions.AssertThat(RuntimeInterop.GetEntityTextMapValue(landId, "name")).IsEqual(name);
         var inventoryWindow = scene.GetWindowOrNull("inventory-list");
@@ -62,14 +62,14 @@ public partial class FullTestTickFfiTests : Steps {
         RuntimeInterop.PublishActionArgsAndQueueEffect("inventory-buy", "inventory-purchase", "{\"entityId\":\"" + landId + "\"}");
         RuntimeInterop.RunIteration();
         Assertions.AssertThat(double.Parse(RuntimeInterop.ReadEntityNumberValue("game", "value"))).IsEqual(before - cost);
-        Assertions.AssertThat(ContainerInterop.GetContainerById("inventory").Entities.Count(id => id == landId)).IsEqual(1);
+        Assertions.AssertThat(EntityInterop.GetEntityById("inventory")!.Members("members").Count(id => id == landId)).IsEqual(1);
 
-        var secondLand = ContainerInterop.GetContainerById("lands").Entities[0];
+        var secondLand = EntityInterop.GetEntityById("lands")!.Members("members")[0];
         RuntimeInterop.UiJsClick(secondLand + ":buy", 0, 0);
         RuntimeInterop.RunIteration();
         await runner.SimulateFrames(3);
         var secondItem = scene.GetWindowOrNull(secondLand);
-        Assertions.AssertThat(ContainerInterop.GetContainerById("inventory").Entities.Length).IsEqual(2);
+        Assertions.AssertThat(EntityInterop.GetEntityById("inventory")!.Members("members").Length).IsEqual(2);
         Assertions.AssertThat(secondItem != null && inventoryWindow!.IsAncestorOf(secondItem)).IsTrue();
     }
 
@@ -94,12 +94,12 @@ public partial class FullTestTickFfiTests : Steps {
             await runner.SimulateFrames(1);
         }
 
-        var lands = ContainerInterop.GetContainerById("lands");
+        var lands = EntityInterop.GetEntityById("lands")!;
         var label = scene.Window("add-btn").GetNodeOrNull<Label>("text");
         var labelText = label?.Text ?? "<none>";
         var property = RuntimeInterop.ReadEntityNumberValue("game", "property");
         var childExists = scene.GetWindowOrNull("add-label") != null;
-        Console.WriteLine($"DEBUG FullTestTick lands={lands.Entities.Length} add-btn label='{labelText}' property='{property}' add-labelWindowExists={childExists}");
+        Console.WriteLine($"DEBUG FullTestTick lands={lands.Members("members").Length} add-btn label='{labelText}' property='{property}' add-labelWindowExists={childExists}");
 
         // The add-btn label must show exactly the current property value as a
         // single clean number — never a concatenation of previous values.
@@ -173,9 +173,9 @@ public partial class FullTestTickFfiTests : Steps {
             }
             await runner.SimulateFrames(2);
 
-            var lands = ContainerInterop.GetContainerById("lands");
-            Assertions.AssertThat(lands.Entities.Length).IsGreater(0);
-            var landId = lands.Entities[0];
+            var lands = EntityInterop.GetEntityById("lands")!;
+            Assertions.AssertThat(lands.Members("members").Length).IsGreater(0);
+            var landId = lands.Members("members")[0];
             // The drag handle is the land's portrait (a child-less panel), not
             // the whole card — the card's stats/buy panels consume a press
             // before the drag handler would see it.
@@ -253,12 +253,12 @@ public partial class FullTestTickFfiTests : Steps {
 
             // END-TO-END: the dragged land was purchased — it left "lands" and
             // entered "inventory".
-            var landsAfter = ContainerInterop.GetContainerById("lands");
-            var invAfter = ContainerInterop.GetContainerById("inventory");
-            Assertions.AssertThat(landsAfter.Entities.Contains(landId))
+            var landsAfter = EntityInterop.GetEntityById("lands")!;
+            var invAfter = EntityInterop.GetEntityById("inventory")!;
+            Assertions.AssertThat(landsAfter.Members("members").Contains(landId))
                 .OverrideFailureMessage($"land '{landId}' should no longer be in 'lands' after the drag-buy")
                 .IsFalse();
-            Assertions.AssertThat(invAfter.Entities.Contains(landId))
+            Assertions.AssertThat(invAfter.Members("members").Contains(landId))
                 .OverrideFailureMessage($"land '{landId}' should be in 'inventory' after the drag-buy")
                 .IsTrue();
 

@@ -1,4 +1,3 @@
-import {ContainerReadOnlyExpression} from "./Contaier";
 import {StringReadOnlyExpression} from "../primitives/stringExpression";
 import {ListReadOnlyExpression} from "../primitives/ListExpression";
 import {NumberReadOnlyExpression} from "../primitives/numberExpression";
@@ -16,31 +15,23 @@ export type EntityExpressionApi = {
   type: EntityExpressionType,
 }
 
-/** A point in entity-local area units. y increases downward. */
-export type AreaPoint = [number, number]
+import {SectorDeclaration} from "./Sector";
+import {BehaviorReadOnlyExpression} from "./behavior";
 
-/**
- * The polygonal area an entity occupies in the simulation, declared in
- * entity-local units (y down), implicitly closed. Like `numberMap`, it is
- * intrinsic to the entity: it moves wherever the entity goes. An entity with
- * no area has no presence — it cannot contain or be contained by another
- * area, and is itself treated as the point at its `(getX, getY)`.
- */
-export type Area = {
-  /** The polygon vertices in entity-local units (>= 3 distinct points). */
-  polygon: Array<AreaPoint>
-}
+export type EntityId = string | StringReadOnlyExpression | { readonly id: string } | EntityReadOnlyExpression;
 
-export type EntityCreationArguments = {
-  textMap?: Record<string, StringReadOnlyExpression>
-  numberMap?: Record<string, NumberReadOnlyExpression>
-  /**
-   * The entity's named areas (entityMap): area name -> polygon. Areas are
-   * always declared here (there is no unnamed area). Each named area can be
-   * queried independently via
-   * {@link EntityReadOnlyExpression.getEntitiesInsideArea}.
-   */
-  areaMap?: Record<string, Area>
+export type EntityDeclaration = {
+  id: StringReadOnlyExpression;
+  /** Intrinsic numbers including x/y, spanX/spanY, or group sizeX/sizeY. */
+  numberMap?: Record<string, number | NumberReadOnlyExpression>;
+  /** Intrinsic strings including optional position key names, alignment and bounds rule metadata. */
+  stringMap?: Record<string, string | StringReadOnlyExpression>;
+  /** Named, implicitly closed polygons in entity-local units (y down). */
+  polygons?: Record<string, [number, number][]>;
+  /** The group role: ordered, named lists of entity references, with no placement. */
+  entityListMap?: Record<string, readonly EntityId[]>;
+  behavior?: BehaviorReadOnlyExpression;
+  sector?: SectorDeclaration;
 }
 
 export type EntityExpressionType = {
@@ -48,63 +39,42 @@ export type EntityExpressionType = {
 }
 
 export type EntityReadOnlyExpression = Expression & {
-  /** The containers this entity belongs to. */
-  containers: ListReadOnlyExpression<ContainerReadOnlyExpression>;
+  /** Read a named membership list, in declaration order. */
+  members: (name: string) => ListReadOnlyExpression<EntityReadOnlyExpression>;
   /** The entity's id as a StringReadOnlyExpression (isContainingExactly, isContaining, ...). */
   id: StringReadOnlyExpression;
   /** The entity's number_map accessor (keyed lookups returning MaybeReadOnlyExpressions). */
   number_map: { get: (key: string | StringReadOnlyExpression) => MaybeReadOnlyExpression<NumberReadOnlyExpression> };
-  /** The entity's text_map accessor (keyed lookups returning MaybeReadOnlyExpressions). */
-  text_map: { get: (key: string | StringReadOnlyExpression) => MaybeReadOnlyExpression<StringReadOnlyExpression> };
+  /** The entity's string_map accessor (keyed lookups returning MaybeReadOnlyExpressions). */
+  string_map: { get: (key: string | StringReadOnlyExpression) => MaybeReadOnlyExpression<StringReadOnlyExpression> };
   /**
    * The entities inside one *named* area of this entity. The area name is
    * required: it is resolved first, then the containment/overlap test runs.
-   * Only members of a container this entity belongs to are considered (areas
+   * Only peers in a shared named list are considered (areas
    * have no global space); the entity itself is excluded; the result is
    * deduped by id and ordered by id ascending. An entity with no such area
-   * yields an empty list (not an error). Each element is a minimal entity
-   * reference exposing `getId`.
+   * yields an empty list (not an error).
    */
-  getEntitiesInsideArea: (areaName: string | StringReadOnlyExpression) => ListReadOnlyExpression<EntityInsideAreaReference>
+  getEntitiesInsideArea: (areaName: string | StringReadOnlyExpression) => ListReadOnlyExpression<EntityReadOnlyExpression>
 }
 
 /**
  * A mutable reference to an entity, returned by `EventApplyContext.getMutableEntityBy`.
  * Extends the read-only expression with in-place map mutation. Available only
- * during the `apply` phase; mutations are committed atomically with the tick.
+ * during the `apply` phase.
  */
 export type EntityMutableExpression = EntityReadOnlyExpression & {
+  /** Add to a declared list without duplicating the member; return the group as a read-only expression. */
+  addMember: (list: string, member: EntityId) => EntityReadOnlyExpression;
+  removeMember: (list: string, entity: EntityId) => EntityMutableExpression;
   /** The entity's number_map accessor with in-place mutation. */
   number_map: EntityReadOnlyExpression["number_map"] & {
     put: (key: string | StringReadOnlyExpression, transform: (current: MaybeReadOnlyExpression<NumberReadOnlyExpression>) => MaybeReadOnlyExpression<NumberReadOnlyExpression>) => EntityMutableExpression;
     remove: (key: string | StringReadOnlyExpression) => EntityMutableExpression;
   };
-  /** The entity's text_map accessor with in-place mutation. */
-  text_map: EntityReadOnlyExpression["text_map"] & {
+  /** The entity's string_map accessor with in-place mutation. */
+  string_map: EntityReadOnlyExpression["string_map"] & {
     put: (key: string | StringReadOnlyExpression, transform: (current: MaybeReadOnlyExpression<StringReadOnlyExpression>) => MaybeReadOnlyExpression<StringReadOnlyExpression>) => EntityMutableExpression;
     remove: (key: string | StringReadOnlyExpression) => EntityMutableExpression;
   };
-}
-
-/** A minimal entity reference returned by {@link EntityReadOnlyExpression.getEntitiesInsideArea}. */
-export type EntityInsideAreaReference = {
-  /** The contained entity's id. */
-  getId: () => string
-}
-
-export type Entity = {
-  /** The entity's id (plain string, stable across ticks). */
-  id: string;
-  getId:() => StringReadOnlyExpression,
-  getText: (key: StringReadOnlyExpression) => MaybeReadOnlyExpression<StringReadOnlyExpression>,
-  getNumber: (key: StringReadOnlyExpression) => MaybeReadOnlyExpression<NumberReadOnlyExpression>,
-  getTextKeys: () => ListReadOnlyExpression<string>,
-  getNumberKeys: () => ListReadOnlyExpression<string>,
-  containers: ListReadOnlyExpression<ContainerReadOnlyExpression>,
-  /**
-   * The entities inside one *named* area of this entity (see
-   * {@link EntityReadOnlyExpression.getEntitiesInsideArea}). The area name is
-   * required; an entity with no such area yields an empty list.
-   */
-  getEntitiesInsideArea: (areaName: string) => ListReadOnlyExpression<EntityInsideAreaReference>
 }

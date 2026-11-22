@@ -19,7 +19,7 @@ export default (hostApi) => {
   const hFill = { width: "tile", height: "stretch" };
   const hero = hostApi.runtime.setEntity({
     id: string.of("hero"),
-    numberMap: { hp: number.of(5), max: number.of(10) }
+    numberMap: { hp: number.of(5), max: number.of(10) },
   });
   hostApi.ui.window("prog-anim-win", {
     panel: {

@@ -6,9 +6,9 @@ export default (hostApi) => {
 
   // An L-shaped sector occupying (0,0),(1,0),(0,1). Its (1,0) arm opens east
   // toward the box sector's west edge.
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("room-l"),
-    entities: [],
+    entityListMap: { members: [] },
     sector: {
       grid: cave,
       footprint: [[0, 0], [1, 0], [0, 1]],
@@ -20,9 +20,9 @@ export default (hostApi) => {
   });
 
   // A 1x1 sector at (2,0), directly east of the L's (1,0) arm.
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("room-b"),
-    entities: [],
+    entityListMap: { members: [] },
     sector: {
       grid: cave,
       footprint: [[0, 0]],

@@ -16,10 +16,7 @@ const entry: ModuleEntrypoint = (hostApi) => {
 
   const game = hostApi.runtime.setEntity({
     id: hostApi.runtime.string.of("game"),
-    numberMap: {
-      ...interest.entityNumberMap,
-      ...value.entityNumberMap,
-    },
+    numberMap: { ...interest.entityNumberMap, ...value.entityNumberMap },
   });
 
   interest.initialize();

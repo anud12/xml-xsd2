@@ -25,7 +25,6 @@ var hostApi={
     setAction:h.setAction,
     setEffect:h.setEffect,
     setEntity:h.setEntity,
-    setContainer:h.setContainer,
     linkOpening:function(a,b){
       var g=globalThis.__portalLinks;
       if(!g){g=globalThis.__portalLinks=[];}

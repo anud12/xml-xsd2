@@ -36,7 +36,7 @@ public class HotReloadFfiTests : Steps
             .IsEqual(new Color(1f, 0f, 0f, 1f));
         Assertions.AssertThat(RuntimeInterop.GetEntityNumberMapValue("node-2", "x"))
             .IsEqual("");
-        Assertions.AssertThat(ContainerInterop.GetContainerIds().Contains("grid-2"))
+        Assertions.AssertThat(EntityInterop.GetEntityIds().Contains("grid-2"))
             .IsFalse();
 
         // Swap the module content (same entry names) and hot reload.
@@ -68,15 +68,13 @@ public class HotReloadFfiTests : Steps
 
         // ...and so is the new container, holding both entities with the
         // preserved/declared positions.
-        var ids = ContainerInterop.GetContainerIds();
+        var ids = EntityInterop.GetEntityIds();
         Assertions.AssertThat(ids).Contains("grid-2");
-        var grid = ContainerInterop.GetContainerById("grid-2");
-        Assertions.AssertThat(grid.Entities).Contains("node-1");
-        Assertions.AssertThat(grid.Entities).Contains("node-2");
-        var gx = grid.GetXForEntityId ?? new Dictionary<string, double>();
-        var gy = grid.GetYForEntityId ?? new Dictionary<string, double>();
-        Assertions.AssertThat(gx["node-2"]).IsEqual(1.0);
-        Assertions.AssertThat(gy["node-2"]).IsEqual(1.0);
+        var grid = EntityInterop.GetEntityById("grid-2")!;
+        Assertions.AssertThat(grid.Members("members")).Contains("node-1");
+        Assertions.AssertThat(grid.Members("members")).Contains("node-2");
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-2")!.X).IsEqual(1.0);
+        Assertions.AssertThat(EntityInterop.GetEntityById("node-2")!.Y).IsEqual(1.0);
 
         // The module entry re-emitted the recurring effect: it fires on the
         // next processed iteration...

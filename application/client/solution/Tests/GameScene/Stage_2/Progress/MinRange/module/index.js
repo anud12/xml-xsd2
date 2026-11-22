@@ -14,7 +14,7 @@ export default (hostApi) => {
   const hFill = { width: "tile", height: "stretch" };
   const hero = hostApi.runtime.setEntity({
     id: string.of("hero"),
-    numberMap: { hp: number.of(6), min: number.of(2), max: number.of(10) }
+    numberMap: { hp: number.of(6), min: number.of(2), max: number.of(10) },
   });
   hostApi.ui.window("prog-min-win", {
     panel: {

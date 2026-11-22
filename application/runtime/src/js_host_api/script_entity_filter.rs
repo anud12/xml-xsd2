@@ -13,8 +13,8 @@
 //
 // FilterLambda: (e: EntityExpression) => ConditionExpression, where e is the
 // per-entity query surface (__entityProxy): id StringExpression,
-// number_map/text_map MaybeExpression lookups, getEntitiesInsideArea,
-// containers. The condition extraction idiom:
+// number_map/string_map MaybeExpression lookups, named members and areas.
+// The condition extraction idiom:
 //   e.number_map.get("hp").map(v => v.isLessThan(3)).orElse(condition.of(false))
 // The lookups hand the callback a value wrapper carrying the expression's
 // comparison/mutation surface; comparisons return condition objects
@@ -191,13 +191,12 @@ pub fn host_api_script_entity_filter() -> &'static str {
 
   // The per-entity query surface handed to FilterLambda predicates and list
   // element accessors.
-  globalThis.__entityProxy = function (id) {
-    var data = (globalThis.__entityData || {})[id] || {};
-    var nm = data.numberMap || {};
-    var tm = data.textMap || {};
-    var eid = (typeof data.id === 'string' && data.id) ? data.id : id;
+  globalThis.__entityProxy = function (id, mutable) {
+    function read() { return globalThis.__readEntity(id) || {}; }
+    var eid = id;
 
     function numberMaybe(key) {
+      var nm = read().numberMap || {};
       if (!Object.prototype.hasOwnProperty.call(nm, key)) return absentMaybe;
       function numOf(x) { return (typeof x === 'object' && x !== null) ? (x._raw !== undefined ? x._raw : x.value) : x; }
       function wrap(v) {
@@ -240,37 +239,50 @@ pub fn host_api_script_entity_filter() -> &'static str {
       return presentMaybe(nm[key], wrap(nm[key]));
     }
 
-    function textMaybe(key) {
-      if (!Object.prototype.hasOwnProperty.call(tm, key)) return absentMaybe;
-      function wrap(v) {
+    function wrapString(v) {
         var self = {
           _raw: v,
           value: v,
-          of: function (x) { return wrap(String(typeof x === 'object' && x !== null ? (x._raw !== undefined ? x._raw : x.value) : x)); },
+          of: function (x) { return wrapString(String(typeof x === 'object' && x !== null ? (x._raw !== undefined ? x._raw : x.value) : x)); },
           toString: function () { return String(v); },
           toJSON: function () { return v; },
           isContaining: function (o) { return conditionOf(String(v).indexOf(String(typeof o === 'object' && o !== null ? (o._raw !== undefined ? o._raw : o.value) : o)) >= 0, self); },
           isContainingExactly: function (o) { return conditionOf(String(v) === String(typeof o === 'object' && o !== null ? (o._raw !== undefined ? o._raw : o.value) : o), self); },
-          map: function (s) { return wrap(String(typeof s === 'object' && s !== null ? (s._raw !== undefined ? s._raw : s.value) : s)); },
-          concat: function (o) { return wrap(String(v) + String(typeof o === 'object' && o !== null ? (o._raw !== undefined ? o._raw : o.value) : o)); }
+          map: function (s) { return wrapString(String(typeof s === 'object' && s !== null ? (s._raw !== undefined ? s._raw : s.value) : s)); },
+          concat: function (o) { return wrapString(String(v) + String(typeof o === 'object' && o !== null ? (o._raw !== undefined ? o._raw : o.value) : o)); }
         };
         return self;
-      }
-      return presentMaybe(tm[key], wrap(tm[key]));
     }
 
-    function selfProxy() { return globalThis.__entityProxy(id); }
+    function textMaybe(key) {
+      var tm = read().stringMap || {};
+      if (!Object.prototype.hasOwnProperty.call(tm, key)) return absentMaybe;
+      return presentMaybe(tm[key], wrapString(tm[key]));
+    }
 
-    return {
+    var entity = {
       value: eid,
       toString: function () { return eid; },
       toJSON: function () { return eid; },
-      id: {
-        isContaining: function (o) { return conditionOf(String(eid).indexOf(String(o)) >= 0, { _raw: eid }); },
-        isContainingExactly: function (o) { return conditionOf(String(eid) === String(o), { _raw: eid }); }
+      id: wrapString(eid),
+      number_map: { get: numberMaybe },
+      string_map: { get: textMaybe },
+      getEntitiesInsideArea: function (areaName) {
+        var name = globalThis.__entityId(areaName);
+        var ids = name !== undefined && globalThis.__nativeInsideArea
+          ? JSON.parse(globalThis.__nativeInsideArea(id, name)) : [];
+        return globalThis.__makeValueList(ids, globalThis.__entityProxy);
       },
-      number_map: {
-        get: function (key) { return numberMaybe(key); },
+      members: function (name) {
+        var lists = read().entityListMap;
+        return globalThis.__makeValueList(lists && lists[name], globalThis.__entityProxy);
+      }
+    };
+    if (!mutable) return entity;
+
+    function selfProxy() { return globalThis.__entityProxy(id, true); }
+
+    Object.assign(entity.number_map, {
         put: function (key, transform) {
           var current = numberMaybe(key);
           var result;
@@ -289,24 +301,18 @@ pub fn host_api_script_entity_filter() -> &'static str {
             if (typeof result.orElse === 'function') { raw = result.orElse(result); }
             else { raw = result.value; }
             if (raw && typeof raw === 'object' && typeof raw._raw === 'number') { raw = raw._raw; }
-            data.numberMap = data.numberMap || {};
-            data.numberMap[key] = Number(raw);
+            globalThis.__writeEntityField(id, "numberMap", key, Number(raw));
           } else {
-            if (data.numberMap && Object.prototype.hasOwnProperty.call(data.numberMap, key)) {
-              delete data.numberMap[key];
-            }
+            globalThis.__writeEntityField(id, "numberMap", key, undefined);
           }
           return selfProxy();
         },
         remove: function (key) {
-          if (data.numberMap && Object.prototype.hasOwnProperty.call(data.numberMap, key)) {
-            delete data.numberMap[key];
-          }
+          globalThis.__writeEntityField(id, "numberMap", key, undefined);
           return selfProxy();
         }
-      },
-      text_map: {
-        get: function (key) { return textMaybe(key); },
+    });
+    Object.assign(entity.string_map, {
         put: function (key, transform) {
           var current = textMaybe(key);
           var result;
@@ -325,40 +331,26 @@ pub fn host_api_script_entity_filter() -> &'static str {
             if (typeof result.orElse === 'function') { raw = result.orElse(result); }
             else { raw = result.value; }
             if (raw && typeof raw === 'object' && typeof raw._raw === 'string') { raw = raw._raw; }
-            data.textMap = data.textMap || {};
-            data.textMap[key] = String(raw);
+            globalThis.__writeEntityField(id, "stringMap", key, String(raw));
           } else {
-            if (data.textMap && Object.prototype.hasOwnProperty.call(data.textMap, key)) {
-              delete data.textMap[key];
-            }
+            globalThis.__writeEntityField(id, "stringMap", key, undefined);
           }
           return selfProxy();
         },
         remove: function (key) {
-          if (data.textMap && Object.prototype.hasOwnProperty.call(data.textMap, key)) {
-            delete data.textMap[key];
-          }
+          globalThis.__writeEntityField(id, "stringMap", key, undefined);
           return selfProxy();
         }
-      },
-      getEntitiesInsideArea: function (areaName) {
-        var areaMap = (globalThis.__insideArea && globalThis.__insideArea[id]) || {};
-        var ids = areaMap[areaName] || [];
-        return {
-          forEach: function (cb) {
-            for (var i = 0; i < ids.length; i++) {
-              var self = i;
-              cb({ getId: function () { return ids[self]; } });
-            }
-          },
-          size: function () { return ids.length; }
-        };
-      },
-      containers: {
-        forEach: function () { },
-        size: function () { return 0; }
-      }
+    });
+    entity.addMember = function (name, ref) {
+        globalThis.__changeMembership(id, name, ref, true);
+        return globalThis.__entityProxy(id);
     };
+    entity.removeMember = function (name, ref) {
+        globalThis.__changeMembership(id, name, ref, false);
+        return selfProxy();
+    };
+    return entity;
   };
 
   // One recursive rule over the FilterArg variants.
@@ -425,7 +417,8 @@ pub fn host_api_script_entity_filter() -> &'static str {
   };
 
   // ListExpression-shaped result over the matched ids (deterministic order).
-  globalThis.__makeEntityList = function (ids) {
+  globalThis.__makeEntityList = function (ids, mutable) {
+    function wrap(id) { return globalThis.__entityProxy(id, mutable); }
     function degraded() {
       return {
         map: function () { return { orElse: function (d) { return d; } }; },
@@ -434,7 +427,7 @@ pub fn host_api_script_entity_filter() -> &'static str {
     }
     function makeElement(index) {
       if (index < 0 || index >= ids.length) return degraded();
-      var ee = globalThis.__entityProxy(ids[index]);
+      var ee = wrap(ids[index]);
       return {
         map: function (cb) {
           if (typeof cb === 'function') {
@@ -466,14 +459,14 @@ pub fn host_api_script_entity_filter() -> &'static str {
         var out = [];
         if (typeof cb === 'function') {
           for (var i = 0; i < ids.length; i++) {
-            try { out.push(cb(globalThis.__entityProxy(ids[i]), i)); } catch (e) { }
+            try { out.push(cb(wrap(ids[i]), i)); } catch (e) { }
           }
         }
         return globalThis.__makeValueList(out, function (v) { return v; });
       },
       forEach: function (cb) {
         for (var i = 0; i < ids.length; i++) {
-          try { cb(globalThis.__entityProxy(ids[i]), i); } catch (e) { }
+          try { cb(wrap(ids[i]), i); } catch (e) { }
         }
       },
       size: function () { return ids.length; },
@@ -486,7 +479,7 @@ pub fn host_api_script_entity_filter() -> &'static str {
       },
       ifPresent: function (cb) {
         if (ids.length > 0 && typeof cb === 'function') {
-          cb(globalThis.__entityProxy(ids[0]));
+          cb(wrap(ids[0]));
         }
       },
       randomElement: function () {
@@ -494,7 +487,7 @@ pub fn host_api_script_entity_filter() -> &'static str {
           ifPresent: function (cb) {
             if (typeof cb !== 'function') return;
             if (ids.length > 0) {
-              cb(globalThis.__entityProxy(ids[Math.floor(globalThis.__lxmNext() * ids.length)]));
+              cb(wrap(ids[Math.floor(globalThis.__lxmNext() * ids.length)]));
             } else {
               cb(null);
             }
@@ -502,27 +495,23 @@ pub fn host_api_script_entity_filter() -> &'static str {
         };
       },
       exactlyOne: function () {
-        if (ids.length === 1) return presentMaybe(ids[0], globalThis.__entityProxy(ids[0]));
+        if (ids.length === 1) return presentMaybe(ids[0], wrap(ids[0]));
         return absentMaybe;
       }
     };
   };
 
   // The entry point every context's getEntityBy delegates to.
-  globalThis.__evalEntityFilter = function (filter) {
+  globalThis.__evalEntityFilter = function (filter, mutable) {
     var arg = globalThis.__normalizeEntityFilter(filter);
     if (arg.malformed) {
       filterLog('___filter-malformed');
       return globalThis.__makeEntityList([]);
     }
-    var data = globalThis.__entityData || {};
-    var ids = [];
-    for (var id in data) {
-      if (Object.prototype.hasOwnProperty.call(data, id)) ids.push(id);
-    }
+    var ids = globalThis.__entityIds();
     // Fresh simulate_action contexts may only carry raw store rows (entities
-    // recorded during action execution) without __entityData entries.
-    if (ids.length === 0) {
+    // recorded during action execution) without declaration entries.
+    if (!globalThis.__nativeEntityIds && ids.length === 0) {
       var store = globalThis.__entityStore || [];
       for (var i = 0; i < store.length; i++) {
         var row = store[i];
@@ -543,139 +532,14 @@ pub fn host_api_script_entity_filter() -> &'static str {
         matched.push(ids[j]);
       }
     }
-    // Deterministic order: __entityData is populated from a Rust map whose
+    // Deterministic order: entity IDs are read from a Rust map whose
     // iteration order is not stable, so index-dependent operations (randomElement,
     // get(index), ifPresent) would otherwise see a different element for the
     // same seed. Sorting by id makes the list order stable across installs.
     matched.sort();
     if (matched.length === 0) filterLog('___filter-no-match');
-    return globalThis.__makeEntityList(matched);
+    return globalThis.__makeEntityList(matched, mutable);
   };
 
-  // Container proxy: read-only surface + mutable addEntity/removeEntity.
-  globalThis.__containerProxy = function (id) {
-    var data = (globalThis.__containerData || {})[id] || {};
-    var cid = (typeof data.id === 'string' && data.id) ? data.id : id;
-    function selfProxy() { return globalThis.__containerProxy(id); }
-    return {
-      id: {
-        isContaining: function (o) { return conditionOf(String(cid).indexOf(String(o)) >= 0, { _raw: cid }); },
-        isContainingExactly: function (o) { return conditionOf(String(cid) === String(o), { _raw: cid }); }
-      },
-      entities: (function () {
-        var ids = (data.entities || []).map(function (e) {
-          return (typeof e === 'object' && e !== null && typeof e.value === 'string') ? e.value : String(e);
-        });
-        return globalThis.__makeValueList(ids, function (eid) {
-          return globalThis.__entityProxy(String(eid));
-        });
-      })(),
-      textMap: data.textMap || {},
-      numberMap: data.numberMap || {},
-      addEntity: function (entity) {
-        var target = (globalThis.__containerData || {})[id];
-        if (!target) return selfProxy();
-        target.entities = target.entities || [];
-        var entityId = (entity && typeof entity === 'object' && typeof entity.firstName === 'string')
-          ? entity.firstName
-          : (entity && typeof entity === 'object' && typeof entity.id === 'string')
-            ? entity.id
-            : String(entity);
-        var resolved = (entity && typeof entity === 'object' && typeof entity.value === 'string') ? entity.value : entityId;
-        if (target.entities.indexOf(resolved) < 0) {
-          target.entities.push(resolved);
-        }
-        return selfProxy();
-      },
-      removeEntity: function (entityId) {
-        var target = (globalThis.__containerData || {})[id];
-        if (!target || !target.entities) return selfProxy();
-        var resolved = (entityId && typeof entityId === 'object' && typeof entityId.value === 'string') ? entityId.value : String(entityId);
-        target.entities = target.entities.filter(function (e) {
-          var ev = (typeof e === 'object' && e !== null && typeof e.value === 'string') ? e.value : String(e);
-          return ev !== resolved;
-        });
-        return selfProxy();
-      }
-    };
-  };
-
-  // ListExpression-shaped result over matched container ids.
-  globalThis.__makeContainerList = function (ids) {
-    return {
-      map: function (cb) {
-        var out = [];
-        if (typeof cb === 'function') {
-          for (var i = 0; i < ids.length; i++) {
-            try { out.push(cb(globalThis.__containerProxy(ids[i]), i)); } catch (e) { }
-          }
-        }
-        return globalThis.__makeValueList(out, function (v) { return v; });
-      },
-      forEach: function (cb) {
-        for (var i = 0; i < ids.length; i++) {
-          try { cb(globalThis.__containerProxy(ids[i]), i); } catch (e) { }
-        }
-      },
-      size: function () { return ids.length; },
-      length: function () { return ids.length; },
-      count: function () { return globalThis.host.number.of(ids.length); },
-      get: function (index) {
-        var i = Number(index);
-        if (isNaN(i)) i = 0;
-        if (i < 0 || i >= ids.length) return { map: function () { return { orElse: function (d) { return d; } }; } };
-        var cp = globalThis.__containerProxy(ids[i]);
-        return {
-          map: function (cb) {
-            if (typeof cb === 'function') { try { cb(cp); } catch (e) { } }
-            return { orElse: function (d) { return d; } };
-          }
-        };
-      },
-      ifPresent: function (cb) {
-        if (ids.length > 0 && typeof cb === 'function') {
-          cb(globalThis.__containerProxy(ids[0]));
-        }
-      },
-      randomElement: function () {
-        if (ids.length === 0) return absentMaybe;
-        var i = Math.floor(globalThis.__lxmNext() * ids.length);
-        if (i >= ids.length) i = ids.length - 1;
-        return presentMaybe(ids[i], globalThis.__containerProxy(ids[i]));
-      },
-      exactlyOne: function () {
-        if (ids.length === 1) return presentMaybe(ids[0], globalThis.__containerProxy(ids[0]));
-        return absentMaybe;
-      }
-    };
-  };
-
-  // Container filter entry point: { filters: [(c) => condition] }
-  globalThis.__evalContainerFilter = function (filter) {
-    if (!filter || typeof filter !== 'object' || typeof filter === 'function') {
-      return globalThis.__makeContainerList([]);
-    }
-    var filters = filter.filters;
-    if (!Array.isArray(filters)) return globalThis.__makeContainerList([]);
-    var containerData = globalThis.__containerData || {};
-    var ids = [];
-    for (var id in containerData) {
-      if (Object.prototype.hasOwnProperty.call(containerData, id)) ids.push(id);
-    }
-    var matched = [];
-    for (var j = 0; j < ids.length; j++) {
-      var proxy = globalThis.__containerProxy(ids[j]);
-      var allPass = true;
-      for (var k = 0; k < filters.length; k++) {
-        var f = filters[k];
-        if (typeof f !== 'function') { allPass = false; break; }
-        var ok;
-        try { ok = globalThis.__condToBool(f(proxy)); } catch (err) { ok = false; }
-        if (!ok) { allPass = false; break; }
-      }
-      if (allPass) matched.push(ids[j]);
-    }
-    return globalThis.__makeContainerList(matched);
-  };
 })();"#
 }

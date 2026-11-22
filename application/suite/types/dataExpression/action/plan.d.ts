@@ -1,7 +1,7 @@
 import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
 import { NumberReadOnlyExpression } from "../../primitives/numberExpression";
 import { EntityReadOnlyExpression } from "../Entity";
-import { ContainerReadOnlyExpression } from "../Contaier";
+import { EntityId } from "../Entity";
 import { EffectReadOnlyExpression } from "../Effect";
 
 /**
@@ -22,8 +22,8 @@ export type ActionPlanStep =
   | { wait: TemporalReadOnlyExpression }
   | {
       move: {
-        containerId: ContainerReadOnlyExpression;
-        entityId: EntityReadOnlyExpression;
+        groupId: EntityId;
+        entityId: EntityId;
         x: NumberReadOnlyExpression;
         y: NumberReadOnlyExpression;
         speed: NumberReadOnlyExpression;

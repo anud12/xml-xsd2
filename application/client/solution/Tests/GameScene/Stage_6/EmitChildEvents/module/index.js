@@ -10,12 +10,8 @@ export default (hostApi) => {
 
   const entity = hostApi.runtime.setEntity({
     id: string.of("entity_id"),
-    numberMap: {
-      "key": number.of(0)
-    },
-    textMap: {
-      "isModified": string.of("No")
-    }
+    numberMap: { "key": number.of(0) },
+    stringMap: { "isModified": string.of("No") },
   })
 
   const keyModifyIfPar = hostApi.runtime.setEffect({
@@ -33,13 +29,13 @@ export default (hostApi) => {
     apply:(context, output) => {
       output.ifTrue(() => {
         context.getMutableEntityBy(filter).forEach(elementExpr => {
-          elementExpr.text_map.put("isModified", () => hostApi.runtime.maybe.of(string.of("Yes")))
+          elementExpr.string_map.put("isModified", () => hostApi.runtime.maybe.of(string.of("Yes")))
         })
         return number.of(1);
       })
       output.ifFalse(() => {
         context.getMutableEntityBy(filter).forEach(elementExpr => {
-          elementExpr.text_map.put("isModified", () => hostApi.runtime.maybe.of(string.of("No")))
+          elementExpr.string_map.put("isModified", () => hostApi.runtime.maybe.of(string.of("No")))
         })
         return number.of(0);
       })

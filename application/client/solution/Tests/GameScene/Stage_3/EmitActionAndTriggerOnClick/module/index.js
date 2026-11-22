@@ -16,7 +16,6 @@ export default (hostApi) => {
     const action = hostApi.runtime.setAction({
         name: string.of("action"),
         apply: (context) => {
-          context.actor.containers
             hostApi.runtime.log("___From module action fired line___")
             context.emitEffect(effect, {})
         }

@@ -228,18 +228,10 @@ if(!__hapi_ui.div){
 }
 if(!__hapi_ui.entityList){
   __hapi_ui.entityList=function(id,options,template){
-    var containerId=options&&options.container;
-    var resolvedContainerId=(typeof containerId==="object")?containerId.value:containerId;
+    var groupId=globalThis.__entityId(options&&options.group);
     var vertical=options&&options.vertical!==undefined?options.vertical:true;
-    var containerData=globalThis.__containerData
-      ?globalThis.__containerData[resolvedContainerId]:undefined;
-    var entityIds=[];
-    if(resolvedContainerId&&containerData&&containerData.entities){
-      for(var ei=0;ei<containerData.entities.length;ei++){
-        var ent=containerData.entities[ei];
-        entityIds.push(typeof ent==="object"?ent.value:ent);
-      }
-    }
+    var group=groupId?globalThis.__readEntity(groupId):null;
+    var entityIds=(group&&group.entityListMap&&group.entityListMap[options.list])||[];
     var childIds=[];
     if(typeof template==="function"){
       for(var i=0;i<entityIds.length;i++){
@@ -252,7 +244,7 @@ if(!__hapi_ui.entityList){
     }
     __hapi_registerPanel({
       id:id,
-      content:{type:"containerListView",containerId:containerId,vertical:vertical},
+      content:{type:"entityList",group:groupId,list:options.list,vertical:vertical},
       children:childIds
     });
     return id;
@@ -271,7 +263,6 @@ if(!__hapi_runtime.setEvent){__hapi_runtime.setEvent=h.setEvent;}
 if(!__hapi_runtime.setAction){__hapi_runtime.setAction=h.setAction;}
 if(!__hapi_runtime.setEffect){__hapi_runtime.setEffect=h.setEffect;}
 if(!__hapi_runtime.setEntity){__hapi_runtime.setEntity=h.setEntity;}
-if(!__hapi_runtime.setContainer){__hapi_runtime.setContainer=h.setContainer;}
 if(!__hapi_runtime.setBehavior){__hapi_runtime.setBehavior=h.setBehavior;}
 if(!__hapi_runtime.setAnimation){
   __hapi_runtime.setAnimation=__hapi_setAnimation;
@@ -303,7 +294,7 @@ if(!__hapi_runtime.condition){
 }
 // World/sector namespace: `world.sectorGrid(id)` declares a named grid and
 // returns it. Sectors attach later via a container's optional `sector` field
-// (captured in setContainer). The returned object only needs a stable id so
+// (captured in setEntity). The returned object only needs a stable id so
 // module code can hold a reference; the Rust layer computes the actual grid.
 if(!hostApi.world){
   hostApi.world={

@@ -38,7 +38,7 @@ public struct Panel
 
     // The container this panel represents; the click cursor resolves its cell
     // from the container's sizeX/sizeY rather than the declared layout tracks.
-    public string? ContainerId;
+    public string? GroupId;
 }
 
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
@@ -170,15 +170,17 @@ public class EntityNumberValueContent : PanelContent
     }
 }
 
-public class ContainerListViewContent : PanelContent
+public class EntityListContent : PanelContent
 {
-    public string ContainerId { get; set; }
+    public string GroupId { get; set; }
+    public string List { get; set; }
     public bool Vertical { get; set; }
     public Panel[]? TemplateResults { get; set; }
 
-    public ContainerListViewContent(string containerId, bool vertical = true)
+    public EntityListContent(string groupId, string list, bool vertical = true)
     {
-        ContainerId = containerId;
+        GroupId = groupId;
+        List = list;
         Vertical = vertical;
     }
 }

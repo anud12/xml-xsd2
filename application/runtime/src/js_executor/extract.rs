@@ -1,9 +1,6 @@
 use anyhow::{anyhow, Result};
 use crate::js_runtime::{create_runtime, create_context};
-use crate::js_host_api::{extract_declarations, lxm_prng_script, Declarations};
-use crate::js_host_api::script_emit;
-use crate::js_host_api::script_rest;
-use crate::js_host_api::script_blueprint;
+use crate::js_host_api::{extract_declarations, install_host_api, Declarations};
 use super::strip_export::strip_export_prefix;
 use super::import_resolver::resolve_and_fetch;
 
@@ -11,27 +8,6 @@ fn create_rt_ctx() -> Result<(rquickjs::Runtime, rquickjs::Context)> {
     let rt = create_runtime()?;
     let ctx = create_context(&rt)?;
     Ok((rt, ctx))
-}
-
-fn get_host_api_script() -> String {
-    [
-        // Install the shared LXM PRNG (globalThis.__lxmNext) first so the
-        // module entry's number.random resolves during extraction too.
-        lxm_prng_script(),
-        // Register the stringBlueprint factory (globalThis.__stringBlueprintFactory)
-        // so extract_invoke can install runtime.stringBlueprint.
-        script_blueprint::host_api_script_string_blueprint(),
-        // Register the numberBlueprint factory (globalThis.__numberBlueprintFactory)
-        // so extract_invoke can install runtime.numberBlueprint.
-        script_blueprint::host_api_script_number_blueprint(),
-        // Register the entityBlueprint factory (globalThis.__entityBlueprintFactory)
-        // so extract_invoke can install runtime.entityBlueprint.
-        script_blueprint::host_api_script_entity_blueprint(),
-        script_emit::host_api_script_part1(),
-        script_emit::host_api_script_emit(),
-        script_rest::host_api_script_rest().as_str(),
-        script_rest::host_api_script_tail().as_str(),
-    ].join("\n")
 }
 
 pub(crate) fn bundle_imports(source: &str) -> String {
@@ -77,10 +53,7 @@ pub fn extract_from_source(source: &str) -> Result<Declarations> {
     }
     let bundled = bundle_imports(source);
     let transformed = transform_source(&bundled);
-    let host_script = get_host_api_script();
-    ctx.with(|c| {
-        c.eval::<(), _>(host_script.clone())
-    }).map_err(|e| anyhow!("host API eval failed: {}", e))?;
+    install_host_api(&ctx)?;
     ctx.with(|c| {
         c.eval::<(), _>(transformed.clone())
     }).map_err(|e| anyhow!("module eval failed: {}", e))?;

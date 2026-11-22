@@ -16,9 +16,9 @@ public class ContainerMutableAddEntityFfiTests : Steps {
         RuntimeInterop.emitActionFor("add-to-bag", "bag-1");
         RuntimeInterop.RunIteration();
 
-        var container = ContainerInterop.GetContainerById("bag-1");
-        Assertions.AssertThat(container.Entities).IsNotNull();
-        Assertions.AssertThat(container.Entities.Length).IsEqual(1);
-        Assertions.AssertThat(container.Entities.Contains("item-3")).IsTrue();
+        var container = EntityInterop.GetEntityById("bag-1")!;
+        Assertions.AssertThat(container.Members("members")).IsNotNull();
+        Assertions.AssertThat(container.Members("members").Length).IsEqual(1);
+        Assertions.AssertThat(container.Members("members").Contains("item-3")).IsTrue();
     }
 }

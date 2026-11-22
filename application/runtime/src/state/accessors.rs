@@ -32,21 +32,6 @@ pub fn pending_effects() -> &'static Mutex<Vec<String>> {
 pub fn scheduled_effects() -> &'static Mutex<Vec<super::ScheduledEffect>> {
     super::persisted_flag(); unsafe { super::SCHEDULED_EFFECTS.expect("scheduled effects initialized") }
 }
-pub fn last_entity_data() -> &'static Mutex<HashMap<String, HashMap<String, String>>> {
-    super::persisted_flag(); unsafe { super::LAST_ENTITY_DATA.expect("entity data initialized") }
-}
-pub fn last_entity_number_data() -> &'static Mutex<HashMap<String, HashMap<String, f64>>> {
-    super::persisted_flag(); unsafe { super::LAST_ENTITY_NUMBER_DATA.expect("entity number data initialized") }
-}
-pub fn initial_entity_data() -> &'static Mutex<HashMap<String, HashMap<String, String>>> {
-    super::persisted_flag(); unsafe { super::INITIAL_ENTITY_DATA.expect("initial entity data initialized") }
-}
-pub fn last_containers() -> &'static Mutex<Vec<String>> {
-    super::persisted_flag(); unsafe { super::LAST_CONTAINERS.expect("containers initialized") }
-}
-pub fn set_last_containers(rows: Vec<String>) {
-    *last_containers().lock().unwrap() = rows;
-}
 pub fn elapsed_time_units() -> &'static AtomicI64 {
     super::persisted_flag(); unsafe { super::ELAPSED_TIME_UNITS.expect("elapsed time units initialized") }
 }
@@ -60,15 +45,6 @@ pub fn set_last_entity_patterns(rows: Vec<String>) { *last_entity_patterns().loc
 pub fn set_last_panels(rows: Vec<String>) { *last_panels().lock().unwrap() = rows; }
 pub fn set_last_created_by(map: HashMap<String, Vec<String>>) {
     *last_created_by().lock().unwrap() = map;
-}
-pub fn set_last_entity_data(data: HashMap<String, HashMap<String, String>>) {
-    *last_entity_data().lock().unwrap() = data;
-}
-pub fn set_last_entity_number_data(data: HashMap<String, HashMap<String, f64>>) {
-    *last_entity_number_data().lock().unwrap() = data;
-}
-pub fn set_initial_entity_data(data: HashMap<String, HashMap<String, String>>) {
-    *initial_entity_data().lock().unwrap() = data;
 }
 pub fn set_pending_effects(effects: Vec<String>) { *pending_effects().lock().unwrap() = effects; }
 pub fn clear_pending_effects() { pending_effects().lock().unwrap().clear(); }

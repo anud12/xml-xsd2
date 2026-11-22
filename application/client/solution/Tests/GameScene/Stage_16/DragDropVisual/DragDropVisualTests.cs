@@ -210,11 +210,11 @@ public class DragDropVisualTests : Steps {
 
             // END-TO-END drop result (data path) — proves the pushed input
             // actually reached EndDrag → UiJsDrop.
-            var lands = ContainerInterop.GetContainerById("lands");
-            var inv = ContainerInterop.GetContainerById("inventory");
-            Assertions.AssertThat(lands.Entities.Contains("1")).IsFalse();
-            Assertions.AssertThat(inv.Entities.Length).IsEqual(1);
-            Assertions.AssertThat(inv.Entities.Contains("1")).IsTrue();
+            var lands = EntityInterop.GetEntityById("lands")!;
+            var inv = EntityInterop.GetEntityById("inventory")!;
+            Assertions.AssertThat(lands.Members("members").Contains("1")).IsFalse();
+            Assertions.AssertThat(inv.Members("members").Length).IsEqual(1);
+            Assertions.AssertThat(inv.Members("members").Contains("1")).IsTrue();
             Assertions.AssertThat(double.Parse(
                 RuntimeInterop.ReadEntityNumberValue("game", "value"))).IsEqual(90.0);
             AssertRuntimeOutputContains("___From module dragdrop visual onDrop fired line___");

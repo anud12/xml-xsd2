@@ -2,13 +2,14 @@
 export default (hostApi) => {
   const {string, number} = hostApi.runtime;
 
-  const itemA = hostApi.runtime.setEntity({id: string.of("item-a")});
-  const itemB = hostApi.runtime.setEntity({id: string.of("item-b")});
-  const itemC = hostApi.runtime.setEntity({id: string.of("item-c")});
-  const itemD = hostApi.runtime.setEntity({id: string.of("item-d")});
-  const itemE = hostApi.runtime.setEntity({id: string.of("item-e")});
-  const inv = hostApi.runtime.setContainer({
-    id: string.of("inventory"), entities: [itemA, itemB, itemC, itemD, itemE],
+  const itemA = hostApi.runtime.setEntity({ id: string.of("item-a") });
+  const itemB = hostApi.runtime.setEntity({ id: string.of("item-b") });
+  const itemC = hostApi.runtime.setEntity({ id: string.of("item-c") });
+  const itemD = hostApi.runtime.setEntity({ id: string.of("item-d") });
+  const itemE = hostApi.runtime.setEntity({ id: string.of("item-e") });
+  const inv = hostApi.runtime.setEntity({
+    id: string.of("inventory"),
+    entityListMap: { members: [itemA, itemB, itemC, itemD, itemE] },
   });
 
   const panelBg = hostApi.runtime.setAnimation(string.of("panelBg"), {
@@ -41,7 +42,7 @@ export default (hostApi) => {
       background: {animation: panelBg, fill: {width: "stretch", height: "stretch"}}
     },
   }, [hostApi.ui.entityList("sb-anim-list", {
-    container: inv, vertical: false
+    group: inv, list: "members", vertical: false
   }, (entity) => {
     return [hostApi.ui.window(entity.id + "-sb", {
       panel: {

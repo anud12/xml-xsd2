@@ -12,9 +12,9 @@ public class ContainerTextNumberMapFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var container = ContainerInterop.GetContainerById("bag-1");
-        Assertions.AssertThat(container.TextMap).IsNotNull();
-        Assertions.AssertThat(container.TextMap["label"]).IsEqual("Main Bag");
+        var container = EntityInterop.GetEntityById("bag-1")!;
+        Assertions.AssertThat(container.StringMap).IsNotNull();
+        Assertions.AssertThat(container.StringMap["label"]).IsEqual("Main Bag");
     }
 
     [TestCase]
@@ -24,7 +24,7 @@ public class ContainerTextNumberMapFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var container = ContainerInterop.GetContainerById("bag-1");
+        var container = EntityInterop.GetEntityById("bag-1")!;
         Assertions.AssertThat(container.NumberMap).IsNotNull();
         Assertions.AssertThat(container.NumberMap["capacity"]).IsEqual(20.0);
     }

@@ -1,5 +1,4 @@
 import {HostApi} from "module_types/HostApi";
-import {Entity} from "module_types/dataExpression/Entity";
 import {getLandModule} from "./land";
 import {getLandSprites} from "./sprites";
 import {getLandDragType} from "./drag";
@@ -38,8 +37,8 @@ export const landUi = (hostApi: HostApi) => {
       },
     },
   }, [
-    hostApi.ui.entityList("land-items", { container: module.container },
-      (entity: Entity) => [
+    hostApi.ui.entityList("land-items", { group: module.container, list: "members" },
+      (entity: { id: string; index: number }) => [
         hostApi.ui.window(entity.id, {
           panel: {
             width: 190,

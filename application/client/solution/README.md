@@ -8,7 +8,7 @@ and forwards user input back to it.
 
 ## Layout
 
-- `Sources/Runtime/` — the FFI boundary (`RuntimeInterop`, `ContainerInterop`,
+- `Sources/Runtime/` — the FFI boundary (`RuntimeInterop`, `EntityInterop`,
   `SectorInterop`) and the native DLLs.
 - `Sources/UI/` — the runtime-driven UI (`RootNode` paints the runtime's slab;
   `UiWindow` renders a node; `UiTraceability` records clicks for replay).

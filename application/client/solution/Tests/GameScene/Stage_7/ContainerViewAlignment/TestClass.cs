@@ -38,8 +38,8 @@ public class TestClass : Steps {
 
         // grid-center declares alignment "center"; the runtime must have read
         // the flag off the serialized container row.
-        var centered = ContainerInterop.GetContainerById("grid-center");
-        Assertions.AssertThat(centered.Alignment).IsEqual(ContainerAlignment.Center);
+        var centered = EntityInterop.GetEntityById("grid-center")!;
+        Assertions.AssertThat(centered.StringMap.GetValueOrDefault("alignment")).IsEqual("center");
 
         // The centered marker is placed at the span midpoint minus half the
         // span, i.e. (x*cellW - span*cellW/2, y*cellH - span*cellH/2).
@@ -61,8 +61,8 @@ public class TestClass : Steps {
 
         // grid-default omits the alignment flag; the parsed value is null and
         // the marker pins its top-left corner to (x, y).
-        var defaults = ContainerInterop.GetContainerById("grid-default");
-        Assertions.AssertThat(defaults.Alignment).IsNull();
+        var defaults = EntityInterop.GetEntityById("grid-default")!;
+        Assertions.AssertThat(defaults.StringMap.GetValueOrDefault("alignment")).IsNull();
 
         // The omitted-flag marker sits exactly at the span's top-left cell —
         // identical to the explicit "top-left" placement.

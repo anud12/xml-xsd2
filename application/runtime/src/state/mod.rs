@@ -5,15 +5,17 @@ use std::collections::HashMap;
 
 mod accessors; mod clear; mod export; mod hot_reload; mod markers;
 mod persist; mod scheduled; mod active_plans; mod sector;
+mod entity;
 pub mod area; pub mod area_query;
 
 pub use accessors::*; pub use clear::*; pub use export::*;
 pub use hot_reload::*;
 pub use markers::*; pub use persist::*; pub use scheduled::*;
 pub use active_plans::*; pub use sector::*;
+pub use entity::*;
 pub use area_query::{
-    clear_entity_areas, entity_area, entity_area_ids, entity_containers,
-    entities_inside_area, inside_area_map_json,
+    entity_area, entity_area_ids, memberships,
+    entities_inside_area,
     set_entity_area, world_pieces,
 };
 
@@ -30,15 +32,10 @@ static mut LAST_PANELS: Option<&'static Mutex<Vec<String>>> = None;
 static mut LAST_CREATED_BY: Option<&'static Mutex<HashMap<String, Vec<String>>>> = None;
 static mut PENDING_EFFECTS: Option<&'static Mutex<Vec<String>>> = None;
 static mut SCHEDULED_EFFECTS: Option<&'static Mutex<Vec<ScheduledEffect>>> = None;
-static mut LAST_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
-static mut LAST_ENTITY_NUMBER_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, f64>>>> = None;
-static mut INITIAL_ENTITY_DATA: Option<&'static Mutex<HashMap<String, HashMap<String, String>>>> = None;
-static mut LAST_CONTAINERS: Option<&'static Mutex<Vec<String>>> = None;
 static mut ELAPSED_TIME_UNITS: Option<&'static AtomicI64> = None;
 static mut ARCHIVE_FILES: Option<&'static Mutex<HashMap<String, String>>> = None;
 static mut ACTIVE_PLANS: Option<&'static Mutex<Vec<ActivePlan>>> = None;
 static mut SECTOR_GRIDS: Option<&'static Mutex<HashMap<String, SectorGridState>>> = None;
-static mut ENTITY_AREAS: Option<&'static Mutex<HashMap<String, HashMap<String, Vec<(f64, f64)>>>>> = None;
 // The LXM PRNG seed for the loaded module. u64::MAX means "not set" (the JS
 // side then falls back to the 0x7FFFFFFF default). It is NOT reset by
 // clear_state: the host sets it once before (re)installing the module, and a
@@ -46,16 +43,6 @@ static mut ENTITY_AREAS: Option<&'static Mutex<HashMap<String, HashMap<String, V
 // (outside the INIT group) so the host can set it before the first
 // process_archive without forcing the full state initialization.
 static LXM_SEED: AtomicU64 = AtomicU64::new(u64::MAX);
-
-/// The entity-area store (idempotent with `persisted_flag`). Reached directly
-/// by `area_query` so it shares the same init ordering as every other state
-/// slot in this module. An entity maps to the entityMap of its named areas:
-/// area id -> the local polygon (entity-local units, y down).
-pub fn entity_areas_inner()
-    -> &'static Mutex<HashMap<String, HashMap<String, Vec<(f64, f64)>>>> {
-    persisted_flag();
-    unsafe { ENTITY_AREAS.expect("entity areas initialized") }
-}
 
 #[derive(Clone, Debug)]
 pub struct ScheduledEffect {
@@ -92,15 +79,10 @@ fn persisted_flag() -> &'static AtomicBool {
             LAST_CREATED_BY = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             PENDING_EFFECTS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
             SCHEDULED_EFFECTS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
-            LAST_ENTITY_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
-            LAST_ENTITY_NUMBER_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
-            INITIAL_ENTITY_DATA = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
-            LAST_CONTAINERS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
             ELAPSED_TIME_UNITS = Some(Box::leak(Box::new(AtomicI64::new(0))));
             ARCHIVE_FILES = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
             ACTIVE_PLANS = Some(Box::leak(Box::new(Mutex::new(Vec::new()))));
             SECTOR_GRIDS = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
-            ENTITY_AREAS = Some(Box::leak(Box::new(Mutex::new(HashMap::new()))));
         }
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }

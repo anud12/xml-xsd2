@@ -4,23 +4,23 @@ export default (hostApi) => {
 
   hostApi.runtime.setEntity({
     id: string.of("a"),
-    textMap: { flag: string.of("no"), job: string.of("smith"), team: string.of("red") },
-    numberMap: { hp: number.of(3) }
+    numberMap: { hp: number.of(3) },
+    stringMap: { flag: string.of("no"), job: string.of("smith"), team: string.of("red") },
   });
   hostApi.runtime.setEntity({
     id: string.of("b"),
-    textMap: { flag: string.of("no"), job: string.of("healer"), team: string.of("red") },
-    numberMap: { hp: number.of(9) }
+    numberMap: { hp: number.of(9) },
+    stringMap: { flag: string.of("no"), job: string.of("healer"), team: string.of("red") },
   });
   hostApi.runtime.setEntity({
     id: string.of("c"),
-    textMap: { flag: string.of("no"), job: string.of("smith"), team: string.of("blue") },
-    numberMap: { hp: number.of(7) }
+    numberMap: { hp: number.of(7) },
+    stringMap: { flag: string.of("no"), job: string.of("smith"), team: string.of("blue") },
   });
   hostApi.runtime.setEntity({
     id: string.of("d"),
-    textMap: { flag: string.of("no"), job: string.of("ghost"), team: string.of("red") },
-    numberMap: { hp: number.of(1) }
+    numberMap: { hp: number.of(1) },
+    stringMap: { flag: string.of("no"), job: string.of("ghost"), team: string.of("red") },
   });
 
   // Nested composition: not( or( blue-team, and( ghost, low-hp ) ) )
@@ -30,14 +30,14 @@ export default (hostApi) => {
       {
         or: [
           {
-            filters: [(e) => e.text_map.get(string.of("team"))
+            filters: [(e) => e.string_map.get(string.of("team"))
               .map(t => t.isContainingExactly(string.of("blue")))
               .orElse(condition.of(false))],
           },
           {
             and: [
               {
-                filters: [(e) => e.text_map.get(string.of("job"))
+                filters: [(e) => e.string_map.get(string.of("job"))
                   .map(t => t.isContainingExactly(string.of("ghost")))
                   .orElse(condition.of(false))],
               },
@@ -57,7 +57,7 @@ export default (hostApi) => {
     prepare: () => ({value: true}),
     apply: (ctx) => {
       ctx.getMutableEntityBy(nested)
-         .map(ee => ee.text_map.put("flag", () => hostApi.runtime.maybe.of(string.of("yes"))))
+         .map(ee => ee.string_map.put("flag", () => hostApi.runtime.maybe.of(string.of("yes"))))
     }
   });
 

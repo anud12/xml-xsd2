@@ -1,5 +1,5 @@
 import {HostApi} from "module_types/HostApi";
-import {EntityCreationArguments} from "module_types/dataExpression/Entity";
+import {EntityDeclaration} from "module_types/dataExpression/Entity";
 import {memoize} from "../../util/memoize";
 
 /**
@@ -14,7 +14,7 @@ export const getValueModule = memoize((hostApi: HostApi) => {
   const max = hostApi.runtime.number.of(100);
   const step = hostApi.runtime.number.of(1);
 
-  const entityNumberMap: EntityCreationArguments["numberMap"] = {
+  const entityNumberMap: EntityDeclaration["numberMap"] = {
     [key]: start,
   };
 

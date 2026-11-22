@@ -15,11 +15,11 @@ public class DragDropBuyTests : Steps {
 
         // Before the drop: the land is in "lands", the inventory is empty,
         // and the game holds 100.
-        var lands = ContainerInterop.GetContainerById("lands");
-        var inv = ContainerInterop.GetContainerById("inventory");
+        var lands = EntityInterop.GetEntityById("lands")!;
+        var inv = EntityInterop.GetEntityById("inventory")!;
 
-        Assertions.AssertThat(lands.Entities.Contains("1")).IsTrue();
-        Assertions.AssertThat(inv.Entities.Length).IsEqual(0);
+        Assertions.AssertThat(lands.Members("members").Contains("1")).IsTrue();
+        Assertions.AssertThat(inv.Members("members").Length).IsEqual(0);
         Assertions.AssertThat(double.Parse(
             RuntimeInterop.ReadEntityNumberValue("game", "value"))).IsEqual(100.0);
 
@@ -43,11 +43,11 @@ public class DragDropBuyTests : Steps {
         RuntimeInterop.RunIteration();
 
         // The land moved from "lands" into "inventory".
-        lands = ContainerInterop.GetContainerById("lands");
-        Assertions.AssertThat(lands.Entities.Contains("1")).IsFalse();
-        inv = ContainerInterop.GetContainerById("inventory");
-        Assertions.AssertThat(inv.Entities.Length).IsEqual(1);
-        Assertions.AssertThat(inv.Entities.Contains("1")).IsTrue();
+        lands = EntityInterop.GetEntityById("lands")!;
+        Assertions.AssertThat(lands.Members("members").Contains("1")).IsFalse();
+        inv = EntityInterop.GetEntityById("inventory")!;
+        Assertions.AssertThat(inv.Members("members").Length).IsEqual(1);
+        Assertions.AssertThat(inv.Members("members").Contains("1")).IsTrue();
 
         // The land's cost (10) was deducted from the game's value.
         Assertions.AssertThat(double.Parse(

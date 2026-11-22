@@ -5,18 +5,18 @@ export default (hostApi) => {
   const sword = hostApi.runtime.setEntity({
     id: string.of("sword-1"),
     numberMap: { attack: number.of(25) },
-    textMap: { name: string.of("Sword") },
+    stringMap: { name: string.of("Sword") },
   });
 
   const shield = hostApi.runtime.setEntity({
     id: string.of("shield-1"),
     numberMap: { defense: number.of(15) },
-    textMap: { name: string.of("Shield") },
+    stringMap: { name: string.of("Shield") },
   });
 
-  const inventory = hostApi.runtime.setContainer({
+  const inventory = hostApi.runtime.setEntity({
     id: string.of("inventory"),
-    entities: [],
+    entityListMap: { members: [] },
   });
 
   const font = hostApi.ui.setFont({ file: "fonts/Ubuntu-Regular.ttf", size: 14, color: "#FFFFFF" });
@@ -30,7 +30,7 @@ export default (hostApi) => {
       title: "Inventory",
     },
   }, [
-    hostApi.ui.entityList("inv-items", { container: inventory },
+    hostApi.ui.entityList("inv-items", { group: inventory, list: "members" },
       (entity) => [
         hostApi.ui.window(entity.id, {
           panel: {
@@ -52,10 +52,10 @@ export default (hostApi) => {
   const addToInventoryEffect = hostApi.runtime.setEffect({
     name: string.of("add-to-inventory"),
     apply: (context) => {
-      context.getMutableContainersBy({
+      context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of("inventory"))],
       }).forEach((container) => {
-        container.addEntity(sword);
+        container.addMember("members", sword);
       });
     },
   });
@@ -63,10 +63,10 @@ export default (hostApi) => {
   const addShieldToInventoryEffect = hostApi.runtime.setEffect({
     name: string.of("add-shield-to-inventory"),
     apply: (context) => {
-      context.getMutableContainersBy({
+      context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of("inventory"))],
       }).forEach((container) => {
-        container.addEntity(shield);
+        container.addMember("members", shield);
       });
     },
   });

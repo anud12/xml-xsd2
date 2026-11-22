@@ -2,11 +2,11 @@ export default (hostApi) => {
   const { number, string } = hostApi.runtime;
 
   hostApi.runtime.setEntity({
-    id: "actor-1",
+    id: hostApi.runtime.string.of("actor-1"),
     numberMap: { column: number.of(0), row: number.of(0) },
   });
   hostApi.runtime.setEntity({
-    id: "actor-2",
+    id: hostApi.runtime.string.of("actor-2"),
     numberMap: { column: number.of(0), row: number.of(0) },
   });
 

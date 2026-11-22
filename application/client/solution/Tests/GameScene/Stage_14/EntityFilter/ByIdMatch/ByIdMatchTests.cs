@@ -16,17 +16,17 @@ public class ByIdMatchTests : Steps
             .EnsureDllAccessible()
             .ProcessArchive();
 
-        // Fire the pending effects (both select "second" via different id
-        // filter shapes). The old first-entity fallback would have marked
-        // "first" whenever a filter did not match; the evaluator must not.
+        // Fire pending effects. The id substring filter has two matches and
+        // exactlyOne() therefore skips its update; exact-id and stringMap
+        // filters still select "second".
         RuntimeInterop.RunIteration();
 
-        // "second" is selected by both the exact and the substring id
-        // filters, ending on the later "contains" mark.
+        // Exact-id and stringMap selection both mark "second"; substring
+        // matching remains covered as a two-match cardinality case.
         Assertions.AssertThat(RuntimeInterop.ReadEntityTextValue("second", "flag"))
-            .IsEqual("contains");
+            .IsEqual("exact");
 
-        // "first" (created first) must be untouched — the fallback is gone.
+        // Neither exact-id nor stringMap predicate selects "first".
         Assertions.AssertThat(RuntimeInterop.ReadEntityTextValue("first", "flag"))
             .IsEqual("no");
     }

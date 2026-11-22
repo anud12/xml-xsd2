@@ -4,24 +4,24 @@ export default (hostApi) => {
 
   hostApi.runtime.setEntity({
     id: string.of("e-smith"),
-    textMap: { flag: string.of("no"), job: string.of("smith") },
-    numberMap: { hp: number.of(3) }
+    numberMap: { hp: number.of(3) },
+    stringMap: { flag: string.of("no"), job: string.of("smith") },
   });
   hostApi.runtime.setEntity({
     id: string.of("e-smith2"),
-    textMap: { flag: string.of("no"), job: string.of("smith") },
-    numberMap: { hp: number.of(8) }
+    numberMap: { hp: number.of(8) },
+    stringMap: { flag: string.of("no"), job: string.of("smith") },
   });
   hostApi.runtime.setEntity({
     id: string.of("e-healer"),
-    textMap: { flag: string.of("no"), job: string.of("healer") },
-    numberMap: { hp: number.of(3) }
+    numberMap: { hp: number.of(3) },
+    stringMap: { flag: string.of("no"), job: string.of("healer") },
   });
 
   // Leaf: every lambda must hold. Only e-smith satisfies both.
   const leaf = {
     filters: [
-      (e) => e.text_map.get(string.of("job"))
+      (e) => e.string_map.get(string.of("job"))
         .map(t => t.isContainingExactly(string.of("smith")))
         .orElse(condition.of(false)),
       (e) => e.number_map.get(string.of("hp"))
@@ -34,7 +34,7 @@ export default (hostApi) => {
     prepare: () => ({value: true}),
     apply: (ctx) => {
       ctx.getMutableEntityBy(leaf)
-         .map(ee => ee.text_map.put("flag", () => hostApi.runtime.maybe.of(string.of("leaf"))))
+         .map(ee => ee.string_map.put("flag", () => hostApi.runtime.maybe.of(string.of("leaf"))))
     }
   });
 
@@ -50,7 +50,7 @@ export default (hostApi) => {
             .orElse(condition.of(false)),
         ],
       })
-        .map(ee => ee.text_map.put("flag", () => hostApi.runtime.maybe.of(string.of("eq"))))
+        .map(ee => ee.string_map.put("flag", () => hostApi.runtime.maybe.of(string.of("eq"))))
     }
   });
 

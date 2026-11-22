@@ -4,7 +4,6 @@ import {MaybeReadOnlyExpression} from "../primitives/maybeExpression";
 import {NumberReadOnlyExpression} from "../primitives/numberExpression";
 import {ConditionReadOnlyExpression} from "../primitives/conditionExpression";
 import {EntityReadOnlyExpression, EntityMutableExpression} from "./Entity";
-import {ContainerMutableExpression} from "./Contaier";
 import {EntityFilter} from "../EntityFilter";
 import {ListReadOnlyExpression} from "../primitives/ListExpression";
 
@@ -82,7 +81,7 @@ export type EventApplyContext = {
    * The newly created entity is not available for querying or mutation within
    * the same apply phase; it materializes at commit time.
    *
-   * @param entity - An EntityReadOnlyExpression built via hostApi.entity.create()...
+   * @param entity - A read-only entity expression, such as one returned by an entity blueprint.
    * @returns This EventApplyContext for method chaining.
    */
   createEntity: (entity: EntityReadOnlyExpression) => EventApplyContext;
@@ -109,17 +108,6 @@ export type EventApplyContext = {
    */
     getMutableEntityBy: (entityFilter: EntityFilter) => ListReadOnlyExpression<EntityMutableExpression>;
 
-  /**
-   * Query the container repository for containers matching the given filter.
-   *
-   * Returns a lazy ListReadOnlyExpression<ContainerMutableExpression> that is
-   * bound to the read-buffer snapshot. Available in `apply` phase only.
-   * Mutations (addEntity, removeEntity) are committed atomically with the tick.
-   *
-   * @param containerFilter - A predicate that receives a ContainerReadOnlyExpression and returns a condition
-   * @returns A lazy ListReadOnlyExpression<ContainerMutableExpression> representing matching containers
-   */
-  getMutableContainersBy: (containerFilter: { filters: ((c: import("./Contaier").ContainerReadOnlyExpression) => ConditionReadOnlyExpression<Expression>)[] }) => ListReadOnlyExpression<ContainerMutableExpression>;
 }
 
 export type SetEventArgs<Input, Output> = {

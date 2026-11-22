@@ -37,7 +37,7 @@ public class SectorGridOneWayLinkTests : Steps
         Assertions.AssertThat(scene.GetWindowOrNull("caveview-unlinked-0")).IsNull();
         DebugSaveScreenshot("debug_initial.png");
 
-        // ---- Fire the action: action -> effect -> setContainer(room-b). ---
+        // ---- Fire the action: action -> effect -> setEntity(room-b). ---
         // room-b appears at (1,0), east of A, with a WEST opening facing A.
         RuntimeInterop.emitAction("build-b");
         RuntimeInterop.RunIteration(0);

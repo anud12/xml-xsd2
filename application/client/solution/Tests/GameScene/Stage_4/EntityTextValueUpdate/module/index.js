@@ -5,9 +5,7 @@ export default (hostApi) => {
 
   const entity = hostApi.runtime.setEntity({
     id: string.of("entity_id"),
-    textMap: {
-      "textKey": string.of("textValue")
-    }
+    stringMap: { "textKey": string.of("textValue") },
   })
 
   const texture = hostApi.runtime.setAnimation(string.of("texture"), {

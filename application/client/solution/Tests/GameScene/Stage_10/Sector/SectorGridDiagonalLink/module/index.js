@@ -5,9 +5,9 @@ export default (hostApi) => {
   const cave = hostApi.world.sectorGrid(string.of("cave"));
 
   // Sector A: a single 1x1 cell at [0,0]. It opens on its RIGHT (east) edge.
-  const roomA = hostApi.runtime.setContainer({
+  const roomA = hostApi.runtime.setEntity({
     id: string.of("room-a"),
-    entities: [],
+    entityListMap: { members: [] },
     sector: {
       grid: cave,
       footprint: [[0, 0]],
@@ -22,9 +22,9 @@ export default (hostApi) => {
   // two cells down), with blank squares between. It opens on its LEFT (west) edge.
   // A's east opening and B's west opening are NOT facing (they sit on different
   // rows), so with no explicit link both are unlinked dead-ends and no portal forms.
-  const roomB = hostApi.runtime.setContainer({
+  const roomB = hostApi.runtime.setEntity({
     id: string.of("room-b"),
-    entities: [],
+    entityListMap: { members: [] },
     sector: {
       grid: cave,
       footprint: [[0, 0]],
@@ -42,8 +42,8 @@ export default (hostApi) => {
     name: string.of("do-link"),
     apply: () => {
       hostApi.runtime.linkOpening(
-         { container: roomA, cell: [0, 0], side: "E" },
-         { container: roomB, cell: [0, 0], side: "W" }
+         { sector: roomA, cell: [0, 0], side: "E" },
+         { sector: roomB, cell: [0, 0], side: "W" }
         );
     },
   });

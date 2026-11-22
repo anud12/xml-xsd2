@@ -2,10 +2,8 @@ const entry = (hostApi) => {
     const { string, number, maybe } = hostApi.runtime;
 
     const obj = hostApi.runtime.setEntity({
-        id: string.of("obj"),
-        numberMap: {
-            counter: number.of(100),
-        },
+      id: string.of("obj"),
+      numberMap: { counter: number.of(100) },
     });
 
     const tick = hostApi.runtime.setEffect({

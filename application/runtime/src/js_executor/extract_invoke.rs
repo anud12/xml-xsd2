@@ -21,7 +21,7 @@ var hostApi={
   },
   // World/sector namespace. `sectorGrid(id)` declares a named grid; sectors
   // attach later via a container's optional `sector` field (captured in
-  // setContainer). The returned object only needs a stable id reference.
+  // setEntity). The returned object only needs a stable id reference.
   world:{
     sectorGrid:function(id){
       var resolvedId=typeof id==='object'?id.value:id;
@@ -40,7 +40,6 @@ var hostApi={
     setAction:h.setAction,
     setEffect:h.setEffect,
     setEntity:h.setEntity,
-    setContainer:h.setContainer,
     setBehavior:h.setBehavior,
     setAnimation:function(name,args){
       var resolvedName=typeof name==='object'?name.value:name;
@@ -78,26 +77,6 @@ var hostApi={
       }
   }
 };
-// Record behavior attachments (setEntity with a behavior field) so the
-// per-tick behavior machine can drive each entity's step script.
-var __origSetEntity=hostApi.runtime.setEntity;
-hostApi.runtime.setEntity=function(arg){
-  if(arg&&typeof arg==='object'){
-    var idRaw=arg.id;
-    var resolvedId=(idRaw&&typeof idRaw==='object')?idRaw.value:idRaw;
-    if(arg.behavior!==undefined){
-      var b=arg.behavior;
-      var bName=typeof b==='object'?b.name:b;
-      var bVal=typeof b==='object'?b:(b!==undefined?{name:b}:undefined);
-      globalThis.__behaviors=globalThis.__behaviors||{};
-      globalThis.__behaviors[resolvedId]=bVal;
-      globalThis.__logs=globalThis.__logs||[];
-      globalThis.__logs.push('behavior attached: '+resolvedId+' -> '+(typeof bName==='object'?bName.name:bName));
-    }
-  }
-  if(__origSetEntity) return __origSetEntity(arg);
-  return undefined;
-};
 globalThis.hostApi=hostApi;
 if (globalThis.__stringBlueprintFactory) {
   hostApi.runtime.stringBlueprint = globalThis.__stringBlueprintFactory.create();
@@ -111,7 +90,7 @@ if (globalThis.__entityBlueprintFactory) {
 // Extraction only needs the module to run to completion so its runtime
 // declarations (containers/entities/actions) are baked; UI nodes are captured
 // by the persistent sim install path, not here. Provide no-op ui factories so
-// the module does not abort on hostApi.ui.panel/field/containerView.
+// the module does not abort on hostApi.ui.panel/field/groupView.
 (function(){
   var u=hostApi.ui;
   var noop=function(){return null;};
@@ -123,7 +102,7 @@ if (globalThis.__entityBlueprintFactory) {
   if(!u.image)u.image=noop;
   if(!u.progress)u.progress=noop;
   if(!u.canvas)u.canvas=noop;
-  if(!u.containerView)u.containerView=noop;
+  if(!u.groupView)u.groupView=noop;
   if(!u.sectorGrid)u.sectorGrid=noop;
   if(!u.entityList)u.entityList=noop;
   if(!u.getSpritePNG)u.getSpritePNG=function(p){return p;};

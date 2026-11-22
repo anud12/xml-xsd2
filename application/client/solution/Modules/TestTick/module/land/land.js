@@ -2,9 +2,9 @@ import { memoize } from "../../util/memoize";
 import { landGenerator } from "./landGenerator";
 export const getLandModule = memoize((hostApi) => {
     const maxCount = hostApi.runtime.number.of(4);
-    const landContainer = hostApi.runtime.setContainer({
+    const landContainer = hostApi.runtime.setEntity({
         id: hostApi.runtime.string.of("lands"),
-        entities: [],
+        entityListMap: { members: [] },
     });
     // Keep the land pool topped up to exactly `maxCount`. Each tick, read the
     // live size of the "lands" container directly and, if it has fewer than
@@ -17,18 +17,18 @@ export const getLandModule = memoize((hostApi) => {
         },
         apply: (context) => {
             // Read the pool's live size straight from the container's members.
-            let poolCount = context.getMutableContainersBy({
+            let poolCount = context.getMutableEntityBy({
                 filters: [(c) => c.id.isContainingExactly(hostApi.runtime.string.of("lands"))],
-            }).map((container) => container.entities.length())
+            }).map((container) => container.members("members").count())
                 .exactlyOne()
                 .orElse(hostApi.runtime.number.of(0));
             poolCount.isLessThan(maxCount).ifTrue((count) => {
                 const land = landGenerator(hostApi).generateValue();
                 context.createEntity(land);
-                context.getMutableContainersBy({
+                context.getMutableEntityBy({
                     filters: [(c) => c.id.isContainingExactly(hostApi.runtime.string.of("lands"))],
                 }).forEach((container) => {
-                    container.addEntity(land);
+                    container.addMember("members", land);
                 });
                 return hostApi.runtime.condition.of(true);
             }).or(() => hostApi.runtime.condition.of(false));

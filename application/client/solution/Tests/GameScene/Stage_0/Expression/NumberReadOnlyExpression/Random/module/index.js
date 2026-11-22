@@ -5,13 +5,8 @@ export default (hostApi) => {
 
     const entity = hostApi.runtime.setEntity({
       id: string.of("entity_id"),
-      numberMap: {
-        "seed": number.of(0)
-      },
-      textMap: {
-        "result": string.of("pending"),
-        "chained": string.of("pending")
-      }
+      numberMap: { "seed": number.of(0) },
+      stringMap: { "result": string.of("pending"), "chained": string.of("pending") },
     })
 
     const effect = hostApi.runtime.setEffect({
@@ -22,11 +17,11 @@ export default (hostApi) => {
           filters: [(e) => e.id.isContainingExactly(string.of("entity_id"))]
         }).forEach(el => {
           const roll = number.random(number.of(5), number.of(5));
-          el.text_map.put("result", () => hostApi.runtime.maybe.of(
+          el.string_map.put("result", () => hostApi.runtime.maybe.of(
             roll.toStringExpression()
           ));
           const chained = number.random(number.of(10), number.of(10)).sum(number.of(5));
-          el.text_map.put("chained", () => hostApi.runtime.maybe.of(
+          el.string_map.put("chained", () => hostApi.runtime.maybe.of(
             chained.toStringExpression()
           ));
         });

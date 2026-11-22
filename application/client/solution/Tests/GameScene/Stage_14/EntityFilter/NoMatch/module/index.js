@@ -4,16 +4,16 @@ export default (hostApi) => {
 
   hostApi.runtime.setEntity({
     id: string.of("x"),
-    textMap: { flag: string.of("no"), job: string.of("smith") }
+    stringMap: { flag: string.of("no"), job: string.of("smith") },
   });
   hostApi.runtime.setEntity({
     id: string.of("y"),
-    textMap: { flag: string.of("no"), job: string.of("healer") }
+    stringMap: { flag: string.of("no"), job: string.of("healer") },
   });
 
   const noMatch = {
     filters: [
-      (e) => e.text_map.get(string.of("job"))
+      (e) => e.string_map.get(string.of("job"))
         .map(t => t.isContainingExactly(string.of("nobody")))
         .orElse(condition.of(false)),
     ],
@@ -26,7 +26,7 @@ export default (hostApi) => {
       // Direct map: the callback must never run.
       ctx.getMutableEntityBy(noMatch)
         .map(ee => {
-          ee.text_map.get(string.of("flag")).ifPresent(v => {
+          ee.string_map.get(string.of("flag")).ifPresent(v => {
             v.map(string.of("marked"));
           });
           return number.of(0);
@@ -34,7 +34,7 @@ export default (hostApi) => {
       // Degraded element access: the element callback must never run.
       ctx.getMutableEntityBy(noMatch).get(number.of(0))
         .map(v => {
-          v.text_map.get(string.of("flag")).ifPresent(t => {
+          v.string_map.get(string.of("flag")).ifPresent(t => {
             t.map(string.of("marked"));
           });
           return number.of(0);

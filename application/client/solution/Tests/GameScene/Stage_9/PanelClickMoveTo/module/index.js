@@ -3,30 +3,18 @@ export default (hostApi) => {
  const { number, string } = hostApi.runtime;
 
   hostApi.runtime.setEntity({
-    id: "node-1",
-    numberMap: {
-      column: number.of(2),
-      row: number.of(1),
-    },
+    id: hostApi.runtime.string.of("node-1"),
+    numberMap: { column: number.of(2), row: number.of(1) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
-  hostApi.runtime.setContainer({
-    id: "grid-1",
-    entities: [
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of("grid-1"),
+    entityListMap: { members: [
       hostApi.runtime.string.of("node-1"),
-    ],
-    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
-    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    getSpanX: (entity) => number.of(1),
-    getSpanY: (entity) => number.of(1),
-    sizeX: {
-      value: number.of(10),
-      outOfBounds: "clamp",
-    },
-    sizeY: {
-      value: number.of(5),
-      outOfBounds: "clamp",
-    },
+    ] },
+    numberMap: { sizeX: number.of(10), sizeY: number.of(5) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp" },
   });
 
   // The click handler forwards the cursor cell as the move destination.
@@ -35,7 +23,7 @@ export default (hostApi) => {
     name: string.of("move-to-cursor"),
     apply: (ctx) => {
       ctx.moveTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-1"),
         x: ctx.args.x,
         y: ctx.args.y,
@@ -77,7 +65,7 @@ export default (hostApi) => {
       layout: {
         columns: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
         rows: [{ scale: 1 }, { scale: 1 }, { scale: 1 }],
-        container: string.of("grid-1"),
+        group: string.of("grid-1"),
       },
       onClick: (ctx) => {
         ctx.emitAction("move-to-cursor", {

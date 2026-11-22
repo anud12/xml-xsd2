@@ -239,23 +239,21 @@ fn tick_inner() -> Result<()> {
     // the last tick's items and restores each list's marker. The entity
     // lookup (`__uiEntitiesFor`) is stable from install; only the container
     // list it reads is refreshed here.
-    let containers_json = container_entities_json()?;
     let sector_grids_json = crate::state::fetch_sector_grids_json();
     let script = format!(
-        "__uiHost.resetContainers();\n\
-         globalThis.__uiContainerList = {};\n\
+        "__uiHost.resetEntityViews();\n\
          globalThis.__uiSectorGrids = {};\n\
-         __uiHost.expandContainers(globalThis.__uiEntitiesFor);\n\
-         __uiHost.expandContainerViews(globalThis.__uiEntitiesFor);\n\
+         __uiHost.expandEntityLists(globalThis.__uiEntitiesFor);\n\
+         __uiHost.expandGroupViews(globalThis.__uiEntitiesFor);\n\
          __uiHost.expandSectorGrids();\n\
          JSON.stringify(__uiHost.snapshot())",
-        containers_json, sector_grids_json
+        sector_grids_json
     );
     let snapshot_json = eval_string(&ctx, &script)?;
     let mut snapshot: Vec<UiNode> = serde_json::from_str(&snapshot_json)?;
     resolve_field_values(&mut snapshot);
     resolve_progress_values(&mut snapshot);
-    resolve_container_view_positions(&mut snapshot);
+    resolve_group_view_positions(&mut snapshot);
     let snapshot = visible_nodes(&snapshot);
 
     // Keep the animation-definition store in sync for the fetch FFI (the
@@ -279,30 +277,10 @@ fn tick_inner() -> Result<()> {
     apply_diff(&snapshot)
 }
 
-/// The current runtime containers as a JS array literal of
-/// `{ id, entities: [...] }` objects, for the in-context entity lookup.
-fn container_entities_json() -> Result<String> {
-    let containers = crate::state::last_containers().lock().unwrap().clone();
-    let mut out: Vec<serde_json::Value> = Vec::new();
-    for json_str in containers.iter() {
-        if let Ok(v) = serde_json::from_str::<serde_json::Value>(json_str) {
-            if let Some(id) = v.get("id").and_then(|x| x.as_str()) {
-                let entities = v.get("entities")
-                    .and_then(|e| e.as_array())
-                    .map(|arr| arr.iter().map(|e| e.clone()).collect::<Vec<_>>())
-                    .unwrap_or_default();
-                out.push(serde_json::json!({ "id": id, "entities": entities }));
-            }
-        }
-    }
-    Ok(serde_json::to_string(&out)?)
-}
-
 /// Re-resolve every field node's `value` from the current entity store so
 /// the id-diff sees live changes as updates (the node id is stable).
 fn resolve_field_values(snapshot: &mut [UiNode]) {
-    let text_data = crate::state::last_entity_data().lock().unwrap();
-    let num_data = crate::state::last_entity_number_data().lock().unwrap();
+    let entities = crate::state::entity_map().lock().unwrap();
     for node in snapshot.iter_mut() {
         if let UiNode::Field { binding, value, .. } = node {
             let (entity, map, name, fallback) = (
@@ -315,15 +293,15 @@ fn resolve_field_values(snapshot: &mut [UiNode]) {
                 let mut resolved: Option<String> = None;
                 match map {
                     "text" => {
-                        if let Some(s) = text_data.get(entity)
-                            .and_then(|m| m.get(name))
+                        if let Some(s) = entities.get(entity)
+                            .and_then(|e| e.string_map.get(name))
                         {
                             resolved = Some(s.clone());
                         }
                     }
                     "number" => {
-                        if let Some(n) = num_data.get(entity)
-                            .and_then(|m| m.get(name))
+                        if let Some(n) = entities.get(entity)
+                            .and_then(|e| e.number(name))
                         {
                             resolved = Some(n.to_string());
                         }
@@ -350,7 +328,7 @@ fn resolve_field_values(snapshot: &mut [UiNode]) {
 /// binding's captured `.orElse` default (`fallback`/`minFallback`/`maxFallback`)
 /// is used. An omitted `min` falls back to the static default 0.
 fn resolve_progress_values(snapshot: &mut [UiNode]) {
-    let num_data = crate::state::last_entity_number_data().lock().unwrap();
+    let entities = crate::state::entity_map().lock().unwrap();
     for node in snapshot.iter_mut() {
         let UiNode::Progress { value, binding, options, .. } = node else {
             continue;
@@ -370,7 +348,7 @@ fn resolve_progress_values(snapshot: &mut [UiNode]) {
         // static 0).
         let num = |key: Option<&str>, default: f64| -> Option<f64> {
             match key {
-                Some(k) => num_data.get(entity).and_then(|m| m.get(k)).copied().or(Some(default)),
+                Some(k) => entities.get(entity).and_then(|e| e.number(k)).or(Some(default)),
                 None => Some(default),
             }
         };
@@ -420,45 +398,14 @@ fn rgba(v: Option<&serde_json::Value>) -> [f64; 4] {
 /// Re-resolve every container-view item's geometry (x/y/width/height) from
 /// its entity's container position, so the id-diff sees live moves as updates
 /// and the C# `ApplyWindow` re-positions the panel. A view node carries
-/// `options.container`, `options.viewWidth`, `options.viewHeight`; each item
+/// `options.group`, `options.viewWidth`, `options.viewHeight`; each item
 /// child carries `options.entity` (stamped by the JS expansion). The cell
-/// size is `view / container.size`, and the item sits at
+/// size is `view / group size`, and the item sits at
 /// `(getX * cellW, getY * cellH)` with span `(getSpanX * cellW, getSpanY * cellH)`.
-fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
-    // Build a container-geometry map: id -> (sizeX, sizeY, per-entity
-    // getX/getY/getSpanX/getSpanY). The latest row for an id wins (mirrors
-    // the JS `__uiEntitiesFor` lookup).
-    let containers = crate::state::last_containers().lock().unwrap().clone();
-    // A view (Vec, not a map) so the immutable borrow ends before the
-    // mutable item writes below. The latest row for an id wins.
-    let mut geom: Vec<
-        (String, Option<f64>, Option<f64>, bool, serde_json::Map<String, serde_json::Value>),
-    > = Vec::new();
-    for json_str in containers.iter() {
-        let Ok(v) = serde_json::from_str::<serde_json::Value>(json_str) else {
-            continue;
-        };
-        let Some(id) = v.get("id").and_then(|x| x.as_str()) else {
-            continue;
-        };
-        let size_x = v.get("sizeX").and_then(|s| s.get("value")).and_then(|n| n.as_f64());
-        let size_y = v.get("sizeY").and_then(|s| s.get("value")).and_then(|n| n.as_f64());
-        // `alignment` (optional) selects how an entity's marker is placed over
-        // its span: "center" centers the marker on the span midpoint, while
-        // the default "top-left" pins the marker's top-left corner to (x, y).
-        let center = v.get("alignment").and_then(|a| a.as_str()) == Some("center");
-        let prev = geom.iter().find(|g| g.0 == id).map(|g| g.4.clone());
-        let per_entity = merge_position_maps(&prev, &v);
-        geom.retain(|g| g.0 != id);
-        geom.push((id.to_string(), size_x, size_y, center, per_entity));
-    }
-
-    // First pass (immutable): collect each view's (container id, cell size,
-    // center flag, item child ids). The cell size is precomputed so the
-    // second pass owns all the data it needs and never borrows `geom` or the
-    // snapshot.
+fn resolve_group_view_positions(snapshot: &mut [UiNode]) {
+    let entities = crate::state::entity_map().lock().unwrap();
     let mut views: Vec<
-        (String, f64, f64, bool, Vec<String>, Vec<AreaStyle>),
+        (f64, f64, bool, Vec<String>, Vec<AreaStyle>),
     > = Vec::new();
     for node in snapshot.iter() {
         // A container view is a division (it must live under a window); the
@@ -472,7 +419,7 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
         let Some(opts_obj) = options.as_object() else {
             continue;
         };
-        let Some(cid) = opts_obj.get("container").and_then(|c| c.as_str()) else {
+        let Some(cid) = opts_obj.get("group").and_then(|c| c.as_str()) else {
             continue;
         };
         let Some(view_w) = opts_obj.get("viewWidth").and_then(|n| n.as_f64()) else {
@@ -481,12 +428,10 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
         let Some(view_h) = opts_obj.get("viewHeight").and_then(|n| n.as_f64()) else {
             continue;
         };
-        // The container must declare its extent; a view without bounds cannot
-        // derive a cell size.
-        let (sx, sy, center) = match geom.iter().find(|g| g.0 == cid) {
-            Some((_, Some(a), Some(b), c, _)) => (*a, *b, *c),
-            _ => continue,
-        };
+        let Some(group) = entities.get(cid) else { continue };
+        let (Some(sx), Some(sy)) = (group.number("sizeX"), group.number("sizeY")) else { continue };
+        if sx <= 0.0 || sy <= 0.0 { continue; }
+        let center = group.string_map.get("alignment").is_some_and(|a| a == "center");
         // `area` (optional) selects which of each entity's named areas the
         // outline renders and the outline style for each. It is an array of
         // entries, every field required:
@@ -514,7 +459,6 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
             }
         }
         views.push((
-            cid.to_string(),
             view_w / sx,
             view_h / sy,
             center,
@@ -530,14 +474,7 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
         index.insert(node.id().to_string(), i);
     }
 
-    for (cid, cell_w, cell_h, center, children, area_styles) in views {
-        let Some(per_entity) = geom
-            .iter()
-            .find(|g| g.0 == cid)
-            .map(|g| g.4.clone())
-        else {
-            continue;
-        };
+    for (cell_w, cell_h, center, children, area_styles) in views {
         for child_id in children {
             let Some(pos) = index.get(child_id.as_str()).copied() else {
                 continue;
@@ -556,12 +493,10 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
             else {
                 continue;
             };
-            let Some(ent_pos) = per_entity.get(entity.as_str()).and_then(|p| p.as_object()) else {
-                continue;
-            };
-            let get = |key: &str| ent_pos.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0);
-            let span_x = get("spanX").max(1.0) * cell_w;
-            let span_y = get("spanY").max(1.0) * cell_h;
+            let Some(member) = entities.get(&entity) else { continue };
+            let (world_x, world_y) = member.position();
+            let span_x = member.number("spanX").unwrap_or(1.0).max(1.0) * cell_w;
+            let span_y = member.number("spanY").unwrap_or(1.0).max(1.0) * cell_h;
             // With `alignment: "center"`, the marker is centered on the span
             // midpoint: the declared (x, y) is the top-left, so shift the
             // marker by half its span. Otherwise (the "top-left" default), the
@@ -571,8 +506,8 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
             } else {
                 (0.0, 0.0)
             };
-            let x = get("x") * cell_w - ox;
-            let y = get("y") * cell_h - oy;
+            let x = world_x * cell_w - ox;
+            let y = world_y * cell_h - oy;
             // Position/size/area live in `options.panel` (the canonical node
             // shape); `entity` stays top-level metadata on the item.
             if !item_obj.contains_key("panel") {
@@ -592,9 +527,9 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
             // style for each (first declared area with defaults when omitted).
             stamp_area_outline(
                 panel,
-                &entity,
-                get("x"),
-                get("y"),
+                member,
+                world_x,
+                world_y,
                 cell_w,
                 cell_h,
                 ox,
@@ -619,7 +554,7 @@ fn resolve_container_view_positions(snapshot: &mut [UiNode]) {
 /// tracks the marker.
 fn stamp_area_outline(
     panel: &mut serde_json::Map<String, serde_json::Value>,
-    entity: &str,
+    entity: &crate::state::Entity,
     ent_x: f64,
     ent_y: f64,
     cell_w: f64,
@@ -637,7 +572,7 @@ fn stamp_area_outline(
     // view omitted `area`, draw the entity's first declared area (id
     // ascending) with default styling.
     let styled: Vec<(String, [f64; 4], [f64; 4], f64)> = if area_styles.is_empty() {
-        let first = crate::state::area_query::entity_area_ids(entity).into_iter().next();
+        let first = entity.polygons.keys().next().cloned();
         match first {
             Some(name) => vec![(name, [1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0], 2.0)],
             None => Vec::new(),
@@ -661,7 +596,7 @@ fn stamp_area_outline(
 
     let mut polys: Vec<serde_json::Value> = Vec::new();
     for (name, color, body_color, thickness) in &styled {
-        let points = match crate::state::area_query::entity_area(entity, name) {
+        let points = match entity.polygons.get(name) {
             Some(poly) => poly
                 .into_iter()
                 .map(|(px, py)| {
@@ -698,62 +633,6 @@ fn stamp_area_outline(
 /// Merge a container row's per-entity position maps (getX/getY/getSpanX/
 /// getSpanY, each `entityId -> number`) into one `entityId -> { x, y, spanX,
 /// spanY }` map, layered over any earlier row for the same container id.
-fn merge_position_maps(
-    prev: &Option<serde_json::Map<String, serde_json::Value>>,
-    v: &serde_json::Value,
-) -> serde_json::Map<String, serde_json::Value> {
-    let mut out = match prev {
-        Some(m) => m.clone(),
-        None => serde_json::Map::new(),
-    };
-    let v_obj = match v.as_object() {
-        Some(o) => o,
-        None => return out,
-    };
-    let copy_map = |key: &str| -> std::collections::HashMap<String, f64> {
-        let mut m = std::collections::HashMap::new();
-        if let Some(obj) = v_obj.get(key).and_then(|x| x.as_object()) {
-            for (k, val) in obj {
-                if let Some(n) = val.as_f64() {
-                    m.insert(k.clone(), n);
-                }
-            }
-        }
-        m
-    };
-    let get_x = copy_map("getX");
-    let get_y = copy_map("getY");
-    let span_x = copy_map("getSpanX");
-    let span_y = copy_map("getSpanY");
-    let mut ids: std::collections::HashSet<&str> = std::collections::HashSet::new();
-    for m in [&get_x, &get_y, &span_x, &span_y] {
-        for k in m.keys() {
-            ids.insert(k.as_str());
-        }
-    }
-    for id in ids {
-        let entry = out.entry(id.to_string()).or_insert_with(|| {
-            serde_json::json!({ "x": 0.0, "y": 0.0, "spanX": 1.0, "spanY": 1.0 })
-        });
-        let Some(obj) = entry.as_object_mut() else {
-            continue;
-        };
-        if let Some(n) = get_x.get(id) {
-            obj.insert("x".into(), num_json(*n));
-        }
-        if let Some(n) = get_y.get(id) {
-            obj.insert("y".into(), num_json(*n));
-        }
-        if let Some(n) = span_x.get(id) {
-            obj.insert("spanX".into(), num_json(*n));
-        }
-        if let Some(n) = span_y.get(id) {
-            obj.insert("spanY".into(), num_json(*n));
-        }
-    }
-    out
-}
-
 fn num_json(n: f64) -> serde_json::Value {
     serde_json::Number::from_f64(n)
         .map(serde_json::Value::Number)
@@ -1046,10 +925,8 @@ export default (hostApi) => {
     }
 
     fn set_entity_number(entity: &str, name: &str, value: f64) {
-        let mut data = crate::state::last_entity_number_data().lock().unwrap();
-        data.entry(entity.to_string())
-            .or_insert_with(HashMap::new)
-            .insert(name.to_string(), value);
+        let mut data = crate::state::entity_map().lock().unwrap();
+        crate::state::ensure_entity(&mut data, entity).number_map.insert(name.to_string(), value);
     }
 
     const FIELD_MODULE: &str = r#"
@@ -1357,8 +1234,8 @@ export default (hostApi) => {
 
     const PROGRESS_CONSTANT_MODULE: &str = r#"
 export default (hostApi) => {
-  hostApi.runtime.setEntity(hostApi.runtime.string.of('node-1'), {
-    numberMap: {}
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of('node-1'),
   });
   hostApi.ui.window('const-win', {}, [
     hostApi.ui.progress('const-bar', {
@@ -1475,17 +1352,20 @@ export default (hostApi) => {
 
     const CONTAINER_LIST_MODULE: &str = r#"
 export default (hostApi) => {
-  hostApi.runtime.setEntity(hostApi.runtime.string.of('item-a'), {
-    numberMap: { 'value': hostApi.runtime.number.of(1) }
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of('item-a'),
+    numberMap: { 'value': hostApi.runtime.number.of(1) },
   });
-  hostApi.runtime.setEntity(hostApi.runtime.string.of('item-b'), {
-    numberMap: { 'value': hostApi.runtime.number.of(2) }
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of('item-b'),
+    numberMap: { 'value': hostApi.runtime.number.of(2) },
   });
-  hostApi.runtime.setContainer('items', {
-    entities: ['item-a', 'item-b']
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of('items'),
+    entityListMap: { members: ['item-a', 'item-b'] },
   });
   hostApi.ui.window('list-panel', { panel: { width: 300, height: 300 } }, [
-    hostApi.ui.entityList('items', { container: 'items' },
+    hostApi.ui.entityList('items', { group: 'items', list: "members" },
       (entity) => [
         hostApi.ui.window(entity.id, { panel: { width: 100, height: 50 } }, [
           hostApi.ui.field(entity.id + ':value', {
@@ -1503,14 +1383,19 @@ export default (hostApi) => {
     fn seed_container_state() {
         set_entity_number("item-a", "value", 1.0);
         set_entity_number("item-b", "value", 2.0);
-        crate::state::set_last_containers(vec![
-            r#"{"id":"items","entities":["item-a","item-b"]}"#.to_string()]);
+        set_members("items", &["item-a", "item-b"]);
+    }
+
+    fn set_members(group: &str, members: &[&str]) {
+        let mut entities = crate::state::entity_map().lock().unwrap();
+        crate::state::ensure_entity(&mut entities, group).entity_list_map.get_or_insert_with(Default::default)
+            .insert("members".into(), members.iter().map(|id| id.to_string()).collect());
     }
 
     fn seed_grid1_container() {
-        // grid-1: a 100x100 container with room at (10,10) and crate at (40,40).
-        crate::state::set_last_containers(vec![
-            r#"{"id":"grid-1","entities":["room","crate"],"sizeX":{"value":100},"sizeY":{"value":100},"getX":{"room":10,"crate":40},"getY":{"room":10,"crate":40}}"#.to_string()]);
+        crate::state::seed_group("grid-1", "members", &[("room", 10.0, 10.0), ("crate", 40.0, 40.0)]);
+        set_entity_number("grid-1", "sizeX", 100.0);
+        set_entity_number("grid-1", "sizeY", 100.0);
     }
 
     #[test]
@@ -1557,10 +1442,7 @@ export default (hostApi) => {
         ui_delta().lock().unwrap().take();
 
         // Add a third entity to the container; re-tick must materialize it.
-        let mut containers = crate::state::last_containers().lock().unwrap().clone();
-        containers.push(
-            r#"{"id":"items","entities":["item-a","item-b","item-c"]}"#.to_string());
-        *crate::state::last_containers().lock().unwrap() = containers;
+        set_members("items", &["item-a", "item-b", "item-c"]);
         set_entity_number("item-c", "value", 3.0);
         tick();
 
@@ -1574,11 +1456,7 @@ export default (hostApi) => {
         assert_eq!(children.len(), 3);
 
         // Remove item-b; re-tick must drop its nodes.
-        let mut containers = crate::state::last_containers().lock().unwrap().clone();
-        *containers.iter_mut().find(|c| c.contains("\"item-c\""))
-            .expect("item-c container row") =
-            r#"{"id":"items","entities":["item-a","item-c"]}"#.to_string();
-        *crate::state::last_containers().lock().unwrap() = containers;
+        set_members("items", &["item-a", "item-c"]);
         tick();
 
         let v: serde_json::Value = serde_json::from_str(&fetch_ui_state_json()).unwrap();
@@ -1610,23 +1488,26 @@ export default (hostApi) => {
 
     const CONTAINER_VIEW_AREA_MODULE: &str = r#"
 export default (hostApi) => {
-  hostApi.runtime.setEntity(hostApi.runtime.string.of('room'), {
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of('room'),
     numberMap: { column: hostApi.runtime.number.of(10), row: hostApi.runtime.number.of(10) },
-    areaMap: { floor: { polygon: [[0, 0], [100, 0], [100, 100], [0, 100]] } }
+    stringMap: { xKey: "column", yKey: "row" },
+    polygons: { floor: [[0, 0], [100, 0], [100, 100], [0, 100]] },
   });
-  hostApi.runtime.setEntity(hostApi.runtime.string.of('crate'), {
-    numberMap: { column: hostApi.runtime.number.of(40), row: hostApi.runtime.number.of(40) }
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of('crate'),
+    numberMap: { column: hostApi.runtime.number.of(40), row: hostApi.runtime.number.of(40) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
-  hostApi.runtime.setContainer(hostApi.runtime.string.of('grid-1'), {
-    entities: ['room', 'crate'],
-    getX: (entity) => entity.number_map.get('column').orElse(hostApi.runtime.number.of(0)),
-    getY: (entity) => entity.number_map.get('row').orElse(hostApi.runtime.number.of(0)),
-    sizeX: { value: hostApi.runtime.number.of(100), outOfBounds: 'clamp' },
-    sizeY: { value: hostApi.runtime.number.of(100), outOfBounds: 'clamp' }
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of('grid-1'),
+    entityListMap: { members: ['room', 'crate'] },
+    numberMap: { sizeX: hostApi.runtime.number.of(100), sizeY: hostApi.runtime.number.of(100) },
+    stringMap: { outOfBoundsX: 'clamp', outOfBoundsY: 'clamp' },
   });
   hostApi.ui.window('world-win', {}, [
-    hostApi.ui.containerView('world', {
-      container: 'grid-1',
+    hostApi.ui.groupView('world', {
+      group: 'grid-1', list: "members",
       panel: { width: 700, height: 500 },
       area: [
         { name: 'floor', color: [1, 0, 0, 1], bodyColor: [0, 1, 0, 1], thickness: 3 }

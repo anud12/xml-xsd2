@@ -12,7 +12,7 @@ public class ContainerIdFfiTests : Steps {
             .AddFileToArchive("module/manifest.json", "manifest.json")
             .ProcessArchive();
 
-        var container = ContainerInterop.GetContainerById("bag-1");
+        var container = EntityInterop.GetEntityById("bag-1")!;
         Assertions.AssertThat(container.Id).IsEqual("bag-1");
     }
 }

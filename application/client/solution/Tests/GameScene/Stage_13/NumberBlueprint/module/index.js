@@ -32,8 +32,7 @@ export default (hostApi) => {
   const gen = eg.oneOf(() => [
     { textMap: { tag: string.of("n") }, numberMap: { code: r, kind: number.of(0) } },
   ]);
-  const fallback = { textMap: { tag: string.of("n") }, numberMap: { code: number.of(-1), kind: number.of(-1) } };
-  const sample = gen.generateValue().orElse(fallback);
+  const sample = gen.generateValue();
   const code = (sample && sample.number_map && typeof sample.number_map.get === "function")
     ? Number(raw(sample.number_map.get("code"))) : -999;
   const kind = (sample && sample.number_map && typeof sample.number_map.get === "function")
@@ -45,17 +44,7 @@ export default (hostApi) => {
 
   hostApi.runtime.setEntity({
     id: string.of("probe"),
-    textMap: {
-      present: string.of(present),
-      inRange: string.of(inRange),
-      twoPieces: string.of(twoPieces),
-      gap: string.of(gap),
-      inP1: string.of(inP1),
-      inP2: string.of(inP2),
-      codeInRange: string.of(codeInRange),
-      kindZero: string.of(kindZero),
-      sampleMember: string.of(sampleMember),
-    },
     numberMap: { rangeVal: number.of(rVal), code: number.of(code) },
+    stringMap: { present: string.of(present), inRange: string.of(inRange), twoPieces: string.of(twoPieces), gap: string.of(gap), inP1: string.of(inP1), inP2: string.of(inP2), codeInRange: string.of(codeInRange), kindZero: string.of(kindZero), sampleMember: string.of(sampleMember) },
   });
 };

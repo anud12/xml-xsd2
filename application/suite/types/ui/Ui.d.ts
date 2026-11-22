@@ -1,9 +1,9 @@
 import {NumberReadOnlyExpression} from "../primitives/numberExpression";
-import {Entity, EntityReadOnlyExpression} from "../dataExpression/Entity";
+import {EntityReadOnlyExpression, EntityId} from "../dataExpression/Entity";
 import {AnimationReadOnlyExpression, GetAnimationFunction} from "../dataExpression/animation/AnimationRegistration";
 import {SpriteResource} from "../texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "../texture/SpriteMap";
-import {ContainerReadOnlyExpression, GridReadOnlyExpression} from "../dataExpression/Contaier";
+import {GridReadOnlyExpression} from "../dataExpression/Sector";
 import {ActionReadOnlyExpression} from "../dataExpression/action/no-input-action";
 import { DraggableOptions, DroppableOptions, DragAndDropChannelFunction } from "./dragdrop";
 
@@ -42,7 +42,7 @@ export type UiFontReference = {
  * `world.sectorGrid`. It carries the node id on `.id`/`.value` and
  * stringifies back to it (`toString`/`toJSON`), so it flows into any
  * id-accepting slot (a parent's `children`, `binding.entity`,
- * `args.container`) or is used where a plain id string is expected.
+ * `args.group`) or is used where a plain id string is expected.
  */
 export type UiNodeExpression = {
   readonly id: string;
@@ -160,11 +160,11 @@ export type UiLayout = {
   reverse?: boolean;
   gap?: { row?: number; column?: number };
   /**
-   * The sim-container this layout's cell grid maps to for click->cursor
-   * resolution (the "board" pattern): a click resolves to a container cell
-   * from the container's sizeX/sizeY, independent of the layout tracks.
+   * The group this layout's cell grid maps to for click->cursor
+   * resolution (the "board" pattern): a click resolves to a group cell
+   * from the group's sizeX/sizeY, independent of the layout tracks.
    */
-  container?: ContainerReadOnlyExpression;
+  group?: EntityId;
 } | "column" | "row";
 
 /**
@@ -290,7 +290,8 @@ export type UiClickContext = {
  * it as the field's text/number value.
  */
 export type UiFieldBinding = {
-  entity: EntityReadOnlyExpression | Entity;
+  /** Identifier of the entity whose field is rendered. */
+  entity: EntityId;
   map: "number" | "text";
   name: string;
   fallback?: string;
@@ -342,7 +343,7 @@ export type UiProgressOptions = UiPanelOptions & {
      */
     max: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression;
     /** Entity to bind. Required. */
-    entity: EntityReadOnlyExpression;
+    entity: EntityId;
     /**
      * Selects the entity's number field to read. A lambda that uses the
      * EntityReadOnlyExpression api to pick the field from the number map and returns a
@@ -360,13 +361,15 @@ export type UiProgressOptions = UiPanelOptions & {
 };
 
 /**
- * Arguments for ui.containerView: a sized view of a container where each
- * entity is placed by its container coordinates (getX/getY/span) and the view
+ * Arguments for ui.groupView: a sized view of one named group list. Each
+ * member is placed using its own position/span keys and the view
  * is re-laid-out every tick so panels track movement. The view's total
  * width/height live in `panel` (host-validated as positive).
  */
-export type UiContainerViewOptions = UiPanelOptions & {
-  container: ContainerReadOnlyExpression;
+export type UiGroupViewOptions = UiPanelOptions & {
+  panel: UiPanelOptions["panel"] & { width: number; height: number };
+  group: EntityId;
+  list: string;
   /**
    * The declared areas to draw as outlines, one entry per area. Each entry
    * selects a named area and the outline style for it. When omitted, the
@@ -374,7 +377,7 @@ export type UiContainerViewOptions = UiPanelOptions & {
    * (red outline / green body / thickness 2).
    */
   area?: {
-    /** The entity's declared area name (a key in the entity's areaMap). */
+    /** The entity's declared area name (a key in the entity's polygons). */
     name: string;
     /** Outline line color as [r, g, b, a] in 0..1. */
     color: [number, number, number, number];
@@ -435,7 +438,8 @@ export type UiSectorGridItem = {
  * scrolls the list's content.
  */
 export type UiEntityListOptions = {
-  container: ContainerReadOnlyExpression;
+  group: EntityId;
+  list: string;
   vertical?: boolean;
 };
 
@@ -457,7 +461,7 @@ export type UiScreenOptions = {
  * defines the children channel they all share: the `children` parameter is
  * either an explicit {@link UiChildren} list (panel/window) or a render
  * lambda that materializes children per item (entityList: a list per entity;
- * containerView/sectorGrid: one per item). Every child-hosting factory in
+ * groupView/sectorGrid: one per item). Every child-hosting factory in
  * {@link UiApi} extends it; all return the registered node's
  * {@link UiNodeExpression} handle (the child-list components return the
  * richer {@link UiParentExpression}).
@@ -487,11 +491,11 @@ export interface UiScreenComponent {
 
 /** A flow list: one child per entity in the container (render returns an array of node ids or handles). Must be nested under a window. */
 export interface UiEntityListComponent
-  extends UiParentComponent<UiEntityListOptions, (entity: Entity) => UiChildren> {}
+  extends UiParentComponent<UiEntityListOptions, (item: { id: string; index: number }) => UiChildren> {}
 
 /** A sized view of a container (a window): one panel per entity placed on its cell, re-resolved each tick. */
-export interface UiContainerViewComponent
-  extends UiParentComponent<UiContainerViewOptions, (entity: Entity) => UiChildRef> {}
+export interface UiGroupViewComponent
+  extends UiParentComponent<UiGroupViewOptions, (item: { id: string; index: number }) => UiChildRef> {}
 
 /** A top-down view of a sector grid (a window): one cell per footprint square (rendered by `render`) + one engine-drawn headless arrow per portal, all positioned by the engine each tick. */
 export interface UiSectorGridComponent
@@ -509,7 +513,7 @@ export interface UiSectorGridComponent
  * Every factory returns the registered node's {@link UiNodeExpression} handle,
  * so a node can be built in any order and handed to a parent's `children`
  * (which also accept raw {@link UiNodeId} strings). The child-hosting
- * factories (panel, window, setScreen, entityList, containerView, sectorGrid)
+ * factories (panel, window, setScreen, entityList, groupView, sectorGrid)
  * all return a {@link UiParentExpression}, whose `addChild` appends a child
  * to the node's children list after the node was created.
  */
@@ -530,7 +534,8 @@ export type UiLegacyPanelOptions = {
     entityId?: string;
     fallback?: string;
     align?: string;
-    containerId?: string;
+    group?: string;
+    list?: string;
     vertical?: boolean;
   };
   /** Legacy anchor point. */
@@ -574,7 +579,7 @@ export type UiApi = {
 
   entityList: UiEntityListComponent;
 
-  containerView: UiContainerViewComponent;s
+  groupView: UiGroupViewComponent;
 
   sectorGrid: UiSectorGridComponent;
 

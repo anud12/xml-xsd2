@@ -10,9 +10,7 @@ export default (hostApi) => {
 
     const entity = hostApi.runtime.setEntity({
       id: string.of("entity_id"),
-      numberMap: {
-        "hp": number.of(5)
-      }
+      numberMap: { "hp": number.of(5) },
     })
 
     const effect = hostApi.runtime.setEffect({

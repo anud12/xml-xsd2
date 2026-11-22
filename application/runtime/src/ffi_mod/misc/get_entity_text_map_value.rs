@@ -12,10 +12,10 @@ pub extern "C" fn get_entity_text_map_value(
     let entity_id = unsafe { CStr::from_ptr(entity_id) }.to_string_lossy().to_string();
     let key = unsafe { CStr::from_ptr(key) }.to_string_lossy().to_string();
 
-    let data = crate::state::last_entity_data().lock().unwrap();
+    let data = crate::state::entity_map().lock().unwrap();
     let value = data
         .get(&entity_id)
-        .and_then(|tm| tm.get(&key))
+        .and_then(|entity| entity.string_map.get(&key))
         .map(|s| s.as_str())
         .unwrap_or("");
 

@@ -13,7 +13,7 @@ export default (hostApi) => {
   const hFill = { width: "tile", height: "stretch" };
   const game = hostApi.runtime.setEntity({
     id: string.of("game"),
-    numberMap: { progress: number.of(5) }
+    numberMap: { progress: number.of(5) },
   });
   const tick = hostApi.runtime.setEffect({
     name: string.of("tick"),

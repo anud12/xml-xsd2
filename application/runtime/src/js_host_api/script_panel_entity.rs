@@ -35,113 +35,48 @@ pub(super) fn host_api_script_create_entity()
     },"#
 }
 
-pub(super) fn host_api_script_set_entity()
-    -> &'static str
-{
+pub(super) fn host_api_script_set_entity() -> &'static str {
     r#"setEntity(arg) {
-        globalThis.__entityData =
-            globalThis.__entityData || {};
-        if (!arg || typeof arg !== 'object') return;
-        var idRaw = arg.id;
-        var id = (idRaw && typeof idRaw === 'object')
-            ? idRaw.value : idRaw;
-        if (typeof id !== 'string' || id === '') return;
-        globalThis.__entityData[id] = arg;
+        var id = arg && globalThis.__entityId(arg.id);
+        if (!id) return;
+        var data = {
+            id: id,
+            numberMap: Object.assign(Object.create(null), arg.numberMap),
+            stringMap: Object.assign(Object.create(null), arg.stringMap),
+            polygons: Object.assign(Object.create(null), arg.polygons)
+        };
+        if (arg.entityListMap) {
+            data.entityListMap = Object.create(null);
+            for (var name of Object.keys(arg.entityListMap)) {
+                data.entityListMap[name] = Array.from(new Set(
+                    arg.entityListMap[name].map(globalThis.__entityId).filter(Boolean)));
+            }
+        }
+        // Normalize scalar expressions, but do not serialize behavior closures.
+        for (var key of Object.keys(data.numberMap)) {
+            var value = Number(data.numberMap[key]);
+            if (Number.isFinite(value)) data.numberMap[key] = value;
+            else delete data.numberMap[key];
+        }
+        for (var key of Object.keys(data.stringMap)) {
+            data.stringMap[key] = String(data.stringMap[key]);
+        }
+        globalThis.__writeEntity(data);
         if (arg.behavior !== undefined) {
             var b = arg.behavior;
             var bVal = typeof b === 'object' ? b : { name: b };
-            globalThis.__behaviors =
-                globalThis.__behaviors || {};
+            globalThis.__behaviors = globalThis.__behaviors || {};
             globalThis.__behaviors[id] = bVal;
             globalThis.__logs = globalThis.__logs || [];
             globalThis.__logs.push('behavior attached: ' + id + ' -> ' + (bVal ? bVal.name : ''));
         }
-        return {
-            id: id,
-            value: id,
-            toString: function() { return id; },
-            toJSON: function() { return id; }
-        };
-    },"#
-}
-
-pub(super) fn host_api_script_set_container()
-    -> &'static str
-{
-    r#"setContainer(arg) {
-        try {
-            if (!arg || typeof arg !== 'object') return;
-            var idRaw = arg.id;
-            var resolvedId = (idRaw && typeof idRaw === 'object')
-                ? idRaw.value : idRaw;
-            globalThis.__containerData =
-                globalThis.__containerData || {};
-            if (typeof resolvedId !== 'string' || resolvedId === '') return;
-            arg.id = resolvedId;
-            globalThis.__containerData[resolvedId] = arg;
-            var data = arg;
-            var out = {id: resolvedId};
-            // Members are stored as the references the module passed (or plain
-            // ids). A reference resolves to its own id at serialization time
-            // via `toJSON`, so nothing here unwraps it.
-            if (data.entities) {
-                out.entities = data.entities.slice();
-            }
-            if (data.textMap) out.textMap = data.textMap;
-            if (data.numberMap) out.numberMap = data.numberMap;
-            if (data.getX) out.getX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getX) : {};
-            if (data.getY) out.getY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getY) : {};
-            if (data.getSpanX) out.getSpanX = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanX) : {};
-            if (data.getSpanY) out.getSpanY = globalThis.evalPositionFn ? globalThis.evalPositionFn(data.getSpanY) : {};
-            if (data.sizeX) out.sizeX = data.sizeX;
-            if (data.sizeY) out.sizeY = data.sizeY;
-            if (data.alignment !== undefined) out.alignment = data.alignment;
-            if (globalThis.__posKey) {
-                if (data.getX) out.xKey = globalThis.__posKey(data.getX, "x");
-                if (data.getY) out.yKey = globalThis.__posKey(data.getY, "y");
-            }
-            var serialized = JSON.stringify(out);
-            globalThis.__registeredContainers =
-                globalThis.__registeredContainers || [];
-            // Upsert: replace any existing entry with the same id, else push.
-            var __found = -1;
-            for (var __i = 0; __i < globalThis.__registeredContainers.length; __i++) {
-                try {
-                    var __p = JSON.parse(globalThis.__registeredContainers[__i]);
-                    if (__p && __p.id === resolvedId) { __found = __i; break; }
-                } catch (e) { /* ignore */ }
-            }
-            if (__found >= 0) {
-                globalThis.__registeredContainers[__found] = serialized;
-            } else {
-                globalThis.__registeredContainers.push(serialized);
-            }
-            // Optional sector attachment: a polyomino footprint on a named
-            // grid. Captured verbatim (plain data) for the Rust sector
-            // layer to normalize, place, and link against neighbours.
-            if (data.sector && typeof data.sector === 'object') {
-                globalThis.__registeredSectors =
-                    globalThis.__registeredSectors || [];
-                var __secFound = -1;
-                for (var __s = 0; __s < globalThis.__registeredSectors.length; __s++) {
-                    try {
-                        var __sp = JSON.parse(globalThis.__registeredSectors[__s]);
-                        if (__sp && __sp.id === resolvedId) { __secFound = __s; break; }
-                    } catch (e) { /* ignore */ }
-                }
-                var __sec = JSON.stringify({ id: resolvedId, sector: data.sector });
-                if (__secFound >= 0) {
-                    globalThis.__registeredSectors[__secFound] = __sec;
-                } else {
-                    globalThis.__registeredSectors.push(__sec);
-                }
-            }
-            return {
-                id: resolvedId,
-                value: resolvedId,
-                toString: function() { return resolvedId; },
-                toJSON: function() { return resolvedId; }
-            };
-        } catch(e) { /* ignore */ }
+        if (arg.sector && typeof arg.sector === 'object') {
+            var sectors = globalThis.__registeredSectors || (globalThis.__registeredSectors = []);
+            var index = sectors.findIndex(function (row) { return JSON.parse(row).id === id; });
+            var row = JSON.stringify({ id: id, sector: arg.sector });
+            if (index < 0) sectors.push(row);
+            else sectors[index] = row;
+        }
+        return globalThis.__entityProxy(id);
     },"#
 }

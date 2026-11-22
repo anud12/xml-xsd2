@@ -3,46 +3,32 @@ export default (hostApi) => {
  const { number, string } = hostApi.runtime;
 
   hostApi.runtime.setEntity({
-    id: "node-1",
-    numberMap: {
-      column: number.of(2),
-      row: number.of(1),
-    },
+    id: hostApi.runtime.string.of("node-1"),
+    numberMap: { column: number.of(2), row: number.of(1) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
   hostApi.runtime.setEntity({
-    id: "node-2",
-    numberMap: {
-      column: number.of(0),
-      row: number.of(0),
-    },
+    id: hostApi.runtime.string.of("node-2"),
+    numberMap: { column: number.of(0), row: number.of(0) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
-  hostApi.runtime.setContainer({
-    id: "grid-1",
-    entities: [
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of("grid-1"),
+    entityListMap: { members: [
       hostApi.runtime.string.of("node-1"),
       hostApi.runtime.string.of("node-2"),
-    ],
-    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
-    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    getSpanX: (entity) => number.of(1),
-    getSpanY: (entity) => number.of(1),
-    sizeX: {
-      value: number.of(10),
-      outOfBounds: "clamp",
-    },
-    sizeY: {
-      value: number.of(5),
-      outOfBounds: "clamp",
-    },
+    ] },
+    numberMap: { sizeX: number.of(10), sizeY: number.of(5) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp" },
   });
 
   hostApi.runtime.setAction({
     name: string.of("relocate-node-1"),
     apply: (ctx) => {
       ctx.teleportTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-1"),
         x: 6,
         y: 3,
@@ -55,7 +41,7 @@ export default (hostApi) => {
     name: string.of("relocate-node-1-out-of-bounds"),
     apply: (ctx) => {
       ctx.teleportTo({
-        containerId: string.of("grid-1"),
+        groupId: string.of("grid-1"),
         entityId: string.of("node-1"),
         x: 15,
         y: 9,

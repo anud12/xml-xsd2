@@ -27,10 +27,7 @@ pub extern "C" fn runtime_reload_archive(path: *const c_char) -> *mut c_char {
     // Snapshot the live game state a reload must carry over: the current
     // entity values (text + number). The elapsed clock and parked action
     // plans are kept in place (this path never calls clear_state).
-    let preserved_text =
-        crate::state::last_entity_data().lock().unwrap().clone();
-    let preserved_num =
-        crate::state::last_entity_number_data().lock().unwrap().clone();
+    let preserved = crate::state::entity_map().lock().unwrap().clone();
 
     // Install the new module before swapping any state markers, so an
     // install failure leaves the previous module and state fully live.
@@ -50,20 +47,7 @@ pub extern "C" fn runtime_reload_archive(path: *const c_char) -> *mut c_char {
 
     // Re-apply the preserved game state on top of the fresh declarations:
     // a value the game already advanced wins over the re-declared initial.
-    let declared_text =
-        crate::state::last_entity_data().lock().unwrap().clone();
-    let declared_num =
-        crate::state::last_entity_number_data().lock().unwrap().clone();
-    let merged_text =
-        crate::state::merge_entity_maps(&preserved_text, &declared_text);
-    let merged_num =
-        crate::state::merge_entity_maps(&preserved_num, &declared_num);
-    // Containers were re-declared (positions re-baked from initial values);
-    // restore the preserved positions so in-flight moves continue.
-    crate::state::rebake_container_positions(
-        &mut *crate::state::last_containers().lock().unwrap(), &merged_num);
-    *crate::state::last_entity_data().lock().unwrap() = merged_text;
-    *crate::state::last_entity_number_data().lock().unwrap() = merged_num;
+    crate::state::preserve_live_entities(&mut crate::state::entity_map().lock().unwrap(), preserved);
 
     crate::state::drop_unresolvable_effects();
 

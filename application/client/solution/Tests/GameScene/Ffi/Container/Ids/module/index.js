@@ -1,8 +1,10 @@
 export default (hostApi) => {
-  hostApi.runtime.setContainer({
-    id: "bag-1",
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of("bag-1"),
+    entityListMap: { members: [] },
   });
-  hostApi.runtime.setContainer({
-    id: "chest-grid-1",
+  hostApi.runtime.setEntity({
+    id: hostApi.runtime.string.of("chest-grid-1"),
+    entityListMap: { members: [] },
   });
 }

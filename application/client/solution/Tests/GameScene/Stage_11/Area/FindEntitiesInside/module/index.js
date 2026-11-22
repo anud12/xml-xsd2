@@ -8,46 +8,40 @@ export default (hostApi) => {
   const room = hostApi.runtime.setEntity({
     id: string.of("room"),
     numberMap: { column: number.of(10), row: number.of(10) },
-    areaMap: {
-      floor: {
-        polygon: [[0, 0], [100, 0], [100, 100], [0, 100]],
-      },
-    },
+    stringMap: { xKey: "column", yKey: "row" },
+    polygons: { floor: [[0, 0], [100, 0], [100, 100], [0, 100]] },
   });
 
   // A "crate" with its own named 20x20 area, world (40,40): fully inside the room.
   const crate = hostApi.runtime.setEntity({
     id: string.of("crate"),
     numberMap: { column: number.of(40), row: number.of(40) },
-    areaMap: {
-      footprint: {
-        polygon: [[0, 0], [20, 0], [20, 20], [0, 20]],
-      },
-    },
+    stringMap: { xKey: "column", yKey: "row" },
+    polygons: { footprint: [[0, 0], [20, 0], [20, 20], [0, 20]] },
   });
 
   // Point members (no area): a point at (30,40) is inside, (500,500) is not.
   const npcIn = hostApi.runtime.setEntity({
     id: string.of("npc-in"),
     numberMap: { column: number.of(30), row: number.of(40) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
   const npcOut = hostApi.runtime.setEntity({
     id: string.of("npc-out"),
     numberMap: { column: number.of(500), row: number.of(500) },
+    stringMap: { xKey: "column", yKey: "row" },
   });
 
-  hostApi.runtime.setContainer({
+  hostApi.runtime.setEntity({
     id: string.of("cave"),
-    entities: [
+    entityListMap: { members: [
       room,
       crate,
       npcIn,
       npcOut,
-    ],
-    getX: (entity) => entity.number_map.get("column").orElse(number.of(0)),
-    getY: (entity) => entity.number_map.get("row").orElse(number.of(0)),
-    sizeX: { value: number.of(10), outOfBounds: "clamp" },
-    sizeY: { value: number.of(5), outOfBounds: "clamp" },
+    ] },
+    numberMap: { sizeX: number.of(10), sizeY: number.of(5) },
+    stringMap: { outOfBoundsX: "clamp", outOfBoundsY: "clamp" },
   });
 
   // The room's declared area contains the crate (overlap) and npc-in (point),
@@ -61,7 +55,7 @@ export default (hostApi) => {
       entity.forEach((e) => {
         let out = [];
         e.getEntitiesInsideArea(hostApi.runtime.string.of("floor")).forEach((member) => {
-          out.push(member.getId());
+          out.push(String(member.id));
         });
         hostApi.runtime.log("___area-inside:" + out.join(",") + "___");
       });

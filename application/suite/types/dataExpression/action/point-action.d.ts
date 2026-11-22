@@ -2,17 +2,17 @@ import { Expression } from "../../Expression";
 import { ConditionReadOnlyExpression } from "../../primitives/conditionExpression";
 import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
 import { StringReadOnlyExpression } from "../../primitives/stringExpression";
-import { ContainerReadOnlyExpression } from "../Contaier";
-import { ActionContext, ContainerPoint } from "./common";
+import { EntityId } from "../Entity";
+import { ActionContext, GroupPoint } from "./common";
 
 /**
  * Target for point actions: container ID and 1D/2D position
  */
 export type PointActionTarget = {
   type: "point";
-  /** The container the point is in (a {@link ContainerReadOnlyExpression} reference). */
-  containerId: ContainerReadOnlyExpression;
-  position: ContainerPoint;
+  /** The container the point is in (a {@link EntityId} reference). */
+  groupId: EntityId;
+  position: GroupPoint;
 };
 
 /**
