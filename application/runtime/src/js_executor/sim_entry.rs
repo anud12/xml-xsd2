@@ -143,6 +143,9 @@ globalThis.hostApi=hostApi;
 if (globalThis.__stringGeneratorFactory) {
   hostApi.runtime.stringGenerator = globalThis.__stringGeneratorFactory.create();
 }
+if (globalThis.__entityGeneratorFactory) {
+  hostApi.runtime.entityGenerator = globalThis.__entityGeneratorFactory.create();
+}
 // Wire the live .ui node factories from the persistent __uiHost layer so the
 // module's hostApi.ui.panel/field/containerView calls register real nodes.
 (function(){

@@ -1,0 +1,75 @@
+export default (hostApi) => {
+  const { string, number, stringGenerator: sg, entityGenerator: eg } = hostApi.runtime;
+
+  // Read a raw value out of a runtime Maybe (an entity-proxy field).
+  const raw = (maybe) => {
+    let v = null;
+    if (maybe && typeof maybe.ifPresent === "function") {
+      maybe.ifPresent((w) => { v = (w && w._raw !== undefined) ? w._raw : (w ? w.value : null); });
+    }
+    return v;
+  };
+
+  // A generated "name" grammar: two alternatives.
+  const names = sg.oneOf([string.of("alpha"), string.of("beta")]);
+
+  // Blueprint A: generated name, fixed hp. Blueprint B: fixed name, fixed hp.
+  // Blueprints carry no id; generateValue() assigns one at instantiation.
+  const a = {
+    textMap: { name: names.generateValue().orElse(string.of("none")) },
+    numberMap: { hp: number.of(10) },
+  };
+  const b = {
+    textMap: { name: string.of("static") },
+    numberMap: { hp: number.of(20) },
+  };
+
+  // L(gen) = { alpha/10, beta/10, static/20 }.
+  const gen = eg.oneOf([a, b]);
+
+  // generateValue() instantiates an entity and returns a read-only expression.
+  let present = "0";
+  gen.generateValue().isPresent().ifTrue(() => { present = "1"; return string.of("1"); });
+  let emptyAbsent = "0";
+  eg.oneOf([]).generateValue().isEmpty().ifTrue(() => { emptyAbsent = "1"; return string.of("1"); });
+
+  // A concrete sample: instantiated as a new entity, returned as a proxy.
+  const fallback = { textMap: { name: string.of("none") }, numberMap: { hp: number.of(-1) } };
+  const sample = gen.generateValue().orElse(fallback);
+  const sampleId = (sample && sample.__id) ? String(sample.__id) : "none";
+  const name = (sample && sample.text_map && typeof sample.text_map.get === "function")
+    ? (raw(sample.text_map.get("name")) || "none") : "none";
+  const hpVal = (sample && sample.number_map && typeof sample.number_map.get === "function")
+    ? raw(sample.number_map.get("hp")) : null;
+  const hp = (hpVal === null) ? -1 : Number(hpVal);
+
+  // The generated entity (read back through its proxy) is a language member.
+  let sampleIsMember = "0";
+  gen.isGeneratedBy(sample).ifTrue(() => { sampleIsMember = "1"; return string.of("1"); });
+
+  // Exact-field membership probes over the language (name + hp pairs).
+  const memberProbe = (n, hp) => {
+    let v = "0";
+    gen.isGeneratedBy({ textMap: { name: string.of(n) }, numberMap: { hp: number.of(hp) } })
+      .ifTrue(() => { v = "1"; return string.of("1"); });
+    return v;
+  };
+
+  hostApi.runtime.setEntity({
+    id: string.of("probe"),
+    textMap: {
+      present: string.of(present),
+      emptyAbsent: string.of(emptyAbsent),
+      sampleIsMember: string.of(sampleIsMember),
+      sampleId: string.of(sampleId),
+      genName: string.of(String(name)),
+      alpha10: string.of(memberProbe("alpha", 10)),
+      beta10: string.of(memberProbe("beta", 10)),
+      static10: string.of(memberProbe("static", 10)),
+      static20: string.of(memberProbe("static", 20)),
+      alpha20: string.of(memberProbe("alpha", 20)),
+      static99: string.of(memberProbe("static", 99)),
+    },
+    numberMap: { genHp: number.of(hp) },
+  });
+};

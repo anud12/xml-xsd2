@@ -1,0 +1,6 @@
+{
+  "id": "entity-generator-test",
+  "version": "1.0.0",
+  "name": "Entity Generator Test Module",
+  "entry": "index.js"
+}

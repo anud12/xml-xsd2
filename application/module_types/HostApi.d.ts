@@ -2,6 +2,7 @@ import {ConditionReadOnlyExpressionApi} from "./primitives/conditionExpression";
 import {NumberReadOnlyExpressionApi} from "./primitives/numberExpression";
 import {StringReadOnlyExpression, StringReadOnlyExpressionApi} from "./primitives/stringExpression";
 import {StringGeneratorApi} from "./primitives/stringGenerator";
+import {EntityGeneratorApi} from "./primitives/entityGenerator";
 import {MaybeReadOnlyExpressionApi} from "./primitives/maybeExpression";
 import {TemporalExpressionApi} from "./primitives/temporalExpression";
 import {SetEffectFunction, EffectReadOnlyExpression} from "./dataExpression/Effect";
@@ -41,6 +42,7 @@ export type HostApi = {
     number: NumberReadOnlyExpressionApi,
     string: StringReadOnlyExpressionApi,
     stringGenerator: StringGeneratorApi,
+    entityGenerator: EntityGeneratorApi,
     maybe: MaybeReadOnlyExpressionApi,
     temporal: TemporalExpressionApi,
 

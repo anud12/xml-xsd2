@@ -21,6 +21,9 @@ fn get_host_api_script() -> String {
         // Register the stringGenerator factory (globalThis.__stringGeneratorFactory)
         // so extract_invoke can install runtime.stringGenerator.
         script_generator::host_api_script_generator(),
+        // Register the entityGenerator factory (globalThis.__entityGeneratorFactory)
+        // so extract_invoke can install runtime.entityGenerator.
+        script_generator::host_api_script_entity_generator(),
         script_emit::host_api_script_part1(),
         script_emit::host_api_script_emit(),
         script_rest::host_api_script_rest().as_str(),

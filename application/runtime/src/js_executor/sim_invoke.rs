@@ -70,5 +70,8 @@ globalThis.hostApi=hostApi;
 if (globalThis.__stringGeneratorFactory) {
   hostApi.runtime.stringGenerator = globalThis.__stringGeneratorFactory.create();
 }
+if (globalThis.__entityGeneratorFactory) {
+  hostApi.runtime.entityGenerator = globalThis.__entityGeneratorFactory.create();
+}
 "#
 }

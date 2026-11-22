@@ -5,3 +5,10 @@
 pub fn host_api_script_generator() -> &'static str {
     include_str!("stringGenerator.js")
 }
+
+/// The entityGenerator factory as a UMD script. When eval'd by the runtime it
+/// registers `globalThis.__entityGeneratorFactory`, which the hostApi builders
+/// use to install `runtime.entityGenerator`.
+pub fn host_api_script_entity_generator() -> &'static str {
+    include_str!("entityGenerator.js")
+}
