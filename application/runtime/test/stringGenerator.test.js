@@ -8,6 +8,20 @@ const assert = require('node:assert');
 const sgFactory = require('../src/js_host_api/stringGenerator.js');
 const sg = sgFactory.create();
 
+// The generator draws concrete members from the host's seeded LXM stream
+// (globalThis.__lxmNext), which the embedded runtime injects. In plain Node it
+// is not present, so install a deterministic xorshift32 stream to make
+// generateValue() reproducible and testable.
+let _lxmState = 0x12345678 >>> 0;
+globalThis.__lxmNext = () => {
+  let x = _lxmState;
+  x ^= (x << 13) >>> 0;
+  x ^= x >>> 17;
+  x ^= (x << 5) >>> 0;
+  _lxmState = x >>> 0;
+  return _lxmState / 4294967296;
+};
+
 let passed = 0;
 let failed = 0;
 function test(name, fn) {
@@ -22,10 +36,13 @@ function test(name, fn) {
   }
 }
 
+// oneOf takes a list-maker lambda () => Array<element>; concat takes a plain
+// array.
+
 // --- oneOf: union language + full-match membership ---------------------------
 
 test('oneOf builds a union language; isGeneratedBy is full-match membership', () => {
-  const g = sg.oneOf(['Al', 'Bo', 'Cy']);
+  const g = sg.oneOf(() => ['Al', 'Bo', 'Cy']);
   assert.strictEqual(g.isGeneratedBy('Al').value, true);
   assert.strictEqual(g.isGeneratedBy('Bo').value, true);
   assert.strictEqual(g.isGeneratedBy('Cy').value, true);
@@ -35,27 +52,27 @@ test('oneOf builds a union language; isGeneratedBy is full-match membership', ()
 });
 
 test('oneOf dedupes repeated elements', () => {
-  const g = sg.oneOf(['Al', 'Al', 'Bo']);
-  assert.deepStrictEqual(g.__lang, ['Al', 'Bo']);
+  const g = sg.oneOf(() => ['Al', 'Al', 'Bo']);
+  assert.deepStrictEqual(g.language(), ['Al', 'Bo']);
 });
 
 test('oneOf can union a literal with a generator grammar', () => {
-  const g = sg.oneOf(['Zed', sg.oneOf(['Al', 'Bo']).generateValue().orElse('')]);
-  assert.deepStrictEqual(g.__lang, ['Zed', 'Al', 'Bo']);
+  const g = sg.oneOf(() => ['Zed', sg.oneOf(() => ['Al', 'Bo']).generateValue().orElse('')]);
+  assert.deepStrictEqual(g.language(), ['Zed', 'Al', 'Bo']);
 });
 
 // --- concat: ordered product -------------------------------------------------
 
 test('concat of literal strings yields their concatenation', () => {
   const g = sg.concat(['foo', 'bar']);
-  assert.deepStrictEqual(g.__lang, ['foobar']);
+  assert.deepStrictEqual(g.language(), ['foobar']);
   assert.strictEqual(g.isGeneratedBy('foobar').value, true);
   assert.strictEqual(g.isGeneratedBy('foo').value, false);
 });
 
 test('concat of generator grammars composes the full product (name example)', () => {
-  const first = sg.oneOf(['Al', 'Bo']);
-  const last = sg.oneOf(['Smith', 'Jones']);
+  const first = sg.oneOf(() => ['Al', 'Bo']);
+  const last = sg.oneOf(() => ['Smith', 'Jones']);
   const name = sg.concat([
     first.generateValue().orElse(''),
     ' ',
@@ -71,11 +88,11 @@ test('concat of generator grammars composes the full product (name example)', ()
 });
 
 test('deeply nested generators compose transitively', () => {
-  const a = sg.oneOf(['x', 'y']);
+  const a = sg.oneOf(() => ['x', 'y']);
   const b = sg.concat([
     a.generateValue().orElse(''),
     '-',
-    sg.oneOf(['1', '2']).generateValue().orElse(''),
+    sg.oneOf(() => ['1', '2']).generateValue().orElse(''),
   ]);
   const c = sg.concat([b.generateValue().orElse(''), '!']);
   assert.strictEqual(c.isGeneratedBy('x-1!').value, true);
@@ -87,7 +104,7 @@ test('deeply nested generators compose transitively', () => {
 // --- generateValue: the generator -> Maybe<StringExpression> conversion ------
 
 test('generateValue is present for a non-empty language; grammar carries the language', () => {
-  const g = sg.oneOf(['Al', 'Bo', 'Cy']);
+  const g = sg.oneOf(() => ['Al', 'Bo', 'Cy']);
   const m = g.generateValue();
   assert.strictEqual(m.isPresent().value, true);
   assert.strictEqual(m.isEmpty().value, false);
@@ -95,11 +112,11 @@ test('generateValue is present for a non-empty language; grammar carries the lan
   assert.notStrictEqual(grammar, 'FALLBACK');
   assert.deepStrictEqual(grammar.__lang, ['Al', 'Bo', 'Cy']);
   // the representative value is a valid member
-  assert.ok(g.__lang.indexOf(String(grammar)) !== -1);
+  assert.ok(g.language().indexOf(String(grammar)) !== -1);
 });
 
 test('oneOf([]) is an empty language: generateValue absent, isGeneratedBy false', () => {
-  const g = sg.oneOf([]);
+  const g = sg.oneOf(() => []);
   const m = g.generateValue();
   assert.strictEqual(m.isPresent().value, false);
   assert.strictEqual(m.isEmpty().value, true);
@@ -108,24 +125,24 @@ test('oneOf([]) is an empty language: generateValue absent, isGeneratedBy false'
 });
 
 test('chaining an empty generator: the caller chooses the fallback', () => {
-  const empty = sg.oneOf([]);
+  const empty = sg.oneOf(() => []);
   const spliced = empty.generateValue().orElse('X');
-  const g = sg.oneOf([spliced]);
-  assert.deepStrictEqual(g.__lang, ['X']);
+  const g = sg.oneOf(() => [spliced]);
+  assert.deepStrictEqual(g.language(), ['X']);
   assert.strictEqual(g.isGeneratedBy('X').value, true);
 });
 
 // --- returned Maybe / Condition shapes --------------------------------------
 
 test('isGeneratedBy returns a ConditionExpression with and/or/negate/ifTrue/ifFalse', () => {
-  const g = sg.oneOf(['Al']);
+  const g = sg.oneOf(() => ['Al']);
   const c = g.isGeneratedBy('Al');
   assert.strictEqual(c.value, true);
   let hit = 0;
   c.ifTrue(() => hit++);
   assert.strictEqual(hit, 1);
   assert.strictEqual(c.negate().value, false);
-  const other = sg.oneOf(['Al']).isGeneratedBy('Al');
+  const other = sg.oneOf(() => ['Al']).isGeneratedBy('Al');
   assert.strictEqual(c.and(other).value, true);
   assert.strictEqual(c.and(g.isGeneratedBy('Nope')).value, false);
   assert.strictEqual(c.or(g.isGeneratedBy('Nope')).value, true);
@@ -135,20 +152,20 @@ test('isGeneratedBy returns a ConditionExpression with and/or/negate/ifTrue/ifFa
 });
 
 test('generateValue Maybe supports map/flatMap/ifPresent', () => {
-  const g = sg.oneOf(['Al']);
+  const g = sg.oneOf(() => ['Al']);
   const m = g.generateValue();
   assert.strictEqual(m.map((grammar) => grammar.__lang.join(',')).value, 'Al');
   let ran = false;
   m.ifPresent(() => { ran = true; });
   assert.strictEqual(ran, true);
-  const n = sg.oneOf([]).generateValue();
+  const n = sg.oneOf(() => []).generateValue();
   let ranNone = false;
   n.ifPresent(() => { ranNone = true; });
   assert.strictEqual(ranNone, false);
 });
 
 test('isGeneratedBy accepts a string-expression object (with .value)', () => {
-  const g = sg.oneOf(['Al']);
+  const g = sg.oneOf(() => ['Al']);
   assert.strictEqual(g.isGeneratedBy({ value: 'Al' }).value, true);
   assert.strictEqual(g.isGeneratedBy({ value: 'Nope' }).value, false);
 });

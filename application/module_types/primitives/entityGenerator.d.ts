@@ -5,6 +5,14 @@ import {ConditionReadOnlyExpression} from "./conditionExpression";
 import {EntityReadOnlyExpression} from "../dataExpression/Entity";
 
 /**
+ * A list-maker lambda: returns the set of blueprints (or sub-generators) the
+ * generator is built over. Evaluated at generateValue()/isGeneratedBy() time so
+ * the list can be produced dynamically (it can reach the live hostApi through
+ * its enclosing scope).
+ */
+export type EntityBlueprintListMaker = () => Array<EntityBlueprintSpec | EntityGenerator>;
+
+/**
  * A blueprint spec: a template for an entity's field maps — it carries no id
  * (the caller supplies one at registration). Any `textMap` field may be a
  * concrete value or a {@link StringGenerator}'s generateValue() grammar, so one
@@ -24,8 +32,13 @@ export type EntityBlueprintSpec = {
  * EntityGenerator.js.
  */
 export type EntityGeneratorApi = {
-  /** Language = union of the blueprints' (or sub-generators') languages. */
-  oneOf: (blueprints: Array<EntityBlueprintSpec | EntityGenerator>) => EntityGenerator;
+  /**
+   * Language = union of the blueprints' (or sub-generators') languages. Takes a
+   * list-maker lambda `() => Array<blueprintSpec | subGenerator>`, evaluated at
+   * generateValue()/isGeneratedBy() time so the blueprint set (and any generated
+   * field values) can be produced dynamically.
+   */
+  oneOf: (makeList: EntityBlueprintListMaker) => EntityGenerator;
 
   /** Marker for HostApi surfaces */
   type: EntityGeneratorType,

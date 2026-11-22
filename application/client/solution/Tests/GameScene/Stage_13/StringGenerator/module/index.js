@@ -4,8 +4,8 @@ export default (hostApi) => {
 
   // A "person name" grammar: <first> + " " + <last>. Each part draws from two
   // alternatives, so the composed language is their ordered product.
-  const first = sg.oneOf([string.of("Al"), string.of("Bo")]);
-  const last = sg.oneOf([string.of("Smith"), string.of("Jones")]);
+  const first = sg.oneOf(() => [string.of("Al"), string.of("Bo")]);
+  const last = sg.oneOf(() => [string.of("Smith"), string.of("Jones")]);
   const name = sg.concat([
     first.generateValue().orElse(string.of("")),
     string.of(" "),
@@ -30,7 +30,7 @@ export default (hostApi) => {
     return string.of("1");
   });
   let emptyAbsent = "0";
-  sg.oneOf([]).generateValue().isEmpty().ifTrue(() => {
+  sg.oneOf(() => []).generateValue().isEmpty().ifTrue(() => {
     emptyAbsent = "1";
     return string.of("1");
   });
@@ -56,11 +56,11 @@ export default (hostApi) => {
   const genName = name.generateValue().orElse(string.of("FALLBACK"));
   const genFirst = first.generateValue().orElse(string.of("NOPE"));
   const genConcatGen = sg.concat([
-    sg.oneOf([string.of("x"), string.of("y")]).generateValue().orElse(string.of("")),
-    sg.oneOf([string.of("1"), string.of("2")]).generateValue().orElse(string.of("")),
+    sg.oneOf(() => [string.of("x"), string.of("y")]).generateValue().orElse(string.of("")),
+    sg.oneOf(() => [string.of("1"), string.of("2")]).generateValue().orElse(string.of("")),
   ]);
   const genConcat = genConcatGen.generateValue().orElse(string.of("NOPE"));
-  const genFallback = sg.oneOf([]).generateValue().orElse(string.of("FALLBACK")); // "FALLBACK"
+  const genFallback = sg.oneOf(() => []).generateValue().orElse(string.of("FALLBACK")); // "FALLBACK"
 
   hostApi.runtime.setEntity({
     id: string.of("sg"),

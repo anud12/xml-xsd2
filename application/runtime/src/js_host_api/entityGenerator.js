@@ -7,8 +7,14 @@
  * many concrete entities — its *language* L(blueprint) = the cartesian
  * product of its generated fields' languages (numberMap fields are fixed).
  *
+ * A generator is built with oneOf(makeList), where makeList is a lambda
+ * () => Array<blueprintSpec | subGenerator>. The lambda is evaluated at
+ * generateValue()/isGeneratedBy() time, so the blueprint set — and any generated
+ * field values — can be produced dynamically (it can reach the live hostApi
+ * through its enclosing scope).
+ *
  * A generator exposes:
- *   - oneOf(blueprints) : L = union of the blueprints' (or sub-generators')
+ *   - oneOf(makeList)   : L = union of the blueprints' (or sub-generators')
  *       languages.
  *   - generateValue()   -> MaybeExpression<EntityReadOnlyExpression>
  *       Instantiates a new entity from a random concrete blueprint (drawn from
@@ -118,9 +124,10 @@
   // Resolve a string-ish field (plain string | StringExpression | a language-
   // bearing grammar | a Maybe-wrapped value) to its language: the array of
   // concrete strings it can denote.
-  function fieldLanguage(e) {
+   function fieldLanguage(e) {
     if (e && typeof e === 'object') {
       if (e.__isMaybe) return fieldLanguage(e.value);
+      if (e.__generator) return e.language();
       if (Array.isArray(e.__lang)) return e.__lang.slice();
       if (typeof e.value === 'string') return [e.value];
     }
@@ -208,12 +215,13 @@
     return out;
   }
 
-  // The current host's runtime (resolved lazily so setEntity is called in the
-  // calling context).
-  function hostRt() {
-    if (globalThis.hostApi && globalThis.hostApi.runtime) return globalThis.hostApi.runtime;
-    if (globalThis.host) return globalThis.host;
-    return null;
+  // The current host API (resolved lazily so setEntity runs in the calling
+  // context). Always exposes `runtime`; falls back to a shim when only the raw
+  // `host` surface is present.
+  function hostApiObj() {
+    if (globalThis.hostApi) return globalThis.hostApi;
+    if (globalThis.host) return { runtime: globalThis.host };
+    return {};
   }
 
   // A number value wrapper: comparison/transform surface over a concrete
@@ -312,7 +320,7 @@
     var numberMap = {};
     var n = inst.numberMap || {};
     for (var j = 0; j < ownKeys(n).length; j++) { var m = ownKeys(n)[j]; numberMap[m] = n[m]; }
-    var rt = hostRt();
+    var rt = hostApiObj().runtime;
     if (rt && typeof rt.setEntity === 'function') rt.setEntity({ id: id, textMap: textMap, numberMap: numberMap });
     return makeEntityProxy(id, textMap, numberMap);
   }
@@ -371,21 +379,26 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Generator.
+  // Generator (lazy).
   // ---------------------------------------------------------------------------
-  function makeGenerator(instances) {
-    var insts = dedupeInsts(instances);
+  // The blueprint list (and hence the language) is produced by computeInsts and
+  // is re-evaluated at every generateValue() / isGeneratedBy() call so it can
+  // produce values dynamically. The result is deduped on demand.
+  function makeLazyGenerator(computeInsts) {
     return {
       __entityGenerator: true,
-      __insts: insts,
+      insts: function () {
+        return dedupeInsts(computeInsts());
+      },
       generateValue: function () {
+        var insts = dedupeInsts(computeInsts());
         if (insts.length === 0) return maybeNone();
         var idx = Math.floor(globalThis.__lxmNext() * insts.length);
         if (idx >= insts.length) idx = insts.length - 1;
-        var proxy = instantiateEntity(insts[idx]);
-        return proxy ? maybeOf(proxy) : maybeNone();
+        return maybeOf(instantiateEntity(insts[idx]));
       },
       isGeneratedBy: function (candidate) {
+        var insts = dedupeInsts(computeInsts());
         var resolved = resolveCandidate(candidate);
         var ok = false;
         for (var i = 0; i < insts.length; i++) {
@@ -396,16 +409,21 @@
     };
   }
 
-  // L(oneOf(arr)) = union of the elements' languages.
-  function oneOf(blueprints) {
-    var acc = [];
-    var arr = blueprints || [];
-    for (var i = 0; i < arr.length; i++) {
-      var el = arr[i];
-      var insts = (el && el.__entityGenerator) ? el.__insts : blueprintInstantiations(el);
-      for (var j = 0; j < insts.length; j++) acc.push(insts[j]);
-    }
-    return makeGenerator(acc);
+  // L(oneOf(makeList)) = union of the blueprints' (or sub-generators') languages.
+  // makeList is a lambda () => Array<blueprintSpec | subGenerator>, evaluated at
+  // generateValue()/isGeneratedBy() time for dynamic generation (it can reach the
+  // live hostApi through its enclosing scope).
+  function oneOf(makeList) {
+    return makeLazyGenerator(function () {
+      var acc = [];
+      var arr = (typeof makeList === 'function') ? (makeList() || []) : (makeList || []);
+      for (var i = 0; i < arr.length; i++) {
+        var el = arr[i];
+        var insts = (el && el.__entityGenerator) ? el.insts() : blueprintInstantiations(el);
+        for (var j = 0; j < insts.length; j++) acc.push(insts[j]);
+      }
+      return acc;
+    });
   }
 
   return {

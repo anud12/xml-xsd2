@@ -10,28 +10,28 @@ export default (hostApi) => {
     return v;
   };
 
-  // A generated "name" grammar: two alternatives.
-  const names = sg.oneOf([string.of("alpha"), string.of("beta")]);
-
-  // Blueprint A: generated name, fixed hp. Blueprint B: fixed name, fixed hp.
-  // Blueprints carry no id; generateValue() assigns one at instantiation.
-  const a = {
-    textMap: { name: names.generateValue().orElse(string.of("none")) },
-    numberMap: { hp: number.of(10) },
-  };
-  const b = {
-    textMap: { name: string.of("static") },
-    numberMap: { hp: number.of(20) },
-  };
-
-  // L(gen) = { alpha/10, beta/10, static/20 }.
-  const gen = eg.oneOf([a, b]);
+  // L(gen) = { alpha/10, beta/10, static/20 }. The blueprint set is produced by
+  // the list-maker lambda (evaluated at generateValue()/isGeneratedBy() time); a
+  // generated "name" grammar (two alternatives) feeds blueprint A. Blueprints
+  // carry no id; generateValue() assigns one at instantiation.
+  const gen = eg.oneOf(() => {
+    const names = sg.oneOf(() => [string.of("alpha"), string.of("beta")]);
+    const a = {
+      textMap: { name: names.generateValue().orElse(string.of("none")) },
+      numberMap: { hp: number.of(10) },
+    };
+    const b = {
+      textMap: { name: string.of("static") },
+      numberMap: { hp: number.of(20) },
+    };
+    return [a, b];
+  });
 
   // generateValue() instantiates an entity and returns a read-only expression.
   let present = "0";
   gen.generateValue().isPresent().ifTrue(() => { present = "1"; return string.of("1"); });
   let emptyAbsent = "0";
-  eg.oneOf([]).generateValue().isEmpty().ifTrue(() => { emptyAbsent = "1"; return string.of("1"); });
+  eg.oneOf(() => []).generateValue().isEmpty().ifTrue(() => { emptyAbsent = "1"; return string.of("1"); });
 
   // A concrete sample: instantiated as a new entity, returned as a proxy.
   const fallback = { textMap: { name: string.of("none") }, numberMap: { hp: number.of(-1) } };

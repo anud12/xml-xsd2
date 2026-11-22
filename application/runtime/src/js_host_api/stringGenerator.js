@@ -5,8 +5,13 @@
  *
  * A generator denotes a *language* L(gen): the set of concrete strings it can
  * produce. It is built with:
- *   - oneOf(elements)  : L = union of the elements' languages
+ *   - oneOf(makeList)  : L = union of the elements' languages
  *   - concat(elements) : L = ordered concatenation (product) of the elements'
+ *
+ * oneOf's `makeList` is a lambda () => Array<element>, evaluated at
+ * generateValue()/isGeneratedBy() time, so the element set (and any generated
+ * values) can be produced dynamically (it can reach the live hostApi through its
+ * enclosing scope). concat takes a plain array (its sequence is fixed).
  *
  * A generator exposes exactly two operations:
  *   - generateValue()  -> MaybeExpression<StringExpression>
@@ -18,10 +23,12 @@
  *       Full-match membership: true iff `candidate` (evaluated to a concrete
  *       string) is a member of L. NOT a substring test.
  *
- * Chaining: because oneOf/concat take Array<StringExpression>, a sub-generator is
- * spliced in by converting it (sub.generateValue().orElse(fallback)) and passing
- * the resulting StringExpression into the outer array. The language-bearing
- * grammar carries the full set of strings, so composition keeps the full language.
+ * Chaining: because oneOf/concat take a list of StringExpression (inside the
+ * makeList lambda), a sub-generator is spliced in by converting it
+ * (sub.generateValue().orElse(fallback)) and passing the resulting
+ * StringExpression into the outer list. The language-bearing grammar carries the
+ * full set of strings, so composition keeps the full language. A sub-generator
+ * may also be passed directly as an element.
  *
  * This file is self-contained (no dependencies) and UMD: in Node it sets
  * module.exports; when eval'd by the embedded runtime it sets
@@ -103,10 +110,10 @@
   //   - a language-bearing grammar (__langExpr)  -> its full language
   //   - a generator (__generator)                 -> its full language
   //   - (defensively) a Maybe-wrapped value -> recurse into .value
-  function languageOfElement(e) {
+   function languageOfElement(e) {
     if (e && typeof e === 'object') {
       if (e.__langExpr) return e.__lang.slice();
-      if (e.__generator) return e.__lang.slice();
+      if (e.__generator) return e.language();
       if (e.__isMaybe) return languageOfElement(e.value);
     }
     if (typeof e === 'string') return [e];
@@ -146,16 +153,22 @@
     };
   }
 
-  function makeGenerator(language) {
-    var lang = dedupe(language);
+  // A lazy generator: the language is produced by computeLanguage and is
+  // re-evaluated at every generateValue() / isGeneratedBy() call so it can
+  // produce values dynamically.
+  function makeLazyGenerator(computeLanguage) {
     return {
       __generator: true,
-      __lang: lang,
+      language: function () {
+        return dedupe(computeLanguage());
+      },
       generateValue: function () {
+        var lang = dedupe(computeLanguage());
         if (lang.length === 0) return maybeNone();
         return maybeOf(makeLangExpr(lang));
       },
       isGeneratedBy: function (candidate) {
+        var lang = dedupe(computeLanguage());
         var s;
         if (typeof candidate === 'string') {
           s = candidate;
@@ -169,34 +182,43 @@
     };
   }
 
-  // L(oneOf(arr)) = union of the elements' languages.
-  function oneOf(oneOfArray) {
-    var acc = [];
-    var arr = oneOfArray || [];
-    for (var i = 0; i < arr.length; i++) {
-      var l = languageOfElement(arr[i]);
-      for (var j = 0; j < l.length; j++) acc.push(l[j]);
-    }
-    return makeGenerator(acc);
+  // L(oneOf(makeList)) = union of the elements' languages. makeList is a lambda
+  // () => Array<element>, evaluated at generateValue()/isGeneratedBy() time for
+  // dynamic generation (it can reach the live hostApi through its scope).
+  function oneOf(makeList) {
+    return makeLazyGenerator(function () {
+      var acc = [];
+      var arr = (typeof makeList === 'function') ? (makeList() || []) : (makeList || []);
+      for (var i = 0; i < arr.length; i++) {
+        var l = languageOfElement(arr[i]);
+        for (var j = 0; j < l.length; j++) acc.push(l[j]);
+      }
+      return acc;
+    });
   }
 
-  // L(concat(arr)) = ordered product of the elements' languages.
+  // L(concat(elements)) = ordered product of the elements' languages. Takes a
+  // plain array of elements (their languages are resolved at use time). Unlike
+  // oneOf it does not take a hostApi list-maker — the sequence is fixed, not a
+  // host-driven choice.
   function concat(elements) {
     var arr = elements || [];
-    var langs = [];
-    for (var i = 0; i < arr.length; i++) langs.push(languageOfElement(arr[i]));
+    return makeLazyGenerator(function () {
+      var langs = [];
+      for (var i = 0; i < arr.length; i++) langs.push(languageOfElement(arr[i]));
 
-    var result = [''];
-    for (var k = 0; k < langs.length; k++) {
-      var next = [];
-      for (var a = 0; a < result.length; a++) {
-        for (var b = 0; b < langs[k].length; b++) {
-          next.push(result[a] + langs[k][b]);
+      var result = [''];
+      for (var k = 0; k < langs.length; k++) {
+        var next = [];
+        for (var a = 0; a < result.length; a++) {
+          for (var b = 0; b < langs[k].length; b++) {
+            next.push(result[a] + langs[k][b]);
+          }
         }
+        result = next;
       }
-      result = next;
-    }
-    return makeGenerator(result);
+      return result;
+    });
   }
 
   return {
