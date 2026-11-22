@@ -42,14 +42,12 @@ public partial class TestClass : Steps {
             // global position — a child's global position is not reliably
             // settled immediately after scene attach.
             var at = parent.GlobalPosition + new Vector2(30, 30);
-            SimulateMouse(at);
-            await runner.SimulateMouseMoveAbsolute(at, 0);
+            HoverAt(at);
             await runner.SimulateFrames(1);
 
             AssertRuntimeOutputContains("___hover prop enter fired line___");
 
-            SimulateMouse(new Vector2(0, 0));
-            await runner.SimulateMouseMoveAbsolute(new Vector2(0, 0), 0);
+            HoverAt(new Vector2(0, 0));
             await runner.SimulateFrames(1);
 
             AssertRuntimeOutputContains("___hover prop exit fired line___");
@@ -88,15 +86,13 @@ public partial class TestClass : Steps {
             AssertPanelThat(child).IsNonNull();
 
             var at = child.GlobalPosition + new Vector2(1, 1);
-            SimulateMouse(at);
-            await runner.SimulateMouseMoveAbsolute(at, 0);
+            HoverAt(at);
             await runner.SimulateFrames(1);
 
             AssertRuntimeOutputContains("___child hover enter fired line___");
             AssertRuntimeOutputContainsNot("___parent hover enter fired line___");
 
-            SimulateMouse(new Vector2(0, 0));
-            await runner.SimulateMouseMoveAbsolute(new Vector2(0, 0), 0);
+            HoverAt(new Vector2(0, 0));
             await runner.SimulateFrames(1);
 
             AssertRuntimeOutputContains("___child hover exit fired line___");
@@ -151,16 +147,14 @@ public partial class TestClass : Steps {
             // `inner` has no hover capability, so the parent must become the
             // hover owner and swap its background (bubble-up).
             var at = parent.GlobalPosition + new Vector2(30, 30);
-            SimulateMouse(at);
-            await runner.SimulateMouseMoveAbsolute(at, 0);
+            HoverAt(at);
             await runner.SimulateFrames(1);
 
             Assertions.AssertThat(!SamePixels(TexData(bg.Texture), baseData))
                 .OverrideFailureMessage("parent background should swap to its hover background when bubbled")
                 .IsTrue();
 
-            SimulateMouse(new Vector2(0, 0));
-            await runner.SimulateMouseMoveAbsolute(new Vector2(0, 0), 0);
+            HoverAt(new Vector2(0, 0));
             await runner.SimulateFrames(1);
 
             Assertions.AssertThat(SamePixels(TexData(bg.Texture), baseData))
@@ -213,8 +207,7 @@ public partial class TestClass : Steps {
                 .IsTrue();
 
             var at = child.GlobalPosition + new Vector2(1, 1);
-            SimulateMouse(at);
-            await runner.SimulateMouseMoveAbsolute(at, 0);
+            HoverAt(at);
             await runner.SimulateFrames(1);
 
             Assertions.AssertThat(!SamePixels(TexData(childBg.Texture), childBase))
@@ -224,8 +217,7 @@ public partial class TestClass : Steps {
                 .OverrideFailureMessage("parent background must not swap when the child stops propagation")
                 .IsTrue();
 
-            SimulateMouse(new Vector2(0, 0));
-            await runner.SimulateMouseMoveAbsolute(new Vector2(0, 0), 0);
+            HoverAt(new Vector2(0, 0));
             await runner.SimulateFrames(1);
 
             Assertions.AssertThat(SamePixels(TexData(childBg.Texture), childBase))

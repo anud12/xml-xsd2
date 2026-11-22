@@ -1,10 +1,15 @@
 using GdUnit4;
 using Godot;
+using GdUnit4.Examples.Basics.Setup.Sources.UI;
 
 namespace NewGameProject.Tests.XUnit;
 
 public partial class Steps
 {
+    // Keep hover polling outside the 1000x1000 test viewport, preventing fallback
+    // to the developer's live cursor while the test scene is active.
+    public static readonly Vector2 SimulatedMouseOffscreen = new Vector2(-1000, -1000);
+
     public ISceneRunner runner;
 
     /// <summary>
@@ -63,6 +68,7 @@ public partial class Steps
             GlobalPosition = new Vector2(-1, -1),
         };
         scene.GetViewport().PushInput(mouseOffEvent);
+        RootNode.SimulatedMouse = SimulatedMouseOffscreen;
 
         return scene;
     }

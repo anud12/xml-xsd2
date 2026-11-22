@@ -40,8 +40,7 @@ public partial class TestClass : Steps {
             AssertScreenshot("initial.png");
 
             var at = panel.GlobalPosition + new Vector2(1, 1);
-            SimulateMouse(at);
-            await runner.SimulateMouseMoveAbsolute(at, 0);
+            HoverAt(at);
             await runner.SimulateFrames(1);
 
             Assertions.AssertThat(hoverOutline.Visible)
@@ -50,8 +49,7 @@ public partial class TestClass : Steps {
 
             AssertScreenshot("mouse_enter.png");
 
-            SimulateMouse(new Vector2(0, 0));
-            await runner.SimulateMouseMoveAbsolute(new Vector2(0, 0), 0);
+            HoverAt(new Vector2(0, 0));
             await runner.SimulateFrames(1);
 
             Assertions.AssertThat(hoverOutline.Visible)
