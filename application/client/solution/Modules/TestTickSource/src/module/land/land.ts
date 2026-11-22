@@ -1,20 +1,11 @@
 import {HostApi} from "module_types/HostApi";
-import {EntityCreationArguments} from "module_types/dataExpression/Entity";
 import {memoize} from "../../util/memoize";
+import {landGenerator} from "./landGenerator";
 
 export const getLandModule = memoize((hostApi: HostApi) => {
 
-  const costKey = "cost";
-  // Monotonic id source for unique land ids (createEntity does not dedupe).
-  const genKey = "landGen";
-
   const maxCount = hostApi.runtime.number.of(4);
-  const one = hostApi.runtime.number.of(1);
-  const zero = hostApi.runtime.number.of(0);
 
-  const landNumberMap: EntityCreationArguments["numberMap"] = {
-    [costKey]: hostApi.runtime.number.of(10),
-  };
 
   const landContainer = hostApi.runtime.setContainer({
     id: hostApi.runtime.string.of("lands"),
@@ -40,29 +31,14 @@ export const getLandModule = memoize((hostApi: HostApi) => {
         .orElse(hostApi.runtime.number.of(0));
 
       poolCount.isLessThan(maxCount).ifTrue((count) => {
-        context.getMutableEntityBy({
-          filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))],
-        }).forEach((game) => {
-          const gen = game.number_map.get(genKey).orElse(zero);
-          const next = gen.sum(one);
+        const land = landGenerator(hostApi).generateValue();
 
-          const land = hostApi.runtime.setEntity({
-            id: next.toStringExpression(),
-            textMap: {
-              name: hostApi.runtime.string.of("Land"),
-            },
-            numberMap: landNumberMap,
-          });
+        context.createEntity(land);
 
-          context.createEntity(land);
-
-          context.getMutableContainersBy({
-            filters: [(c) => c.id.isContainingExactly(hostApi.runtime.string.of("lands"))],
-          }).forEach((container) => {
-            container.addEntity(land);
-          });
-
-          game.number_map.put(genKey, () => hostApi.runtime.maybe.of(next));
+        context.getMutableContainersBy({
+          filters: [(c) => c.id.isContainingExactly(hostApi.runtime.string.of("lands"))],
+        }).forEach((container) => {
+          container.addEntity(land);
         });
         return hostApi.runtime.condition.of(true);
       }).or(() => hostApi.runtime.condition.of(false));
@@ -75,7 +51,6 @@ export const getLandModule = memoize((hostApi: HostApi) => {
 
   return {
     container: landContainer,
-    genKey: genKey,
     maxCount: maxCount,
     effect: tick,
     initialize,

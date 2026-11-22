@@ -17,11 +17,11 @@
  * A blueprint exposes:
  *   - oneOf(makeList)   : L = union of the templates' (or sub-blueprints')
  *       languages.
- *   - generateValue()   -> MaybeExpression<EntityReadOnlyExpression>
+ *   - generateValue()   -> EntityReadOnlyExpression
  *       Instantiates a new entity from a random concrete template (drawn from
  *       the shared seeded LXM stream), registers it in the world via setEntity
  *       under a fresh id, and returns a read-only EntityExpression over it.
- *       Absent (maybe.none) when the language is empty (oneOf([])).
+ *       Throws when the language is empty.
  *   - isGeneratedBy(candidate) -> ConditionExpression
  *       Exact field membership: true iff `candidate` (an entity or template)
  *       matches a member of the language (id is not considered).
@@ -42,19 +42,6 @@
   // ---------------------------------------------------------------------------
   // Maybe — minimal MaybeExpression with the methods callers need to unwrap.
   // ---------------------------------------------------------------------------
-  function maybeOf(v) {
-    return {
-      __isMaybe: true,
-      value: v,
-      isPresent: function () { return conditionOf(true); },
-      isEmpty: function () { return conditionOf(false); },
-      orElse: function (d) { return v; },
-      ifPresent: function (cb) { if (typeof cb === 'function') cb(v); },
-      map: function (f) { return maybeOf(f(v)); },
-      flatMap: function (f) { return f(v); }
-    };
-  }
-
   function maybeNone() {
     return {
       __isMaybe: true,
@@ -325,6 +312,12 @@
       __id: id,
       __textMap: textMap,
       __numberMap: numberMap,
+      // Id-holder surface (matching the host setEntity proxy) so createEntity /
+      // addEntity resolve the concrete id via value/toString/toJSON instead of
+      // stringifying the whole proxy to "[object Object]".
+      value: id,
+      toString: function () { return id; },
+      toJSON: function () { return id; },
       id: {
         isContaining: function (o) { return conditionOf(String(id).indexOf(String(o)) >= 0, { _raw: id }); },
         isContainingExactly: function (o) { return conditionOf(String(id) === String(o), { _raw: id }); }
@@ -456,10 +449,10 @@
     };
     self.generateValue = function () {
       var ts = self.templates();
-      if (ts.length === 0) return maybeNone();
+      if (ts.length === 0) throw new Error('Entity blueprint has an empty language');
       var idx = Math.floor(globalThis.__lxmNext() * ts.length);
       if (idx >= ts.length) idx = ts.length - 1;
-      return maybeOf(instantiateEntity(randomInstantiate(ts[idx])));
+      return instantiateEntity(randomInstantiate(ts[idx]));
     };
     self.isGeneratedBy = function (candidate) {
       var ts = self.templates();
@@ -481,6 +474,7 @@
     return makeLazyBlueprint(function () {
       var acc = [];
       var arr = (typeof makeList === 'function') ? (makeList() || []) : (makeList || []);
+      if (!Array.isArray(arr) || arr.length === 0) throw new Error('entityBlueprint.oneOf requires a non-empty array');
       for (var i = 0; i < arr.length; i++) {
         var el = arr[i];
         if (el && el.__entityBlueprint) {

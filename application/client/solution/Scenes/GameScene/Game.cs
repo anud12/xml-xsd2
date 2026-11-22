@@ -130,6 +130,7 @@ public partial class Game : Node {
         if (_logWriterStarted) return;
         _logWriterStarted = true;
         string path = ProjectSettings.GlobalizePath("user://runtime.log");
+        GD.Print($"Log file: {path}");
         _logWriter = new StreamWriter(path, append: true, new System.Text.UTF8Encoding(false), bufferSize: 65536);
         _logWriterRunning = true;
         _logWriterThread = new Thread(LogWriterLoop) { IsBackground = true, Name = "Logging" };

@@ -56,7 +56,7 @@ export const landUi = (hostApi) => {
                         },
                         draggable: landDrag.draggable({
                             payload: {
-                                entityId: Number(entity.id),
+                                entityId: entity.id,
                                 sourceContainerId: "lands",
                             },
                         }),
@@ -91,7 +91,7 @@ export const landUi = (hostApi) => {
                             fill: { width: "stretch", height: "stretch" },
                         },
                         onClick: (ctx) => {
-                            ctx.emitAction(inventory.buy, { entityId: Number(entity.id) });
+                            ctx.emitAction(inventory.buy, { entityId: entity.id });
                         },
                     },
                 }, [

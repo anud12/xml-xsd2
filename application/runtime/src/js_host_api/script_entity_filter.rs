@@ -262,6 +262,9 @@ pub fn host_api_script_entity_filter() -> &'static str {
     function selfProxy() { return globalThis.__entityProxy(id); }
 
     return {
+      value: eid,
+      toString: function () { return eid; },
+      toJSON: function () { return eid; },
       id: {
         isContaining: function (o) { return conditionOf(String(eid).indexOf(String(o)) >= 0, { _raw: eid }); },
         isContainingExactly: function (o) { return conditionOf(String(eid) === String(o), { _raw: eid }); }

@@ -13,6 +13,67 @@ public partial class FullTestTickFfiTests : Steps {
     const string ModuleRoot = "E:\\workspace\\xml-xsd2\\application\\client\\solution\\Modules\\TestTick";
 
     [TestCategory("Stage_temp")]
+    [TestCase(Timeout = 30_000)]
+    [RequireGodotRuntime]
+    public async Task Given_generated_land_when_bought_it_moves_to_inventory_and_is_displayed() {
+        CleanupArchive();
+        foreach (var file in Directory.GetFiles(ModuleRoot, "*.*", SearchOption.AllDirectories)) {
+            var rel = Path.GetRelativePath(ModuleRoot, file).Replace('\\', '/');
+            AddFileToArchive("../../../../Modules/TestTick/" + rel, rel);
+        }
+        ProcessArchive();
+        var scene = await AttachUiScene();
+
+        RuntimeInterop.RunIteration(10);
+        await runner.SimulateFrames(3);
+        var firstLand = ContainerInterop.GetContainerById("lands").Entities[0];
+        var initialValue = double.Parse(RuntimeInterop.ReadEntityNumberValue("game", "value"));
+        Assertions.AssertThat(initialValue < double.Parse(RuntimeInterop.ReadEntityNumberValue(firstLand, "cost"))).IsTrue();
+        RuntimeInterop.UiJsClick(firstLand + ":buy", 0, 0);
+        RuntimeInterop.RunIteration();
+        Assertions.AssertThat(ContainerInterop.GetContainerById("lands").Entities.Contains(firstLand)).IsTrue();
+        Assertions.AssertThat(ContainerInterop.GetContainerById("inventory").Entities.Length).IsEqual(0);
+        Assertions.AssertThat(double.Parse(RuntimeInterop.ReadEntityNumberValue("game", "value"))).IsEqual(initialValue);
+
+        for (int i = 0; i < 40; i++) {
+            RuntimeInterop.RunIteration(10);
+            await runner.SimulateFrames(1);
+        }
+
+        var landId = ContainerInterop.GetContainerById("lands").Entities[0];
+        var name = RuntimeInterop.GetEntityTextMapValue(landId, "name");
+        var cost = double.Parse(RuntimeInterop.ReadEntityNumberValue(landId, "cost"));
+        var before = double.Parse(RuntimeInterop.ReadEntityNumberValue("game", "value"));
+        Assertions.AssertThat(double.Parse(RuntimeInterop.ReadEntityNumberValue(landId, "land"))).IsEqual(1.0);
+        Assertions.AssertThat(before >= cost).IsTrue();
+
+        RuntimeInterop.UiJsClick(landId + ":buy", 0, 0);
+        RuntimeInterop.RunIteration();
+        await runner.SimulateFrames(3);
+
+        Assertions.AssertThat(ContainerInterop.GetContainerById("lands").Entities.Contains(landId)).IsFalse();
+        Assertions.AssertThat(ContainerInterop.GetContainerById("inventory").Entities.Contains(landId)).IsTrue();
+        Assertions.AssertThat(double.Parse(RuntimeInterop.ReadEntityNumberValue("game", "value"))).IsEqual(before - cost);
+        Assertions.AssertThat(RuntimeInterop.GetEntityTextMapValue(landId, "name")).IsEqual(name);
+        var inventoryWindow = scene.GetWindowOrNull("inventory-list");
+        var inventoryItem = scene.GetWindowOrNull(landId);
+        Assertions.AssertThat(inventoryWindow != null && inventoryItem != null && inventoryWindow.IsAncestorOf(inventoryItem)).IsTrue();
+
+        RuntimeInterop.PublishActionArgsAndQueueEffect("inventory-buy", "inventory-purchase", "{\"entityId\":\"" + landId + "\"}");
+        RuntimeInterop.RunIteration();
+        Assertions.AssertThat(double.Parse(RuntimeInterop.ReadEntityNumberValue("game", "value"))).IsEqual(before - cost);
+        Assertions.AssertThat(ContainerInterop.GetContainerById("inventory").Entities.Count(id => id == landId)).IsEqual(1);
+
+        var secondLand = ContainerInterop.GetContainerById("lands").Entities[0];
+        RuntimeInterop.UiJsClick(secondLand + ":buy", 0, 0);
+        RuntimeInterop.RunIteration();
+        await runner.SimulateFrames(3);
+        var secondItem = scene.GetWindowOrNull(secondLand);
+        Assertions.AssertThat(ContainerInterop.GetContainerById("inventory").Entities.Length).IsEqual(2);
+        Assertions.AssertThat(secondItem != null && inventoryWindow!.IsAncestorOf(secondItem)).IsTrue();
+    }
+
+    [TestCategory("Stage_temp")]
     [TestCase]
     [RequireGodotRuntime]
     public async Task Given_full_testtick_module_when_ticks_run_add_btn_label_stays_clean() {
@@ -106,7 +167,7 @@ public partial class FullTestTickFfiTests : Steps {
             // Advance the runtime so the land-tick (10ms) tops the "lands" pool
             // up to its cap (4) and the entityLists expand into per-land child
             // windows, then pump frames so those windows are real Godot nodes.
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 25; i++) {
                 RuntimeInterop.RunIteration(10);
                 await runner.SimulateFrames(1);
             }

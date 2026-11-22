@@ -14,18 +14,15 @@
  * enclosing scope). concat takes a plain array (its sequence is fixed).
  *
  * A blueprint exposes exactly two operations:
- *   - generateValue()  -> MaybeExpression<StringExpression>
- *       The blueprint -> StringExpression conversion. Present (maybe.of) with the
- *       language grammar when L is non-empty; absent (maybe.none) when L is empty
- *       (the oneOf([]) case). The concrete random string emerges when the returned
- *       StringExpression is evaluated.
+ *   - generateValue()  -> StringExpression
+ *       Returns a language-bearing expression, or throws if L is empty.
  *   - isGeneratedBy(candidate) -> ConditionExpression
  *       Full-match membership: true iff `candidate` (evaluated to a concrete
  *       string) is a member of L. NOT a substring test.
  *
  * Chaining: because oneOf/concat take a list of StringExpression (inside the
  * makeList lambda), a sub-blueprint is spliced in by converting it
- * (sub.generateValue().orElse(fallback)) and passing the resulting
+ * (sub.generateValue()) and passing the resulting
  * StringExpression into the outer list. The language-bearing grammar carries the
  * full set of strings, so composition keeps the full language. A sub-blueprint
  * may also be passed directly as an element.
@@ -42,35 +39,6 @@
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
-
-  // ---------------------------------------------------------------------------
-  // Maybe — minimal MaybeExpression with the methods callers need to unwrap.
-  // ---------------------------------------------------------------------------
-  function maybeOf(v) {
-    return {
-      __isMaybe: true,
-      value: v,
-      isPresent: function () { return conditionOf(true); },
-      isEmpty: function () { return conditionOf(false); },
-      orElse: function (d) { return v; },
-      ifPresent: function (cb) { if (typeof cb === 'function') cb(v); },
-      map: function (f) { return maybeOf(f(v)); },
-      flatMap: function (f) { return f(v); }
-    };
-  }
-
-  function maybeNone() {
-    return {
-      __isMaybe: true,
-      value: undefined,
-      isPresent: function () { return conditionOf(false); },
-      isEmpty: function () { return conditionOf(true); },
-      orElse: function (d) { return d; },
-      ifPresent: function () {},
-      map: function () { return maybeNone(); },
-      flatMap: function () { return maybeNone(); }
-    };
-  }
 
   // ---------------------------------------------------------------------------
   // Condition — minimal ConditionExpression.
@@ -115,6 +83,7 @@
       if (e.__langExpr) return e.__lang.slice();
       if (e.__stringBlueprint) return e.language();
       if (e.__isMaybe) return languageOfElement(e.value);
+      if (typeof e.value === 'string') return [e.value];
     }
     if (typeof e === 'string') return [e];
     return [];
@@ -144,13 +113,34 @@
       if (idx >= lang.length) idx = lang.length - 1;
       concrete = lang[idx];
     }
-    return {
+    var expr = {
       __langExpr: true,
       __lang: lang,
       value: concrete,
       toString: function () { return concrete !== undefined ? concrete : ''; },
       toJSON: function () { return concrete !== undefined ? concrete : ''; }
     };
+    expr.isContaining = function (other) {
+      return conditionOf(lang.some(function (s) { return languageOfElement(other).some(function (t) { return s.indexOf(t) !== -1; }); }), expr);
+    };
+    expr.isContainingExactly = function (other) {
+      var others = languageOfElement(other);
+      return conditionOf(others.length > 0 && lang.every(function (s) { return others.every(function (t) { return s.indexOf(t) !== -1; }); }), expr);
+    };
+    expr.map = function (other) { return makeLangExpr(languageOfElement(other)); };
+    expr.concat = function (other) { return concat([expr, other]).generateValue(); };
+    expr.join = function (parts, separator) {
+      var values = [expr];
+      for (var i = 0; i < parts.length; i++) { if (separator) values.push(separator); values.push(parts[i]); }
+      return concat(values).generateValue();
+    };
+    expr.prefix = function (s) { return concat([s, expr]).generateValue(); };
+    expr.suffix = function (s) { return concat([expr, s]).generateValue(); };
+    expr.group = function (other) { return other; };
+    expr.oneOf = function (choices) { return oneOf(function () { return choices; }).generateValue(); };
+    expr.ref = function () { throw new Error('String blueprint expression does not support rule references'); };
+    expr.indexOfExpression = function (other, from) { return concrete.indexOf(String(other && other.value !== undefined ? other.value : other), from); };
+    return expr;
   }
 
   // A lazy blueprint: the language is produced by computeLanguage and is
@@ -164,8 +154,8 @@
       },
       generateValue: function () {
         var lang = dedupe(computeLanguage());
-        if (lang.length === 0) return maybeNone();
-        return maybeOf(makeLangExpr(lang));
+        if (lang.length === 0) throw new Error('String blueprint has an empty language');
+        return makeLangExpr(lang);
       },
       isGeneratedBy: function (candidate) {
         var lang = dedupe(computeLanguage());
@@ -189,6 +179,7 @@
     return makeLazyBlueprint(function () {
       var acc = [];
       var arr = (typeof makeList === 'function') ? (makeList() || []) : (makeList || []);
+      if (!Array.isArray(arr) || arr.length === 0) throw new Error('stringBlueprint.oneOf requires a non-empty array');
       for (var i = 0; i < arr.length; i++) {
         var l = languageOfElement(arr[i]);
         for (var j = 0; j < l.length; j++) acc.push(l[j]);

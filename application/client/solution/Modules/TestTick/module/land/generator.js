@@ -1,0 +1,71 @@
+import { memoize } from "../../util/memoize";
+export const generator = memoize((hostApi) => {
+    return hostApi.runtime.entityBlueprint.oneOf(() => [
+        {
+            textMap: {
+                name: hostApi.runtime.stringBlueprint.oneOf(() => names.map(hostApi.runtime.string.of))
+                    .generateValue()
+                    .orElse(hostApi.runtime.string.of("Land")),
+            },
+            numberMap: {
+                "cost": hostApi.runtime.number.random(hostApi.runtime.number.of(5), hostApi.runtime.number.of(15)),
+            },
+        }
+    ]);
+});
+const names = [
+    "Arabia Terra",
+    "Terra Cimmeria",
+    "Noachis Terra",
+    "Terra Sabaea",
+    "Terra Sirenum",
+    "Aonia Terra",
+    "Promethei Terra",
+    "Tempe Terra",
+    "Xanthe Terra",
+    "Tyrrhena Terra",
+    "Margaritifer Terra",
+    "Tharsis",
+    "Amazonis Planitia",
+    "Utopia Planitia",
+    "Arcadia Planitia",
+    "Elysium Planitia",
+    "Hellas Planitia",
+    "Argyre Planitia",
+    "Isidis Planitia",
+    "Chryse Planitia",
+    "Acidalia Planitia",
+    "Vastitas Borealis",
+    "Planum Boreum",
+    "Planum Australe",
+    "Syrtis Major Planum",
+    "Mare Boreum",
+    "Diacria",
+    "Arcadia",
+    "Mare Acidalium",
+    "Ismenius Lacus",
+    "Casius",
+    "Cebrenia",
+    "Amazonis",
+    "Lunae Palus",
+    "Oxia Palus",
+    "Arabia",
+    "Syrtis Major",
+    "Amenthes",
+    "Elysium",
+    "Memnonia",
+    "Phoenicis Lacus",
+    "Coprates",
+    "Margaritifer Sinus",
+    "Sinus Sabaeus",
+    "Iapygia",
+    "Mare Tyrrhenum",
+    "Aeolis",
+    "Phaethontis",
+    "Thaumasia",
+    "Argyre",
+    "Noachis",
+    "Hellas",
+    "Eridania",
+    "Mare Australe",
+];

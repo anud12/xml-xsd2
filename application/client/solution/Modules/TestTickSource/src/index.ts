@@ -11,7 +11,7 @@ const entry: ModuleEntrypoint = (hostApi) => {
 
   const interest = getInterestModule(hostApi);
   const land = getLandModule(hostApi);
-  const inventory = getInventoryModule(hostApi);
+  getInventoryModule(hostApi);
   const value = getValueModule(hostApi);
 
   const game = hostApi.runtime.setEntity({
@@ -19,7 +19,6 @@ const entry: ModuleEntrypoint = (hostApi) => {
     numberMap: {
       ...interest.entityNumberMap,
       ...value.entityNumberMap,
-      [land.genKey]: hostApi.runtime.number.of(0),
     },
   });
 

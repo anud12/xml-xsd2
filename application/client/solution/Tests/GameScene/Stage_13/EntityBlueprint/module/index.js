@@ -17,7 +17,7 @@ export default (hostApi) => {
   const gen = eg.oneOf(() => {
     const names = sg.oneOf(() => [string.of("alpha"), string.of("beta")]);
     const a = {
-      textMap: { name: names.generateValue().orElse(string.of("none")) },
+      textMap: { name: names.generateValue() },
       numberMap: { hp: number.of(10) },
     };
     const b = {
@@ -28,14 +28,12 @@ export default (hostApi) => {
   });
 
   // generateValue() instantiates an entity and returns a read-only expression.
-  let present = "0";
-  gen.generateValue().isPresent().ifTrue(() => { present = "1"; return string.of("1"); });
+  const present = gen.generateValue() ? "1" : "0";
   let emptyAbsent = "0";
-  eg.oneOf(() => []).generateValue().isEmpty().ifTrue(() => { emptyAbsent = "1"; return string.of("1"); });
+  try { eg.oneOf(() => []).generateValue(); } catch (_) { emptyAbsent = "1"; }
 
   // A concrete sample: instantiated as a new entity, returned as a proxy.
-  const fallback = { textMap: { name: string.of("none") }, numberMap: { hp: number.of(-1) } };
-  const sample = gen.generateValue().orElse(fallback);
+  const sample = gen.generateValue();
   const sampleId = (sample && sample.__id) ? String(sample.__id) : "none";
   const name = (sample && sample.text_map && typeof sample.text_map.get === "function")
     ? (raw(sample.text_map.get("name")) || "none") : "none";

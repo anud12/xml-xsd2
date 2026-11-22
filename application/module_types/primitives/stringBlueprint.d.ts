@@ -1,5 +1,4 @@
 import {StringReadOnlyExpression} from "./stringExpression";
-import {MaybeReadOnlyExpression} from "./maybeExpression";
 import {ConditionReadOnlyExpression} from "./conditionExpression";
 
 /**
@@ -9,7 +8,7 @@ import {ConditionReadOnlyExpression} from "./conditionExpression";
  * Accepts StringReadOnlyExpressions (including a sub-blueprint's generateValue()
  * grammar) or sub-blueprints directly.
  */
-export type StringElementListMaker = () => Array<StringReadOnlyExpression | StringBlueprint>;
+export type StringElementListMaker = () => [StringReadOnlyExpression | StringBlueprint, ...(StringReadOnlyExpression | StringBlueprint)[]];
 
 /**
  * StringBlueprint — a composable grammar over a regular language of strings,
@@ -19,7 +18,7 @@ export type StringElementListMaker = () => Array<StringReadOnlyExpression | Stri
 export type StringBlueprintApi = {
   /**
    * Language = union of the elements' languages. Takes a list-maker lambda
-   * `() => Array<element>`, evaluated at generateValue()/isGeneratedBy() time so
+   * returning a non-empty tuple, evaluated at generateValue()/isGeneratedBy() time so
    * the element set (and any generated values) can be produced dynamically.
    */
   oneOf: (makeList: StringElementListMaker) => StringBlueprint;
@@ -41,12 +40,9 @@ export type StringBlueprintType = {
 
 export type StringBlueprint = {
   /**
-   * The blueprint -> StringReadOnlyExpression conversion. Present (maybe.of) with the
-   * language grammar when the language is non-empty; absent (maybe.none) for
-   * oneOf([]). The concrete random string is produced when the returned
-   * StringReadOnlyExpression is evaluated.
+   * Returns a language-bearing string expression. Throws if the language is empty.
    */
-  generateValue: () => MaybeReadOnlyExpression<StringReadOnlyExpression>;
+  generateValue: () => StringReadOnlyExpression;
 
   /**
    * Full-match membership as a condition: true iff `candidate` (evaluated to a

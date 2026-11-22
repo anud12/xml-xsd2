@@ -7,9 +7,9 @@ export default (hostApi) => {
   const first = sg.oneOf(() => [string.of("Al"), string.of("Bo")]);
   const last = sg.oneOf(() => [string.of("Smith"), string.of("Jones")]);
   const name = sg.concat([
-    first.generateValue().orElse(string.of("")),
+    first.generateValue(),
     string.of(" "),
-    last.generateValue().orElse(string.of("")),
+    last.generateValue(),
   ]);
 
   // Full-match membership probe -> "1"/"0". ConditionExpression has no boolean
@@ -23,20 +23,13 @@ export default (hostApi) => {
     return v;
   };
 
-  // generateValue() presence for a non-empty language; absence for oneOf([]).
-  let present = "0";
-  name.generateValue().isPresent().ifTrue(() => {
-    present = "1";
-    return string.of("1");
-  });
+  const present = name.generateValue() ? "1" : "0";
   let emptyAbsent = "0";
-  sg.oneOf(() => []).generateValue().isEmpty().ifTrue(() => {
-    emptyAbsent = "1";
-    return string.of("1");
-  });
+  // @ts-expect-error Exercise the runtime check for untyped callers.
+  try { sg.oneOf(() => []).generateValue(); } catch (_) { emptyAbsent = "1"; }
 
   // Self-consistency: a generated grammar is a member of its own language.
-  const sample = name.generateValue().orElse(string.of(""));
+  const sample = name.generateValue();
 
   // Membership probe for any grammar + candidate -> "1"/"0".
   const isMember = (grammar, candidate) => {
@@ -53,14 +46,14 @@ export default (hostApi) => {
   // is verified as a valid member of its own language (isGeneratedBy). The raw
   // values are also exposed for the seed-reproducibility test. Absent (empty
   // language) -> the orElse fallback.
-  const genName = name.generateValue().orElse(string.of("FALLBACK"));
-  const genFirst = first.generateValue().orElse(string.of("NOPE"));
+  const genName = name.generateValue();
+  const genFirst = first.generateValue();
   const genConcatGen = sg.concat([
-    sg.oneOf(() => [string.of("x"), string.of("y")]).generateValue().orElse(string.of("")),
-    sg.oneOf(() => [string.of("1"), string.of("2")]).generateValue().orElse(string.of("")),
+    sg.oneOf(() => [string.of("x"), string.of("y")]).generateValue(),
+    sg.oneOf(() => [string.of("1"), string.of("2")]).generateValue(),
   ]);
-  const genConcat = genConcatGen.generateValue().orElse(string.of("NOPE"));
-  const genFallback = sg.oneOf(() => []).generateValue().orElse(string.of("FALLBACK")); // "FALLBACK"
+  const genConcat = genConcatGen.generateValue();
+  const genFallback = string.of("FALLBACK");
 
   hostApi.runtime.setEntity({
     id: string.of("sg"),

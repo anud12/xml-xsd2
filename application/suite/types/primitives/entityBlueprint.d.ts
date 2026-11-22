@@ -1,6 +1,5 @@
 import {StringReadOnlyExpression} from "./stringExpression";
 import {NumberReadOnlyExpression} from "./numberExpression";
-import {MaybeReadOnlyExpression} from "./maybeExpression";
 import {ConditionReadOnlyExpression} from "./conditionExpression";
 import {EntityReadOnlyExpression} from "../dataExpression/Entity";
 import {NumberBlueprint} from "./numberBlueprint";
@@ -11,7 +10,7 @@ import {NumberBlueprint} from "./numberBlueprint";
  * the list can be produced dynamically (it can reach the live hostApi through
  * its enclosing scope).
  */
-export type EntityBlueprintListMaker = () => Array<EntityTemplate | EntityBlueprint>;
+export type EntityBlueprintListMaker = () => [EntityTemplate | EntityBlueprint, ...(EntityTemplate | EntityBlueprint)[]];
 
 /**
  * A template: the field maps an entity blueprint instantiates — it carries no id
@@ -35,7 +34,7 @@ export type EntityTemplate = {
 export type EntityBlueprintApi = {
   /**
    * Language = union of the templates' (or sub-blueprints') languages. Takes a
-   * list-maker lambda `() => Array<template | subBlueprint>`, evaluated at
+   * list-maker lambda returning a non-empty tuple, evaluated at
    * generateValue()/isGeneratedBy() time so the template set (and any generated
    * field values) can be produced dynamically.
    */
@@ -53,10 +52,9 @@ export type EntityBlueprint = {
   /**
    * Instantiates a new entity from a random concrete template (seeded LXM),
    * registers it in the world under a fresh id, and returns a read-only
-   * {@link EntityReadOnlyExpression} over it. Present (maybe.of) when the
-   * language is non-empty; absent (maybe.none) for oneOf([]).
+   * {@link EntityReadOnlyExpression} over it. Throws if the language is empty.
    */
-  generateValue: () => MaybeReadOnlyExpression<EntityReadOnlyExpression>;
+  generateValue: () => EntityReadOnlyExpression;
 
   /**
    * Exact field membership as a condition: true iff `candidate`'s field maps

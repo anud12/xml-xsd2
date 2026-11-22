@@ -9,14 +9,13 @@ import { valueUi } from "./module/value/ui";
 const entry = (hostApi) => {
     const interest = getInterestModule(hostApi);
     const land = getLandModule(hostApi);
-    const inventory = getInventoryModule(hostApi);
+    getInventoryModule(hostApi);
     const value = getValueModule(hostApi);
     const game = hostApi.runtime.setEntity({
         id: hostApi.runtime.string.of("game"),
         numberMap: {
             ...interest.entityNumberMap,
             ...value.entityNumberMap,
-            [land.genKey]: hostApi.runtime.number.of(0),
         },
     });
     interest.initialize();
