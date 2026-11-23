@@ -302,6 +302,8 @@
     return {
       forEach: function () {},
       map: emptyEntityList,
+      findBy: emptyEntityList,
+      hasEntity: function () { return conditionOf(false); },
       size: function () { return 0; },
       count: function () { return numWrap(0); },
       length: function () { return numWrap(0); },

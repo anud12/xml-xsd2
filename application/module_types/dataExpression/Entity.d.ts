@@ -3,6 +3,8 @@ import {ListReadOnlyExpression} from "../primitives/ListExpression";
 import {NumberReadOnlyExpression} from "../primitives/numberExpression";
 import {MaybeReadOnlyExpression} from "../primitives/maybeExpression";
 import {Expression} from "../Expression";
+import {EntityFilter} from "../EntityFilter";
+import {ConditionReadOnlyExpression} from "../primitives/conditionExpression";
 
 export type EntityExpressionApi = {
   /** Create an empty entity builder */
@@ -36,9 +38,17 @@ export type EntityExpressionType = {
   // marker for dynamic HostApi typing
 }
 
+/** A named relationship list with entity-specific filtering. */
+export type EntityListReadOnlyExpression = ListReadOnlyExpression<EntityReadOnlyExpression> & {
+  /** Return matching members in declaration order; chainable and empty on no match. */
+  findBy: (filter: EntityFilter) => EntityListReadOnlyExpression;
+  /** True if at least one member matches; false for an absent or empty list. */
+  hasEntity: (filter: EntityFilter) => ConditionReadOnlyExpression<Expression>;
+};
+
 export type EntityReadOnlyExpression = Expression & {
   /** Read a named membership list, in declaration order. */
-  members: (name: string) => ListReadOnlyExpression<EntityReadOnlyExpression>;
+  members: (name: string) => EntityListReadOnlyExpression;
   /** The entity's id as a StringReadOnlyExpression (isContainingExactly, isContaining, ...). */
   id: StringReadOnlyExpression;
   /** The entity's number_map accessor (keyed lookups returning MaybeReadOnlyExpressions). */

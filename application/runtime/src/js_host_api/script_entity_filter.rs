@@ -161,6 +161,25 @@ pub fn host_api_script_entity_filter() -> &'static str {
         }
         return globalThis.__makeValueList(out, function (v) { return v; });
       },
+      findBy: function (filter) {
+        var arg = globalThis.__normalizeEntityFilter(filter);
+        var out = [];
+        if (arg.malformed) filterLog('___filter-malformed');
+        else for (var i = 0; i < values.length; i++) {
+          if (elementWrap === globalThis.__entityProxy && !globalThis.__readEntity(values[i])) continue;
+          if (globalThis.__evalFilterArg(arg, elementWrap(values[i]))) out.push(values[i]);
+        }
+        return globalThis.__makeValueList(out, elementWrap);
+      },
+      hasEntity: function (filter) {
+        var arg = globalThis.__normalizeEntityFilter(filter);
+        if (arg.malformed) { filterLog('___filter-malformed'); return conditionOf(false); }
+        for (var i = 0; i < values.length; i++) {
+          if (elementWrap === globalThis.__entityProxy && !globalThis.__readEntity(values[i])) continue;
+          if (globalThis.__evalFilterArg(arg, elementWrap(values[i]))) return conditionOf(true);
+        }
+        return conditionOf(false);
+      },
       forEach: function (cb) {
         if (typeof cb !== 'function') return;
         for (var i = 0; i < values.length; i++) {

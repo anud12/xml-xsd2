@@ -87,6 +87,8 @@ fn persist_planned_moves(action_name: &str, sim: &Sr) {
 mod ui_message_tests {
     #[test]
     fn fresh_context_drain_and_offline_action_deliver_messages() {
+        // clear_state and other stateful fixtures share this process-wide queue.
+        let _guard = crate::state::test_lock();
         let queue = crate::state::action_messages();
         queue.lock().unwrap().clear();
         let (_rt, ctx) = super::prepare_runtime_and_ctx().unwrap();
