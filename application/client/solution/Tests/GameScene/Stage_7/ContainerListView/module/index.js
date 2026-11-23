@@ -48,7 +48,7 @@ export default (hostApi) => {
           },
         }, [
           hostApi.ui.field(entity.id + ":value", {
-            entity: entity,
+            entity: entity.entity,
             map: "number",
             name: "value",
             fallback: "0",

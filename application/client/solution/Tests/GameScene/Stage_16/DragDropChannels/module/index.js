@@ -78,8 +78,12 @@ export default (hostApi) => {
       const to = String(args.to);
       if (!entityId || !from || !to || from === to) return;
       context.getMutableEntityBy({
-        filters: [(c) => c.id.isContainingExactly(string.of(from))],
-      }).forEach((c) => c.removeMember("members", string.of(entityId)));
+        filters: [(e) => e.id.isContainingExactly(string.of(entityId))],
+      }).forEach((entity) => {
+        context.getMutableEntityBy({
+          filters: [(c) => c.id.isContainingExactly(string.of(from))],
+        }).forEach((c) => c.removeMember("members", entity));
+      });
       const entity = hostApi.runtime.setEntity({ id: string.of(entityId) });
       context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of(to))],

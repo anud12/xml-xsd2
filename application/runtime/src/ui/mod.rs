@@ -243,7 +243,7 @@ fn tick_inner() -> Result<()> {
     let script = format!(
         "__uiHost.resetEntityViews();\n\
          globalThis.__uiSectorGrids = {};\n\
-         __uiHost.expandEntityLists(globalThis.__uiEntitiesFor);\n\
+         __uiHost.expandEntityLists(globalThis.__uiEntitiesFor, globalThis.__entityProxy);\n\
          __uiHost.expandGroupViews(globalThis.__uiEntitiesFor);\n\
          __uiHost.expandSectorGrids();\n\
          JSON.stringify(__uiHost.snapshot())",

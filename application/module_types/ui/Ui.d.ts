@@ -1,5 +1,5 @@
 import {NumberReadOnlyExpression} from "../primitives/numberExpression";
-import {EntityReadOnlyExpression, EntityId} from "../dataExpression/Entity";
+import {EntityReadOnlyExpression} from "../dataExpression/Entity";
 import {AnimationReadOnlyExpression, GetAnimationFunction} from "../dataExpression/animation/AnimationRegistration";
 import {SpriteResource} from "../texture/SpriteResource";
 import {SpriteMap, MapLayerBinding} from "../texture/SpriteMap";
@@ -164,7 +164,7 @@ export type UiLayout = {
    * resolution (the "board" pattern): a click resolves to a group cell
    * from the group's sizeX/sizeY, independent of the layout tracks.
    */
-  group?: EntityId;
+  group?: EntityReadOnlyExpression;
 } | "column" | "row";
 
 /**
@@ -291,7 +291,7 @@ export type UiClickContext = {
  */
 export type UiFieldBinding = {
   /** Identifier of the entity whose field is rendered. */
-  entity: EntityId;
+  entity: EntityReadOnlyExpression;
   map: "number" | "text";
   name: string;
   fallback?: string;
@@ -343,7 +343,7 @@ export type UiProgressOptions = UiPanelOptions & {
      */
     max: (entity: EntityReadOnlyExpression) => NumberReadOnlyExpression;
     /** Entity to bind. Required. */
-    entity: EntityId;
+    entity: EntityReadOnlyExpression;
     /**
      * Selects the entity's number field to read. A lambda that uses the
      * EntityReadOnlyExpression api to pick the field from the number map and returns a
@@ -368,7 +368,7 @@ export type UiProgressOptions = UiPanelOptions & {
  */
 export type UiGroupViewOptions = UiPanelOptions & {
   panel: UiPanelOptions["panel"] & { width: number; height: number };
-  group: EntityId;
+  group: EntityReadOnlyExpression;
   list: string;
   /**
    * The declared areas to draw as outlines, one entry per area. Each entry
@@ -438,7 +438,7 @@ export type UiSectorGridItem = {
  * scrolls the list's content.
  */
 export type UiEntityListOptions = {
-  group: EntityId;
+  group: EntityReadOnlyExpression;
   list: string;
   vertical?: boolean;
 };
@@ -491,7 +491,7 @@ export interface UiScreenComponent {
 
 /** A flow list: one child per entity in the container (render returns an array of node ids or handles). Must be nested under a window. */
 export interface UiEntityListComponent
-  extends UiParentComponent<UiEntityListOptions, (item: { id: string; index: number }) => UiChildren> {}
+  extends UiParentComponent<UiEntityListOptions, (item: { id: string; index: number; entity: EntityReadOnlyExpression }) => UiChildren> {}
 
 /** A sized view of a container (a window): one panel per entity placed on its cell, re-resolved each tick. */
 export interface UiGroupViewComponent

@@ -235,7 +235,7 @@ if(!__hapi_ui.entityList){
     var childIds=[];
     if(typeof template==="function"){
       for(var i=0;i<entityIds.length;i++){
-        var result=template({id:entityIds[i],index:i});
+        var result=template({id:entityIds[i],index:i,entity:globalThis.__entityProxy(entityIds[i])});
         var arr=Array.isArray(result)?result:[result];
         for(var k=0;k<arr.length;k++){
           if(arr[k]!=null){childIds.push(arr[k]);}

@@ -18,8 +18,6 @@ export type EntityExpressionApi = {
 import {SectorDeclaration} from "./Sector";
 import {BehaviorReadOnlyExpression} from "./behavior";
 
-export type EntityId = string | StringReadOnlyExpression | { readonly id: string } | EntityReadOnlyExpression;
-
 export type EntityDeclaration = {
   id: StringReadOnlyExpression;
   /** Intrinsic numbers including x/y, spanX/spanY, or group sizeX/sizeY. */
@@ -29,7 +27,7 @@ export type EntityDeclaration = {
   /** Named, implicitly closed polygons in entity-local units (y down). */
   polygons?: Record<string, [number, number][]>;
   /** The group role: ordered, named lists of entity references, with no placement. */
-  entityListMap?: Record<string, readonly EntityId[]>;
+  entityListMap?: Record<string, readonly EntityReadOnlyExpression[]>;
   behavior?: BehaviorReadOnlyExpression;
   sector?: SectorDeclaration;
 }
@@ -65,8 +63,8 @@ export type EntityReadOnlyExpression = Expression & {
  */
 export type EntityMutableExpression = EntityReadOnlyExpression & {
   /** Add to a declared list without duplicating the member; return the group as a read-only expression. */
-  addMember: (list: string, member: EntityId) => EntityReadOnlyExpression;
-  removeMember: (list: string, entity: EntityId) => EntityMutableExpression;
+  addMember: (list: string, member: EntityReadOnlyExpression) => EntityReadOnlyExpression;
+  removeMember: (list: string, entity: EntityReadOnlyExpression) => EntityMutableExpression;
   /** The entity's number_map accessor with in-place mutation. */
   number_map: EntityReadOnlyExpression["number_map"] & {
     put: (key: string | StringReadOnlyExpression, transform: (current: MaybeReadOnlyExpression<NumberReadOnlyExpression>) => MaybeReadOnlyExpression<NumberReadOnlyExpression>) => EntityMutableExpression;

@@ -38,7 +38,7 @@ export const landUi = (hostApi: HostApi) => {
     },
   }, [
     hostApi.ui.entityList("land-items", { group: module.container, list: "members" },
-      (entity: { id: string; index: number }) => [
+      (entity) => [
         hostApi.ui.window(entity.id, {
           panel: {
             width: 190,
@@ -78,13 +78,13 @@ export const landUi = (hostApi: HostApi) => {
             }
           }, [
             hostApi.ui.field(entity.id + ":stats:name", {
-              entity: entity,
+              entity: entity.entity,
               map: "text",
               name: "name",
               fallback: "Unknown",
             }, font),
             hostApi.ui.field(entity.id + ":stats:cost", {
-              entity: entity,
+              entity: entity.entity,
               map: "number",
               name: "cost",
               fallback: "0",

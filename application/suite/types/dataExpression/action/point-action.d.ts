@@ -2,7 +2,7 @@ import { Expression } from "../../Expression";
 import { ConditionReadOnlyExpression } from "../../primitives/conditionExpression";
 import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
 import { StringReadOnlyExpression } from "../../primitives/stringExpression";
-import { EntityId } from "../Entity";
+import { EntityReadOnlyExpression } from "../Entity";
 import { ActionContext, GroupPoint } from "./common";
 
 /**
@@ -10,8 +10,8 @@ import { ActionContext, GroupPoint } from "./common";
  */
 export type PointActionTarget = {
   type: "point";
-  /** The container the point is in (a {@link EntityId} reference). */
-  groupId: EntityId;
+  /** The container the point is in (a {@link EntityReadOnlyExpression} reference). */
+  groupId: EntityReadOnlyExpression;
   position: GroupPoint;
 };
 

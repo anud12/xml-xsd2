@@ -273,14 +273,19 @@ test('ui.entityList rejects bad name, args, or render', () => {
 test('ui.entityList expands one item per entity via expandEntityLists', () => {
   registered = [];
   host.clear();
-  const render = (entity) => [host.window(entity.id, { w: 1 }, [
-    host.text(entity.id + '-t', 'v' + entity.index),
-  ])];
+  const handles = new Map(['a', 'b', 'c'].map(id => [id, { value: id, read: () => id }]));
+  const render = (entity) => {
+    assert.strictEqual(entity.entity, handles.get(entity.id));
+    assert.strictEqual(entity.entity.read(), entity.id);
+    return [host.window(entity.id, { w: 1 }, [
+      host.text(entity.id + '-t', 'v' + entity.index),
+    ])];
+  };
   host.entityList('items', { group: 'items', list: "members" }, render);
   host.expandEntityLists((name) => {
     assert.strictEqual(name, 'items');
     return ['a', 'b', 'c'];
-  });
+  }, id => handles.get(id));
   const snap = host.snapshot();
   const list = snap.find((n) => n.id === 'items');
   assert.deepStrictEqual(list.children, ['a', 'b', 'c']);
@@ -289,6 +294,11 @@ test('ui.entityList expands one item per entity via expandEntityLists', () => {
   assert.strictEqual(winA.children[0], 'a-t');
   const textC = snap.find((n) => n.id === 'c-t');
   assert.strictEqual(textC.value, 'v2');
+  host.resetEntityViews();
+  host.expandEntityLists(() => ['c', 'a'], id => handles.get(id));
+  const reordered = host.snapshot();
+  assert.deepStrictEqual(reordered.find(n => n.id === 'items').children, ['c', 'a']);
+  assert.strictEqual(reordered.find(n => n.id === 'a').children[0], 'a-t');
 });
 
 test('ui.entityList with unknown container renders zero items', () => {

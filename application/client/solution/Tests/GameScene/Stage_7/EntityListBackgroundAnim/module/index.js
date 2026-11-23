@@ -42,7 +42,7 @@ export default (hostApi) => {
           },
         }, [
           hostApi.ui.field(entity.id + ":name", {
-            entity: entity,
+            entity: entity.entity,
             map: "text",
             name: "name",
             fallback: "Unknown",

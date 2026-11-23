@@ -1,6 +1,5 @@
 import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
 import { EntityReadOnlyExpression } from "../Entity";
-import { EntityId } from "../Entity";
 import { NumberReadOnlyExpression } from "../../primitives/numberExpression";
 import { EffectReadOnlyExpression } from "../Effect";
 import { ActionReadOnlyExpression } from "./no-input-action";
@@ -30,16 +29,16 @@ export type ActionContext = {
   wait: (duration: TemporalReadOnlyExpression) => void;
   /** Teleport an entity to a cell in a group. */
   teleportTo: (target: {
-    groupId: EntityId;
-    entityId: EntityId;
+    groupId: EntityReadOnlyExpression;
+    entityId: EntityReadOnlyExpression;
     x: any;
     y: any;
     clamp?: boolean;
   }) => void;
   /** Begin a per-tick movement plan toward a target cell (advances by speed per tick). */
   moveTo: (target: {
-    groupId: EntityId;
-    entityId: EntityId;
+    groupId: EntityReadOnlyExpression;
+    entityId: EntityReadOnlyExpression;
     x: any;
     y: any;
     speed: any;

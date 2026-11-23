@@ -467,7 +467,8 @@ function (root) {
     /// item node ids, so the engine's id-diff reconciles add/update/remove.
     /// `entitiesFor(node.options.group, node.options.list)` is injected by the engine and must return an array
     /// of entity ids for the list's container (empty array when unknown).
-    function expandEntityLists(entitiesFor) {
+    /// `entityFor(id)` resolves each id to its read-only entity expression.
+    function expandEntityLists(entitiesFor, entityFor) {
         for (var i = 0; i < order.length; i++) {
             var node = nodes[order[i]];
             if (!node || node.kind !== 'division') continue;
@@ -483,7 +484,7 @@ function (root) {
                 var itemIds = [];
                 if (render && Array.isArray(entities)) {
                     for (var e = 0; e < entities.length; e++) {
-                        var result = render({ id: entities[e], index: e });
+                        var result = render({ id: entities[e], index: e, entity: entityFor(entities[e]) });
                         if (result == null) continue;
                         var arr = Array.isArray(result) ? result : [result];
                         for (var k = 0; k < arr.length; k++) {
@@ -1455,8 +1456,8 @@ function (root) {
                 order.push(n.id);
             });
         },
-        expandEntityLists: function (entitiesFor) {
-            expandEntityLists(entitiesFor);
+        expandEntityLists: function (entitiesFor, entityFor) {
+            expandEntityLists(entitiesFor, entityFor);
         },
         expandGroupViews: function (entitiesFor) {
             expandGroupViews(entitiesFor);

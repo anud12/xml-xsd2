@@ -7,7 +7,7 @@ import {EntityBlueprintApi} from "./primitives/entityBlueprint";
 import {MaybeReadOnlyExpressionApi} from "./primitives/maybeExpression";
 import {TemporalExpressionApi} from "./primitives/temporalExpression";
 import {SetEffectFunction, EffectReadOnlyExpression} from "./dataExpression/Effect";
-import {EntityDeclaration, EntityId, EntityReadOnlyExpression} from "./dataExpression/Entity";
+import {EntityDeclaration, EntityReadOnlyExpression} from "./dataExpression/Entity";
 import {SectorSide, GridReadOnlyExpression} from "./dataExpression/Sector";
 import {NumberMapReadOnlyExpressionApi} from "./numberMap";
 import {TextMapReadOnlyExpressionApi} from "./textMap";
@@ -58,8 +58,8 @@ export type HostApi = {
      * sector entity, its local cell `[x, y]`, and the boundary side (`"N"|"E"|"S"|"W"`).
      */
     linkOpening: (
-      a: { sector: EntityId, cell: [number, number], side: SectorSide },
-      b: { sector: EntityId, cell: [number, number], side: SectorSide },
+      a: { sector: EntityReadOnlyExpression, cell: [number, number], side: SectorSide },
+      b: { sector: EntityReadOnlyExpression, cell: [number, number], side: SectorSide },
     ) => void;
 
     /** Sets (creates or updates) a named behavior (priority/utility policy) for entities to attach. */

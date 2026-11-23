@@ -81,9 +81,13 @@ export default (hostApi) => {
       });
 
       context.getMutableEntityBy({
-        filters: [(c) => c.id.isContainingExactly(string.of("lands"))],
-      }).forEach((landsContainer) => {
-        landsContainer.removeMember("members", string.of(idStr));
+        filters: [(e) => e.id.isContainingExactly(string.of(idStr))],
+      }).forEach((entity) => {
+        context.getMutableEntityBy({
+          filters: [(c) => c.id.isContainingExactly(string.of("lands"))],
+        }).forEach((landsContainer) => {
+          landsContainer.removeMember("members", entity);
+        });
       });
       context.getMutableEntityBy({
         filters: [(c) => c.id.isContainingExactly(string.of("inventory"))],

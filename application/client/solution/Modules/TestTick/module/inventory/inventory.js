@@ -36,7 +36,7 @@ export const getInventoryModule = memoize((hostApi) => {
                                                 filters: [(container) => container.id.isContainingExactly(hostApi.runtime.string.of("inventory"))],
                                             }).forEach((inventory) => {
                                                 game.number_map.put("value", (current) => current.map((v) => v.subtract(cost)));
-                                                landsContainer.removeMember("members", id);
+                                                landsContainer.removeMember("members", land);
                                                 inventory.addMember("members", land);
                                             });
                                             return hostApi.runtime.condition.of(true);
