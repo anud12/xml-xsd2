@@ -19,6 +19,21 @@ public static class RuntimeInterop
     static Dictionary<string, byte[]>? _archiveCache;
     static string _archiveCachePath = "";
 
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr runtime_drain_action_messages();
+
+    public static string[] DrainActionDenials()
+    {
+        var ptr = runtime_drain_action_messages();
+        if (ptr == IntPtr.Zero) return Array.Empty<string>();
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(Marshal.PtrToStringUTF8(ptr) ?? "[]");
+            return doc.RootElement.EnumerateArray().Select(x => x.GetProperty("message").GetString() ?? "").ToArray();
+        }
+        finally { runtime_free_string(ptr); }
+    }
+
     public static string[] GetPanelIds()
     {
         var ptr = runtime_fetch_panel_ids();

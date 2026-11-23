@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" uid="uid://dcdakpochm7xn" path="res://Scenes/GameScene/Game.cs" id="1_ebmjs"]
 
+[ext_resource type="PackedScene" path="res://Sources/UI/ErrorMessageViewer/ErrorMessageViewer.tscn" id="2_error"]
+
 [node name="Game" type="Node" unique_id=1861671214]
 script = ExtResource("1_ebmjs")
 
@@ -65,3 +67,5 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="ErrorMessageViewer" parent="uiLayers" instance=ExtResource("2_error")]

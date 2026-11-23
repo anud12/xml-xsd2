@@ -1,3 +1,6 @@
+import { Expression } from "../../Expression";
+import { ConditionReadOnlyExpression } from "../../primitives/conditionExpression";
+import { StringReadOnlyExpression } from "../../primitives/stringExpression";
 import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
 import { EntityReadOnlyExpression } from "../Entity";
 import { NumberReadOnlyExpression } from "../../primitives/numberExpression";
@@ -46,3 +49,5 @@ export type ActionContext = {
   /** Trigger another registered action (an {@link ActionReadOnlyExpression} reference). */
   action?: (action: ActionReadOnlyExpression) => any;
 };
+
+export type ActionGuardResult = { condition: ConditionReadOnlyExpression<Expression>; message: StringReadOnlyExpression };

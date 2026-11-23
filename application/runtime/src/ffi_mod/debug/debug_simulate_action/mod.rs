@@ -68,6 +68,9 @@ fn dispatch_in_sim_or_fallback(
         return true;
     }
 
+    // Compatibility-only offline simulation has no persistent closures or
+    // live entity context; it does not evaluate guards. Live dispatch returns
+    // above even on denial, so it cannot reach the pattern fallback here.
     match crate::js_executor::simulate_action(files, name, current) {
         Ok((created, store)) => {
             fallback::handle_success(name, created, store, current)

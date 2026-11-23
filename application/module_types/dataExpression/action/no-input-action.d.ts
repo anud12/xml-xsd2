@@ -1,8 +1,7 @@
-import { ConditionReadOnlyExpression } from "../../primitives/conditionExpression";
 import { TemporalReadOnlyExpression } from "../../primitives/temporalExpression";
 import { StringReadOnlyExpression } from "../../primitives/stringExpression";
 import { Expression } from "../../Expression";
-import { ActionContext } from "./common";
+import { ActionContext, ActionGuardResult } from "./common";
 
 /**
  * Arguments for setting a no-input action via hostApi.setAction
@@ -11,7 +10,7 @@ export type SetActionArgs = {
   name: StringReadOnlyExpression;
   description?: string;
   cooldownGroup?: string;
-  guard?: (context: ActionContext) => ConditionReadOnlyExpression<Expression>;
+  guard?: (context: ActionContext) => ActionGuardResult;
   cooldown?: (context: ActionContext) => TemporalReadOnlyExpression;
   apply: (context: ActionContext) => void;
 };

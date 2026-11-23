@@ -31,7 +31,7 @@ export const getInventoryModule = memoize((hostApi) => {
                                     filters: [(entity) => entity.id.isContainingExactly(hostApi.runtime.string.of("game"))],
                                 }).forEach((game) => {
                                     game.number_map.get("value").ifPresent((value) => {
-                                        value.isGreaterOrEqualTo(cost).ifTrue(() => {
+                                        value.isGreaterThan(cost).ifTrue(() => {
                                             context.getMutableEntityBy({
                                                 filters: [(container) => container.id.isContainingExactly(hostApi.runtime.string.of("inventory"))],
                                             }).forEach((inventory) => {
@@ -53,6 +53,17 @@ export const getInventoryModule = memoize((hostApi) => {
     });
     const buy = hostApi.runtime.setAction({
         name: hostApi.runtime.string.of("inventory-buy"),
+        guard: (ctx) => {
+            const zero = hostApi.runtime.number.of(0);
+            const land = ctx.getEntityBy({ filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of(String(ctx.args.entityId)))] }).exactlyOne();
+            const game = ctx.getEntityBy({ filters: [(e) => e.id.isContainingExactly(hostApi.runtime.string.of("game"))] }).exactlyOne();
+            const cost = land.map((e) => e.number_map.get("cost").orElse(zero)).orElse(zero);
+            const value = game.map((e) => e.number_map.get("value").orElse(zero)).orElse(zero);
+            return {
+                condition: value.isGreaterThan(cost),
+                message: hostApi.runtime.string.of("Cannot buy: cost ").concat(cost.toStringExpression()).concat(hostApi.runtime.string.of(", you have ")).concat(value.toStringExpression()),
+            };
+        },
         apply: (ctx) => {
             ctx.emitEffect(purchaseEffect, { entityId: ctx.args.entityId });
         },

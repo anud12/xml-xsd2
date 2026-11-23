@@ -87,3 +87,6 @@ fn persisted_flag() -> &'static AtomicBool {
     });
     unsafe { PERSISTED_HAS_DATA.expect("persisted flag initialized") }
 }
+
+static ACTION_MESSAGES: std::sync::OnceLock<Mutex<Vec<serde_json::Value>>> = std::sync::OnceLock::new();
+pub fn action_messages() -> &'static Mutex<Vec<serde_json::Value>> { ACTION_MESSAGES.get_or_init(|| Mutex::new(Vec::new())) }

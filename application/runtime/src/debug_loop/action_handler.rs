@@ -8,6 +8,19 @@ pub fn handle_action(cmd: &str, delimiter: &str) {
         row.get(0).map(|s| s.as_str()) == Some(action_name)
     });
     if matched {
+        // A live sim owns the registered closures and guard factories. Never
+        // fall through to the legacy pattern fallback after a denial.
+        if crate::js_executor::sim_ctx::ctx().is_some() {
+            if let Err(e) = crate::js_executor::dispatch_action_in_sim_for(action_name, "") {
+                eprintln!("debug: action dispatch failed: {:?}", e);
+            }
+            crate::state::mark_persisted_has_data();
+            debug_println!("{delimiter}OK{delimiter}");
+            std::io::stdout().flush().ok();
+            return;
+        }
+        // Legacy fresh-context debug simulation has no persistent guard
+        // closures and remains a compatibility-only fallback.
         let files_map = build_files_map();
         let current = crate::state::last_entity_rows().lock().unwrap().clone();
         match crate::js_executor::simulate_action(&files_map, action_name, &current) {

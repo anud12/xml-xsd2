@@ -20,12 +20,12 @@ pub fn host_api_script_log() -> &'static str {
                 modulo: function(o) { return wrap(x % numOf(o)); },
                 toString: function() { return String(x); },
                 toJSON: function() { return x; },
-                isGreaterThan: function(o) { var t = numOf(o); return globalThis.condition.of(x > t); },
-                isLessThan: function(o) { var t = numOf(o); return globalThis.condition.of(x < t); },
-                isGreaterOrEqualTo: function(o) { var t = numOf(o); return globalThis.condition.of(x >= t); },
-                isLessOrEqualTo: function(o) { var t = numOf(o); return globalThis.condition.of(x <= t); },
-                isEqualTo: function(o) { var t = numOf(o); return globalThis.condition.of(x === t); },
-                isNotEqualTo: function(o) { var t = numOf(o); return globalThis.condition.of(x !== t); },
+                isGreaterThan: function(o) { var t = numOf(o); return globalThis.host.condition.of(x > t); },
+                isLessThan: function(o) { var t = numOf(o); return globalThis.host.condition.of(x < t); },
+                isGreaterOrEqualTo: function(o) { var t = numOf(o); return globalThis.host.condition.of(x >= t); },
+                isLessOrEqualTo: function(o) { var t = numOf(o); return globalThis.host.condition.of(x <= t); },
+                isEqualTo: function(o) { var t = numOf(o); return globalThis.host.condition.of(x === t); },
+                isNotEqualTo: function(o) { var t = numOf(o); return globalThis.host.condition.of(x !== t); },
                 toStringExpression: function() { return globalThis.host.string.of(String(x)); }
             };
         }
@@ -43,11 +43,14 @@ pub fn host_api_script_log() -> &'static str {
             value: v,
             of: function(x) { return globalThis.host.string.of(x); },
             map: function(x) { return globalThis.host.string.of(typeof x === 'object' ? x._raw || x.value : x); },
-            concat: function(o) { return globalThis.host.string.of(v + String(typeof o === 'object' ? o._raw || o.value : o)); },
+            concat: function(o) { return globalThis.host.string.of(v + String(o)); },
+            join: function(parts, separator) { return globalThis.host.string.of(parts.map(function(p) { return String(p); }).join(separator == null ? '' : String(separator))); },
+            prefix: function(s) { return globalThis.host.string.of(String(s) + v); },
+            suffix: function(s) { return globalThis.host.string.of(v + String(s)); },
             toString: function() { return v; },
             toJSON: function() { return v; },
-            isContaining: function(o) { var t = String(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(v.indexOf(t) >= 0); },
-            isContainingExactly: function(o) { var t = String(typeof o === 'object' ? o._raw || o.value : o); return globalThis.condition.of(v === t); }
+            isContaining: function(o) { var t = String(typeof o === 'object' ? o._raw || o.value : o); return globalThis.host.condition.of(v.indexOf(t) >= 0); },
+            isContainingExactly: function(o) { var t = String(typeof o === 'object' ? o._raw || o.value : o); return globalThis.host.condition.of(v === t); }
         };
     } },
     texture: {

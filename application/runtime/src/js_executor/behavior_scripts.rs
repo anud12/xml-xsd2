@@ -112,6 +112,7 @@ pub fn dispatch_action_in_sim_for(action_name: &str, actor: &str) -> Result<()> 
           globalThis.__planSteps = [];\
           var acts = globalThis.__registeredActions || [];\
           var actionObj = null;\
+          var denial = null;\
           for (var i = 0; i < acts.length; i++) {{\
             var a = acts[i];\
             if (a && typeof a === 'object'\
@@ -159,6 +160,7 @@ pub fn dispatch_action_in_sim_for(action_name: &str, actor: &str) -> Result<()> 
                string: {{ of: function(s){{ return s; }} }},\
                args: globalThis.__actionArgs || {{}},\
                actor: globalThis.__entityProxy({actor_json}),\
+               getEntityBy: function(f){{ return globalThis.__evalEntityFilter(f, false); }},\
               moveTo: function(spec){{\
                 var s = spec || {{}};\
                 var c = globalThis.__entityId(s.groupId);\
@@ -185,14 +187,40 @@ pub fn dispatch_action_in_sim_for(action_name: &str, actor: &str) -> Result<()> 
               }}\
             }};\
             try {{\
-              if (typeof actionObj === 'object' && typeof actionObj.apply === 'function') actionObj.apply(ctx);\
-              else if (typeof actionObj === 'function') actionObj(ctx);\
+              var target = ctx.args.target;\
+              var allowed = true;\
+              if (typeof actionObj.guard === 'function') {{\
+                var runtime = globalThis.hostApi.runtime;\
+                var numberOf = runtime.number.of, stringOf = runtime.string.of;\
+                var result;\
+                try {{\
+                  runtime.number.of = globalThis.host.number.of;\
+                  runtime.string.of = globalThis.host.string.of;\
+                  result = actionObj.guard(ctx, target);\
+                }} catch (e) {{\
+                  denial = name + ' guard error: ' + String(e);\
+                  globalThis.__logs = globalThis.__logs || [];\
+                  globalThis.__logs.push(denial);\
+                  allowed = false;\
+                }} finally {{\
+                  runtime.number.of = numberOf; runtime.string.of = stringOf;\
+                }}\
+                var structured = result && typeof result === 'object' && 'condition' in result;\
+                if (denial === null) allowed = globalThis.__condToBool(structured ? result.condition : result);\
+
+                if (!allowed) {{\
+                  var msg = structured ? result.message : '';\
+                  if (denial === null) denial = typeof msg === 'string' ? msg : (msg && typeof msg.value === 'string' ? msg.value : '');\
+                }}\
+              }}\
+              if (allowed && typeof actionObj === 'object' && typeof actionObj.apply === 'function') actionObj.apply(ctx, target);\
+              else if (allowed && typeof actionObj === 'function') actionObj(ctx);\
             }} catch(e) {{}}\
           }}\
           return JSON.stringify({{ plannedMoves: globalThis.__plannedMoves || [],\
             planSteps: globalThis.__planSteps || [],\
             interruptible: !!globalThis.__interruptible,\
-            pendingEffects: globalThis.__pendingEffects || [] }});\
+            pendingEffects: globalThis.__pendingEffects || [], denial: denial }});\
         }})({name_json})"
     );
     let raw = match sim_ctx::sim_with(ctx, |c| c.eval::<String, _>(script.as_str())) {
@@ -219,6 +247,10 @@ pub fn dispatch_action_in_sim_for(action_name: &str, actor: &str) -> Result<()> 
         Ok(v) => v,
         Err(_) => return Ok(()),
     };
+
+    if let Some(message) = v.get("denial").and_then(|v| v.as_str()) {
+        crate::state::action_messages().lock().unwrap().push(serde_json::json!({"actionName": action_name, "actor": actor, "message": message}));
+    }
 
     // Persist pending effects (so the effect path can run them this tick).
     if let Some(pe) = v.get("pendingEffects").and_then(|p| p.as_array()) {

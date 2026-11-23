@@ -20,6 +20,11 @@ public partial class Steps {
         return new AssertPanel(window);
     }
 
+    /// <summary>Creates an assertion wrapper for any rendered control.</summary>
+    public AssertPanel AssertPanelThat(Control control) {
+        return new AssertPanel(control);
+    }
+
     /// <summary>
     /// Fluent assertion helper for Godot panel/window nodes.
     /// Supports method chaining; each method returns <c>this</c>.
@@ -28,6 +33,12 @@ public partial class Steps {
         private readonly Node node;
         private UiWindow? window;
         private string path = "";
+
+        public AssertPanel(Control control) {
+            this.node = control;
+            this.window = control as UiWindow;
+            this.path = control != null ? $"/{control.Name}" : "/null";
+        }
 
         public AssertPanel(UiWindow window) {
             this.window = window;
