@@ -1,0 +1,6 @@
+{
+  "id": "parentsinkeyfilter",
+  "version": "1.0.0",
+  "name": "EntityFilter ParentsInKey",
+  "entry": "index.js"
+}

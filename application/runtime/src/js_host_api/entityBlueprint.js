@@ -330,6 +330,7 @@
       members: function (list) {
         return registered ? registered.members(list) : emptyEntityList();
       },
+      parentsInKey: function () { return emptyEntityList(); },
       getEntitiesInsideArea: function (area) {
         return registered ? registered.getEntitiesInsideArea(area) : emptyEntityList();
       },

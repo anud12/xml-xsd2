@@ -295,6 +295,29 @@ pub fn host_api_script_entity_filter() -> &'static str {
       members: function (name) {
         var lists = read().entityListMap;
         return globalThis.__makeValueList(lists && lists[name], globalThis.__entityProxy);
+      },
+      parentsInKey: function (keyTest) {
+        var ids = globalThis.__entityIds();
+        var owners = [];
+        for (var i = 0; i < ids.length; i++) {
+          var owner = globalThis.__readEntity(ids[i]);
+          var lists = owner && owner.entityListMap || {};
+          var keys = Object.keys(lists);
+          for (var j = 0; j < keys.length; j++) {
+            if (!Array.isArray(lists[keys[j]]) || lists[keys[j]].indexOf(eid) < 0) continue;
+            try {
+              var result = keyTest(wrapString(keys[j]));
+              // Primitive strings and numbers are not conditions, even though
+              // the general filter coercion accepts them for compatibility.
+              if ((typeof result === 'boolean' || (result && typeof result === 'object')) &&
+                  globalThis.__condToBool(result)) {
+                if (owners.indexOf(ids[i]) < 0) owners.push(ids[i]);
+              }
+            } catch (e) { }
+          }
+        }
+        owners.sort();
+        return globalThis.__makeValueList(owners, globalThis.__entityProxy);
       }
     };
     if (!mutable) return entity;

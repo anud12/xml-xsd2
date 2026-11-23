@@ -49,6 +49,22 @@ export type EntityListReadOnlyExpression = ListReadOnlyExpression<EntityReadOnly
 export type EntityReadOnlyExpression = Expression & {
   /** Read a named membership list, in declaration order. */
   members: (name: string) => EntityListReadOnlyExpression;
+  /**
+   * Reverse relation: the owner entities that contain THIS entity in a named list
+   * whose key passes `keyTest`, as a read-only entity list of the OWNERS (bare
+   * entities). Scan-based (storage is forward-only) — O(all entities × list sizes)
+   * per candidate; a reverse index may be added later without API change.
+   *
+   * `keyTest` receives the list key as a StringReadOnlyExpression (isContainingExactly,
+   * isContaining, ...) and must yield a condition; it is evaluated per (owner, key).
+   * Owners are deduped by id (an owner qualifying via two different keys appears once)
+   * and ordered by id ascending. A keyTest that throws or yields a malformed condition
+   * is caught and treated as falsy for that key. No qualifying owner yields an empty
+   * list (not an error). Chain .findBy / .hasEntity on the result to test the owners.
+   */
+  parentsInKey: (
+    keyTest: (key: StringReadOnlyExpression) => ConditionReadOnlyExpression<Expression>,
+  ) => EntityListReadOnlyExpression;
   /** The entity's id as a StringReadOnlyExpression (isContainingExactly, isContaining, ...). */
   id: StringReadOnlyExpression;
   /** The entity's number_map accessor (keyed lookups returning MaybeReadOnlyExpressions). */
