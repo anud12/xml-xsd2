@@ -10,8 +10,8 @@ namespace GdUnit4.Examples.Basics.Setup.Sources.UI;
 
 /// <summary>
 /// Records user UI interactions (clicks) for traceability and replay. Clicks are
-/// captured on the main thread (a non-blocking enqueue); the "Logging" thread
-/// drains the queue and appends each event to a <c>.replay</c> file (JSON lines)
+/// captured on the main thread; the "Logging" thread drains the queue and
+/// writes each event to a <c>.replay</c> file (JSON lines)
 /// that can later be <see cref="Replay"/>-ed to reproduce the interaction.
 /// </summary>
 /// <remarks>
@@ -38,53 +38,73 @@ public static class UiTraceability
 
     static readonly object _fileLock = new();
     static StreamWriter? _writer;
-    static string? _openPath;
 
     // The compiled JSON schema for one event line (embedded resource, loaded once).
     static JsonSchema? _schema;
     static readonly object _schemaLock = new();
     const string SchemaResourceName = "UiReplayEvent.schema.json";
 
-    /// Replay file path the Logging thread appends to. Null = recording disabled
-    /// (events are drained and discarded so the queue cannot grow unbounded).
-    /// Set from the main thread before interactions are captured. Setting it
-    /// resets the frame origin so the first recorded event is frame 0.
-    public static string? ReplayPath
-    {
-        get => _replayPath;
-        set { _replayPath = value; _originFrame = -1; }
-    }
     static string? _replayPath;
 
     /// Number of events the Logging thread has flushed to the replay file.
     public static long FlushedCount;
 
-    /// Number of events captured but not yet written to the replay file.
     public static int PendingCount => _events.Count;
 
-    /// Records a user click (main thread, non-blocking). The frame is the UI
-    /// frame at the moment of the click, relative to the first event in the
-    /// session (first event = frame 0).
-    public static void RecordClick(string nodeId, Godot.Vector2 pointer)
+    /// Starts an isolated recording, discarding events from any earlier session.
+    public static void BeginRecording(string path)
     {
-        long frame = RootNode.CurrentFrame;
-        if (_originFrame < 0) _originFrame = frame;
-        _events.Enqueue(new TraceEvent(
-            "ui.click", nodeId, frame - _originFrame,
-            Math.Round((double)pointer.X, 2), Math.Round((double)pointer.Y, 2)));
+        ArgumentException.ThrowIfNullOrEmpty(path);
+        lock (_fileLock)
+        {
+            CloseWriter();
+            _replayPath = null;
+            while (_events.TryDequeue(out _)) { }
+            _originFrame = -1;
+            _writer = new StreamWriter(
+                new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.ReadWrite),
+                new UTF8Encoding(false), 65536);
+            _replayPath = path;
+        }
     }
 
-    /// Drains pending events to the replay file and flushes. Runs on the "Logging"
-    /// thread; returns the number of events written (0 when disabled or empty).
+    /// Synchronously drains and closes the current session under the logger lock.
+    public static void EndRecording()
+    {
+        lock (_fileLock)
+        {
+            DrainLocked();
+            _replayPath = null;
+            _originFrame = -1;
+            CloseWriter();
+        }
+    }
+
+    public static void RecordClick(string nodeId, Godot.Vector2 pointer)
+    {
+        lock (_fileLock)
+        {
+            if (_replayPath == null) return;
+            long frame = RootNode.CurrentFrame;
+            if (_originFrame < 0) _originFrame = frame;
+            _events.Enqueue(new TraceEvent(
+                "ui.click", nodeId, frame - _originFrame,
+                Math.Round((double)pointer.X, 2), Math.Round((double)pointer.Y, 2)));
+        }
+    }
+
     public static int DrainAndWrite()
     {
-        string? path = ReplayPath;
-        if (path == null)
+        lock (_fileLock) return DrainLocked();
+    }
+
+    static int DrainLocked()
+    {
+        if (_replayPath == null)
         {
             while (_events.TryDequeue(out _)) { }
             return 0;
         }
-        EnsureOpen(path);
         var sb = new StringBuilder(2048);
         int n = 0;
         while (_events.TryDequeue(out var ev))
@@ -92,35 +112,22 @@ public static class UiTraceability
             sb.Append(ToJson(ev)).Append('\n');
             n++;
         }
-        if (n == 0) return 0;
-        lock (_fileLock)
+        if (n > 0)
         {
             _writer!.Write(sb.ToString());
             _writer.Flush();
+            Interlocked.Add(ref FlushedCount, n);
         }
-        Interlocked.Add(ref FlushedCount, n);
         return n;
     }
 
-    /// Flushes any remaining events and closes the replay file. Idempotent; called
-    /// when the Logging thread stops (or by a test that wants a settled file).
-    public static void Stop()
+    static void CloseWriter()
     {
-        lock (_fileLock)
-        {
-            if (_writer == null) return;
-            var sb = new StringBuilder();
-            while (_events.TryDequeue(out var ev))
-            {
-                sb.Append(ToJson(ev)).Append('\n');
-            }
-            if (sb.Length > 0) _writer.Write(sb.ToString());
-            _writer.Flush();
-            _writer.Dispose();
-            _writer = null;
-            _openPath = null;
-        }
+        _writer?.Dispose();
+        _writer = null;
     }
+
+    public static void Stop() => EndRecording();
 
     /// Parses a <c>.replay</c> file back into events, validating every line
     /// against the JSON schema (see <see cref="ValidateEvent"/>). Throws on the
@@ -239,29 +246,13 @@ public static class UiTraceability
         return n;
     }
 
-    static void EnsureOpen(string path)
-    {
-        lock (_fileLock)
-        {
-            if (_writer != null && _openPath == path) return;
-            if (_writer != null) { _writer.Dispose(); _writer = null; }
-            // FileShare.ReadWrite lets the test (or any reader) open the file
-            // for reading while the Logging thread holds it open to append
-            // (a reader's default FileShare.Read would otherwise reject the
-            // writer's write access and the read would fail with a sharing
-            // violation).
-            _writer = new StreamWriter(
-                new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite),
-                new UTF8Encoding(false), 65536);
-            _openPath = path;
-        }
-    }
-
     /// Asserts that the actual trace matches the expected trace (all fields per
     /// event, same count). Pointer is compared within 1px tolerance.
     public static void AssertTraceMatches(List<TraceEvent> actual, List<TraceEvent> expected)
     {
-        Assertions.AssertThat(actual.Count).IsEqual(expected.Count);
+        Assertions.AssertThat(actual.Count)
+            .OverrideFailureMessage($"Expected {expected.Count} replay events; actual: {string.Join("; ", actual)}")
+            .IsEqual(expected.Count);
         const double ptrTol = 1.0;
         for (int i = 0; i < expected.Count; i++)
         {

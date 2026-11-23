@@ -54,8 +54,7 @@ public class WindowOnClick : Steps {
         try {
             var expected = UiTraceability.ReadFile(Path.Combine(TestDir(), "buy-btn.expected.replay.jsonl"));
             string actualPath = Path.Combine(TestDir(), "buy-btn.actual.replay.jsonl");
-            if (File.Exists(actualPath)) File.Delete(actualPath);
-            UiTraceability.ReplayPath = actualPath;
+            UiTraceability.BeginRecording(actualPath);
 
             AddFileToArchive("module/index.js", "index.js")
                 .AddFileToArchive("module/manifest.json", "manifest.json")
@@ -69,7 +68,6 @@ public class WindowOnClick : Steps {
             {
                 Click(button.GlobalPosition + new Vector2(5, 5));
                 await runner.SimulateFrames(1);
-                await WaitForReplayEvents(actualPath, minCount: i);
             }
             var actual = await WaitForReplayEvents(actualPath, minCount: expected.Count);
 
@@ -88,7 +86,7 @@ public class WindowOnClick : Steps {
                 .IsFalse();
         }
         finally {
-            UiTraceability.ReplayPath = null;
+            UiTraceability.EndRecording();
         }
     }
 
@@ -149,10 +147,12 @@ public class WindowOnClick : Steps {
     static async Task<System.Collections.Generic.List<UiTraceability.TraceEvent>> WaitForReplayEvents(
         string path, int minCount, int timeoutMs = 10_000) {
         var sw = System.Diagnostics.Stopwatch.StartNew();
+        int previousCount = -1;
         while (sw.ElapsedMilliseconds < timeoutMs) {
             var evts = UiTraceability.ReadFile(path);
-            if (evts.Count >= minCount) return evts;
-            await Task.Delay(20);
+            if (evts.Count >= minCount && evts.Count == previousCount) return evts;
+            previousCount = evts.Count;
+            await Task.Delay(75);
         }
         return UiTraceability.ReadFile(path);
     }
