@@ -47,6 +47,10 @@ var __registeredAnimations={};
 var __animationHandles={};
 var hostApi={
   ui:{
+    appendErrorMessage:function(message){
+      if(typeof message !== 'string') { globalThis.__logs = globalThis.__logs || []; globalThis.__logs.push('appendErrorMessage: expected string'); return; }
+      (globalThis.__pendingUiMessages = globalThis.__pendingUiMessages || []).push(message);
+    },
     texture:{
       of:function(p){return p;}
     },

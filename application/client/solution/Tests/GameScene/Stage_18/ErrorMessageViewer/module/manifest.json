@@ -1,0 +1,6 @@
+{
+  "id": "error-message-viewer-test",
+  "version": "1.0.0",
+  "name": "Error Message Viewer Test Module",
+  "entry": "index.js"
+}

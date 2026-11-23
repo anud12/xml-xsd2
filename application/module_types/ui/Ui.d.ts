@@ -555,6 +555,8 @@ export type UiLegacyPanelOptions = {
   children?: string[];
 };
 export type UiApi = {
+  /** Append a message to the client's error message viewer (stacked, auto-fading). */
+  appendErrorMessage: (message: string) => void;
   panel: UiPanelComponent;
   window: UiWindowComponent;
   /**

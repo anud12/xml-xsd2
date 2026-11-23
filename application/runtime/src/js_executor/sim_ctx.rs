@@ -331,7 +331,32 @@ where
     F: FnOnce(rquickjs::Ctx<'_>) -> R,
 {
     let _guard = CTX_GUARD.lock().unwrap();
-    ctx.with(f)
+    ctx.with(|c| {
+        let result = f(c.clone());
+        // Registration-time messages are delivered at the next persistent sim
+        // invocation (normally the next game-loop tick, at most one tick late).
+        // Take them under the guard alongside action/effect/behavior/UI messages.
+        drain_ui_messages(&c);
+        result
+    })
+}
+
+/// Take pending messages from either a persistent or fresh QuickJS context.
+pub(crate) fn drain_ui_messages(c: &rquickjs::Ctx<'_>) {
+    let raw = c.eval::<String, _>("JSON.stringify((function(){var m=globalThis.__pendingUiMessages; globalThis.__pendingUiMessages=[]; return m == null ? [] : m;})())");
+    match raw.ok().and_then(|s| serde_json::from_str::<Vec<serde_json::Value>>(&s).ok()) {
+        Some(messages) => {
+            let mut queue = crate::state::action_messages().lock().unwrap();
+            for message in messages {
+                if let Some(message) = message.as_str() {
+                    queue.push(serde_json::json!({"message": message}));
+                } else {
+                    runtime_log!("appendErrorMessage: ignoring malformed message");
+                }
+            }
+        }
+        None => runtime_log!("appendErrorMessage: ignoring malformed message queue"),
+    }
 }
 
 /// Stash a typed input payload for the named effect in the persistent sim

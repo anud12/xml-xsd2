@@ -14,7 +14,11 @@ pub fn prepare_runtime_and_ctx() -> Result<(Runtime, Context)> {
 }
 
 fn run_sim_collect(ctx: &Context, script: &str) -> Result<(String, String)> {
-    let rj = ctx.with(|ctx| ctx.eval::<String, _>(script))?;
+    let rj = ctx.with(|ctx| {
+        let result = ctx.eval::<String, _>(script);
+        super::sim_ctx::drain_ui_messages(&ctx);
+        result
+    })?;
     let lj = ctx.with(|ctx| ctx.eval::<String, _>(
         "JSON.stringify(globalThis.__logs || [])"))
         .unwrap_or_else(|_| "[]".into());
@@ -76,6 +80,29 @@ fn persist_planned_moves(action_name: &str, sim: &Sr) {
             total,
             sim.interruptible,
         );
+    }
+}
+
+#[cfg(test)]
+mod ui_message_tests {
+    #[test]
+    fn fresh_context_drain_and_offline_action_deliver_messages() {
+        let queue = crate::state::action_messages();
+        queue.lock().unwrap().clear();
+        let (_rt, ctx) = super::prepare_runtime_and_ctx().unwrap();
+        ctx.with(|c| {
+            super::super::sim_ctx::drain_ui_messages(&c);
+            c.eval::<(), _>("globalThis.__pendingUiMessages=['first', 42, null, 'second']").unwrap();
+            super::super::sim_ctx::drain_ui_messages(&c);
+            super::super::sim_ctx::drain_ui_messages(&c);
+        });
+        assert_eq!(*queue.lock().unwrap(), vec![serde_json::json!({"message":"first"}), serde_json::json!({"message":"second"})]);
+        queue.lock().unwrap().clear();
+        let mut files = std::collections::HashMap::new();
+        files.insert("index.js".to_string(), "export default (hostApi) => { hostApi.runtime.setAction({ name: hostApi.runtime.string.of('offline'), apply: ctx => { hostApi.ui.appendErrorMessage('offline-message'); } }); };".to_string());
+        super::simulate_action(&files, "offline", &[]).unwrap();
+        assert_eq!(*queue.lock().unwrap(), vec![serde_json::json!({"message":"offline-message"})]);
+        queue.lock().unwrap().clear();
     }
 }
 

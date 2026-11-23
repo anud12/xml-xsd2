@@ -10,4 +10,7 @@ export default (hostApi) => {
   hostApi.runtime.setAction({ name: string.of('broken'), guard: () => { throw new Error('boom'); }, apply: ctx => ctx.wait(10) });
   hostApi.runtime.setAction({ name: string.of('boundary'), guard: () => ({ condition: number.of(9).isGreaterThan(number.of(9)), message: string.of('equal') }), apply: ctx => ctx.wait(10) });
   hostApi.runtime.setAction({ name: string.of('unguarded'), apply: ctx => ctx.wait(10) });
+  const messageEffect = hostApi.runtime.setEffect({ name: string.of('message-effect'), apply: () => hostApi.ui.appendErrorMessage('effect-message') });
+  hostApi.runtime.setAction({ name: string.of('emit-message-effect'), apply: ctx => ctx.emitEffect(messageEffect, {}) });
+  hostApi.runtime.setAction({ name: string.of('append'), apply: ctx => { hostApi.ui.appendErrorMessage('appended-1'); hostApi.ui.appendErrorMessage('appended-2'); ctx.wait(10); } });
 };
