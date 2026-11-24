@@ -27,6 +27,10 @@ public partial class Anchor : Steps {
             scene.AssertPanelThat("center")
                 .IsPositionEqual(500, 500)
                 .ViewportIsSize(100, 100);
+            scene.AssertPanelThat("anchor-first").IsPositionEqual(450, 450);
+            scene.AssertPanelThat("anchor-second").IsPositionEqual(23, 34);
+            scene.AssertPanelThat("anchor-xy").IsPositionEqual(12, 34);
+            scene.AssertPanelThat("screen-anchor-first").IsPositionEqual(450, 450);
         }
         catch (Exception e) {
             Assertions.AssertThat(true)

@@ -529,6 +529,7 @@ function (root) {
                 var entities = (typeof entitiesFor === 'function' && render && typeof cid === 'string')
                     ? entitiesFor(cid, node.options.list) : [];
                 var itemIds = [];
+                if (node.options.emptyCell !== undefined) node.options.emptyCellMembers = Array.isArray(entities) ? entities.slice() : [];
                 if (render && Array.isArray(entities)) {
                     for (var e = 0; e < entities.length; e++) {
                         var result = render({ id: entities[e], index: e });
@@ -1242,6 +1243,13 @@ function (root) {
             if (typeof render !== 'function') {
                 throw new Error('ui: groupView render must be a function(entity) => panelId');
             }
+            var emptyCell;
+            if (args.emptyCell !== undefined) {
+                emptyCell = backgroundRef(args.emptyCell);
+                if (!emptyCell || typeof emptyCell !== 'object' || !emptyCell.animation || !validProgressTexRef(emptyCell.animation)) {
+                    throw new Error('ui: groupView emptyCell must be a valid texture');
+                }
+            }
             groupViewRenders[name] = render;
             // The view node is a window (it extends panel: the size/position/
             // background/anchor live in `panel`). It carries `container`,
@@ -1254,6 +1262,7 @@ function (root) {
                 viewHeight: panel.height
             };
             if (args.area != null) opts.area = args.area;
+            if (emptyCell !== undefined) opts.emptyCell = emptyCell;
             opts.panel = normalizeOverflowOptions(resolveBorderOptions(resolveHoverOptions(normalizeOptions(panel))));
             return parentHandle(register({
                 id: name,

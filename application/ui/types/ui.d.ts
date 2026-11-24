@@ -18,6 +18,8 @@ export interface UiContainerEntity {
   index: number;
 }
 
+export type UiTexture = { animation: unknown; fill: { width: 'stretch' | 'fit' | 'tile'; height: 'stretch' | 'fit' | 'tile'; keepAspectRatio?: boolean }; nineSlice?: unknown };
+
 export interface UiFactories {
   /** The only layout node. Returns the node id. */
   div(id: string, options: UiDivisionOptions | undefined, children: string[]): string;
@@ -29,7 +31,7 @@ export interface UiFactories {
    * returns the node id(s) to place as that entity's children. Returns the
    * list node id.
    */
-  groupView(name: string, args: { group: string; list: string; panel: { width: number; height: number } }, render: (member: UiContainerEntity) => string | null): string;
+  groupView(name: string, args: { group: string; list: string; panel: { width: number; height: number }; /** Texture for empty cells; omitted cells remain transparent. */ emptyCell?: UiTexture }, render: (member: UiContainerEntity) => string | null): string;
   entityList(name: string, args: { group: string; list: string }, render: (entity: UiContainerEntity) => string | string[]): string;
 }
 

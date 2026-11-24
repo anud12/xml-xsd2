@@ -118,6 +118,7 @@ public static class UiSlab
             Add("height", Num(o.Height));
         }
         AddStr("anchor", o.Anchor);
+        AddStr("anchorChild", o.AnchorChild);
         AddStr("align", o.Align);
         AddStr("title", o.Title);
         var layout = SerializeLayout(o.Layout, arena);

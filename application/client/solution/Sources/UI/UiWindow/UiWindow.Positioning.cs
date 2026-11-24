@@ -24,9 +24,9 @@ public partial class UiWindow
             "top-left" => (0f, 0f),
             "top" => (0.5f, 0f),
             "top-right" => (1f, 0f),
-            "left" => (0f, 0.5f),
+            "left" or "center-left" => (0f, 0.5f),
             "center" => (0.5f, 0.5f),
-            "right" => (1f, 0.5f),
+            "right" or "center-right" => (1f, 0.5f),
             "bottom-left" => (0f, 1f),
             "bottom" => (0.5f, 1f),
             "bottom-right" => (1f, 1f),
@@ -37,15 +37,21 @@ public partial class UiWindow
     /// window's top-left coordinates in parent space; the anchor option
     /// places the window's top-left corner at the parent's anchor point
     /// when no x/y is given (default anchor center).
-    public void PositionWithin(Rect2 parentRect, UiNodeData node)
+    public void PositionWithin(Rect2 parentRect, UiNodeData node, string? parentAnchorChild = null)
     {
         if (!_isWindow) return;
         var childSize = _windowExplicitSize != Vector2.Zero
             ? _windowExplicitSize
             : SizeToContent();
         if (childSize == Vector2.Zero) childSize = new Vector2(100f, 100f);
+        if (_userSize != Vector2.Zero) childSize = _userSize;
         if (_hasUserPosition)
             Position = _userPosition;
+        else if (!_windowHasXY && parentAnchorChild != null)
+        {
+            var (fx, fy) = AnchorFraction(parentAnchorChild);
+            Position = parentRect.Position + (parentRect.Size - childSize) * new Vector2(fx, fy);
+        }
         else
             Position = _windowHasXY
                 ? new Vector2(

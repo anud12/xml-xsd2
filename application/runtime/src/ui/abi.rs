@@ -220,6 +220,7 @@ pub struct UiNodeOptions {
     pub has_xy: u8,
     pub has_size: u8,
     pub anchor: u32,
+    pub anchor_child: u32,
     pub align: u32,
     pub width: f32,
     pub height: f32,
@@ -729,6 +730,7 @@ fn empty_options() -> UiNodeOptions {
         has_xy: 0,
         has_size: 0,
         anchor: NO_STR,
+        anchor_child: NO_STR,
         align: NO_STR,
         width: 0.0,
         height: 0.0,
@@ -1446,6 +1448,7 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     o.y = opt_f32(panel, "y");
     o.has_xy = (has_x || has_y) as u8;
     o.anchor = opt_str(panel, "anchor", slab);
+    o.anchor_child = opt_str(panel, "anchorChild", slab);
     o.align = opt_str(panel, "align", slab);
     o.title = opt_str(panel, "title", slab);
     let has_w = opt_num(panel, "width").is_some();
@@ -1565,7 +1568,8 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     // A container view (top-level container, no layout container) is a
     // division stretched over its host window; the renderer must treat it as
     // one for mouse input (pass-through at the host resize zones).
-    o.container_view = if layout_container.is_none() && top_container.is_some() {
+    o.container_view = if (layout_container.is_none() && top_container.is_some())
+        || opts.get("containerView").and_then(|v| v.as_bool()) == Some(true) {
         1
     } else {
         0

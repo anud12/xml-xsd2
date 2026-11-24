@@ -353,6 +353,48 @@ test('ui.groupView expands one item per entity and stamps options.entity', () =>
   assert.strictEqual(itemB.options.entity, 'b');
 });
 
+test('ui.groupView validates and preserves emptyCell through expansion and reset', () => {
+  host.clear();
+  const base = { group: 'grid-1', list: 'members', panel: { width: 100, height: 100 } };
+  assert.throws(() => host.groupView('bad', { ...base, emptyCell: {} }, () => null), /emptyCell/);
+  assert.throws(() => host.groupView('bad-ref', { ...base, emptyCell: { animation: { frames: [] } } }, () => null), /emptyCell/);
+  assert.throws(() => host.groupView('bad-name', { ...base, emptyCell: { animation: { name: '' } } }, () => null), /emptyCell/);
+  const texture = { animation: { name: 'tile' }, fill: { width: 'stretch', height: 'stretch' } };
+  host.groupView('world', { ...base, emptyCell: texture }, () => null);
+  host.expandGroupViews(() => ['one']);
+  let view = host.snapshot().find(n => n.id === 'world');
+  assert.deepStrictEqual(view.options.emptyCell, texture);
+  assert.deepStrictEqual(view.options.emptyCellMembers, ['one']);
+  host.resetEntityViews();
+  view = host.snapshot().find(n => n.id === 'world');
+  assert.deepStrictEqual(view.children, ['$$groupView:world']);
+  host.expandGroupViews(() => ['two']);
+  view = host.snapshot().find(n => n.id === 'world');
+  assert.deepStrictEqual(view.options.emptyCellMembers, ['two']);
+});
+
+test('ui.groupView snapshots occupancy only with emptyCell and reset removes only host members', () => {
+  host.clear();
+  const base = { group: 'grid', list: 'members', panel: { width: 100, height: 100 } };
+  host.groupView('plain', base, () => null);
+  host.groupView('tiled', { ...base, emptyCell: { animation: { name: 'tile' } } },
+    e => e.id === 'hidden' ? null : host.window('item-' + e.id, {}, []));
+  const members = ['visible', 'hidden'];
+  host.expandGroupViews(() => members);
+  members.push('later');
+  let snap = host.snapshot();
+  assert.strictEqual(Object.hasOwn(snap.find(n => n.id === 'plain').options, 'emptyCellMembers'), false);
+  assert.deepStrictEqual(snap.find(n => n.id === 'tiled').options.emptyCellMembers, ['visible', 'hidden']);
+  assert.deepStrictEqual(snap.find(n => n.id === 'tiled').children, ['item-visible']);
+  assert.ok(!snap.some(n => n.id.startsWith('$$groupViewEmpty:')));
+  host.resetEntityViews();
+  snap = host.snapshot();
+  assert.deepStrictEqual(snap.find(n => n.id === 'tiled').children, ['$$groupView:tiled']);
+  assert.ok(!snap.some(n => n.id === 'item-visible' || n.id.startsWith('$$groupViewEmpty:')));
+  host.expandGroupViews(() => ['next']);
+  assert.deepStrictEqual(host.snapshot().find(n => n.id === 'tiled').children, ['item-next']);
+});
+
 test('ui.groupView with unknown container renders zero items', () => {
   host.clear();
   host.groupView('world', { group: 'grid-1', list: "members", panel: { width: 700, height: 500 } },

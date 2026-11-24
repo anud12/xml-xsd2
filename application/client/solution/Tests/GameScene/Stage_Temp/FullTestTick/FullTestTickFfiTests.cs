@@ -15,6 +15,53 @@ public partial class FullTestTickFfiTests : Steps {
     [TestCategory("Stage_temp")]
     [TestCase(Timeout = 30_000)]
     [RequireGodotRuntime]
+    public async Task Given_testtick_minimap_when_empty_tile_clicked_mcv_teleports() {
+        CleanupArchive();
+        foreach (var file in Directory.GetFiles(ModuleRoot, "*.*", SearchOption.AllDirectories)) {
+            var rel = Path.GetRelativePath(ModuleRoot, file).Replace('\\', '/');
+            AddFileToArchive("../../../../Modules/TestTick/" + rel, rel);
+        }
+        ProcessArchive();
+        var scene = await AttachUiScene();
+        RuntimeInterop.RunIteration();
+        await runner.SimulateFrames(3);
+
+        var view = scene.GetWindowOrNull("mcv-map-view");
+        Assertions.AssertThat(view != null).IsTrue();
+        var screen = scene.Window("__ui-screen-1");
+        Assertions.AssertThat(view!.Position).IsEqual((screen.Size - new Vector2(800, 600)) / 2f);
+        int count = 0;
+        UiWindow? target = null;
+        for (int y = 0; y < 10; y++) for (int x = 0; x < 10; x++) {
+            var tile = scene.GetWindowOrNull($"$$groupViewEmpty_12_mcv-map-view_{x}_{y}");
+            if (tile != null) count++;
+            // Stay well outside the 280x140 MCV window over the top-left map.
+            if (x == 2 && y == 5) target = tile;
+        }
+        Assertions.AssertThat(count).IsEqual(99);
+        Assertions.AssertThat(target != null).IsTrue();
+        Assertions.AssertThat(target!.MouseFilter == Control.MouseFilterEnum.Pass).IsTrue();
+        var pos = target!.GlobalPosition + target.Size / 2f;
+        // Verify the live tile is actually positioned at cell (2,5), rather
+        // than merely existing in the snapshot, and the floating window is not in the way.
+        Assertions.AssertThat(target.GlobalPosition - view!.GlobalPosition).IsEqual(new Vector2(160, 300));
+        Assertions.AssertThat(scene.GetWindowOrNull("mcv-window")!.GetGlobalRect().HasPoint(pos)).IsFalse();
+        var viewport = runner.Scene().GetViewport();
+        viewport.PushInput(new InputEventMouseButton { Position = pos, GlobalPosition = pos,
+            ButtonIndex = MouseButton.Left, Pressed = true, ButtonMask = MouseButtonMask.Left });
+        viewport.PushInput(new InputEventMouseButton { Position = pos, GlobalPosition = pos,
+            ButtonIndex = MouseButton.Left, Pressed = false, ButtonMask = 0 });
+        await runner.SimulateFrames(2);
+        RuntimeInterop.RunIteration();
+        await runner.SimulateFrames(2);
+        Assertions.AssertThat(double.Parse(RuntimeInterop.ReadEntityNumberValue("mcv", "x"))).IsEqual(2.0);
+        Assertions.AssertThat(double.Parse(RuntimeInterop.ReadEntityNumberValue("mcv", "y"))).IsEqual(5.0);
+        ClearSimulatedMouse();
+    }
+
+    [TestCategory("Stage_temp")]
+    [TestCase(Timeout = 30_000)]
+    [RequireGodotRuntime]
     public async Task Given_generated_land_when_bought_it_moves_to_inventory_and_is_displayed() {
         CleanupArchive();
         foreach (var file in Directory.GetFiles(ModuleRoot, "*.*", SearchOption.AllDirectories)) {

@@ -167,6 +167,7 @@ public static class UiAbi
         public byte HasXY;
         public byte HasSize;
         public uint Anchor;
+        public uint AnchorChild;
         public uint Align;
         public float Width;
         public float Height;

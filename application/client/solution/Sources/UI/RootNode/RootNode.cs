@@ -418,8 +418,27 @@ public partial class RootNode : Godot.Panel
             UiWindow? parent = null;
             if (parentOf.TryGetValue(node.Id, out var pid))
                 _windows.TryGetValue(pid, out parent);
-            Reparent(win, parent, byId[node.Id]);
+            Reparent(win, parent, byId[node.Id], FirstChildAnchor(node, byId) != null);
         }
+    }
+
+    // First is the first declared child ID, including non-window children.
+    string? FirstChildAnchor(UiNodeData node, Dictionary<string, UiNodeData> byId)
+    {
+        if (node.Kind != UiNodeKind.Window || !_parentOfCache.TryGetValue(node.Id, out var id)
+            || !byId.TryGetValue(id, out var parent)
+            || parent.Kind is not (UiNodeKind.Window or UiNodeKind.Screen)
+            || parent.Children.Count == 0 || parent.Children[0] != node.Id) return null;
+        try
+        {
+            using var options = System.Text.Json.JsonDocument.Parse(parent.OptionsJson);
+            if (options.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
+                && options.RootElement.TryGetProperty("anchorChild", out var value)
+                && value.ValueKind == System.Text.Json.JsonValueKind.String)
+                return value.GetString();
+        }
+        catch (System.Text.Json.JsonException) { }
+        return null;
     }
 
     /// Positions every window against its parent's rect.
@@ -428,8 +447,10 @@ public partial class RootNode : Godot.Panel
         foreach (var kv in _windows)
         {
             var win = kv.Value;
-            if (_flattened.Contains(win.Name)) continue;
-            if (!byId.TryGetValue(win.Name, out var node)) continue;
+            // Godot sanitizes node names (e.g. ':' becomes '_'); the dictionary
+            // key retains the original runtime ID used by the snapshot.
+            if (_flattened.Contains(kv.Key)) continue;
+            if (!byId.TryGetValue(kv.Key, out var node)) continue;
             // The screen always fills the viewport (FullRect); positioning it
             // against the viewport rect would shrink it to content size.
             if (node.Kind == UiNodeKind.Screen) continue;
@@ -452,7 +473,7 @@ public partial class RootNode : Godot.Panel
                 // idempotent (each repaint would drift the child's position).
                 parentRect = new Rect2(Vector2.Zero, parentWin.Size);
             }
-            win.PositionWithin(parentRect, node);
+            win.PositionWithin(parentRect, node, FirstChildAnchor(node, byId));
         }
     }
 

@@ -254,6 +254,7 @@ fn tick_inner() -> Result<()> {
     resolve_field_values(&mut snapshot);
     resolve_progress_values(&mut snapshot);
     resolve_group_view_positions(&mut snapshot);
+    add_empty_group_cells(&mut snapshot);
     let snapshot = visible_nodes(&snapshot);
 
     // Keep the animation-definition store in sync for the fetch FFI (the
@@ -540,6 +541,53 @@ fn resolve_group_view_positions(snapshot: &mut [UiNode]) {
     }
 }
 
+/// Add transient, stable-id background nodes after JS expansion. They are not
+/// registered in the host, so its reset/marker restoration remains unchanged.
+fn add_empty_group_cells(snapshot: &mut Vec<UiNode>) {
+    let entities = crate::state::entity_map().lock().unwrap();
+    let mut added = Vec::new();
+    for node in snapshot.iter_mut() {
+        let (id, options, children) = match node {
+            UiNode::Window { id, options, children } | UiNode::Division { id, options, children } => (id, options, children),
+            _ => continue,
+        };
+        let Some(texture) = options.get("emptyCell").cloned() else { continue };
+        let Some(group) = options.get("group").and_then(|v| v.as_str()).and_then(|id| entities.get(id)) else { continue };
+        let (Some(sx), Some(sy), Some(w), Some(h)) = (group.number("sizeX"), group.number("sizeY"), options.get("viewWidth").and_then(|v| v.as_f64()), options.get("viewHeight").and_then(|v| v.as_f64())) else { continue };
+        // A grid has integral, positive dimensions; avoid unbounded allocations.
+        if !sx.is_finite() || !sy.is_finite() || sx < 1.0 || sy < 1.0 || sx.fract() != 0.0 || sy.fract() != 0.0 || sx * sy > 1_000_000.0 { continue; }
+        let (nx, ny) = (sx as usize, sy as usize);
+        let (cw, ch) = (w / sx, h / sy);
+        let center = group.string_map.get("alignment").is_some_and(|a| a == "center");
+        let mut occupied = vec![false; nx * ny];
+        if let Some(members) = options.get("emptyCellMembers").and_then(|v| v.as_array()) {
+            for member in members.iter().filter_map(|v| v.as_str()).filter_map(|id| entities.get(id)) {
+                let (x, y) = member.position();
+                let (sw, sh) = (member.number("spanX").unwrap_or(1.0).max(1.0), member.number("spanY").unwrap_or(1.0).max(1.0));
+                let (left, top) = if center { (x - sw / 2.0, y - sh / 2.0) } else { (x, y) };
+                if !left.is_finite() || !top.is_finite() || !sw.is_finite() || !sh.is_finite() { continue; }
+                let (x0, y0) = (left.floor().max(0.0).min(sx) as usize, top.floor().max(0.0).min(sy) as usize);
+                let (x1, y1) = ((left + sw).ceil().max(0.0).min(sx) as usize, (top + sh).ceil().max(0.0).min(sy) as usize);
+                for cy in y0..y1 { for cx in x0..x1 { occupied[cy * nx + cx] = true; } }
+            }
+        }
+        let mut tile_ids = Vec::new();
+        for cy in 0..ny { for cx in 0..nx {
+            if occupied[cy * nx + cx] { continue; }
+            let tile_id = format!("$$groupViewEmpty:{}:{}:{}:{}", id.len(), id, cx, cy);
+            let mut background = texture.clone();
+            if let Some(obj) = background.as_object_mut() {
+                obj.insert("fill".into(), serde_json::json!({"width":"stretch","height":"stretch","keepAspectRatio":false}));
+            }
+            added.push(UiNode::Window { id: tile_id.clone(), options: serde_json::json!({"containerView": true, "panel": {"x": cx as f64 * cw, "y": cy as f64 * ch, "width": cw, "height": ch, "background": background}}), children: vec![] });
+            tile_ids.push(tile_id);
+        }}
+        tile_ids.append(children);
+        *children = tile_ids;
+    }
+    snapshot.extend(added);
+}
+
 /// Stamp the entity's declared areas (translated to view-local logical units)
 /// into the item's `options.panel.areaOutline`. `area_styles` selects which named
 /// areas to draw and the outline style for each (every field required on each
@@ -750,6 +798,110 @@ mod tests {
 
     fn node_json(json: &str) -> UiNode {
         serde_json::from_str(json).unwrap()
+    }
+
+    #[test]
+    fn empty_group_cells_follow_spans_and_order() {
+        let _guard = lock();
+        {
+            let mut entities = crate::state::entity_map().lock().unwrap();
+            let group = crate::state::ensure_entity(&mut entities, "empty-test-group");
+            group.number_map.extend([("sizeX".into(), 3.0), ("sizeY".into(), 2.0)]);
+            let member = crate::state::ensure_entity(&mut entities, "empty-test-member");
+            member.number_map.extend([("x".into(), 0.0), ("y".into(), 0.0), ("spanX".into(), 2.0)]);
+        }
+        let view = node_json(r#"{"kind":"window","id":"empty-test-view","options":{"group":"empty-test-group","viewWidth":300,"viewHeight":100,"emptyCell":{"animation":{"name":"tile"},"fill":{}},"emptyCellMembers":["empty-test-member"]},"children":["member"]}"#);
+        let mut snapshot = vec![view.clone()];
+        add_empty_group_cells(&mut snapshot);
+        assert_eq!(snapshot.len(), 5);
+        let UiNode::Window { children, .. } = &snapshot[0] else { panic!() };
+        assert_eq!(children.last().unwrap(), "member");
+        let UiNode::Window { options, .. } = &snapshot[1] else { panic!() };
+        assert_eq!(options["panel"]["x"], 200.0);
+        assert_eq!(options["panel"]["y"], 0.0);
+        assert_eq!(options["panel"]["width"], 100.0);
+        assert_eq!(options["panel"]["height"], 50.0);
+        let mut absent = vec![view];
+        if let UiNode::Window { options, .. } = &mut absent[0] { options.as_object_mut().unwrap().remove("emptyCell"); }
+        let original = absent.clone();
+        add_empty_group_cells(&mut absent);
+        assert_eq!(absent, original);
+    }
+
+    #[test]
+    fn empty_group_cells_exact_geometry_and_abi_passthrough() {
+        let _guard = lock();
+        crate::state::clear_state();
+        {
+            let mut entities = crate::state::entity_map().lock().unwrap();
+            let group = crate::state::ensure_entity(&mut entities, "tile-grid");
+            group.number_map.extend([("sizeX".into(), 4.0), ("sizeY".into(), 2.0)]);
+            let member = crate::state::ensure_entity(&mut entities, "tile-member");
+            member.number_map.extend([("x".into(), 1.0), ("y".into(), 0.0), ("spanX".into(), 2.0), ("spanY".into(), 2.0)]);
+        }
+        let view = node_json(r#"{"kind":"window","id":"grid","options":{"group":"tile-grid","viewWidth":400,"viewHeight":100,"emptyCell":{"animation":{"name":"tile"}},"emptyCellMembers":["tile-member"]},"children":["member"]}"#);
+        let mut snapshot = vec![view.clone()];
+        add_empty_group_cells(&mut snapshot);
+        let expected = [(0, 0), (3, 0), (0, 1), (3, 1)];
+        assert_eq!(snapshot.len(), 5);
+        let UiNode::Window { children, .. } = &snapshot[0] else { panic!() };
+        let ids: Vec<String> = expected.iter().map(|(x, y)| format!("$$groupViewEmpty:4:grid:{x}:{y}")).collect();
+        assert_eq!(&children[..4], ids.as_slice());
+        assert_eq!(children[4], "member");
+        for (node, ((x, y), id)) in snapshot[1..].iter().zip(expected.iter().zip(&ids)) {
+            let UiNode::Window { id: actual, options, .. } = node else { panic!() };
+            assert_eq!(actual, id);
+            assert_eq!(options["panel"]["x"], (*x as f64) * 100.0);
+            assert_eq!(options["panel"]["y"], (*y as f64) * 50.0);
+            assert_eq!(options["panel"]["width"], 100.0);
+            assert_eq!(options["panel"]["height"], 50.0);
+            assert_eq!(options["containerView"], true);
+        }
+        let slab = abi::build_snapshot(&snapshot, &HashMap::new());
+        unsafe {
+            let s = &*slab;
+            let nodes = std::slice::from_raw_parts(s.nodes, s.node_count as usize);
+            assert_eq!(nodes[1].opt.container_view, 1);
+            assert_eq!(nodes[1].opt.background.kind, abi::UI_BG_ANIMATION);
+            assert_eq!(nodes[1].opt.background.paint.flags, 0);
+            abi::free_snapshot(slab);
+        }
+        let mut absent = vec![view];
+        if let UiNode::Window { options, .. } = &mut absent[0] { options.as_object_mut().unwrap().remove("emptyCell"); }
+        let original = absent.clone();
+        add_empty_group_cells(&mut absent);
+        assert_eq!(absent, original);
+    }
+
+    #[test]
+    fn empty_group_cells_clip_centered_members_and_guard_dimensions() {
+        let _guard = lock();
+        crate::state::clear_state();
+        {
+            let mut entities = crate::state::entity_map().lock().unwrap();
+            let group = crate::state::ensure_entity(&mut entities, "clip-grid");
+            group.number_map.extend([("sizeX".into(), 4.0), ("sizeY".into(), 2.0)]);
+            group.string_map.insert("alignment".into(), "center".into());
+            let member = crate::state::ensure_entity(&mut entities, "clip-member");
+            member.number_map.extend([("x".into(), 0.0), ("y".into(), 1.0), ("spanX".into(), 2.0), ("spanY".into(), 2.0)]);
+        }
+        let view = node_json(r#"{"kind":"window","id":"clip","options":{"group":"clip-grid","viewWidth":400,"viewHeight":100,"emptyCell":{"animation":{"name":"tile"}},"emptyCellMembers":["clip-member"]},"children":[]}"#);
+        let mut snapshot = vec![view.clone()];
+        add_empty_group_cells(&mut snapshot);
+        let UiNode::Window { children, .. } = &snapshot[0] else { panic!() };
+        let expected: Vec<String> = (0..2).flat_map(|y| (1..4).map(move |x| format!("$$groupViewEmpty:4:clip:{x}:{y}"))).collect();
+        assert_eq!(children, &expected);
+        for (x, y) in [(1001.0, 1001.0), (4.5, 2.0), (0.0, 2.0)] {
+            {
+                let mut entities = crate::state::entity_map().lock().unwrap();
+                let group = entities.get_mut("clip-grid").unwrap();
+                group.number_map.insert("sizeX".into(), x);
+                group.number_map.insert("sizeY".into(), y);
+            }
+            let mut guarded = vec![view.clone()];
+            add_empty_group_cells(&mut guarded);
+            assert_eq!(guarded, vec![view.clone()], "dimensions {x}x{y}");
+        }
     }
 
     /// Install `source` as the module entry in the persistent sim context

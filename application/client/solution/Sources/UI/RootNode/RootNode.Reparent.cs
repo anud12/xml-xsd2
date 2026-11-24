@@ -11,7 +11,7 @@ public partial class RootNode
     /// go into the parent's flow container (box/grid), x/y-positioned child
     /// windows go directly under the parent window. Top-level nodes stay under
     /// this root.
-    void Reparent(UiWindow win, UiWindow? parent, UiNodeData node)
+    void Reparent(UiWindow win, UiWindow? parent, UiNodeData node, bool anchorChild)
     {
         if (parent == null || parent == win)
         {
@@ -21,7 +21,7 @@ public partial class RootNode
             return;
         }
         bool hasXY = win.HasWindowXY;
-        if (hasXY)
+        if (hasXY || anchorChild)
         {
             if (win.GetParent() != parent)
             {

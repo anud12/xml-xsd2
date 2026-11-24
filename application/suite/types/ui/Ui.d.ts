@@ -212,6 +212,12 @@ export type UiPanelOptions = {
     width?: number;
     height?: number;
     anchor?: "top-left" | "top" | "top-right" | "center-left" | "center" | "center-right" | "bottom-left" | "bottom" | "bottom-right" | { x?: number; y?: number };
+    /** Anchor the first declared child window by matching its corresponding
+     * point to this parent's point (e.g. center subtracts half its size).
+     * Other children and non-positioned first children are unaffected. A
+     * child x or y or user-dragged position wins; otherwise this overrides
+     * the child's own anchor. */
+    anchorChild?: "top-left" | "top" | "top-right" | "center-left" | "center" | "center-right" | "bottom-left" | "bottom" | "bottom-right";
     align?: AlignOption;
     background?: UiTexture;
     border?: { texture?: UiTexture; thickness?: number; width?: number; height?: number };
@@ -370,6 +376,8 @@ export type UiGroupViewOptions = UiPanelOptions & {
   panel: UiPanelOptions["panel"] & { width: number; height: number };
   group: EntityReadOnlyExpression;
   list: string;
+  /** Texture rendered as the background of every empty cell (a cell with no member). Omitted → empty cells remain transparent as before. */
+  emptyCell?: UiTexture;
   /**
    * The declared areas to draw as outlines, one entry per area. Each entry
    * selects a named area and the outline style for it. When omitted, the
@@ -447,11 +455,16 @@ export type UiEntityListOptions = {
  * Options for the global full-screen screen (ui.setScreen): the panel api
  * minus positioning/sizing — the renderer always fills the viewport, so the
  * sizing fields (x/y/width/height/anchor) do not exist here. The
- * presentation is nested under a required `screen` key. For now only
- * `background` is honored (the same {@link UiTexture} as a panel).
+ * presentation is nested under a required `screen` key. `background` and `anchorChild` are honored (the same {@link UiTexture} as a panel).
  */
 export type UiScreenOptions = {
   screen: {
+    /** Anchor the first declared child window by matching its corresponding
+     * point to this parent's point (e.g. center subtracts half its size).
+     * Other children and non-positioned first children are unaffected. A
+     * child x or y or user-dragged position wins; otherwise this overrides
+     * the child's own anchor. */
+    anchorChild?: "top-left" | "top" | "top-right" | "center-left" | "center" | "center-right" | "bottom-left" | "bottom" | "bottom-right";
     background?: UiTexture;
   }
 };
