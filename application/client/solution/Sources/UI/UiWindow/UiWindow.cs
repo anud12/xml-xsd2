@@ -10,6 +10,31 @@ namespace GdUnit4.Examples.Basics.Setup.Sources.UI;
 public partial class UiWindow : Control
 {
     readonly Dictionary<string, UiWindow> _children = new();
+    readonly Dictionary<Control, MouseFilterEnum> _savedMouseFilters = new();
+
+    // Preserve each control's own interactive default, including Pass and Ignore.
+    // Call after reconciliation to include newly attached controls.
+    public void SetSubtreeInteractive(bool interactive)
+    {
+        if (interactive)
+        {
+            foreach (var (control, filter) in _savedMouseFilters)
+                if (GodotObject.IsInstanceValid(control) && !control.IsQueuedForDeletion())
+                    control.MouseFilter = filter;
+            _savedMouseFilters.Clear();
+            return;
+        }
+        void Visit(Node node)
+        {
+            if (node is Control control)
+            {
+                _savedMouseFilters.TryAdd(control, control.MouseFilter);
+                control.MouseFilter = MouseFilterEnum.Ignore;
+            }
+            foreach (var child in node.GetChildren()) Visit(child);
+        }
+        Visit(this);
+    }
     string _nodeId = "";
     bool _isText;
     // Cached window layout options; used to reposition on resize.
@@ -125,7 +150,12 @@ public partial class UiWindow : Control
     {
         _nodeId = node.Id;
         var opts = ParseOptions(node);
+        var hadHoverWindow = _hoverWindowJs;
         WireInteractivity(node, opts);
+        if (!hadHoverWindow && _hoverWindowJs && _isHovered)
+            _hoverWindowEnterPending = true;
+        else if (!_hoverWindowJs)
+            _hoverWindowEnterPending = false;
         WireDragDrop(node, opts);
         if (!_guiInputWired && !_hoverWired
             && (node.Kind == UiNodeKind.Text || node.Kind == UiNodeKind.Field || node.Kind == UiNodeKind.Image))

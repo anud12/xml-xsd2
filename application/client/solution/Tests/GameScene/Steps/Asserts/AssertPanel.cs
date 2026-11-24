@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Threading.Tasks;
 using GdUnit4;
 using Godot;
 using GdUnit4.Examples.Basics.Setup.Sources.UI;
@@ -17,12 +18,12 @@ public partial class Steps {
     /// Accepts null (for negative-existence assertions via <c>IsNonNull</c>).
     /// </summary>
     public AssertPanel AssertPanelThat(UiWindow window) {
-        return new AssertPanel(window);
+        return new AssertPanel(window) { FramePump = () => runner.SimulateFrames(10) };
     }
 
     /// <summary>Creates an assertion wrapper for any rendered control.</summary>
     public AssertPanel AssertPanelThat(Control control) {
-        return new AssertPanel(control);
+        return new AssertPanel(control) { FramePump = () => runner.SimulateFrames(10) };
     }
 
     /// <summary>
@@ -30,6 +31,7 @@ public partial class Steps {
     /// Supports method chaining; each method returns <c>this</c>.
     /// </summary>
     public class AssertPanel {
+        internal Func<Task> FramePump { get; set; }
         private readonly Node node;
         private UiWindow? window;
         private string path = "";
@@ -773,6 +775,112 @@ public partial class Steps {
 
             File.Delete(actualPath);
             return this;
+        }
+
+        /// <summary>
+        /// Renders the node's <b>subtree in isolation</b> on a transparent
+        /// background (every pixel the subtree does not draw is ARGB 0,0,0,0)
+        /// and compares it against a reference PNG. Unlike
+        /// <see cref="ViewportMatches"/>, which crops the shared main viewport
+        /// (so overlapping siblings bleed in), this renders only the node and
+        /// its descendants into a throwaway transparent <see cref="SubViewport"/>.
+        ///
+        /// <para>
+        /// <b>Snapshot model.</b> The capture is a point-in-time photo: the live
+        /// control is <c>Duplicate()</c>d, the clone is rendered in the
+        /// SubViewport, compared, and both the SubViewport and clone are freed.
+        /// The live control is never reparented or mutated.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Limitation — custom <c>_Draw</c> state.</b> Godot's
+        /// <c>Duplicate()</c> copies the node tree and <c>[Export]</c>ed
+        /// properties, but it does <b>not</b> copy arbitrary non-exported C#
+        /// instance fields. A <see cref="UiWindow"/> that paints part of itself
+        /// in <c>_Draw</c> from such fields (e.g. <c>_portalArrow</c>,
+        /// <c>_areaOutline</c>, progress, or time-advanced animation frame state
+        /// in <c>UiWindow.Background.cs</c>) will render that part as
+        /// <b>missing</b> in the isolated snapshot, because the
+        /// <c>Apply*</c> methods that populate those fields only run on the
+        /// live instance. Plain content (text, titles, panels,
+        /// <c>bodyColor</c>, texture/animation backgrounds attached as child
+        /// nodes) is fully captured and needs no special handling.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Extension point — the <c>ISnapshotSource</c> seam (recommended).</b>
+        /// The snapshot is produced through a single swappable factory
+        /// (<c>Func&lt;Node&gt; snapshotFactory = () =&gt; control.Duplicate();</c>),
+        /// so the render/compare/teardown logic never needs to change. To make
+        /// a window type with custom <c>_Draw</c> state capture faithfully, have
+        /// the type own its own snapshotting via a marker interface:
+        /// <code>
+        /// public interface ISnapshotSource { Node CaptureSnapshot(); }
+        /// </code>
+        /// The type implements <c>CaptureSnapshot()</c> to <c>Duplicate()</c>
+        /// itself and then re-populate its non-exported <c>_Draw</c> fields on
+        /// the clone (or re-drive its <c>Apply*</c> option application), keeping
+        /// that knowledge inside the type that owns the fields. This method then
+        /// selects the factory by capability:
+        /// <code>
+        /// Func&lt;Node&gt; snapshotFactory = node is ISnapshotSource s
+        ///     ? () =&gt; s.CaptureSnapshot()
+        ///     : () =&gt; control.Duplicate();
+        /// </code>
+        /// This is preferred over ad-hoc field-copying in test code because a
+        /// new <c>_Draw</c> field added to the type can never silently desync
+        /// from the test helper — the type controls its own snapshot.
+        /// </para>
+        /// </summary>
+        public async Task<AssertPanel> AssertRenderMatches(string relativeImagePath, float tolerance = 0.01f,
+            [CallerFilePath] string callerPath = "")
+        {
+            if (node is not Control control) throw new InvalidOperationException($"Node at {path} is not a Control");
+            Func<Node> snapshotFactory = () => control.Duplicate();
+            var clone = (Control)snapshotFactory();
+            var sub = new SubViewport {
+                Size = (Vector2I)control.Size,
+                TransparentBg = true,
+                RenderTargetUpdateMode = SubViewport.UpdateMode.Always
+            };
+            try {
+                control.GetViewport().AddChild(sub);
+                sub.AddChild(clone);
+                clone.Position = Vector2.Zero;
+                clone.Size = control.Size;
+                await FramePump();
+                using var image = sub.GetTexture().GetImage();
+                var expectedPath = Path.Combine(Path.GetDirectoryName(callerPath), relativeImagePath);
+                if (!File.Exists(expectedPath)) {
+                    Directory.CreateDirectory(Path.GetDirectoryName(expectedPath));
+                    image.SavePng(expectedPath);
+                    GD.Print($"[refgen] created viewport reference {expectedPath}");
+                    return this;
+                }
+                var actualPath = Path.Combine(Path.GetTempPath(), $"actual_panel_{DateTime.Now.Ticks}.png");
+                image.SavePng(actualPath);
+                using var expected = new Image();
+                expected.LoadPngFromBuffer(File.ReadAllBytes(expectedPath));
+                bool equal = false;
+                if (image.GetWidth() == expected.GetWidth() && image.GetHeight() == expected.GetHeight()) {
+                    int diff = 0;
+                    var actualData = image.GetData();
+                    var expectedData = expected.GetData();
+                    if (actualData.Length == expectedData.Length) {
+                        for (int i = 0; i < actualData.Length; i++)
+                            if (Math.Abs(actualData[i] - expectedData[i]) > 1) diff++;
+                        equal = (double)diff / actualData.Length <= tolerance;
+                    }
+                }
+                if (!equal)
+                    Assertions.AssertBool(false).OverrideFailureMessage(
+                        $"Node at \"{path}\" screenshot mismatch! Actual: \"{actualPath}\" vs Expected: \"{relativeImagePath}\"").IsTrue();
+                File.Delete(actualPath);
+                return this;
+            } finally {
+                sub.Free();
+                if (GodotObject.IsInstanceValid(clone)) clone.Free();
+            }
         }
 
         /// <summary>

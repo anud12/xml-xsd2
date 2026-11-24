@@ -1,0 +1,6 @@
+{
+  "id": "stage-21-minimap",
+  "version": "1.0.0",
+  "name": "Minimal minimap",
+  "entry": "index.js"
+}

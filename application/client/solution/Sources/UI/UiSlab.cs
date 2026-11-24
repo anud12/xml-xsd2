@@ -121,6 +121,9 @@ public static class UiSlab
         AddStr("anchorChild", o.AnchorChild);
         AddStr("align", o.Align);
         AddStr("title", o.Title);
+        AddStr("bodyColor", o.BodyColor);
+        if (o.PinnableKey != UiAbi.NoStr)
+            Add("pinnable", "{\"key\":" + JsonEscaped(Str(arena, o.PinnableKey)) + "}");
         var layout = SerializeLayout(o.Layout, arena);
         if (layout != null) Add("layout", layout);
         var background = SerializeBackground(o.Background, arena);
@@ -211,6 +214,8 @@ public static class UiSlab
             Add("draggable", Str(arena, o.Draggable));
         if (o.Droppable != UiAbi.NoStr)
             Add("droppable", Str(arena, o.Droppable));
+        if (o.Position != UiAbi.NoStr)
+            Add("position", Str(arena, o.Position));
         if (first) return "{}";
         return "{" + sb + "}";
     }
@@ -412,6 +417,7 @@ public static class UiSlab
     static string SerializeOnHover(UiAbi.UiOnHover h, IntPtr arena)
     {
         var hasAny = h.StopPropagation != 0
+            || h.JsHandler != UiAbi.NoStr
             || h.EmitAction != UiAbi.NoStr
             || h.Background != UiAbi.NoStr
             || h.Texture != UiAbi.NoStr;
@@ -424,6 +430,7 @@ public static class UiSlab
             sb.Append('"').Append(key).Append("\":").Append(raw);
             first = false;
         }
+        if (h.JsHandler != UiAbi.NoStr) Add("__jsHandler", JsonEscaped(Str(arena, h.JsHandler)));
         if (h.EmitAction != UiAbi.NoStr) Add("emitAction", JsonEscaped(Str(arena, h.EmitAction)));
         if (h.StopPropagation != 0) Add("stopPropagation", "true");
         if (h.Background != UiAbi.NoStr)

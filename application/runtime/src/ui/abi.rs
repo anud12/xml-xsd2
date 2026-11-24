@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use super::UiNode as DomainNode;
 use super::UiDeltaOp as DomainDeltaOp;
 
-pub const UI_ABI_VERSION: u32 = 11;
+pub const UI_ABI_VERSION: u32 = 13;
 /// Sentinel string offset: "no string" (absent value/src/optional option).
 pub const NO_STR: u32 = u32::MAX;
 
@@ -211,6 +211,7 @@ pub struct UiOnHover {
     pub texture: u32,
     pub background_paint: UiPaintSpec,
     pub texture_paint: UiPaintSpec,
+    pub js_handler: u32,
 }
 
 #[repr(C)]
@@ -267,6 +268,10 @@ pub struct UiNodeOptions {
     /// title strip across the window top and the user can drag the window
     /// by it.
     pub title: u32,
+    /// Pin key from panel.pinnable.key, or NO_STR when absent.
+    pub pinnable_key: u32,
+    /// Optional HTML color for a normal-Z window body fill.
+    pub body_color: u32,
     /// Font configuration for text/field nodes (has_font=0 when absent).
     pub has_font: u8,
     pub font_file: u32,
@@ -305,6 +310,8 @@ pub struct UiNodeOptions {
     /// `panel.droppable` object (`{accepts, feedback, onDrop?}`; `onDrop` is the
     /// `"__jsHandler"` marker). NO_STR when the node is not a drop target.
     pub droppable: u32,
+    /// Raw panel.position configuration, interpreted by the client.
+    pub position: u32,
 }
 
 /// `UiNodeOptions::overflow` flags (per-axis overflow handling).
@@ -775,6 +782,7 @@ fn empty_options() -> UiNodeOptions {
             texture: NO_STR,
             background_paint: UiPaintSpec::cover(),
             texture_paint: UiPaintSpec::nine_slice(0, 0),
+            js_handler: NO_STR,
         },
         container: NO_STR,
         resizable: 0,
@@ -814,6 +822,8 @@ fn empty_options() -> UiNodeOptions {
         progress_orientation: 0,
         progress_steps: 100,
         title: NO_STR,
+        pinnable_key: NO_STR,
+        body_color: NO_STR,
         has_font: 0,
         font_file: NO_STR,
         font_size: 0.0,
@@ -846,6 +856,7 @@ fn empty_options() -> UiNodeOptions {
         },
         draggable: NO_STR,
         droppable: NO_STR,
+        position: NO_STR,
     }
 }
 
@@ -1451,6 +1462,8 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     o.anchor_child = opt_str(panel, "anchorChild", slab);
     o.align = opt_str(panel, "align", slab);
     o.title = opt_str(panel, "title", slab);
+    o.pinnable_key = panel.get("pinnable").and_then(Value::as_object).map(|p| opt_str(p, "key", slab)).unwrap_or(NO_STR);
+    o.body_color = opt_str(panel, "bodyColor", slab);
     let has_w = opt_num(panel, "width").is_some();
     let has_h = opt_num(panel, "height").is_some();
     o.width = opt_f32(panel, "width");
@@ -1493,6 +1506,7 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     o.on_click = parse_on_click(panel, slab, r.steps, &r.arg_bases);
     if let Some(h) = panel.get("onHover").and_then(|h| h.as_object()) {
         o.on_hover.emit_action = opt_str(h, "emitAction", slab);
+        o.on_hover.js_handler = opt_str(h, "__jsHandler", slab);
         o.on_hover.stop_propagation = opt_bool(h, "stopPropagation") as u8;
         o.on_hover.thickness = opt_f32(h, "thickness");
         let thickness_margin = (o.on_hover.thickness as u32).max(1);
@@ -1610,6 +1624,9 @@ fn options_to_abi(opts: &Value, slab: &mut Slab, r: &NodeRegions) -> UiNodeOptio
     }
     if let Some(v) = panel.get("droppable").and_then(|v| v.as_object()) {
         o.droppable = slab.intern(&Value::Object(v.clone()).to_string());
+    }
+    if let Some(v) = panel.get("position").filter(|v| v.is_object()) {
+        o.position = slab.intern(&v.to_string());
     }
     // areaOutline: { polygons: [ { points: [[x, y], ...],
     //   color?: [r,g,b,a], bodyColor?: [r,g,b,a], thickness?: number }, ... ] }
@@ -1957,13 +1974,13 @@ mod tests {
         assert_eq!(s.size_layout, 40);
         assert_eq!(s.size_background, 48);
         assert_eq!(s.size_paint_spec, 12);
-        assert_eq!(s.size_on_hover, 44);
-        assert_eq!(s.size_options, 496);
-        assert_eq!(s.size_node, 544);
+        assert_eq!(s.size_on_hover, 48);
+        assert_eq!(s.size_options, 512);
+        assert_eq!(s.size_node, 560);
         assert_eq!(s.size_animation, 24);
         assert_eq!(s.size_snapshot, 40);
         assert_eq!(s.size_delta, 32);
-        assert_eq!(s.size_delta_op, 552);
+        assert_eq!(s.size_delta_op, 568);
         // Pointer offsets land on 8-byte boundaries.
         for off in [
             s.off_node_children,
@@ -1986,7 +2003,7 @@ mod tests {
     #[test]
     fn snapshot_round_trips_nodes_options_and_strings() {
         let nodes = vec![
-            node(r#"{"kind":"window","id":"hud","options":{"panel":{"x":10,"y":-20,"anchor":"top-left","align":"top-left","title":"Hud Title","width":200,"height":100,"layout":{"columns":[{"min":50,"scale":1},{"max":120},80],"rows":[],"rowFirst":true,"gap":{"row":4,"column":2},"group":"items"},"background":{"map":"art/map.tiff","layers":[{"texture":"skin/a.png","layer":0},{"texture":"skin/b.png","layer":1}]},"border":{"texture":"art/border.png","width":3},"onClick":{"steps":[{"action":"click-a","args":{"col":{"__cursor":"x"},"row":{"__cursor":"y"},"entity":"ent-1","count":5}},{"action":"click-b","args":{}}]},"onHover":{"emitAction":"hud-hover","stopPropagation":true,"background":"art/hover.png","texture":"art/outline.png","thickness":2}}},"children":["title","hp"]}"#),
+            node(r#"{"kind":"window","id":"hud","options":{"panel":{"x":10,"y":-20,"anchor":"top-left","align":"top-left","title":"Hud Title","pinnable":{"key":"P"},"width":200,"height":100,"layout":{"columns":[{"min":50,"scale":1},{"max":120},80],"rows":[],"rowFirst":true,"gap":{"row":4,"column":2},"group":"items"},"background":{"map":"art/map.tiff","layers":[{"texture":"skin/a.png","layer":0},{"texture":"skin/b.png","layer":1}]},"border":{"texture":"art/border.png","width":3},"onClick":{"steps":[{"action":"click-a","args":{"col":{"__cursor":"x"},"row":{"__cursor":"y"},"entity":"ent-1","count":5}},{"action":"click-b","args":{}}]},"onHover":{"__jsHandler":"hoverWindow","emitAction":"hud-hover","stopPropagation":true,"background":"art/hover.png","texture":"art/outline.png","thickness":2}}},"children":["title","hp"]}"#),
             node(r#"{"kind":"text","id":"title","value":"Health","children":[]}"#),
             node(r#"{"kind":"field","id":"hp","binding":{"entity":"ent-1","map":"number","name":"hp","fallback":"n/a"},"value":"7","children":[]}"#),
             node(r#"{"kind":"image","id":"icon","src":"art/icon.png","children":[]}"#),
@@ -2011,6 +2028,7 @@ mod tests {
         assert_eq!(hud.opt.has_xy, 1);
         assert_eq!(cstr(arena, hud.opt.anchor), "top-left");
         assert_eq!(cstr(arena, hud.opt.title), "Hud Title");
+        assert_eq!(cstr(arena, hud.opt.pinnable_key), "P");
         assert_eq!(hud.opt.has_size, 1);
         assert!((hud.opt.width - 200.0).abs() < f32::EPSILON);
         assert_eq!(hud.opt.layout.kind, UI_LAYOUT_TRACKS);
@@ -2052,6 +2070,7 @@ mod tests {
         assert_eq!(cstr(arena, by_key("count").value), "5");
         assert_eq!(steps[1].arg_count, 0);
         assert_eq!(hud.opt.on_hover.stop_propagation, 1);
+        assert_eq!(cstr(arena, hud.opt.on_hover.js_handler), "hoverWindow");
         assert_eq!(cstr(arena, hud.opt.on_hover.emit_action), "hud-hover");
         assert_eq!(cstr(arena, hud.opt.on_hover.background), "art/hover.png");
         assert!((hud.opt.on_hover.thickness - 2.0).abs() < f32::EPSILON);

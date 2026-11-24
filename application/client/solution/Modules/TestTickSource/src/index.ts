@@ -1,9 +1,34 @@
+import { getInterestModule } from "./module/interest/interest";
+import { interestUi } from "./module/interest/ui";
+import { getLandModule } from "./module/land/land";
+import { landUi } from "./module/land/ui";
+import { getInventoryModule } from "./module/inventory/inventory";
+import { inventoryUi } from "./module/inventory/ui";
+import { getValueModule } from "./module/value/value";
+import { valueUi } from "./module/value/ui";
+
 const MAP_CELLS = 10;
 const MAP_WIDTH = 800;
 const MAP_HEIGHT = 600;
 
 const entry: ModuleEntrypoint = (hostApi) => {
   const { number, string } = hostApi.runtime;
+  const interest = getInterestModule(hostApi);
+  const land = getLandModule(hostApi);
+  getInventoryModule(hostApi);
+  const value = getValueModule(hostApi);
+  const game = hostApi.runtime.setEntity({
+    id: string.of("game"),
+    numberMap: { ...interest.entityNumberMap, ...value.entityNumberMap },
+  });
+  interest.initialize();
+  land.initialize();
+  value.initialize();
+  interestUi(hostApi, game);
+  landUi(hostApi);
+  inventoryUi(hostApi);
+  valueUi(hostApi, game);
+
   const mcv = hostApi.runtime.setEntity({
     id: string.of("mcv"),
     numberMap: { movementSpeed: 10, resource: 70, x: 0, y: 0 },
@@ -46,6 +71,33 @@ const entry: ModuleEntrypoint = (hostApi) => {
       panel: {
         width: MAP_WIDTH, height: MAP_HEIGHT,
         layout: { group: map },
+        onHover: {
+          window: (ctx) => {
+            const entity = (globalThis as any).__readEntity("mcv");
+            if (!entity || !ctx.cell || ctx.cell.x !== entity.numberMap.x || ctx.cell.y !== entity.numberMap.y) return null;
+            return ({
+            options: { panel: {
+              width: 190, height: 110, title: "MCV cell", layout: "column",
+              pinnable: { key: "P" },
+              position: { cursor: { offset: { x: 12, y: 12 } } },
+            } },
+            children: [
+              hostApi.ui.panel("minimap-stats-x-row", { panel: { layout: "row" } }, [
+                hostApi.ui.text("minimap-stats-x-label", "Cell X: "),
+                hostApi.ui.field("minimap-stats-x", { entity: mcv, map: "number", name: "x", fallback: "0" }),
+              ]),
+              hostApi.ui.panel("minimap-stats-y-row", { panel: { layout: "row" } }, [
+                hostApi.ui.text("minimap-stats-y-label", "Cell Y: "),
+                hostApi.ui.field("minimap-stats-y", { entity: mcv, map: "number", name: "y", fallback: "0" }),
+              ]),
+              hostApi.ui.panel("minimap-stats-resource-row", { panel: { layout: "row" } }, [
+                hostApi.ui.text("minimap-stats-resource-label", "MCV resource: "),
+                hostApi.ui.field("minimap-stats-resource", { entity: mcv, map: "number", name: "resource", fallback: "0" }),
+              ]),
+            ],
+          });
+          },
+        },
         onClick: (ctx) => {
           if (ctx.cursor) {
             ctx.emitAction(moveMcv, { x: ctx.cursor.getX(), y: ctx.cursor.getY() });
