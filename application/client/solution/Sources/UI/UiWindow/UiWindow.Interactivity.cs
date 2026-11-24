@@ -20,6 +20,8 @@ public partial class UiWindow
     // Legacy onClick: the handler is a JS function kept by the sim context;
     // the node's options carry the "__jsHandler" marker instead of a plan.
     bool _onClickJs;
+    bool _hoverWindowJs;
+    bool _hoverWindowEnterPending;
     // Resize drag state (resizable windows).
     bool _resizeWired;
     // Active resize edge flags (bitmask) during a drag: 1 = left, 2 = right,
@@ -100,9 +102,13 @@ public partial class UiWindow
             if (!string.IsNullOrEmpty(cid)) _spatialGroupId = cid;
         }
 
+        _hoverWindowJs = false;
         if (!opts.TryGetProperty("onHover", out var hover)
             || hover.ValueKind != JsonValueKind.Object)
             return;
+
+        _hoverWindowJs = hover.TryGetProperty("__jsHandler", out var handler)
+            && handler.ValueKind == JsonValueKind.String && handler.GetString() == "hoverWindow";
 
         if (hover.TryGetProperty("emitAction", out var ea)
             && ea.ValueKind == JsonValueKind.String)
@@ -133,7 +139,7 @@ public partial class UiWindow
         }
 
         if (!_hoverWired
-            && (_hoverEmitAction != null
+            && (_hoverWindowJs || _hoverEmitAction != null
                 || _hoverTexture != null
                 || _hoverColor.HasValue
                 || _hoverOutline != null))
@@ -600,7 +606,8 @@ public partial class UiWindow
 
     void OnMouseEntered()
     {
-        NotifyHoverEnter();
+        // RootNode owns hover transitions; Godot signals can arrive out of order
+        // relative to its polling and must not mutate the hover state.
         // A resizable window restores the default arrow on entry (the cursor
         // switches to the resize shape only once over an edge hit zone).
         if (_resizable) ApplyResizeCursor(0);
@@ -608,7 +615,7 @@ public partial class UiWindow
 
     void OnMouseExited()
     {
-        NotifyHoverExit();
+        // RootNode owns hover transitions (see OnMouseEntered).
         // Leaving the window clears any resize cursor we applied so it does
         // not stick when the mouse is now over a non-resizable area.
         if (_resizable && !_resizing) ApplyResizeCursor(0);
@@ -618,8 +625,10 @@ public partial class UiWindow
     /// background, or a hover outline) — used by <see
     /// cref="RootNode.UpdateHoverTracking"/> to decide which window under
     /// the mouse owns the hover.
+    public bool HasHoverWindow() => _hoverWindowJs;
+
     public bool IsHoverCapable()
-        => _hoverEmitAction != null
+        => _hoverWindowJs || _hoverEmitAction != null
             || _hoverTexture != null
             || _hoverColor.HasValue
             || _hoverOutline != null;
@@ -628,12 +637,22 @@ public partial class UiWindow
     /// and emits the enter action. No bubbling — RootNode drives enter/exit
     /// per window; a window is only entered when no descendant with its own
     /// hover covers the mouse (stopPropagation is therefore implicit).
+    string HoverContainingWindowId()
+    {
+        for (Node? current = this; current != null; current = current.GetParent())
+            if (current is UiWindow window && window._isWindow) return window._nodeId;
+        return _nodeId;
+    }
+
     public void NotifyHoverEnter()
     {
         if (_isHovered) return;
+        _hoverWindowEnterPending = false;
         _isHovered = true;
         if (_hoverOutline != null) _hoverOutline.Visible = true;
         ApplyHoverVisual();
+        if (_hoverWindowJs)
+            EmitHoverWindowEvent(0);
         if (_hoverEmitAction != null)
             RuntimeInterop.emitAction(_hoverEmitAction + ":enter");
     }
@@ -646,8 +665,48 @@ public partial class UiWindow
         _isHovered = false;
         if (_hoverOutline != null) _hoverOutline.Visible = false;
         ApplyHoverVisual();
+        if (_hoverWindowJs)
+            EmitHoverWindowEvent(1);
         if (_hoverEmitAction != null)
             RuntimeInterop.emitAction(_hoverEmitAction + ":exit");
+    }
+
+    void EmitHoverWindowEvent(uint kind)
+    {
+        var cursor = RootNode.SimulatedMouse ?? GetGlobalMousePosition();
+        // GuiInput's mb.Position is control-local. Apply the same inverse
+        // canvas transform to the global canvas cursor before resolving a cell.
+        var local = GetGlobalTransform().AffineInverse() * cursor;
+        var cell = TryResolveGroupCell(local);
+        var rect = GetGlobalRect();
+        if (System.Environment.GetEnvironmentVariable("TESTTICK_TOOLTIP_DEBUG") == "1" && _nodeId == "mcv-map-view")
+        {
+            var entity = EntityInterop.GetEntityById("mcv");
+            var x = entity?.NumberMap.GetValueOrDefault("x");
+            var y = entity?.NumberMap.GetValueOrDefault("y");
+            var show = kind != 1 && cell.HasValue && x == cell.Value.Col && y == cell.Value.Row;
+            GD.Print($"TESTTICK_TOOLTIP_DEBUG kind={kind} global={cursor} local={local} rect={rect} cell={cell} mcv=({x},{y}) decision={(show ? "show" : "hide")} reason={(kind == 1 ? "exit" : !cell.HasValue ? "no-grid" : entity == null ? "no-mcv" : show ? "match" : "different-cell")}");
+        }
+        if (kind < 2)
+        {
+            for (Node? current = this; current != null; current = current.GetParent())
+                if (current is RootNode root) { root.SourceHoverChanged(_nodeId, kind == 0); break; }
+        }
+        RuntimeInterop.EmitUiHoverEvent(kind, _nodeId, HoverContainingWindowId(), cursor, rect, cell);
+    }
+
+    // Called after reconciliation and normal hover ownership transitions, when
+    // geometry and the containing-window hierarchy are current.
+    public void FlushHoverWindowEnter()
+    {
+        if (!_hoverWindowEnterPending) return;
+        _hoverWindowEnterPending = false;
+        if (_isHovered && _hoverWindowJs) EmitHoverWindowEvent(0);
+    }
+
+    public void NotifyHoverMove()
+    {
+        if (_isHovered && _hoverWindowJs) EmitHoverWindowEvent(2);
     }
 
     void ApplyHoverVisual()

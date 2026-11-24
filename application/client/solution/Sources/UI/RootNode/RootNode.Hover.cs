@@ -16,6 +16,9 @@ public partial class RootNode
     /// </summary>
     public static Vector2? SimulatedMouse;
 
+    Vector2? _lastHoverMouse;
+    bool _hoverDataRecheckPending;
+
     void UpdateHoverTracking()
     {
         // The deepest hover-capable window under the mouse owns the hover.
@@ -43,6 +46,16 @@ public partial class RootNode
                 && win.GetGlobalRect().HasPoint(mouse))
                 hoverable.Add(win);
         }
+        // A derived hover window holds its source's existing hover without
+        // sending move events (which could fail the source's cell gate).
+        var held = new HashSet<UiWindow>();
+        foreach (var pair in _windows)
+            if (pair.Key.EndsWith(HoverWindowSuffix, StringComparison.Ordinal)
+                && !_pinnedSubtrees.ContainsKey(pair.Key)
+                && pair.Value.Visible && pair.Value.GetGlobalRect().HasPoint(mouse)
+                && _windows.TryGetValue(pair.Key[..^HoverWindowSuffix.Length], out var source)
+                && _hoverStates.TryGetValue(source, out var active) && active)
+                held.Add(source);
         UiWindow owner = null;
         var bestDepth = -1;
         foreach (var win in hoverable)
@@ -57,7 +70,7 @@ public partial class RootNode
         }
         foreach (var win in hoverable)
         {
-            var hovered = win == owner;
+            var hovered = win == owner || held.Contains(win);
             var was = _hoverStates.TryGetValue(win, out var s) && s;
             if (hovered != was)
             {
@@ -68,10 +81,12 @@ public partial class RootNode
                     win.NotifyHoverExit();
             }
         }
+        var moved = _lastHoverMouse.HasValue && _lastHoverMouse.Value != mouse;
+        _lastHoverMouse = mouse;
         // Windows no longer under the mouse exit.
         foreach (var win in windows)
         {
-            if (hoverable.Contains(win)) continue;
+            if (hoverable.Contains(win) || held.Contains(win)) continue;
             var was = _hoverStates.TryGetValue(win, out var s) && s;
             if (was)
             {
@@ -79,6 +94,15 @@ public partial class RootNode
                 win.NotifyHoverExit();
             }
         }
+        foreach (var win in windows)
+            if (win != null && !win.IsQueuedForDeletion()) win.FlushHoverWindowEnter();
+
+        // Clear before emitting: hover events themselves latch DeltaPending.
+        var recheck = _hoverDataRecheckPending;
+        _hoverDataRecheckPending = false;
+        if (owner != null && !owner.IsQueuedForDeletion() && !held.Contains(owner)
+            && (moved || recheck) && _hoverStates.TryGetValue(owner, out var ownerHovered) && ownerHovered)
+            owner.NotifyHoverMove();
     }
 
     static int Depth(Node n)

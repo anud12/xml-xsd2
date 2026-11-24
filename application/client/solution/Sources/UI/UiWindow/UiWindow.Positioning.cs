@@ -8,6 +8,18 @@ namespace GdUnit4.Examples.Basics.Setup.Sources.UI;
 /// explicit sizes, and content-based sizing.
 public partial class UiWindow
 {
+    public string? PositionTarget { get; private set; }
+    public bool PositionAtCursor { get; private set; }
+    public Vector2 RelativeOffset { get; private set; }
+    public Vector2 TargetAnchor { get; private set; }
+    public Vector2 SelfAnchor { get; private set; }
+
+    public void PositionRelative(Rect2 target)
+    {
+        if (_hasUserPosition) return;
+        GlobalPosition = target.Position + target.Size * TargetAnchor + RelativeOffset - Size * SelfAnchor;
+    }
+
     /// Sets the positioning mode: `windowMode` true uses the window's
     /// anchor/align/x/y options (PositionWithin against the viewport or the
     /// parent container rect), false falls back to plain escape positioning.
@@ -126,6 +138,37 @@ public partial class UiWindow
     /// otherwise the window sizes to its content.
     void ParseWindowGeometry(JsonElement opts)
     {
+        PositionTarget = null;
+        PositionAtCursor = false;
+        RelativeOffset = Vector2.Zero;
+        TargetAnchor = Vector2.Zero;
+        SelfAnchor = Vector2.Zero;
+        if (opts.ValueKind == JsonValueKind.Object && opts.TryGetProperty("position", out var position)
+            && position.ValueKind == JsonValueKind.Object)
+        {
+            JsonElement relative = default;
+            if (position.TryGetProperty("link", out var link) && link.ValueKind == JsonValueKind.Object)
+            {
+                relative = link;
+                PositionTarget = TryStr(link, "target");
+                var (tx, ty) = AnchorFraction(TryStr(link, "anchor") ?? "top-left");
+                var (sx, sy) = AnchorFraction(TryStr(link, "selfAnchor") ?? "top-left");
+                TargetAnchor = new Vector2(tx, ty);
+                SelfAnchor = new Vector2(sx, sy);
+            }
+            else if (position.TryGetProperty("cursor", out var cursor) && cursor.ValueKind == JsonValueKind.Object)
+            {
+                relative = cursor;
+                PositionAtCursor = true;
+            }
+            if (relative.ValueKind == JsonValueKind.Object && relative.TryGetProperty("offset", out var offset)
+                && offset.ValueKind == JsonValueKind.Object)
+            {
+                TryNum(offset, "x", out var ox);
+                TryNum(offset, "y", out var oy);
+                RelativeOffset = new Vector2(ox, oy);
+            }
+        }
         var hasX = TryNum(opts, "x", out var x);
         var hasY = TryNum(opts, "y", out var y);
         _windowHasXY = hasX || hasY;

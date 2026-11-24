@@ -16,8 +16,37 @@ public partial class UiWindow
     /// "name" is an animation reference whose frames advance per runtime
     /// elapsed time unit. options.portalArrow (engine-owned sector portal
     /// headless arrow) is rendered as a full-rect solid shaft instead.
+    ColorRect? _bodyFill;
+
+    // An optional normal-Z solid body, behind this window's title and content.
+    void ApplyBodyFill(JsonElement opts)
+    {
+        var colorText = opts.ValueKind == JsonValueKind.Object
+            && opts.TryGetProperty("bodyColor", out var value)
+            && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+        if (string.IsNullOrEmpty(colorText) || !Color.HtmlIsValid(colorText))
+        {
+            if (_bodyFill != null)
+            {
+                RemoveChild(_bodyFill);
+                _bodyFill.QueueFree();
+                _bodyFill = null;
+            }
+            return;
+        }
+        if (_bodyFill == null)
+        {
+            _bodyFill = new ColorRect { Name = "__bodyFill", MouseFilter = MouseFilterEnum.Ignore };
+            AddChild(_bodyFill);
+            MoveChild(_bodyFill, 0);
+            _bodyFill.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        }
+        _bodyFill.Color = Color.FromHtml(colorText);
+    }
+
     void ApplyBackground(JsonElement opts)
     {
+        ApplyBodyFill(opts);
         if (opts.ValueKind == JsonValueKind.Object
             && opts.TryGetProperty("portalArrow", out var pa)
             && pa.ValueKind == JsonValueKind.True)

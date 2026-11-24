@@ -12,7 +12,7 @@ namespace NewGameProject.UI;
 /// offset into that arena; `NoStr` means "no string".
 public static class UiAbi
 {
-    public const uint AbiVersion = 11;
+    public const uint AbiVersion = 13;
     public const uint NoStr = uint.MaxValue;
 
     public const uint KindDivision = 0;
@@ -157,6 +157,7 @@ public static class UiAbi
         public uint Texture;
         public UiPaintSpec BackgroundPaint;
         public UiPaintSpec TexturePaint;
+        public uint JsHandler;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -201,6 +202,8 @@ public static class UiAbi
         public byte ProgressOrientation;
         public uint ProgressSteps;
         public uint Title;
+        public uint PinnableKey;
+        public uint BodyColor;
         public byte HasFont;
         public uint FontFile;
         public float FontSize;
@@ -218,6 +221,8 @@ public static class UiAbi
         // panel.droppable raw JSON (NoStr when absent): the full drop-target
         // object {accepts, feedback, onDrop?}. Re-parsed by WireDragDrop.
         public uint Droppable;
+        // panel.position raw JSON; kept in sync with Rust UiNodeOptions.
+        public uint Position;
     }
 
     public const byte OverflowHScroll = 1;

@@ -196,6 +196,22 @@ export type UiOverflow = {
   };
 };
 
+export type WindowReference = { readonly id: string };
+export type UiNodeReference = { readonly id: string };
+/** Cursor and node rectangle are in global canvas coordinates. */
+// cell is resolved by the same group-grid resolver as clicks, or null for non-group nodes.
+export type UiHoverContext = { window: WindowReference; node: UiNodeReference; cursor: { x: number; y: number }; rect: { x: number; y: number; width: number; height: number }; cell: { x: number; y: number } | null };
+/** A window's usual options and child references, without a caller-supplied id. */
+export type WindowDeclaration = { options?: UiPanelOptions; children?: UiChildren };
+export type UiHoverOptions = {
+  texture?: UiTexture;
+  background?: UiTexture;
+  thickness?: number;
+  emitAction?: ActionReadOnlyExpression;
+  stopPropagation?: boolean;
+  window?: (ctx: UiHoverContext) => WindowDeclaration | null;
+};
+
 /**
  * Options for the positioned/decorated ui panel surface (window or division).
  * The panel configuration is nested under a required `panel` key. The
@@ -207,6 +223,10 @@ export type UiOverflow = {
  */
 export type UiPanelOptions = {
   panel: {
+    /** Key used to pin or unpin a transient window (Godot key name, e.g. "P" or "F1"). */
+    pinnable?: { key: string };
+    /** Position relative to another node or to the global cursor. */
+    position?: { link?: { target: string; anchor?: string; selfAnchor?: string; offset?: { x?: number; y?: number } }; cursor?: { offset?: { x?: number; y?: number } } };
     x?: number;
     y?: number;
     width?: number;
@@ -221,7 +241,7 @@ export type UiPanelOptions = {
     align?: AlignOption;
     background?: UiTexture;
     border?: { texture?: UiTexture; thickness?: number; width?: number; height?: number };
-    onHover?: { texture?: UiTexture; background?: UiTexture; thickness?: number; emitAction?: ActionReadOnlyExpression; stopPropagation?: boolean };
+    onHover?: UiHoverOptions;
     onClick?: (ctx: UiClickContext) => void;
     layout?: UiLayout;
     /**

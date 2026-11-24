@@ -13,6 +13,7 @@ public partial class RootNode
     {
         foreach (var node in nodes)
         {
+            if (IsProtected(node.Id)) continue;
             if (node.Kind != UiNodeKind.Window && node.Kind != UiNodeKind.Division) continue;
             if (node.Children.Count != 1) continue;
             if (!byId.TryGetValue(node.Children[0], out var childNode)) continue;

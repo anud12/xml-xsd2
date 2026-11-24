@@ -10,6 +10,7 @@ function (root) {
 
     var nodes = Object.create(null);
     var order = [];
+    var hoverWindows = Object.create(null);
     // Render lambdas for ui.entityList lists, keyed by list name. The engine
     // re-invokes these per entity during expansion (see expandEntityLists).
     // A list render returns an array of node ids; the items are flow children
@@ -55,11 +56,13 @@ function (root) {
         return t;
     }
 
+    var hoverReplacementIds = null;
+
     function requireId(id, kind) {
         if (typeof id !== 'string' || id.length === 0) {
             throw new Error('ui: mandatory id missing for ' + kind + ' node');
         }
-        if (nodes[id]) {
+        if (nodes[id] && !(hoverReplacementIds && hoverReplacementIds[id])) {
             throw new Error('ui: duplicate id "' + id + '" for ' + kind + ' node');
         }
     }
@@ -356,13 +359,12 @@ function (root) {
         for (var k in options) {
             if (Object.prototype.hasOwnProperty.call(options, k)) copy[k] = options[k];
         }
-        copy.onHover = {
-            texture: h.texture,
-            thickness: h.thickness,
-            background: h.background,
-            emitAction: h.emitAction,
-            stopPropagation: h.stopPropagation
-        };
+        // Preserve all hover fields, including callbacks, while resolving visual
+        // handles. The bridge is responsible for preparing function values.
+        copy.onHover = {};
+        for (var hk in h) {
+            if (Object.prototype.hasOwnProperty.call(h, hk)) copy.onHover[hk] = h[hk];
+        }
         if (copy.onHover.texture != null && typeof copy.onHover.texture !== 'string') {
             copy.onHover.texture = resolveSlotVisual(copy.onHover.texture);
         }
@@ -916,6 +918,16 @@ function (root) {
                 removeSubtree(node.children[i]);
             }
         }
+        var hover = hoverWindows[id];
+        if (hover) {
+            hover.active = false;
+            // Keep pinned state while the source is absent so a replacement
+            // with the same ID can resume the retained declaration.
+            if (!hover.pinned) {
+                delete hoverWindows[id];
+                removeSubtree(id + ':hover-window');
+            }
+        }
         delete nodes[id];
         var idx = order.indexOf(id);
         if (idx >= 0) order.splice(idx, 1);
@@ -960,12 +972,43 @@ function (root) {
         }
     }
 
+    // Keep the live declaration intact so callbacks added or removed by an
+    // action are reflected in subsequent snapshots as well as registration.
+    function prepareHover(node) {
+        var panel = node.options && node.options.panel;
+        var hover = panel && panel.onHover;
+        if (hover && typeof hover.window === 'function') {
+            var copy = {};
+            for (var key in hover) {
+                if (Object.prototype.hasOwnProperty.call(hover, key) && key !== 'window') copy[key] = hover[key];
+            }
+            copy.__jsHandler = 'hoverWindow';
+            var state = hoverWindows[node.id];
+            if (state) state.callback = hover.window;
+            else hoverWindows[node.id] = { callback: hover.window, active: false, pending: false, pinned: false };
+            panel = Object.assign({}, panel, { onHover: copy });
+            return Object.assign({}, node, { options: Object.assign({}, node.options, { panel: panel }) });
+        }
+        var previous = hoverWindows[node.id];
+        if (previous) {
+            previous.active = false;
+            if (!previous.pinned) {
+                delete hoverWindows[node.id];
+                removeSubtree(node.id + ':hover-window');
+            } else {
+                previous.valid = false;
+            }
+        }
+        return node;
+    }
+
     function register(node) {
         requireId(node.id, node.kind);
+        if (!nodes[node.id]) order.push(node.id);
         nodes[node.id] = node;
-        order.push(node.id);
+        var prepared = prepareHover(node);
         try {
-            transport().registerNode(JSON.parse(JSON.stringify(node)));
+            transport().registerNode(JSON.parse(JSON.stringify(prepared)));
         } catch (e) {
             // Transport is optional at declaration time in tests; the
             // persistent engine reads the snapshot directly.
@@ -1432,14 +1475,94 @@ function (root) {
                 children: []
             }));
         },
+        // Pin notifications are serialized with hover events and snapshot ticks.
+        hoverWindowPinned: function (args) {
+            if (!args || typeof args.node !== 'string' || args.window !== args.node + ':hover-window') return;
+            var state = hoverWindows[args.node];
+            if (!state) {
+                // A pinned declaration can outlive its removed source.
+                if (!args.pinned) removeSubtree(args.window);
+                return;
+            }
+            state.pinned = !!args.pinned;
+            if (!state.pinned && !nodes[args.node]) {
+                delete hoverWindows[args.node];
+                removeSubtree(args.window);
+                return;
+            }
+            if (!state.pinned && (!state.active || state.valid === false) && state.created) {
+                state.created = false;
+                removeSubtree(args.window);
+            }
+        },
+        // Native action routing must call this with parsed action arguments.
+        hoverWindowEvent: function (action, args) {
+            if (!args || typeof args.node !== 'string' || typeof args.window !== 'string' || !args.window) return;
+            var state = hoverWindows[args.node];
+            if (!state || !nodes[args.node]) return;
+            var id = args.node + ':hover-window';
+            if (action === 'ui:hover-window:exit') {
+                state.active = false;
+                if (state.created && !state.pinned) { state.created = false; removeSubtree(id); }
+                return;
+            }
+            if (action === 'ui:hover-window:enter') {
+                if (state.active) return;
+                state.active = true;
+            } else if (action !== 'ui:hover-window:move' || !state.active) return;
+            if (state.pending) return;
+            state.pending = true;
+            var previousReplacementIds = hoverReplacementIds;
+            hoverReplacementIds = Object.create(null);
+            function allowExisting(nodeId) {
+                var existing = nodes[nodeId];
+                if (!existing || hoverReplacementIds[nodeId]) return;
+                hoverReplacementIds[nodeId] = true;
+                (existing.children || []).forEach(allowExisting);
+            }
+            if (state.created) allowExisting(id);
+            try {
+                var declaration = state.callback({ window: { id: args.window }, node: { id: args.node }, cursor: args.cursor, rect: args.rect, cell: args.cell });
+                state.valid = declaration != null;
+                if (declaration != null && state.active && hoverWindows[args.node] === state) {
+                    api.window(id, declaration.options, declaration.children);
+                    // Drop nodes from the old declaration that are no longer reachable.
+                    // Detach retained descendants before removing an obsolete parent.
+                    var retained = Object.create(null);
+                    function markRetained(nodeId) {
+                        if (retained[nodeId] || !nodes[nodeId]) return;
+                        retained[nodeId] = true;
+                        (nodes[nodeId].children || []).forEach(markRetained);
+                    }
+                    markRetained(id);
+                    Object.keys(hoverReplacementIds).forEach(function (oldId) {
+                        var oldNode = nodes[oldId];
+                        if (!retained[oldId] && oldNode) {
+                            if (Array.isArray(oldNode.children)) oldNode.children = oldNode.children.filter(function (child) { return !retained[child]; });
+                            removeSubtree(oldId);
+                        }
+                    });
+                    state.created = true;
+                } else if (declaration == null && state.created && !state.pinned && hoverWindows[args.node] === state) {
+                    state.created = false;
+                    removeSubtree(id);
+                }
+            } finally {
+                hoverReplacementIds = previousReplacementIds;
+                state.pending = false;
+            }
+        },
         snapshot: function () {
             var out = [];
-            for (var i = 0; i < order.length; i++) {
-                out.push(JSON.parse(JSON.stringify(nodes[order[i]])));
+            // Preparation can remove a derived subtree; iterate a stable list.
+            var ids = order.slice();
+            for (var i = 0; i < ids.length; i++) {
+                if (nodes[ids[i]]) out.push(JSON.parse(JSON.stringify(prepareHover(nodes[ids[i]]))));
             }
             return out;
         },
         clear: function () {
+            hoverWindows = Object.create(null);
             nodes = Object.create(null);
             order = [];
             entityListRenders = Object.create(null);
@@ -1454,6 +1577,7 @@ function (root) {
             fontCounter = 0;
         },
         loadSnapshot: function (arr) {
+            hoverWindows = Object.create(null);
             nodes = Object.create(null);
             order = [];
             entityListItems = Object.create(null);

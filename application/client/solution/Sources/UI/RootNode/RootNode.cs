@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Godot;
 using NewGameProject.UI;
+using RuntimeInterop = NewGameProject.Runtime.RuntimeInterop;
 
 namespace GdUnit4.Examples.Basics.Setup.Sources.UI;
 
@@ -23,6 +24,115 @@ namespace GdUnit4.Examples.Basics.Setup.Sources.UI;
 public partial class RootNode : Godot.Panel
 {
     readonly Dictionary<string, UiWindow> _windows = new();
+    readonly Dictionary<string, TransientWindowLifecycler> _transientWindows = new();
+    readonly Dictionary<string, HashSet<string>> _pinnedSubtrees = new();
+    const string HoverWindowSuffix = ":hover-window";
+
+    bool IsProtected(string id) => _pinnedSubtrees.Values.Any(ids => ids.Contains(id));
+
+    void RegisterTransient(UiNodeData node)
+    {
+        if (node.Kind != UiNodeKind.Window || !node.Id.EndsWith(HoverWindowSuffix, StringComparison.Ordinal)
+            || _transientWindows.ContainsKey(node.Id)) return;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(node.OptionsJson);
+            var root = doc.RootElement;
+            if (root.ValueKind == System.Text.Json.JsonValueKind.Object
+                && root.TryGetProperty("pinnable", out var pinnable)
+                && pinnable.ValueKind == System.Text.Json.JsonValueKind.Object
+                && pinnable.TryGetProperty("key", out var key)
+                && key.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                _transientWindows[node.Id] = new TransientWindowLifecycler();
+                _pinKeys[node.Id] = key.GetString() ?? "";
+                _lastPinWindow = node.Id;
+            }
+        }
+        catch (System.Text.Json.JsonException) { }
+    }
+
+    /// Pin without changing the rendered instance, content, or position.
+    public void PinWindow(string windowId)
+    {
+        if (windowId == null || !_transientWindows.TryGetValue(windowId, out var lifecycle)
+            || lifecycle.State != TransientWindowLifecycler.Ownership.Transient) return;
+        lifecycle.Pin();
+        RuntimeInterop.EmitUiHoverPinned(true, windowId[..^HoverWindowSuffix.Length], windowId);
+        if (_windows.TryGetValue(windowId, out var pinnedWindow))
+        {
+            pinnedWindow.SetSubtreeInteractive(true);
+            pinnedWindow.SetPinIndicator(_pinKeys[windowId], true);
+        }
+        var ids = new HashSet<string>();
+        var byId = _nodes.ToDictionary(n => n.Id);
+        void Visit(string id)
+        {
+            if (!ids.Add(id) || !byId.TryGetValue(id, out var node)) return;
+            foreach (var child in node.Children) Visit(child);
+        }
+        Visit(windowId);
+        _pinnedSubtrees[windowId] = ids;
+    }
+
+    /// Unpin; dismiss immediately if the originating hover has ended.
+    public void UnpinWindow(string windowId)
+    {
+        if (windowId == null || !_transientWindows.TryGetValue(windowId, out var lifecycle)
+            || lifecycle.State != TransientWindowLifecycler.Ownership.Pinned) return;
+        lifecycle.Unpin();
+        RuntimeInterop.EmitUiHoverPinned(false, windowId[..^HoverWindowSuffix.Length], windowId);
+        if (_windows.TryGetValue(windowId, out var unpinnedWindow))
+        {
+            unpinnedWindow.SetPinIndicator(_pinKeys[windowId], false);
+            unpinnedWindow.SetSubtreeInteractive(false);
+        }
+        var ids = _pinnedSubtrees[windowId];
+        _pinnedSubtrees.Remove(windowId);
+        if (lifecycle.State == TransientWindowLifecycler.Ownership.Dismissed)
+        {
+            foreach (var id in ids)
+                if (!IsProtected(id)) RemoveRenderedNode(id);
+        }
+    }
+
+    public void SourceHoverChanged(string sourceId, bool active)
+    {
+        if (!_transientWindows.TryGetValue(sourceId + HoverWindowSuffix, out var lifecycle)) return;
+        if (active) lifecycle.SourceHoverEnter();
+        else lifecycle.SourceHoverExit();
+    }
+
+    void RemoveRenderedNode(string id)
+    {
+        // A pinned window normally keeps its current parent. If that parent is
+        // removed, rescue it to the root before Godot frees the parent subtree.
+        if (_windows.TryGetValue(id, out var removed))
+        {
+            foreach (var pinned in _pinnedSubtrees.Keys.ToArray())
+                if (_windows.TryGetValue(pinned, out var survivor) && survivor != removed
+                    && removed.IsAncestorOf(survivor))
+                {
+                    var position = survivor.GlobalPosition;
+                    survivor.GetParent().RemoveChild(survivor);
+                    AddChild(survivor);
+                    survivor.GlobalPosition = position;
+                }
+            if (!IsDead(removed)) removed.QueueFree();
+            _hoverStates.Remove(removed);
+            _windows.Remove(id);
+        }
+        _flattened.Remove(id);
+        _flattenedFields.Remove(id);
+        _flattenedFontSig.Remove(id);
+        _transientWindows.Remove(id);
+        _pinKeys.Remove(id);
+        if (_lastPinWindow == id) _lastPinWindow = null;
+        UiState.RemoveAnimStartTime(id);
+    }
+
+    /// Look up a rendered node by its runtime id (which may contain NodePath separators).
+    public UiWindow? FindWindowById(string id) => _windows.TryGetValue(id, out var window) && !IsDead(window) ? window : null;
     readonly HashSet<string> _flattened = new();
     // For each flattened field/text child id, the host window that owns its
     // "text" Label and the child's node id (so the label value can be
@@ -106,6 +216,7 @@ public partial class RootNode : Godot.Panel
         CurrentFrame++;
         Paint();
         UpdateHoverTracking();
+        UpdatePinIndicators();
     }
 
     /// Per-frame paint: a full build on the first frame, then the runtime's
@@ -138,7 +249,13 @@ public partial class RootNode : Godot.Panel
         long fetchTicks = _paintSw.ElapsedTicks;
         _paintSw.Restart();
         if (delta != null && delta.Ops.Count > 0)
+        {
+            // A fetched, non-empty delta, not the hover event's DeltaPending
+            // latch, is evidence that callback inputs may have changed.
+            if (_hoverStates.Any(pair => pair.Value && pair.Key.HasHoverWindow()))
+                _hoverDataRecheckPending = true;
             ApplyDelta(delta);
+        }
         long applyTicks = _paintSw.ElapsedTicks;
         _paintSw.Restart();
         LayoutPasses();
@@ -197,6 +314,10 @@ public partial class RootNode : Godot.Panel
         foreach (var win in _windows.Values)
             win.QueueFree();
         _windows.Clear();
+        _transientWindows.Clear();
+        _pinKeys.Clear();
+        _lastPinWindow = null;
+        _pinnedSubtrees.Clear();
         _hoverStates.Clear();
         _flattened.Clear();
         _flattenedFields.Clear();
@@ -209,6 +330,15 @@ public partial class RootNode : Godot.Panel
     /// Builds the whole tree from one full state pull (first frame / hot
     /// reload). Creates and applies every window, then runs the structural
     /// passes over the full tree.
+    // Reconciliation may add controls even under a pinned window: pinned trees
+    // retain their normal filters; transient trees are walked after reparenting.
+    void SetTransientFilters(bool interactive)
+    {
+        foreach (var (id, window) in _windows)
+            if (id.EndsWith(HoverWindowSuffix, StringComparison.Ordinal) && !IsProtected(id) && !IsDead(window))
+                window.SetSubtreeInteractive(interactive);
+    }
+
     void FullPaint()
     {
         var nodes = UiState.FetchState();
@@ -222,6 +352,7 @@ public partial class RootNode : Godot.Panel
         RefreshFlattenedFieldValues(byId);
         ReparentAll(byId);
         PositionAll(byId);
+        SetTransientFilters(false);
         // The full pull ran a tick that queued the just-applied adds as a
         // pending delta; drain it so the next frame starts clean.
         UiState.FetchDelta();
@@ -233,6 +364,8 @@ public partial class RootNode : Godot.Panel
     {
         foreach (var node in _nodes)
         {
+            if (IsProtected(node.Id)) continue;
+            RegisterTransient(node);
             if (!_windows.TryGetValue(node.Id, out var win))
             {
                 // Folded field children render as their host's "text" Label,
@@ -263,14 +396,8 @@ public partial class RootNode : Godot.Panel
         var byId = _nodes.ToDictionary(n => n.Id);
         foreach (var id in _windows.Keys.ToArray())
         {
-            if (!byId.ContainsKey(id) && !_flattened.Contains(id))
-            {
-                var removed = _windows[id];
-                removed.QueueFree();
-                _windows.Remove(id);
-                _hoverStates.Remove(removed);
-                UiState.RemoveAnimStartTime(id);
-            }
+            if (!byId.ContainsKey(id) && !_flattened.Contains(id) && !IsProtected(id))
+                RemoveRenderedNode(id);
         }
     }
 
@@ -298,6 +425,7 @@ public partial class RootNode : Godot.Panel
         long flowTicks = _paintSw.ElapsedTicks;
         _paintSw.Restart();
         PositionAll(byId);
+        SetTransientFilters(false);
         long positionTicks = _paintSw.ElapsedTicks;
         LogLayoutSpike(flattenTicks, refreshTicks, reparentTicks, flowTicks, positionTicks);
     }
@@ -342,12 +470,26 @@ public partial class RootNode : Godot.Panel
     /// redundant op is a harmless no-op.
     void ApplyDelta(UiDelta delta)
     {
+        // Restore defaults before Apply mutates controls, then capture the new
+        // defaults after the structural passes, including newly added children.
+        SetTransientFilters(true);
         foreach (var op in delta.Ops)
         {
             switch (op.Op)
             {
                 case "add":
                 case "update":
+                    if (IsProtected(op.Node.Id))
+                    {
+                        UpsertNode(op.Node);
+                        // Keep live field values current without re-applying window
+                        // options or disturbing a pinned subtree's layout and pin.
+                        if (op.Node.Kind == UiNodeKind.Field && !_flattenedFields.ContainsKey(op.Node.Id)
+                            && _windows.TryGetValue(op.Node.Id, out var fieldWin) && !IsDead(fieldWin))
+                            fieldWin.Apply(op.Node);
+                        break;
+                    }
+                    RegisterTransient(op.Node);
                     // Always keep the structure current: a flattened field has
                     // no window, but its host "text" Label is refreshed from
                     // _nodes in LayoutPasses, so the node must be upserted even
@@ -373,13 +515,11 @@ public partial class RootNode : Godot.Panel
                     }
                     break;
                 case "remove":
-                    if (_windows.TryGetValue(op.Id, out var rem))
-                    {
-                        if (!IsDead(rem)) rem.QueueFree();
-                        _hoverStates.Remove(rem);
-                        UiState.RemoveAnimStartTime(op.Id);
-                        _windows.Remove(op.Id);
-                    }
+                    if (_transientWindows.TryGetValue(op.Id + HoverWindowSuffix, out var sourceLifecycle))
+                        sourceLifecycle.SourceRemoved();
+                    if (_transientWindows.TryGetValue(op.Id, out var removedLifecycle))
+                        removedLifecycle.RemoveDelta();
+                    if (!IsProtected(op.Id)) RemoveRenderedNode(op.Id);
                     RemoveNode(op.Id);
                     break;
             }
@@ -413,7 +553,7 @@ public partial class RootNode : Godot.Panel
         {
             // The screen itself stays on the screen host; its children are
             // reparented under it as usual.
-            if (node.Kind == UiNodeKind.Screen) continue;
+            if (node.Kind == UiNodeKind.Screen || IsProtected(node.Id)) continue;
             if (!_windows.TryGetValue(node.Id, out var win)) continue;
             UiWindow? parent = null;
             if (parentOf.TryGetValue(node.Id, out var pid))
@@ -441,15 +581,19 @@ public partial class RootNode : Godot.Panel
         return null;
     }
 
+    // Report each unresolved edge once until it becomes valid again.
+    readonly HashSet<string> _positionWarnings = new();
+
     /// Positions every window against its parent's rect.
     void PositionAll(Dictionary<string, UiNodeData> byId)
     {
+        var mouse = SimulatedMouse ?? GetGlobalMousePosition();
         foreach (var kv in _windows)
         {
             var win = kv.Value;
             // Godot sanitizes node names (e.g. ':' becomes '_'); the dictionary
             // key retains the original runtime ID used by the snapshot.
-            if (_flattened.Contains(kv.Key)) continue;
+            if (_flattened.Contains(kv.Key) || IsProtected(kv.Key)) continue;
             if (!byId.TryGetValue(kv.Key, out var node)) continue;
             // The screen always fills the viewport (FullRect); positioning it
             // against the viewport rect would shrink it to content size.
@@ -475,6 +619,46 @@ public partial class RootNode : Godot.Panel
             }
             win.PositionWithin(parentRect, node, FirstChildAnchor(node, byId));
         }
+        // Resolve dependencies after ordinary layout, in stable ID order. A
+        // cycle uses the ordinary-layout position for the broken edge.
+        var visiting = new HashSet<string>();
+        var done = new HashSet<string>();
+        var warnings = new HashSet<string>();
+        void WarnOnce(string message)
+        {
+            warnings.Add(message);
+            if (!_positionWarnings.Contains(message)) GD.PushWarning(message);
+        }
+        void Resolve(string id)
+        {
+            if (done.Contains(id) || IsProtected(id) || !_windows.TryGetValue(id, out var win)) return;
+            visiting.Add(id);
+            if (win.PositionAtCursor)
+            {
+                win.PositionRelative(new Rect2(mouse, Vector2.Zero));
+            }
+            else if (win.PositionTarget is string target)
+            {
+                if (visiting.Contains(target))
+                    WarnOnce($"Window positioning cycle at {id} -> {target}");
+                else if (_windows.TryGetValue(target, out var targetWin))
+                {
+                    Resolve(target);
+                    win.PositionRelative(targetWin.GetGlobalRect());
+                }
+                else
+                {
+                    WarnOnce($"Window positioning target not found: {target}");
+                    var parent = win.GetParent() as Control;
+                    win.PositionRelative(new Rect2(parent?.GlobalPosition ?? Vector2.Zero, Vector2.Zero));
+                }
+            }
+            visiting.Remove(id);
+            done.Add(id);
+        }
+        foreach (var id in _windows.Keys.OrderBy(id => id, StringComparer.Ordinal)) Resolve(id);
+        _positionWarnings.Clear();
+        _positionWarnings.UnionWith(warnings);
     }
 
     static UiWindow CreateWindow(UiNodeData node)

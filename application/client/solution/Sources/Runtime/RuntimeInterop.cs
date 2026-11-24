@@ -447,6 +447,28 @@ public static class RuntimeInterop
     }
 
     [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_ui_hover_event(uint actionKind,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string nodeId,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string windowId, float x, float y, float left, float top, float width, float height, int hasCell, int col, int row);
+
+    public static void EmitUiHoverEvent(uint kind, string nodeId, string windowId, Godot.Vector2 cursor, Godot.Rect2 rect, (int Col, int Row)? cell)
+    {
+        runtime_ui_hover_event(kind, nodeId, windowId, cursor.X, cursor.Y, rect.Position.X, rect.Position.Y, rect.Size.X, rect.Size.Y, cell.HasValue ? 1 : 0, cell?.Col ?? 0, cell?.Row ?? 0);
+        DeltaPending = true;
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void runtime_ui_hover_pinned(uint pinned,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string nodeId,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string windowId);
+
+    public static void EmitUiHoverPinned(bool pinned, string nodeId, string windowId)
+    {
+        runtime_ui_hover_pinned(pinned ? 1u : 0u, nodeId, windowId);
+        DeltaPending = true;
+    }
+
+    [DllImport(LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern void runtime_ui_js_click(
         [MarshalAs(UnmanagedType.LPStr)] string id, int col, int row);
 

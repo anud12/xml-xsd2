@@ -1,0 +1,111 @@
+import {HostApi} from "module_types/HostApi";
+import {getLandModule} from "./land";
+import {getLandSprites} from "./sprites";
+import {getLandDragType} from "./drag";
+import {getInventoryModule} from "../inventory/inventory";
+
+export const landUi = (hostApi: HostApi) => {
+
+  const font = hostApi.ui.setFont({ file: "fonts/Allura-Regular.ttf", size: 14, color: "#FFFFFF" });
+
+  const module = getLandModule(hostApi);
+  const inventory = getInventoryModule(hostApi);
+  const landDrag = getLandDragType(hostApi);
+
+  const track = hostApi.runtime.setAnimation(hostApi.runtime.string.of("land-track"), {
+    frames: [{ sprite: hostApi.ui.getSpritePNG("assets/black_pixel.png") }],
+    duration: hostApi.runtime.number.of(1),
+  });
+
+  const portrait = hostApi.runtime.setAnimation(hostApi.runtime.string.of("land-portrait"), {
+    frames: getLandSprites(hostApi).map(value => ({ sprite: value })),
+    duration: hostApi.runtime.number.of(1),
+    loop: true,
+  });
+
+  hostApi.ui.window("land-list", {
+    panel: {
+      x: 50,
+      y: 250,
+      width: 190,
+      height: 400,
+      title: "Lands",
+      layout: "column",
+      background: {
+        animation: track,
+        fill: { width: "stretch", height: "stretch" as const },
+      },
+    },
+  }, [
+    hostApi.ui.entityList("land-items", { group: module.container, list: "members" },
+      (entity) => [
+        hostApi.ui.window(entity.id, {
+          panel: {
+            width: 190,
+            height: 60,
+            layout: "row",
+          },
+        }, [
+          // Drag source: the land's portrait (a child-less panel, so a press on
+          // it reaches the drag handler rather than being consumed by a sibling).
+          // Dragging it onto the inventory buys the land (the "land" drag type's
+          // onDrop fires the inventory's buy action).
+          hostApi.ui.panel(entity.id + ":portrait", {
+            panel: {
+              width: 60,
+              height: 60,
+              background: {
+                animation: portrait,
+                fill: {
+                  width: "fit",
+                  height: "stretch",
+                  keepAspectRatio: true,
+                }
+              },
+              draggable: landDrag.draggable({
+                payload: {
+                  entityId: entity.id,
+                  sourceContainerId: "lands",
+                },
+              }),
+            }
+          }),
+          hostApi.ui.panel(entity.id + ":stats", {
+            panel: {
+              width: 80,
+              height: 60,
+              layout: "column"
+            }
+          }, [
+            hostApi.ui.field(entity.id + ":stats:name", {
+              entity: entity.entity,
+              map: "text",
+              name: "name",
+              fallback: "Unknown",
+            }, font),
+            hostApi.ui.field(entity.id + ":stats:cost", {
+              entity: entity.entity,
+              map: "number",
+              name: "cost",
+              fallback: "0",
+            }, font),
+          ]),
+          hostApi.ui.panel(entity.id + ":buy", {
+            panel: {
+              width: 50,
+              height: 60,
+              background: {
+                animation: track,
+                fill: { width: "stretch", height: "stretch" as const },
+              },
+              onClick: (ctx) => {
+                ctx.emitAction(inventory.buy, { entityId: entity.id });
+              },
+            },
+          }, [
+            hostApi.ui.text(entity.id + ":buy:label", "Buy", font),
+          ]),
+        ]),
+      ]),
+  ]);
+};

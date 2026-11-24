@@ -75,6 +75,34 @@ pub extern "C" fn runtime_set_actor(actor: *const c_char) {
     )));
 }
 
+/// Dispatch synchronously in the shared UI context. Calls from the UI thread
+/// complete in emission order; sim_with serializes them with snapshot ticks.
+#[no_mangle]
+pub extern "C" fn runtime_ui_hover_event(action_kind: u32, node_id: *const c_char, window_id: *const c_char, x: f32, y: f32, left: f32, top: f32, width: f32, height: f32, has_cell: i32, col: i32, row: i32) {
+    let action = match action_kind { 0 => "ui:hover-window:enter", 1 => "ui:hover-window:exit", 2 => "ui:hover-window:move", _ => return };
+    if node_id.is_null() || window_id.is_null() { return; }
+    let (Ok(node), Ok(window)) = (unsafe { CStr::from_ptr(node_id) }.to_str(), unsafe { CStr::from_ptr(window_id) }.to_str()) else { return; };
+    let Some(ctx) = crate::js_executor::sim_ctx::ctx() else { return; };
+    let args = serde_json::json!({"node": node, "window": window, "cursor": {"x": x, "y": y}, "rect": {"x": left, "y": top, "width": width, "height": height}, "cell": if has_cell != 0 { Some(serde_json::json!({"x": col, "y": row})) } else { None }});
+    let script = format!("globalThis.__uiHost.hoverWindowEvent({}, {});", serde_json::to_string(action).unwrap(), args);
+    if let Err(e) = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(script)) {
+        runtime_log!("ui: hover event failed: {:?}", e);
+    }
+}
+
+/// Synchronize pin ownership with the host under the same guard as hover events.
+#[no_mangle]
+pub extern "C" fn runtime_ui_hover_pinned(pinned: u32, node_id: *const c_char, window_id: *const c_char) {
+    if node_id.is_null() || window_id.is_null() { return; }
+    let (Ok(node), Ok(window)) = (unsafe { CStr::from_ptr(node_id) }.to_str(), unsafe { CStr::from_ptr(window_id) }.to_str()) else { return; };
+    let Some(ctx) = crate::js_executor::sim_ctx::ctx() else { return; };
+    let args = serde_json::json!({"node": node, "window": window, "pinned": pinned != 0});
+    let script = format!("globalThis.__uiHost.hoverWindowPinned({});", args);
+    if let Err(e) = crate::js_executor::sim_ctx::sim_with(ctx, |c| c.eval::<(), _>(script)) {
+        runtime_log!("ui: hover pin failed: {:?}", e);
+    }
+}
+
 /// Route a click on a node whose legacy `onClick` handler is a JS function
 /// (captured by the sim-context pre-wire behind the `"__jsHandler"` marker):
 /// invokes the handler with a click ctx (`emitAction`, `cursor`) and
